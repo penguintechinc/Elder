@@ -688,12 +688,72 @@ Elder/
 3. Create license management UI for admins
 4. Add license tier enforcement across all features
 
-**Option C: Phase 8 - Infrastructure & DevOps**:
-1. Create production-ready Dockerfiles with multi-stage builds
-2. Build Kubernetes manifests and Helm charts
-3. Set up comprehensive GitHub Actions CI/CD
-4. Configure structured logging (console + UDP syslog + HTTP3/Kafka)
-5. Add Prometheus metrics and Grafana dashboards
+### Phase 8: Infrastructure & DevOps - IN PROGRESS ⏳
+
+**Overview**: Production-ready infrastructure with CI/CD, Kubernetes, and monitoring.
+
+**Implementation Tasks**:
+1. ✅ Production Dockerfiles already using multi-stage builds (debian-slim)
+2. ✅ Create comprehensive GitHub Actions CI/CD workflows
+3. ✅ Create Kubernetes manifests for deployments
+4. ⏳ Create Helm charts
+5. ⏳ Configure structured logging (console + UDP syslog + HTTP3/Kafka)
+6. ⏳ Enhance Prometheus metrics and Grafana dashboards
+
+**Files Created** (4 files):
+- `.github/workflows/test.yml` - Comprehensive test pipeline (~220 lines)
+- `.github/workflows/build.yml` - Multi-arch Docker build pipeline (~180 lines)
+- `infrastructure/k8s/base/namespace.yaml` - Kubernetes namespace
+- `infrastructure/k8s/base/elder-api-deployment.yaml` - K8s deployments and services
+
+**GitHub Actions Workflows**:
+
+**Test Workflow** (`.github/workflows/test.yml`):
+- **Lint Job**: flake8, black, isort, mypy
+- **Security Scan**: Trivy vulnerability scanner, Safety for Python deps
+- **Unit Tests**: Matrix testing (Python 3.12 & 3.13), pytest with coverage
+- **Integration Tests**: PostgreSQL + Redis services, database migrations
+- **Docker Build Test**: Verify Docker image builds successfully
+- **Coverage Upload**: Codecov integration
+
+**Build Workflow** (`.github/workflows/build.yml`):
+- **Multi-arch builds**: amd64 + arm64 for all images
+- **Three separate jobs**: API, gRPC server, Envoy proxy
+- **Container Registry**: GitHub Container Registry (ghcr.io)
+- **Tagging Strategy**:
+  - Semantic versioning (v1.2.3, v1.2, v1)
+  - Branch names (main, develop)
+  - Git SHA hashes
+  - Latest tag for default branch
+- **Build Caching**: GitHub Actions cache for faster builds
+
+**Kubernetes Manifests**:
+- **Namespace**: elder namespace with labels
+- **API Deployment**: 3 replicas with resource limits and health checks
+- **gRPC Deployment**: 2 replicas for enterprise gRPC server
+- **Services**: ClusterIP services for internal communication
+- **Secrets**: External secret management for credentials
+- **Resource Limits**: CPU (250m-500m), Memory (256Mi-512Mi)
+- **Health Probes**: Liveness and readiness checks
+
+**Features**:
+- ✅ Parallel test execution for performance
+- ✅ Multi-arch Docker builds (amd64/arm64)
+- ✅ Automated security scanning (Trivy + Safety)
+- ✅ Code coverage tracking (Codecov)
+- ✅ Production-ready Kubernetes manifests
+- ✅ Resource limits and health checks
+- ✅ Secret management via Kubernetes secrets
+
+**Pending Tasks**:
+- Create Helm charts for easier deployment
+- Configure structured logging with multiple destinations
+- Add custom Grafana dashboards
+- Set up monitoring alerts
+- Create deployment workflow
+- Add performance testing to CI/CD
+
+**Total Lines of Code**: ~600 lines (workflows + K8s manifests)
 
 ### Performance Optimizations (Python 3.13 Best Practices)
 **IMPORTANT**: Utilize modern Python 3.13 features for maximum performance:
