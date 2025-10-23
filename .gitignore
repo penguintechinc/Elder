@@ -1,0 +1,431 @@
+# Operating System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.metadata
+.recommenders/
+*.iml
+*.ipr
+*.iws
+
+# Environment Files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
+
+# Go
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage-*.out
+coverage-*.xml
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.so
+.Python
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+htmlcov-python/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+cover/
+*.cover
+*.py,cover
+.hypothesis/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pyvenv.cfg
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage
+.grunt
+
+# Bower dependency directory
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons
+build/Release
+
+# Dependency directories
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Optional PNPM cache
+.pnpm-store/
+
+# Rush
+common/deploy/
+common/temp/
+common/autoinstallers/*/.npmrc
+**/.rush/temp/
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache
+.cache
+.parcel-cache
+
+# Next.js build output
+.next/
+out/
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Cloudflare Pages
+.dev.vars
+wrangler.toml
+functions/
+_worker.js
+_routes.json
+
+# Serverless directories
+.serverless/
+
+# Turbo
+.turbo/
+
+# Vercel
+.vercel
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+storybook-static
+
+# Temporary folders
+tmp/
+temp/
+
+# Docker
+.dockerignore
+Dockerfile.dev
+docker-compose.override.yml
+
+# Database files
+*.db
+*.db3
+*.sqlite
+*.sqlite3
+*.storage
+*.table
+*.bak
+
+# Logs
+logs
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Backups
+backups/
+*.backup
+*.sql.gz
+
+# License Server
+license_cache/
+
+# Monitoring and Metrics
+prometheus_data/
+grafana_data/
+
+# SSL Certificates and Security Files
+*.pem
+*.key
+*.crt
+*.csr
+*.cer
+*.der
+*.p12
+*.p7b
+*.p7c
+*.pfx
+*.jks
+*.keytab
+*.gpg
+*.pgp
+ssl/
+certs/
+*secret*
+id_rsa*
+password.txt
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Kubernetes
+*.kubeconfig
+
+# Secrets and Keys
+secrets/
+*.secret
+*.token
+
+# Local configuration
+config.local.json
+config.local.yaml
+config.local.yml
+local.properties
+
+# Performance and profiling
+*.prof
+*.trace
+*.mem
+
+# Documentation builds
+site/
+docs/_build/
+docs/build/
+
+# Generated files
+generated/
+*.generated.*
+
+# Test outputs
+test-results/
+test-reports/
+junit.xml
+*.junit.xml
+
+# Cloud provider configs
+.aws/
+.gcp/
+.azure/
+
+# Project-specific ignores
+# Add any project-specific files/directories to ignore below
+
+# Version management
+.version.backup
+
+# Development tools
+.air.toml
+.pre-commit-config.yaml.backup
+
+# Temporary development files
+TODO.local
+NOTES.local
+SCRATCH.md
+
+# macOS specific
+.AppleDouble
+.LSOverride
+Icon
+
+# Windows specific
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux specific
+.directory
+.Trash-*
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Vim
+*.swp
+*.swo
+.netrwhist
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+.atom/
+
+# Packages and Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+*.tgz
+*.apk
+*.ipa
+*.whl
+*.pcap
+*.pcapng
+*.pcapng.gz
+
+# SOPS encrypted files
+*.sops.yaml
+*.sops.yml
+
+# py4web specific
+*/web/apps/.service/*/*
+*/web/apps/.service/*/*/*
+*/web/apps/.service/*
+
+# Misc
+*.orig
+*.rej
+.vagrant/
+vagrant/
