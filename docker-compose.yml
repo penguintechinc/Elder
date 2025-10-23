@@ -148,6 +148,63 @@ services:
       - elder-network
     restart: unless-stopped
 
+  # Elder gRPC Server (Enterprise Only)
+  grpc-server:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: elder-grpc-server
+    command: python3 -m apps.api.grpc.server
+    environment:
+      # Database
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-elder}:${POSTGRES_PASSWORD:-elder_dev_password}@postgres:5432/${POSTGRES_DB:-elder}
+
+      # Redis
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-elder_redis_password}@redis:6379/0
+
+      # gRPC Configuration
+      - GRPC_HOST=0.0.0.0
+      - GRPC_PORT=50051
+      - GRPC_MAX_WORKERS=10
+      - GRPC_REQUIRE_LICENSE=${GRPC_REQUIRE_LICENSE:-true}
+
+      # License Server (Enterprise Required)
+      - LICENSE_KEY=${LICENSE_KEY}
+      - PRODUCT_NAME=elder
+      - LICENSE_SERVER_URL=${LICENSE_SERVER_URL:-https://license.penguintech.io}
+
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+    ports:
+      - "${GRPC_PORT:-50051}:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elder-network
+    volumes:
+      - ./apps:/app/apps
+      - ./shared:/app/shared
+    restart: unless-stopped
+
+  # Envoy Proxy for gRPC-Web
+  grpc-web-proxy:
+    build:
+      context: ./infrastructure/envoy
+      dockerfile: Dockerfile
+    container_name: elder-grpc-web-proxy
+    ports:
+      - "${GRPC_WEB_PORT:-8080}:8080"
+      - "${ENVOY_ADMIN_PORT:-9901}:9901"
+    depends_on:
+      - grpc-server
+    networks:
+      - elder-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
     driver: local

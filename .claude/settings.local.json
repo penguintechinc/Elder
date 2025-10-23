@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nPhase 6: Enterprise Features - Issues, Resource Roles, and Typed Metadata\n\nAdded comprehensive enterprise features for Elder:\n\n## License Server Integration\n- Integrated PenguinTech License Server client with validation and keepalive\n- @license_required decorator for tier-based feature gating\n- Caching and graceful degradation to community tier\n\n## Resource-Level Roles System\n- ResourceRole model with Maintainer/Operator/Viewer roles\n- Per-entity and per-organization role assignments\n- @resource_role_required decorator with hierarchical permission checking\n- 6 REST endpoints for resource role management\n\n## GitHub-Style Issues System\n- Issue, IssueLabel, IssueComment, IssueEntityLink models\n- Full GitHub-style features: status, priority, assignments, labels\n- Recursive issue queries for organizations (includes all children + entities)\n- Direct issue queries for entities\n- 14 REST endpoints with role-based permissions:\n  - Maintainer: Full CRUD\n  - Operator: Create/close issues, add comments/labels\n  - Viewer: View issues, create new issues, add comments\n\n## Typed Metadata System\n- MetadataField model with type validation (string, number, date, boolean, json)\n- Type coercion and validation on set\n- System metadata (read-only) support\n- 8 REST endpoints (4 for entities, 4 for organizations)\n\n## Database Migration\n- Added 7 new tables: resource_roles, issues, issue_labels, \n  issue_label_assignments, issue_comments, issue_entity_links, metadata_fields\n- Default issue labels created (bug, enhancement, documentation, etc.)\n\n## API Summary\n- New Endpoints: 28 (Resource Roles: 6, Issues: 14, Metadata: 8)\n- Total API Endpoints: 79\n- All endpoints protected with license tier + resource role checks\n\n## Files Created: 12 new files\n- Models: resource_role.py, issue.py, metadata.py\n- Schemas: resource_role.py, issue.py, metadata.py\n- APIs: resource_roles.py, issues.py, metadata.py\n- Licensing: client.py, decorators.py\n- Migration: 001_add_enterprise_features.py\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/generate-grpc.sh:*)",
+      "Bash(pip3 install:*)",
+      "Bash(make generate-grpc:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
