@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+
+{% block title %}Graph View - Elder{% endblock %}
+
+{% block extra_css %}
+<link href="https://unpkg.com/vis-network@9.1.9/dist/dist/vis-network.min.css" rel="stylesheet" type="text/css" />
+<style>
+    #graphContainer {
+        width: 100%;
+        height: 75vh;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .filter-panel {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+    }
+
+    .legend-item {
+        display: inline-block;
+        margin-right: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .legend-color {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 5px;
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h1 class="mb-0">
+                <i class="bi bi-diagram-3"></i> Dependency Graph
+            </h1>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row">
+        <div class="col-12">
+            <div class="filter-panel">
+                <div class="row align-items-end">
+                    <div class="col-md-3">
+                        <label for="organizationFilter" class="form-label">Organization</label>
+                        <select id="organizationFilter" class="form-select">
+                            <option value="">All Organizations</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="entityTypeFilter" class="form-label">Entity Type</label>
+                        <select id="entityTypeFilter" class="form-select">
+                            <option value="">All Types</option>
+                            <option value="datacenter">Datacenter</option>
+                            <option value="vpc">VPC</option>
+                            <option value="subnet">Subnet</option>
+                            <option value="compute">Compute</option>
+                            <option value="network">Network</option>
+                            <option value="user">User</option>
+                            <option value="security_issue">Security Issue</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="depthFilter" class="form-label">Depth</label>
+                        <select id="depthFilter" class="form-select">
+                            <option value="-1">Unlimited</option>
+                            <option value="1">1 Level</option>
+                            <option value="2" selected>2 Levels</option>
+                            <option value="3">3 Levels</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <button class="btn btn-primary w-100" onclick="loadGraph()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh Graph
+                        </button>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <strong>Legend:</strong>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #97c2fc;"></span>
+                            <span>Datacenter</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #fb7e81;"></span>
+                            <span>VPC</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #ffa807;"></span>
+                            <span>Subnet</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #7be141;"></span>
+                            <span>Compute</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #c2c2f0;"></span>
+                            <span>Network</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #ffff00;"></span>
+                            <span>User</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: #ff0000;"></span>
+                            <span>Security Issue</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graph Container -->
+    <div class="row">
+        <div class="col-12">
+            <div id="graphContainer"></div>
+        </div>
+    </div>
+
+    <!-- Node Info Panel -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div id="nodeInfo" class="card d-none">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle"></i> Node Details
+                        <button type="button" class="btn-close float-end" onclick="hideNodeInfo()"></button>
+                    </h5>
+                </div>
+                <div class="card-body" id="nodeInfoContent">
+                    <!-- Node details will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
+<script>
+let network = null;
+let graphData = { nodes: [], edges: [] };
+
+// Entity type colors (matching backend)
+const entityColors = {
+    'datacenter': '#97c2fc',
+    'vpc': '#fb7e81',
+    'subnet': '#ffa807',
+    'compute': '#7be141',
+    'network': '#c2c2f0',
+    'user': '#ffff00',
+    'security_issue': '#ff0000'
+};
+
+// Entity type shapes
+const entityShapes = {
+    'datacenter': 'box',
+    'vpc': 'ellipse',
+    'subnet': 'ellipse',
+    'compute': 'box',
+    'network': 'diamond',
+    'user': 'dot',
+    'security_issue': 'triangle'
+};
+
+// Initialize graph
+function initGraph() {
+    const container = document.getElementById('graphContainer');
+
+    const options = {
+        nodes: {
+            shape: 'box',
+            margin: 10,
+            font: {
+                size: 14,
+                face: 'Arial'
+            }
+        },
+        edges: {
+            arrows: {
+                to: { enabled: true, scaleFactor: 0.5 }
+            },
+            smooth: {
+                type: 'continuous'
+            },
+            color: {
+                color: '#848484',
+                highlight: '#2B7CE9'
+            }
+        },
+        physics: {
+            stabilization: {
+                iterations: 200
+            },
+            barnesHut: {
+                gravitationalConstant: -8000,
+                centralGravity: 0.3,
+                springLength: 150,
+                springConstant: 0.04
+            }
+        },
+        interaction: {
+            hover: true,
+            tooltipDelay: 200
+        }
+    };
+
+    const data = {
+        nodes: new vis.DataSet([]),
+        edges: new vis.DataSet([])
+    };
+
+    network = new vis.Network(container, data, options);
+
+    // Event listeners
+    network.on('click', function(params) {
+        if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            showNodeInfo(nodeId);
+        } else {
+            hideNodeInfo();
+        }
+    });
+
+    network.on('doubleClick', function(params) {
+        if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            window.location.href = `/entities/${nodeId}`;
+        }
+    });
+}
+
+// Load graph data from API
+async function loadGraph() {
+    const organizationId = document.getElementById('organizationFilter').value;
+    const entityType = document.getElementById('entityTypeFilter').value;
+
+    try {
+        let url = '/api/v1/graph';
+        const params = new URLSearchParams();
+
+        if (organizationId) params.append('organization_id', organizationId);
+        if (entityType) params.append('entity_type', entityType);
+
+        if (params.toString()) url += '?' + params.toString();
+
+        const response = await axios.get(url);
+        graphData = response.data;
+
+        // Update network
+        const nodes = graphData.nodes.map(node => ({
+            id: node.id,
+            label: node.label,
+            shape: entityShapes[node.type] || 'box',
+            color: entityColors[node.type] || '#97c2fc',
+            title: `${node.label}\nType: ${node.type}\nOrg: ${node.organization_id}`,
+            type: node.type,
+            organization_id: node.organization_id
+        }));
+
+        const edges = graphData.edges.map(edge => ({
+            id: edge.id,
+            from: edge.from,
+            to: edge.to,
+            label: edge.type,
+            color: edge.color || '#848484',
+            dashes: edge.dashes || false
+        }));
+
+        network.setData({
+            nodes: new vis.DataSet(nodes),
+            edges: new vis.DataSet(edges)
+        });
+
+        // Show success message
+        console.log(`Loaded ${nodes.length} nodes and ${edges.length} edges`);
+
+    } catch (error) {
+        console.error('Error loading graph:', error);
+        alert('Failed to load graph: ' + (error.response?.data?.message || error.message));
+    }
+}
+
+// Load organizations for filter
+async function loadOrganizations() {
+    try {
+        const response = await axios.get('/api/v1/organizations');
+        const select = document.getElementById('organizationFilter');
+
+        if (response.data.items) {
+            response.data.items.forEach(org => {
+                const option = document.createElement('option');
+                option.value = org.id;
+                option.textContent = org.name;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading organizations:', error);
+    }
+}
+
+// Show node details
+async function showNodeInfo(nodeId) {
+    try {
+        const response = await axios.get(`/api/v1/entities/${nodeId}`);
+        const entity = response.data;
+
+        const infoPanel = document.getElementById('nodeInfo');
+        const content = document.getElementById('nodeInfoContent');
+
+        content.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Name:</strong> ${entity.name}</p>
+                    <p><strong>Type:</strong> <span class="badge bg-secondary">${entity.entity_type}</span></p>
+                    <p><strong>Organization:</strong> ${entity.organization?.name || '-'}</p>
+                    <p><strong>Owner:</strong> ${entity.owner?.username || '-'}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Created:</strong> ${new Date(entity.created_at).toLocaleString()}</p>
+                    <p><strong>Updated:</strong> ${new Date(entity.updated_at).toLocaleString()}</p>
+                    <p><strong>ID:</strong> ${entity.id}</p>
+                    <p><strong>Unique ID:</strong> ${entity.unique_id}</p>
+                </div>
+            </div>
+            ${entity.description ? `<hr><p><strong>Description:</strong><br>${entity.description}</p>` : ''}
+            ${entity.metadata && Object.keys(entity.metadata).length > 0 ? `
+                <hr>
+                <p><strong>Metadata:</strong></p>
+                <pre class="bg-light p-2 rounded">${JSON.stringify(entity.metadata, null, 2)}</pre>
+            ` : ''}
+            <hr>
+            <div class="btn-group" role="group">
+                <a href="/entities/${entity.id}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-eye"></i> View Details
+                </a>
+                <a href="/entities/${entity.id}/edit" class="btn btn-warning btn-sm">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+            </div>
+        `;
+
+        infoPanel.classList.remove('d-none');
+    } catch (error) {
+        console.error('Error loading node info:', error);
+    }
+}
+
+// Hide node info panel
+function hideNodeInfo() {
+    document.getElementById('nodeInfo').classList.add('d-none');
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initGraph();
+    loadOrganizations();
+    loadGraph();
+
+    // Filter change listeners
+    document.getElementById('organizationFilter').addEventListener('change', loadGraph);
+    document.getElementById('entityTypeFilter').addEventListener('change', loadGraph);
+});
+</script>
+{% endblock %}

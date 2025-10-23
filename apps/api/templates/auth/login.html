@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Elder{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-diagram-3 display-1 text-primary"></i>
+                        <h1 class="h3 mb-3 fw-normal">Elder</h1>
+                        <p class="text-muted">Entity Relationship Tracker</p>
+                    </div>
+
+                    <form id="loginForm" method="POST" action="{{ url_for('web.login') }}">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required autofocus>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                            <label class="form-check-label" for="remember">
+                                Remember me
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-box-arrow-in-right"></i> Sign In
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            Don't have an account? <a href="{{ url_for('web.register') }}">Register</a>
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <small class="text-muted">
+                    Elder v{{ app_version }} &copy; 2025 Penguin Tech Inc
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        const response = await axios.post('/api/v1/auth/login', {
+            username: username,
+            password: password
+        });
+
+        if (response.data.access_token) {
+            // Store tokens
+            localStorage.setItem('access_token', response.data.access_token);
+            localStorage.setItem('refresh_token', response.data.refresh_token);
+
+            // Set axios default header
+            axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.access_token}`;
+
+            // Redirect to dashboard
+            window.location.href = '{{ url_for("web.dashboard") }}';
+        }
+    } catch (error) {
+        alert('Login failed: ' + (error.response?.data?.message || 'Invalid credentials'));
+    }
+});
+</script>
+{% endblock %}

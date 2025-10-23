@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Elder{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-person-plus display-1 text-primary"></i>
+                        <h1 class="h3 mb-3 fw-normal">Create Account</h1>
+                    </div>
+
+                    <form id="registerForm" method="POST" action="{{ url_for('web.register') }}">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required autofocus>
+                            <div class="form-text">Alphanumeric characters only</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="full_name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <div class="form-text">Minimum 8 characters</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password_confirm" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="password_confirm" name="password_confirm" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-person-check"></i> Register
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            Already have an account? <a href="{{ url_for('web.login') }}">Sign in</a>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const password = document.getElementById('password').value;
+    const passwordConfirm = document.getElementById('password_confirm').value;
+
+    if (password !== passwordConfirm) {
+        alert('Passwords do not match');
+        return;
+    }
+
+    const formData = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        full_name: document.getElementById('full_name').value,
+        password: password
+    };
+
+    try {
+        const response = await axios.post('/api/v1/auth/register', formData);
+
+        if (response.data.id) {
+            alert('Registration successful! Please log in.');
+            window.location.href = '{{ url_for("web.login") }}';
+        }
+    } catch (error) {
+        alert('Registration failed: ' + (error.response?.data?.message || 'Unknown error'));
+    }
+});
+</script>
+{% endblock %}

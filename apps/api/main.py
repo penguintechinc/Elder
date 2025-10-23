@@ -156,6 +156,7 @@ def _register_blueprints(app: Flask) -> None:
     """
     # Import blueprints
     from apps.api.api.v1 import organizations, entities, dependencies, graph, auth, identities, lookup, resource_roles, issues, metadata
+    from apps.api.web import routes as web
 
     # Register API v1 blueprints
     api_prefix = app.config["API_PREFIX"]
@@ -175,7 +176,10 @@ def _register_blueprints(app: Flask) -> None:
     # Public lookup endpoint (no /api/v1 prefix for cleaner URLs)
     app.register_blueprint(lookup.bp, url_prefix="/lookup")
 
-    logger.info("blueprints_registered", api_prefix=api_prefix, blueprints=["organizations", "entities", "dependencies", "graph", "auth", "identities", "resource_roles", "issues", "metadata", "lookup"])
+    # Web UI blueprint (root routes)
+    app.register_blueprint(web.bp, url_prefix="")
+
+    logger.info("blueprints_registered", api_prefix=api_prefix, blueprints=["organizations", "entities", "dependencies", "graph", "auth", "identities", "resource_roles", "issues", "metadata", "lookup", "web"])
 
 
 def _register_error_handlers(app: Flask) -> None:

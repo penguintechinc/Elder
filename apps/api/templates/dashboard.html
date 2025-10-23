@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Elder{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </h1>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Organizations</h6>
+                            <h2 class="mb-0" id="orgCount">-</h2>
+                        </div>
+                        <div class="text-primary">
+                            <i class="bi bi-building display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Entities</h6>
+                            <h2 class="mb-0" id="entityCount">-</h2>
+                        </div>
+                        <div class="text-success">
+                            <i class="bi bi-box display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Dependencies</h6>
+                            <h2 class="mb-0" id="depCount">-</h2>
+                        </div>
+                        <div class="text-warning">
+                            <i class="bi bi-arrow-left-right display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Open Issues</h6>
+                            <h2 class="mb-0" id="issueCount">-</h2>
+                        </div>
+                        <div class="text-danger">
+                            <i class="bi bi-exclamation-circle display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock-history"></i> Recent Entities
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Organization</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentEntities">
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <div class="spinner-border spinner-border-sm" role="status"></div>
+                                        Loading...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-speedometer"></i> Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('web.graph') }}" class="btn btn-primary">
+                            <i class="bi bi-diagram-3"></i> View Graph
+                        </a>
+                        <button type="button" class="btn btn-success" onclick="showCreateEntityModal()">
+                            <i class="bi bi-plus-circle"></i> Create Entity
+                        </button>
+                        <button type="button" class="btn btn-info" onclick="showCreateOrganizationModal()">
+                            <i class="bi bi-building-add"></i> Create Organization
+                        </button>
+                        {% if license_tier == 'enterprise' %}
+                        <button type="button" class="btn btn-warning" onclick="showCreateIssueModal()">
+                            <i class="bi bi-exclamation-circle"></i> Create Issue
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle"></i> License Info
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Tier:</strong>
+                        <span class="badge bg-{{ 'success' if license_tier == 'enterprise' else 'primary' if license_tier == 'professional' else 'secondary' }}">
+                            {{ license_tier|upper if license_tier else 'COMMUNITY' }}
+                        </span>
+                    </p>
+                    {% if license_tier != 'enterprise' %}
+                    <div class="alert alert-info mb-0">
+                        <small>
+                            <i class="bi bi-star"></i> Upgrade to Enterprise for Issues, Metadata, and more!
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load dashboard statistics
+async function loadDashboardStats() {
+    try {
+        // Load counts
+        const [orgs, entities, deps, issues] = await Promise.all([
+            axios.get('/api/v1/organizations'),
+            axios.get('/api/v1/entities'),
+            axios.get('/api/v1/dependencies'),
+            axios.get('/api/v1/issues?status=open').catch(() => ({data: {total: 0}}))
+        ]);
+
+        document.getElementById('orgCount').textContent = orgs.data.total || 0;
+        document.getElementById('entityCount').textContent = entities.data.total || 0;
+        document.getElementById('depCount').textContent = deps.data.total || 0;
+        document.getElementById('issueCount').textContent = issues.data.total || 0;
+
+        // Load recent entities
+        if (entities.data.items && entities.data.items.length > 0) {
+            const tbody = document.getElementById('recentEntities');
+            tbody.innerHTML = entities.data.items.slice(0, 5).map(entity => `
+                <tr>
+                    <td><strong>${entity.name}</strong></td>
+                    <td><span class="badge bg-secondary">${entity.entity_type}</span></td>
+                    <td>${entity.organization?.name || '-'}</td>
+                    <td><small>${new Date(entity.created_at).toLocaleDateString()}</small></td>
+                    <td>
+                        <a href="/entities/${entity.id}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            document.getElementById('recentEntities').innerHTML = `
+                <tr><td colspan="5" class="text-center text-muted">No entities yet</td></tr>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+    }
+}
+
+// Load stats on page load
+document.addEventListener('DOMContentLoaded', loadDashboardStats);
+
+// Quick action functions (to be implemented)
+function showCreateEntityModal() {
+    window.location.href = '/entities/new';
+}
+
+function showCreateOrganizationModal() {
+    window.location.href = '/organizations/new';
+}
+
+function showCreateIssueModal() {
+    window.location.href = '/issues/new';
+}
+</script>
+{% endblock %}
