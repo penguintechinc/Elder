@@ -1,117 +1,431 @@
-[![CI](https://github.com/PenguinCloud/project-template/actions/workflows/ci.yml/badge.svg)](https://github.com/PenguinCloud/project-template/actions/workflows/ci.yml)
-[![Docker Build](https://github.com/PenguinCloud/project-template/actions/workflows/docker-build.yml/badge.svg)](https://github.com/PenguinCloud/project-template/actions/workflows/docker-build.yml)
-[![codecov](https://codecov.io/gh/PenguinCloud/project-template/branch/main/graph/badge.svg)](https://codecov.io/gh/PenguinCloud/project-template)
-[![Go Report Card](https://goreportcard.com/badge/github.com/PenguinCloud/project-template)](https://goreportcard.com/report/github.com/PenguinCloud/project-template)
-[![version](https://img.shields.io/badge/version-5.1.1-blue.svg)](https://semver.org)
-[![License](https://img.shields.io/badge/License-Limited%20AGPL3-blue.svg)](LICENSE.md)
+# Elder
+
+[![CI/CD Pipeline](https://github.com/penguintechinc/elder/actions/workflows/build.yml/badge.svg)](https://github.com/penguintechinc/elder/actions)
+[![Test Coverage](https://codecov.io/gh/penguintechinc/elder/branch/main/graph/badge.svg)](https://codecov.io/gh/penguintechinc/elder)
+[![Python Version](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](https://github.com/penguintechinc/elder/releases)
 
 ```
- ____            _           _     _____                    _       _
-|  _ \ _ __ ___ (_) ___  ___| |_  |_   _|__ _ __ ___  _ __ | | __ _| |_ ___
-| |_) | '__/ _ \| |/ _ \/ __| __|   | |/ _ \ '_ ` _ \| '_ \| |/ _` | __/ _ \
-|  __/| | | (_) | |  __/ (__| |_    | |  __/ | | | | | |_) | | (_| | ||  __/
-|_|   |_|  \___/| |\___|\___|\__|   |_|\___|_| |_| |_| .__/|_|\__,_|\__\___|
-               _/ |                                  |_|
-              |__/
+ ______ _     _
+|  ____| |   | |
+| |__  | | __| | ___ _ __
+|  __| | |/ _` |/ _ \ '__|
+| |____| | (_| |  __/ |
+|______|_|\__,_|\___|_|
+
+   Entity Relationship
+   Tracking System
 ```
 
-# 🏗️ Enterprise Project Template
+**Elder** is a comprehensive entity relationship tracking application that visualizes and manages dependencies between infrastructure and organizational entities. Track datacenters, networks, compute resources, users, and security issues with their complex interdependencies in a hierarchical organizational structure.
 
-**The Ultimate Multi-Language Development Foundation**
+## Overview
 
-This comprehensive project template provides a production-ready foundation for enterprise software development, incorporating best practices from Penguin Tech Inc projects. Built with security, scalability, and developer experience at its core, it offers standardized tooling for Go, Python, and Node.js applications with integrated licensing, monitoring, and enterprise-grade infrastructure.
-## ✨ Why Choose This Template?
+Elder provides visibility into your infrastructure and organizational relationships through:
 
-### 🏭 Enterprise-Ready Architecture
-Built for production from day one with multi-language support (Go 1.23+, Python 3.12/3.13, Node.js 18+), comprehensive CI/CD pipelines, and enterprise-grade security scanning.
+- **Entity Tracking**: Datacenters, VPCs, Subnets, Compute Devices, Network Devices, Users, and Security Issues
+- **Dependency Mapping**: Visualize "depends on" relationships between entities
+- **Organizational Hierarchy**: Manage entities within Company → Department → Teams structure
+- **LDAP/SAML Integration**: Sync organizational structure with directory services
+- **Role-Based Access Control**: Granular permissions with super admin, org admin, editor, and viewer roles
+- **Interactive Visualization**: Zoom, pan, and explore entity relationships with vis.js
+- **Comprehensive APIs**: Both REST and gRPC for maximum flexibility
+- **Enterprise Features**: Audit logging, MFA, SSO, and license management
 
-### 🔒 Security First
-- **8-stage security validation** including Trivy, CodeQL, and Semgrep scanning
-- **TLS 1.2 minimum enforcement**, preferring TLS 1.3
-- **Automated vulnerability detection** with Dependabot and Socket.dev integration
-- **Secrets management** with environment-based configuration
+## Features
 
-### 🚀 Performance Optimized
-- **Multi-architecture Docker builds** (amd64/arm64) with Debian-slim base images
-- **Parallel CI/CD workflows** for optimized build times
-- **eBPF/XDP networking** support for high-performance applications
-- **Connection pooling** and caching strategies built-in
+### Core Capabilities
 
-### 🏢 PenguinTech License Server Integration
-- **Centralized feature gating** with `https://license.penguintech.io`
-- **Universal JSON response format** across all products
-- **Multi-tier licensing** (community/professional/enterprise)
-- **Usage tracking and compliance** reporting
+- ✅ **Multi-Entity Support**: Track 7 entity types with custom metadata
+- ✅ **Hierarchical Organizations**: Unlimited depth organizational structures
+- ✅ **Dependency Graphs**: Visualize complex entity relationships
+- ✅ **Full RBAC**: Role-based permissions with org-scoped access
+- ✅ **Multi-Auth**: Local, SAML, OAuth2, and LDAP authentication
+- ✅ **RESTful API**: Complete OpenAPI 3.0 documented REST API
+- ✅ **gRPC API**: High-performance gRPC for machine-to-machine communication
+- ✅ **Audit Logging**: Comprehensive audit trail for compliance
+- ✅ **Real-time Updates**: WebSocket support for live graph updates
+- ✅ **Import/Export**: JSON, YAML, and CSV data exchange
 
-### 🔄 Self-Healing & Monitoring
-- **Built-in health checks** and self-healing capabilities
-- **Prometheus metrics** and Grafana dashboard integration
-- **Structured logging** with configurable verbosity levels
-- **Real-time monitoring** and alerting
+### Entity Types
 
-### 🌐 Multi-Environment Support
-- **Air-gapped deployment** ready with local caching
-- **Container orchestration** with Kubernetes and Helm
-- **Environment-specific configurations** for dev/staging/production
-- **Blue-green deployment** support with automated rollbacks
+| Type | Description | Examples |
+|------|-------------|----------|
+| **Datacenter/VPC** | Physical or virtual datacenter infrastructure | AWS VPC, Azure VNet, On-prem DC |
+| **Subnet** | Network subnets and segments | 10.0.1.0/24, DMZ, Private Subnet |
+| **Compute** | Servers, VMs, and compute resources | EC2 instances, bare metal servers, containers |
+| **Network** | Network devices and services | Load balancers, VPNs, firewalls, proxies |
+| **User** | Human and service accounts | Employees, service accounts, API keys |
+| **Security Issue** | Vulnerabilities and security concerns | CVEs, misconfigurations, compliance gaps |
 
-## 🛠️ Quick Start
+### License Tiers
+
+Elder integrates with the [PenguinTech License Server](https://license.penguintech.io) for feature gating:
+
+| Tier | Features | Limits |
+|------|----------|--------|
+| **Community** | Basic tracking, local auth | Up to 100 entities |
+| **Professional** | SAML/OAuth2, advanced visualization | Unlimited entities |
+| **Enterprise** | All features + LDAP sync, audit logging, gRPC API, SSO | Unlimited |
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.13+
+- Docker & Docker Compose
+- PostgreSQL 15+ (via Docker)
+- Redis 7+ (via Docker)
+
+### Installation
 
 ```bash
-# Clone and setup
-git clone <your-repository-url>
-cd your-project
-make setup                    # Install dependencies and setup environment
-make dev                      # Start development environment
+# Clone the repository
+git clone https://github.com/penguintechinc/elder.git
+cd elder
+
+# Run setup (installs dependencies and creates .env)
+make setup
+
+# Edit .env with your configuration
+nano .env
+
+# Start development environment
+make dev
+
+# In another terminal, run database migrations
+make db-migrate
+
+# Start the API
+make dev-api
 ```
 
-## 📚 Key Components
+The Elder API will be available at `http://localhost:5000`
 
-### Core Technologies
-- **Languages**: Go 1.23+, Python 3.12/3.13, Node.js 18+
-- **Databases**: PostgreSQL with PyDAL/GORM, Redis/Valkey caching
-- **Containers**: Docker with multi-stage builds, Kubernetes deployment
-- **Monitoring**: Prometheus, Grafana, structured logging
+### Docker Deployment
 
-### Security Features
-- Multi-factor authentication (MFA) and JWT tokens
-- Role-based access control (RBAC)
-- Automated security scanning and vulnerability management
-- Compliance audit logging (SOC2, ISO27001 ready)
+```bash
+# Start all services with docker-compose
+make dev-all
 
-### Development Workflow
-- Comprehensive test coverage (unit, integration, e2e)
-- Automated code quality checks (linting, formatting, type checking)
-- Version management with semantic versioning
-- Feature branch workflow with required reviews
+# Check service health
+make health
 
-## 📖 Documentation
+# View logs
+make dev-logs
+```
 
-- **Getting Started**: [docs/development/](docs/development/)
-- **API Reference**: [docs/api/](docs/api/)
-- **Deployment Guide**: [docs/deployment/](docs/deployment/)
-- **Architecture Overview**: [docs/architecture/](docs/architecture/)
-- **License Integration**: [docs/licensing/](docs/licensing/)
+Access the services:
+- **Elder API**: http://localhost:5000
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:3001 (admin/admin)
 
-## 🤝 Contributing
+## Configuration
+
+Elder is configured via environment variables. Key settings:
+
+```bash
+# Flask
+FLASK_ENV=development
+SECRET_KEY=your-secret-key
+
+# Database
+DATABASE_URL=postgresql://elder:password@localhost:5432/elder
+
+# Redis
+REDIS_URL=redis://:password@localhost:6379/0
+
+# Authentication
+SAML_ENABLED=true
+SAML_METADATA_URL=https://your-idp.com/metadata
+OAUTH2_ENABLED=true
+OAUTH2_CLIENT_ID=your-client-id
+LDAP_ENABLED=true
+LDAP_HOST=ldap.example.com
+
+# License (optional)
+LICENSE_KEY=PENG-XXXX-XXXX-XXXX-XXXX-XXXX
+
+# Admin User (created on first run if set)
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=change-me
+ADMIN_EMAIL=admin@example.com
+```
+
+See `.env` for full configuration options.
+
+## API Documentation
+
+### REST API
+
+Elder provides a comprehensive REST API following OpenAPI 3.0 specification:
+
+```bash
+# Organizations
+GET    /api/v1/organizations
+POST   /api/v1/organizations
+GET    /api/v1/organizations/{id}
+PATCH  /api/v1/organizations/{id}
+DELETE /api/v1/organizations/{id}
+
+# Entities
+GET    /api/v1/entities
+POST   /api/v1/entities
+GET    /api/v1/entities/{id}
+PATCH  /api/v1/entities/{id}
+DELETE /api/v1/entities/{id}
+
+# Dependencies
+GET    /api/v1/dependencies
+POST   /api/v1/dependencies
+DELETE /api/v1/dependencies/{id}
+
+# Graph Visualization
+GET    /api/v1/graph
+GET    /api/v1/graph?organization_id={id}
+GET    /api/v1/graph?entity_id={id}&depth=2
+
+# Authentication
+POST   /api/v1/auth/login
+POST   /api/v1/auth/logout
+GET    /api/v1/auth/saml/login
+GET    /api/v1/auth/oauth2/authorize
+
+# Monitoring
+GET    /healthz
+GET    /metrics
+```
+
+Full API documentation available at `/api/docs` (Swagger UI).
+
+### gRPC API
+
+Elder also provides a gRPC API for high-performance integrations:
+
+```protobuf
+service ElderService {
+  rpc ListEntities(ListEntitiesRequest) returns (ListEntitiesResponse);
+  rpc GetEntity(GetEntityRequest) returns (Entity);
+  rpc CreateEntity(CreateEntityRequest) returns (Entity);
+  rpc UpdateEntity(UpdateEntityRequest) returns (Entity);
+  rpc DeleteEntity(DeleteEntityRequest) returns (Empty);
+  rpc GetDependencyGraph(GetDependencyGraphRequest) returns (DependencyGraph);
+}
+```
+
+gRPC server runs on port `50051` by default.
+
+## Development
+
+### Common Commands
+
+```bash
+# Development
+make dev                # Start postgres and redis
+make dev-api            # Start Flask API locally
+make dev-all            # Start all services
+make dev-logs           # View logs
+make dev-stop           # Stop all services
+
+# Testing
+make test               # Run all tests
+make test-unit          # Unit tests only
+make test-integration   # Integration tests only
+make test-coverage      # Generate coverage report
+make lint               # Run linters
+make format             # Format code
+
+# Database
+make db-migrate         # Run migrations
+make db-create-migration # Create new migration
+make db-reset           # Reset database (WARNING: destroys data)
+make db-shell           # Open PostgreSQL shell
+make db-backup          # Create backup
+
+# Docker
+make docker-build       # Build Docker image
+make docker-scan        # Scan for vulnerabilities
+
+# Version
+make version            # Show current version
+make version-bump-patch # Bump patch version
+make version-bump-minor # Bump minor version
+make version-bump-major # Bump major version
+```
+
+### Testing
+
+Elder has comprehensive test coverage:
+
+```bash
+# Run all tests with coverage
+make test
+
+# Run specific test types
+make test-unit
+make test-integration
+
+# Generate HTML coverage report
+make test-coverage
+# Open htmlcov/index.html
+```
+
+### Code Quality
+
+Elder follows strict code quality standards:
+
+```bash
+# Format code
+make format
+
+# Check formatting
+make format-check
+
+# Run linters
+make lint
+```
+
+## Architecture
+
+Elder is built on a modern, scalable architecture:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Client Layer                         │
+│  Web UI (vis.js) │ REST Clients │ gRPC Clients          │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│                   API Layer                             │
+│  Flask REST API │ gRPC Server │ WebSocket               │
+│  Authentication │ Authorization (RBAC) │ Rate Limiting  │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│                 Business Logic Layer                    │
+│  Entity Management │ Dependency Tracking                │
+│  Organization Hierarchy │ Audit Logging                 │
+└─────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────┐
+│                   Data Layer                            │
+│  PostgreSQL (Entities, Orgs, Users, RBAC, Audit)       │
+│  Redis (Cache, Sessions, Real-time)                     │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Technology Stack
+
+- **Backend**: Flask (Python 3.13), SQLAlchemy, Alembic
+- **Database**: PostgreSQL 15+ with connection pooling
+- **Cache**: Redis 7+ for sessions and caching
+- **APIs**: REST (OpenAPI 3.0), gRPC (protobuf)
+- **Auth**: SAML (python3-saml), OAuth2 (Authlib), LDAP
+- **Frontend**: HTML5, JavaScript, vis.js Network
+- **Monitoring**: Prometheus, Grafana
+- **Container**: Docker, docker-compose
+- **Orchestration**: Kubernetes with Helm charts
+
+## Security
+
+Elder implements security best practices:
+
+- ✅ **Authentication**: Multi-factor authentication support
+- ✅ **Authorization**: Fine-grained RBAC with org-scoped permissions
+- ✅ **TLS**: Enforce TLS 1.3 for all connections
+- ✅ **Input Validation**: Comprehensive validation with marshmallow
+- ✅ **SQL Injection Prevention**: SQLAlchemy ORM with parameterized queries
+- ✅ **XSS Prevention**: Jinja2 auto-escaping
+- ✅ **CSRF Protection**: Flask-WTF CSRF tokens
+- ✅ **Rate Limiting**: Request rate limiting to prevent abuse
+- ✅ **Audit Logging**: Comprehensive audit trail
+- ✅ **Secrets Management**: Environment variables, never in code
+- ✅ **Container Scanning**: Trivy vulnerability scanning
+
+## Deployment
+
+### Production Deployment
+
+```bash
+# Build production Docker image
+make docker-build
+
+# Scan for vulnerabilities
+make docker-scan
+
+# Build multi-architecture images
+make docker-build-multiarch
+
+# Push to registry
+make docker-push
+```
+
+### Kubernetes Deployment
+
+Kubernetes manifests and Helm charts are available in `infrastructure/k8s/`:
+
+```bash
+# Deploy with kubectl
+kubectl apply -f infrastructure/k8s/
+
+# Or deploy with Helm
+helm install elder infrastructure/helm/elder
+```
+
+## Monitoring
+
+Elder includes built-in monitoring and observability:
+
+- **Metrics**: Prometheus metrics at `/metrics`
+- **Health Checks**: `/healthz` endpoint
+- **Structured Logging**: JSON-formatted logs
+- **Grafana Dashboards**: Pre-configured dashboards
+- **Distributed Tracing**: OpenTelemetry support
+
+## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-### Maintainers
-- **Primary**: creatorsemailhere@penguintech.group
-- **General**: info@penguintech.group
-- **Company**: [www.penguintech.io](https://www.penguintech.io)
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-### Community Contributors
-- *Your name could be here! Submit a PR to get started.*
+## License
 
-## 📞 Support & Resources
+Elder is licensed under the Limited AGPL v3 with Fair Use Preamble. See [LICENSE.md](LICENSE.md) for details.
 
-- **Documentation**: [./docs/](docs/)
-- **Premium Support**: https://support.penguintech.group
-- **Community Issues**: [GitHub Issues](../../issues)
-- **License Server Status**: https://status.penguintech.io
+## Support
 
-## 📄 License
+- **Company Homepage**: [www.penguintech.io](https://www.penguintech.io)
+- **Documentation**: [docs.penguintech.io/elder](https://docs.penguintech.io/elder)
+- **Issues**: [GitHub Issues](https://github.com/penguintechinc/elder/issues)
+- **Email**: support@penguintech.io
+- **License Server**: [license.penguintech.io](https://license.penguintech.io)
 
-This project is licensed under the Limited AGPL3 with preamble for fair use - see [LICENSE.md](LICENSE.md) for details.
+## Roadmap
+
+- [x] Phase 1: Foundation & Core Models ✅
+- [ ] Phase 2: Complete REST API implementation
+- [ ] Phase 3: Authentication & Authorization
+- [ ] Phase 4: gRPC API
+- [ ] Phase 5: Visualization Frontend
+- [ ] Phase 6: Advanced Features (LDAP sync, audit logging)
+- [ ] Phase 7: License Integration
+- [ ] Phase 8: CI/CD Pipeline
+- [ ] Phase 9: Marketing and Documentation Websites
+- [ ] Phase 10: Production Deployment
+
+Current status: **Phase 1 Complete** (Foundation & Core Models)
+
+## Acknowledgments
+
+Elder is developed and maintained by [Penguin Tech Inc](https://www.penguintech.io).
+
+---
+
+**Elder** - Know Your Infrastructure, Understand Your Dependencies
+
+© 2024 Penguin Tech Inc. All rights reserved.

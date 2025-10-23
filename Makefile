@@ -1,5 +1,5 @@
-# Project Template Makefile
-# This Makefile provides common development tasks for multi-language projects
+# Elder - Entity Relationship Tracking Application Makefile
+# Provides common development tasks for Elder
 
 .PHONY: help setup dev test build clean lint format docker deploy
 
@@ -7,13 +7,11 @@
 .DEFAULT_GOAL := help
 
 # Variables
-PROJECT_NAME := project-template
-VERSION := $(shell cat .version 2>/dev/null || echo "development")
+PROJECT_NAME := elder
+VERSION := $(shell cat .version 2>/dev/null || echo "0.1.0")
 DOCKER_REGISTRY := ghcr.io
 DOCKER_ORG := penguintechinc
-GO_VERSION := 1.23.5
-PYTHON_VERSION := 3.12
-NODE_VERSION := 18
+PYTHON_VERSION := 3.13
 
 # Colors for output
 RED := \033[31m
@@ -24,391 +22,263 @@ RESET := \033[0m
 
 # Help target
 help: ## Show this help message
-	@echo "$(BLUE)$(PROJECT_NAME) Development Commands$(RESET)"
+	@echo "$(BLUE)Elder - Entity Relationship Tracking Application$(RESET)"
 	@echo ""
 	@echo "$(GREEN)Setup Commands:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && /Setup/ {printf "  $(YELLOW)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && /Setup/ {printf "  $(YELLOW)%-25s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "$(GREEN)Development Commands:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && /Development/ {printf "  $(YELLOW)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && /Development/ {printf "  $(YELLOW)%-25s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "$(GREEN)Testing Commands:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && /Testing/ {printf "  $(YELLOW)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && /Testing/ {printf "  $(YELLOW)%-25s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "$(GREEN)Build Commands:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && /Build/ {printf "  $(YELLOW)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo "$(GREEN)Database Commands:$(RESET)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && /Database/ {printf "  $(YELLOW)%-25s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "$(GREEN)Docker Commands:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && /Docker/ {printf "  $(YELLOW)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && /Docker/ {printf "  $(YELLOW)%-25s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "$(GREEN)Other Commands:$(RESET)"
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && !/Setup|Development|Testing|Build|Docker/ {printf "  $(YELLOW)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@echo "$(GREEN)License Commands:$(RESET)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / && /License/ {printf "  $(YELLOW)%-25s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # Setup Commands
-setup: ## Setup - Install all dependencies and initialize the project
-	@echo "$(BLUE)Setting up $(PROJECT_NAME)...$(RESET)"
+setup: ## Setup - Install dependencies and initialize the project
+	@echo "$(BLUE)Setting up Elder...$(RESET)"
 	@$(MAKE) setup-env
-	@$(MAKE) setup-go
 	@$(MAKE) setup-python
-	@$(MAKE) setup-node
-	@$(MAKE) setup-git-hooks
 	@echo "$(GREEN)Setup complete!$(RESET)"
+	@echo "$(YELLOW)Next steps:$(RESET)"
+	@echo "  1. Edit .env with your configuration"
+	@echo "  2. Run 'make dev' to start development environment"
+	@echo "  3. Run 'make db-migrate' to initialize database"
 
 setup-env: ## Setup - Create environment file from template
 	@if [ ! -f .env ]; then \
-		echo "$(YELLOW)Creating .env from .env.example...$(RESET)"; \
-		cp .env.example .env; \
-		echo "$(YELLOW)Please edit .env with your configuration$(RESET)"; \
+		echo "$(YELLOW)Creating .env file...$(RESET)"; \
+		echo "# Elder Environment Configuration" > .env; \
+		echo "FLASK_ENV=development" >> .env; \
+		echo "SECRET_KEY=dev-secret-key-change-in-production" >> .env; \
+		echo "" >> .env; \
+		echo "# Database" >> .env; \
+		echo "POSTGRES_DB=elder" >> .env; \
+		echo "POSTGRES_USER=elder" >> .env; \
+		echo "POSTGRES_PASSWORD=elder_dev_password" >> .env; \
+		echo "DATABASE_URL=postgresql://elder:elder_dev_password@localhost:5432/elder" >> .env; \
+		echo "" >> .env; \
+		echo "# Redis" >> .env; \
+		echo "REDIS_PASSWORD=elder_redis_password" >> .env; \
+		echo "REDIS_URL=redis://:elder_redis_password@localhost:6379/0" >> .env; \
+		echo "" >> .env; \
+		echo "# Admin User (optional)" >> .env; \
+		echo "ADMIN_USERNAME=admin" >> .env; \
+		echo "ADMIN_PASSWORD=" >> .env; \
+		echo "ADMIN_EMAIL=admin@localhost" >> .env; \
+		echo "" >> .env; \
+		echo "# License (optional)" >> .env; \
+		echo "LICENSE_KEY=" >> .env; \
+		echo "$(GREEN).env file created!$(RESET)"; \
+	else \
+		echo "$(YELLOW).env file already exists$(RESET)"; \
 	fi
 
-setup-go: ## Setup - Install Go dependencies and tools
-	@echo "$(BLUE)Setting up Go dependencies...$(RESET)"
-	@go version || (echo "$(RED)Go $(GO_VERSION) not installed$(RESET)" && exit 1)
-	@go mod download
-	@go mod tidy
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	@go install github.com/air-verse/air@latest
-
-setup-python: ## Setup - Install Python dependencies and tools
+setup-python: ## Setup - Install Python dependencies
 	@echo "$(BLUE)Setting up Python dependencies...$(RESET)"
 	@python3 --version || (echo "$(RED)Python $(PYTHON_VERSION) not installed$(RESET)" && exit 1)
 	@pip install --upgrade pip
 	@pip install -r requirements.txt
-	@pip install black isort flake8 mypy pytest pytest-cov
-
-setup-node: ## Setup - Install Node.js dependencies and tools
-	@echo "$(BLUE)Setting up Node.js dependencies...$(RESET)"
-	@node --version || (echo "$(RED)Node.js $(NODE_VERSION) not installed$(RESET)" && exit 1)
-	@npm install
-	@cd web && npm install
-
-setup-git-hooks: ## Setup - Install Git pre-commit hooks
-	@echo "$(BLUE)Installing Git hooks...$(RESET)"
-	@cp scripts/git-hooks/pre-commit .git/hooks/pre-commit
-	@chmod +x .git/hooks/pre-commit
-	@cp scripts/git-hooks/commit-msg .git/hooks/commit-msg
-	@chmod +x .git/hooks/commit-msg
+	@echo "$(GREEN)Python dependencies installed!$(RESET)"
 
 # Development Commands
 dev: ## Development - Start development environment
-	@echo "$(BLUE)Starting development environment...$(RESET)"
+	@echo "$(BLUE)Starting Elder development environment...$(RESET)"
 	@docker-compose up -d postgres redis
+	@echo "$(YELLOW)Waiting for services to be ready...$(RESET)"
 	@sleep 5
-	@$(MAKE) dev-services
+	@echo "$(GREEN)Services are ready!$(RESET)"
+	@echo "$(YELLOW)Run 'make dev-api' to start the Flask API$(RESET)"
 
-dev-services: ## Development - Start all services for development
-	@echo "$(BLUE)Starting development services...$(RESET)"
-	@trap 'docker-compose down' INT; \
-	concurrently --names "API,Web-Python,Web-Node" --prefix name --kill-others \
-		"$(MAKE) dev-api" \
-		"$(MAKE) dev-web-python" \
-		"$(MAKE) dev-web-node"
+dev-api: ## Development - Start Flask API locally
+	@echo "$(BLUE)Starting Elder API...$(RESET)"
+	@export FLASK_APP=apps.api.main:create_app && \
+	export FLASK_ENV=development && \
+	flask run --host=0.0.0.0 --port=5000
 
-dev-api: ## Development - Start Go API in development mode
-	@echo "$(BLUE)Starting Go API...$(RESET)"
-	@cd apps/api && air
-
-dev-web-python: ## Development - Start Python web app in development mode
-	@echo "$(BLUE)Starting Python web app...$(RESET)"
-	@cd apps/web && python app.py
-
-dev-web-node: ## Development - Start Node.js web app in development mode
-	@echo "$(BLUE)Starting Node.js web app...$(RESET)"
-	@cd web && npm run dev
-
-dev-db: ## Development - Start only database services
-	@docker-compose up -d postgres redis
-
-dev-monitoring: ## Development - Start monitoring services
-	@docker-compose up -d prometheus grafana
-
-dev-full: ## Development - Start full development stack
+dev-all: ## Development - Start all services with docker-compose
+	@echo "$(BLUE)Starting all Elder services...$(RESET)"
 	@docker-compose up -d
+	@echo "$(GREEN)All services started!$(RESET)"
+	@echo "$(YELLOW)API: http://localhost:5000$(RESET)"
+	@echo "$(YELLOW)Prometheus: http://localhost:9090$(RESET)"
+	@echo "$(YELLOW)Grafana: http://localhost:3001$(RESET)"
+
+dev-logs: ## Development - Show docker-compose logs
+	@docker-compose logs -f
+
+dev-stop: ## Development - Stop development environment
+	@echo "$(BLUE)Stopping Elder development environment...$(RESET)"
+	@docker-compose down
+	@echo "$(GREEN)Development environment stopped$(RESET)"
+
+dev-restart: ## Development - Restart development environment
+	@$(MAKE) dev-stop
+	@$(MAKE) dev-all
 
 # Testing Commands
 test: ## Testing - Run all tests
-	@echo "$(BLUE)Running all tests...$(RESET)"
-	@$(MAKE) test-go
-	@$(MAKE) test-python
-	@$(MAKE) test-node
-	@echo "$(GREEN)All tests completed!$(RESET)"
+	@echo "$(BLUE)Running Elder tests...$(RESET)"
+	@pytest tests/ -v --cov=apps --cov-report=term-missing
 
-test-go: ## Testing - Run Go tests
-	@echo "$(BLUE)Running Go tests...$(RESET)"
-	@go test -v -race -coverprofile=coverage-go.out ./...
+test-unit: ## Testing - Run unit tests only
+	@echo "$(BLUE)Running unit tests...$(RESET)"
+	@pytest tests/unit/ -v
 
-test-python: ## Testing - Run Python tests
-	@echo "$(BLUE)Running Python tests...$(RESET)"
-	@pytest --cov=shared --cov=apps --cov-report=xml:coverage-python.xml --cov-report=html:htmlcov-python
-
-test-node: ## Testing - Run Node.js tests
-	@echo "$(BLUE)Running Node.js tests...$(RESET)"
-	@npm test
-	@cd web && npm test
-
-test-integration: ## Testing - Run integration tests
+test-integration: ## Testing - Run integration tests only
 	@echo "$(BLUE)Running integration tests...$(RESET)"
-	@docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
-	@docker-compose -f docker-compose.test.yml down
+	@pytest tests/integration/ -v
 
-test-coverage: ## Testing - Generate coverage reports
-	@$(MAKE) test
-	@echo "$(GREEN)Coverage reports generated:$(RESET)"
-	@echo "  Go: coverage-go.out"
-	@echo "  Python: coverage-python.xml, htmlcov-python/"
-	@echo "  Node.js: coverage/"
-
-# Build Commands
-build: ## Build - Build all applications
-	@echo "$(BLUE)Building all applications...$(RESET)"
-	@$(MAKE) build-go
-	@$(MAKE) build-python
-	@$(MAKE) build-node
-	@echo "$(GREEN)All builds completed!$(RESET)"
-
-build-go: ## Build - Build Go applications
-	@echo "$(BLUE)Building Go applications...$(RESET)"
-	@mkdir -p bin
-	@go build -ldflags "-X main.version=$(VERSION)" -o bin/api ./apps/api
-
-build-python: ## Build - Build Python applications
-	@echo "$(BLUE)Building Python applications...$(RESET)"
-	@python -m py_compile apps/web/app.py
-
-build-node: ## Build - Build Node.js applications
-	@echo "$(BLUE)Building Node.js applications...$(RESET)"
-	@npm run build
-	@cd web && npm run build
-
-build-production: ## Build - Build for production with optimizations
-	@echo "$(BLUE)Building for production...$(RESET)"
-	@CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags "-w -s -X main.version=$(VERSION)" -o bin/api ./apps/api
-	@cd web && npm run build
-
-# Docker Commands
-docker-build: ## Docker - Build all Docker images
-	@echo "$(BLUE)Building Docker images...$(RESET)"
-	@docker build -t $(DOCKER_REGISTRY)/$(DOCKER_ORG)/$(PROJECT_NAME)-api:$(VERSION) -f apps/api/Dockerfile .
-	@docker build -t $(DOCKER_REGISTRY)/$(DOCKER_ORG)/$(PROJECT_NAME)-web:$(VERSION) -f web/Dockerfile web/
-	@docker build -t $(DOCKER_REGISTRY)/$(DOCKER_ORG)/$(PROJECT_NAME)-python:$(VERSION) -f apps/web/Dockerfile .
-
-docker-push: ## Docker - Push Docker images to registry
-	@echo "$(BLUE)Pushing Docker images...$(RESET)"
-	@docker push $(DOCKER_REGISTRY)/$(DOCKER_ORG)/$(PROJECT_NAME)-api:$(VERSION)
-	@docker push $(DOCKER_REGISTRY)/$(DOCKER_ORG)/$(PROJECT_NAME)-web:$(VERSION)
-	@docker push $(DOCKER_REGISTRY)/$(DOCKER_ORG)/$(PROJECT_NAME)-python:$(VERSION)
-
-docker-run: ## Docker - Run application with Docker Compose
-	@docker-compose up --build
-
-docker-clean: ## Docker - Clean up Docker resources
-	@echo "$(BLUE)Cleaning up Docker resources...$(RESET)"
-	@docker-compose down -v
-	@docker system prune -f
+test-coverage: ## Testing - Generate coverage report
+	@echo "$(BLUE)Generating coverage report...$(RESET)"
+	@pytest tests/ --cov=apps --cov-report=html
+	@echo "$(GREEN)Coverage report generated in htmlcov/$(RESET)"
 
 # Code Quality Commands
-lint: ## Code Quality - Run linting for all languages
-	@echo "$(BLUE)Running linting...$(RESET)"
-	@$(MAKE) lint-go
-	@$(MAKE) lint-python
-	@$(MAKE) lint-node
+lint: ## Testing - Run linting checks
+	@echo "$(BLUE)Running linters...$(RESET)"
+	@flake8 apps/ shared/
+	@mypy apps/ shared/
+	@echo "$(GREEN)Linting complete!$(RESET)"
 
-lint-go: ## Code Quality - Run Go linting
-	@echo "$(BLUE)Linting Go code...$(RESET)"
-	@golangci-lint run
-
-lint-python: ## Code Quality - Run Python linting
-	@echo "$(BLUE)Linting Python code...$(RESET)"
-	@flake8 .
-	@mypy . --ignore-missing-imports
-
-lint-node: ## Code Quality - Run Node.js linting
-	@echo "$(BLUE)Linting Node.js code...$(RESET)"
-	@npm run lint
-	@cd web && npm run lint
-
-format: ## Code Quality - Format code for all languages
+format: ## Testing - Format code with black and isort
 	@echo "$(BLUE)Formatting code...$(RESET)"
-	@$(MAKE) format-go
-	@$(MAKE) format-python
-	@$(MAKE) format-node
+	@black apps/ shared/ tests/
+	@isort apps/ shared/ tests/
+	@echo "$(GREEN)Code formatted!$(RESET)"
 
-format-go: ## Code Quality - Format Go code
-	@echo "$(BLUE)Formatting Go code...$(RESET)"
-	@go fmt ./...
-	@goimports -w .
-
-format-python: ## Code Quality - Format Python code
-	@echo "$(BLUE)Formatting Python code...$(RESET)"
-	@black .
-	@isort .
-
-format-node: ## Code Quality - Format Node.js code
-	@echo "$(BLUE)Formatting Node.js code...$(RESET)"
-	@npm run format
-	@cd web && npm run format
+format-check: ## Testing - Check code formatting
+	@echo "$(BLUE)Checking code formatting...$(RESET)"
+	@black --check apps/ shared/ tests/
+	@isort --check apps/ shared/ tests/
 
 # Database Commands
 db-migrate: ## Database - Run database migrations
 	@echo "$(BLUE)Running database migrations...$(RESET)"
-	@go run scripts/migrate.go
+	@alembic upgrade head
+	@echo "$(GREEN)Migrations complete!$(RESET)"
 
-db-seed: ## Database - Seed database with test data
-	@echo "$(BLUE)Seeding database...$(RESET)"
-	@go run scripts/seed.go
+db-create-migration: ## Database - Create a new migration
+	@read -p "Enter migration message: " msg; \
+	alembic revision --autogenerate -m "$$msg"
 
-db-reset: ## Database - Reset database (WARNING: destroys data)
+db-downgrade: ## Database - Rollback one migration
+	@echo "$(YELLOW)Rolling back one migration...$(RESET)"
+	@alembic downgrade -1
+
+db-reset: ## Database - Reset database (WARNING: destroys all data)
 	@echo "$(RED)WARNING: This will destroy all data!$(RESET)"
-	@read -p "Are you sure? (y/N): " confirm && [ "$$confirm" = "y" ]
-	@docker-compose down -v
-	@docker-compose up -d postgres redis
-	@sleep 5
-	@$(MAKE) db-migrate
-	@$(MAKE) db-seed
+	@read -p "Are you sure? [y/N]: " confirm; \
+	if [ "$$confirm" = "y" ]; then \
+		docker-compose down -v; \
+		docker-compose up -d postgres redis; \
+		sleep 5; \
+		alembic upgrade head; \
+		echo "$(GREEN)Database reset complete!$(RESET)"; \
+	else \
+		echo "$(YELLOW)Cancelled$(RESET)"; \
+	fi
+
+db-shell: ## Database - Open PostgreSQL shell
+	@docker-compose exec postgres psql -U elder -d elder
 
 db-backup: ## Database - Create database backup
 	@echo "$(BLUE)Creating database backup...$(RESET)"
 	@mkdir -p backups
-	@docker-compose exec postgres pg_dump -U postgres project_template > backups/backup-$(shell date +%Y%m%d-%H%M%S).sql
+	@docker-compose exec -T postgres pg_dump -U elder elder > backups/elder_$$(date +%Y%m%d_%H%M%S).sql
+	@echo "$(GREEN)Backup created in backups/$(RESET)"
 
-db-restore: ## Database - Restore database from backup (requires BACKUP_FILE)
-	@echo "$(BLUE)Restoring database from $(BACKUP_FILE)...$(RESET)"
-	@docker-compose exec -T postgres psql -U postgres project_template < $(BACKUP_FILE)
+# Docker Commands
+docker-build: ## Docker - Build Docker image
+	@echo "$(BLUE)Building Elder Docker image...$(RESET)"
+	@docker build -t $(PROJECT_NAME):$(VERSION) -f apps/api/Dockerfile .
+	@echo "$(GREEN)Docker image built: $(PROJECT_NAME):$(VERSION)$(RESET)"
+
+docker-build-multiarch: ## Docker - Build multi-architecture Docker images
+	@echo "$(BLUE)Building multi-arch Docker images...$(RESET)"
+	@docker buildx build --platform linux/amd64,linux/arm64 \
+		-t $(DOCKER_REGISTRY)/$(DOCKER_ORG)/$(PROJECT_NAME):$(VERSION) \
+		-t $(DOCKER_REGISTRY)/$(DOCKER_ORG)/$(PROJECT_NAME):latest \
+		-f apps/api/Dockerfile .
+	@echo "$(GREEN)Multi-arch Docker images built!$(RESET)"
+
+docker-push: ## Docker - Push Docker image to registry
+	@echo "$(BLUE)Pushing Docker image...$(RESET)"
+	@docker push $(DOCKER_REGISTRY)/$(DOCKER_ORG)/$(PROJECT_NAME):$(VERSION)
+	@docker push $(DOCKER_REGISTRY)/$(DOCKER_ORG)/$(PROJECT_NAME):latest
+	@echo "$(GREEN)Docker image pushed!$(RESET)"
+
+docker-scan: ## Docker - Scan Docker image for vulnerabilities
+	@echo "$(BLUE)Scanning Docker image for vulnerabilities...$(RESET)"
+	@docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+		aquasec/trivy image $(PROJECT_NAME):$(VERSION)
 
 # License Commands
 license-validate: ## License - Validate license configuration
-	@echo "$(BLUE)Validating license configuration...$(RESET)"
-	@go run scripts/license-validate.go
+	@echo "$(BLUE)Validating license...$(RESET)"
+	@python3 scripts/license/validate.py
 
-license-test: ## License - Test license server integration
-	@echo "$(BLUE)Testing license server integration...$(RESET)"
-	@curl -f $${LICENSE_SERVER_URL:-https://license.penguintech.io}/api/v2/validate \
-		-H "Authorization: Bearer $${LICENSE_KEY}" \
-		-H "Content-Type: application/json" \
-		-d '{"product": "'$${PRODUCT_NAME:-project-template}'"}'
+license-check-features: ## License - Check available features
+	@echo "$(BLUE)Checking available features...$(RESET)"
+	@python3 scripts/license/check_features.py
 
-# Version Management Commands
-version-update: ## Version - Update version (patch by default)
-	@./scripts/version/update-version.sh
+# Build Commands
+build: docker-build ## Build - Build application
 
-version-update-minor: ## Version - Update minor version
-	@./scripts/version/update-version.sh minor
-
-version-update-major: ## Version - Update major version
-	@./scripts/version/update-version.sh major
-
-version-show: ## Version - Show current version
-	@echo "Current version: $(VERSION)"
-
-# Deployment Commands
-deploy-staging: ## Deploy - Deploy to staging environment
-	@echo "$(BLUE)Deploying to staging...$(RESET)"
-	@$(MAKE) docker-build
-	@$(MAKE) docker-push
-	# Add staging deployment commands here
-
-deploy-production: ## Deploy - Deploy to production environment
-	@echo "$(BLUE)Deploying to production...$(RESET)"
-	@$(MAKE) docker-build
-	@$(MAKE) docker-push
-	# Add production deployment commands here
-
-# Health Check Commands
-health: ## Health - Check service health
-	@echo "$(BLUE)Checking service health...$(RESET)"
-	@curl -f http://localhost:8080/health || echo "$(RED)API health check failed$(RESET)"
-	@curl -f http://localhost:8000/health || echo "$(RED)Python web health check failed$(RESET)"
-	@curl -f http://localhost:3000/health || echo "$(RED)Node web health check failed$(RESET)"
-
-logs: ## Logs - Show service logs
-	@docker-compose logs -f
-
-logs-api: ## Logs - Show API logs
-	@docker-compose logs -f api
-
-logs-web: ## Logs - Show web logs
-	@docker-compose logs -f web-python web-node
-
-logs-db: ## Logs - Show database logs
-	@docker-compose logs -f postgres redis
-
-# Cleanup Commands
-clean: ## Clean - Clean build artifacts and caches
+# Clean Commands
+clean: ## Clean build artifacts and cache files
 	@echo "$(BLUE)Cleaning build artifacts...$(RESET)"
-	@rm -rf bin/
-	@rm -rf dist/
-	@rm -rf node_modules/
-	@rm -rf web/node_modules/
-	@rm -rf web/dist/
-	@rm -rf __pycache__/
-	@rm -rf .pytest_cache/
-	@rm -rf htmlcov-python/
-	@rm -rf coverage-*.out
-	@rm -rf coverage-*.xml
-	@go clean -cache -modcache
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type f -name "*.pyc" -delete
+	@find . -type f -name "*.pyo" -delete
+	@find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
+	@rm -f .coverage
+	@echo "$(GREEN)Clean complete!$(RESET)"
 
-clean-docker: ## Clean - Clean Docker resources
-	@$(MAKE) docker-clean
+clean-docker: ## Clean Docker containers and volumes
+	@echo "$(BLUE)Cleaning Docker resources...$(RESET)"
+	@docker-compose down -v
+	@docker system prune -f
+	@echo "$(GREEN)Docker resources cleaned!$(RESET)"
 
-clean-all: ## Clean - Clean everything (build artifacts, Docker, etc.)
-	@$(MAKE) clean
-	@$(MAKE) clean-docker
+# Version Management
+version: ## Show current version
+	@echo "$(BLUE)Elder version: $(VERSION)$(RESET)"
 
-# Security Commands
-security-scan: ## Security - Run security scans
-	@echo "$(BLUE)Running security scans...$(RESET)"
-	@go list -json -m all | nancy sleuth
-	@safety check --json
+version-bump-patch: ## Bump patch version
+	@./scripts/version/update-version.sh patch
+	@echo "$(GREEN)Version bumped to $$(cat .version)$(RESET)"
 
-audit: ## Security - Run security audit
-	@echo "$(BLUE)Running security audit...$(RESET)"
-	@npm audit
-	@cd web && npm audit
-	@$(MAKE) security-scan
+version-bump-minor: ## Bump minor version
+	@./scripts/version/update-version.sh minor
+	@echo "$(GREEN)Version bumped to $$(cat .version)$(RESET)"
 
-# Monitoring Commands
-metrics: ## Monitoring - Show application metrics
-	@echo "$(BLUE)Application metrics:$(RESET)"
-	@curl -s http://localhost:8080/metrics | grep -E '^# (HELP|TYPE)' | head -20
+version-bump-major: ## Bump major version
+	@./scripts/version/update-version.sh major
+	@echo "$(GREEN)Version bumped to $$(cat .version)$(RESET)"
 
-monitor: ## Monitoring - Open monitoring dashboard
-	@echo "$(BLUE)Opening monitoring dashboard...$(RESET)"
-	@open http://localhost:3001  # Grafana
+# Health Checks
+health: ## Check health of all services
+	@echo "$(BLUE)Checking service health...$(RESET)"
+	@echo "$(YELLOW)API:$(RESET)"
+	@curl -f http://localhost:5000/healthz && echo " $(GREEN)✓$(RESET)" || echo " $(RED)✗$(RESET)"
+	@echo "$(YELLOW)Prometheus:$(RESET)"
+	@curl -f http://localhost:9090/-/healthy && echo " $(GREEN)✓$(RESET)" || echo " $(RED)✗$(RESET)"
+	@echo "$(YELLOW)Grafana:$(RESET)"
+	@curl -f http://localhost:3001/api/health && echo " $(GREEN)✓$(RESET)" || echo " $(RED)✗$(RESET)"
 
-# Documentation Commands
-docs-serve: ## Documentation - Serve documentation locally
-	@echo "$(BLUE)Serving documentation...$(RESET)"
-	@cd docs && python -m http.server 8080
-
-docs-build: ## Documentation - Build documentation
-	@echo "$(BLUE)Building documentation...$(RESET)"
-	@echo "Documentation build not implemented yet"
-
-# Git Commands
-git-hooks-install: ## Git - Install Git hooks
-	@$(MAKE) setup-git-hooks
-
-git-hooks-test: ## Git - Test Git hooks
-	@echo "$(BLUE)Testing Git hooks...$(RESET)"
-	@.git/hooks/pre-commit
-	@echo "$(GREEN)Git hooks test completed$(RESET)"
-
-# Info Commands
-info: ## Info - Show project information
-	@echo "$(BLUE)Project Information:$(RESET)"
-	@echo "Name: $(PROJECT_NAME)"
-	@echo "Version: $(VERSION)"
-	@echo "Go Version: $(GO_VERSION)"
-	@echo "Python Version: $(PYTHON_VERSION)"
-	@echo "Node Version: $(NODE_VERSION)"
-	@echo ""
-	@echo "$(BLUE)Service URLs:$(RESET)"
-	@echo "API: http://localhost:8080"
-	@echo "Python Web: http://localhost:8000"
-	@echo "Node Web: http://localhost:3000"
-	@echo "Prometheus: http://localhost:9090"
-	@echo "Grafana: http://localhost:3001"
-
-env: ## Info - Show environment variables
-	@echo "$(BLUE)Environment Variables:$(RESET)"
-	@env | grep -E "^(LICENSE_|POSTGRES_|REDIS_|NODE_|GIN_|PY4WEB_)" | sort
+# Status
+status: ## Show status of all services
+	@echo "$(BLUE)Service Status:$(RESET)"
+	@docker-compose ps

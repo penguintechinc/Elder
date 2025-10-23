@@ -1,0 +1,14 @@
+Generic single-database configuration with an async dbapi.
+
+Alembic migrations for Elder application.
+
+To create a new migration:
+    make db-create-migration
+
+To run migrations:
+    make db-migrate
+
+To rollback one migration:
+    make db-downgrade
+
+Migration files are stored in versions/ directory.

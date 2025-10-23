@@ -341,6 +341,10 @@ junit.xml
 # Project-specific ignores
 # Add any project-specific files/directories to ignore below
 
+# Crash recovery and planning files (contain sensitive information)
+.PLAN
+.TODO
+
 # Version management
 .version.backup
 
