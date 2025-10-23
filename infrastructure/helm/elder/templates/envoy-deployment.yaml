@@ -1,0 +1,67 @@
+{{- if .Values.envoy.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "elder.fullname" . }}-envoy
+  labels:
+    {{- include "elder.labels" . | nindent 4 }}
+    app.kubernetes.io/component: envoy
+spec:
+  replicas: {{ .Values.envoy.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "elder.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: envoy
+  template:
+    metadata:
+      labels:
+        {{- include "elder.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: envoy
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "elder.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: envoy
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.global.imageRegistry }}/{{ .Values.envoy.image.repository }}:{{ .Values.envoy.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.envoy.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.envoy.service.port }}
+          protocol: TCP
+        - name: admin
+          containerPort: {{ .Values.envoy.service.adminPort }}
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: admin
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: admin
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          {{- toYaml .Values.envoy.resources | nindent 12 }}
+      {{- with .Values.envoy.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.envoy.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.envoy.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

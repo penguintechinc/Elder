@@ -1,0 +1,89 @@
+{{- if .Values.grpc.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "elder.fullname" . }}-grpc
+  labels:
+    {{- include "elder.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grpc
+spec:
+  replicas: {{ .Values.grpc.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "elder.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: grpc
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "elder.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: grpc
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "elder.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: grpc
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.global.imageRegistry }}/{{ .Values.grpc.image.repository }}:{{ .Values.grpc.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.grpc.image.pullPolicy }}
+        ports:
+        - name: grpc
+          containerPort: {{ .Values.grpc.service.port }}
+          protocol: TCP
+        env:
+        - name: FLASK_ENV
+          value: {{ .Values.config.flaskEnv | quote }}
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "elder.fullname" . }}-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "elder.fullname" . }}-secrets
+              key: redis-url
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "elder.fullname" . }}-secrets
+              key: secret-key
+        - name: LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "elder.fullname" . }}-secrets
+              key: license-key
+        - name: LICENSE_SERVER_URL
+          value: {{ .Values.config.license.serverUrl | quote }}
+        - name: PRODUCT_NAME
+          value: {{ .Values.config.license.productName | quote }}
+        - name: LOG_LEVEL
+          value: {{ .Values.config.logging.level | quote }}
+        - name: GRPC_PORT
+          value: {{ .Values.grpc.service.port | quote }}
+        - name: GRPC_MAX_WORKERS
+          value: {{ .Values.grpc.config.maxWorkers | quote }}
+        - name: GRPC_REQUIRE_LICENSE
+          value: {{ .Values.grpc.config.requireLicense | quote }}
+        resources:
+          {{- toYaml .Values.grpc.resources | nindent 12 }}
+      {{- with .Values.grpc.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.grpc.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.grpc.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

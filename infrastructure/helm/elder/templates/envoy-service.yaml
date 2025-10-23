@@ -1,0 +1,27 @@
+{{- if .Values.envoy.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "elder.fullname" . }}-envoy
+  labels:
+    {{- include "elder.labels" . | nindent 4 }}
+    app.kubernetes.io/component: envoy
+  {{- with .Values.envoy.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.envoy.service.type }}
+  ports:
+    - port: {{ .Values.envoy.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: {{ .Values.envoy.service.adminPort }}
+      targetPort: admin
+      protocol: TCP
+      name: admin
+  selector:
+    {{- include "elder.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: envoy
+{{- end }}
