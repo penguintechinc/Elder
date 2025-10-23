@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package elder.dependency;
+
+import "common.proto";
+import "entity.proto";
+
+option go_package = "github.com/penguintechinc/elder/proto/dependency";
+option java_package = "io.penguintech.elder.dependency";
+
+// List dependencies request
+message ListDependenciesRequest {
+  elder.common.PaginationRequest pagination = 1;
+  elder.common.FilterOptions filters = 2;
+  int32 source_entity_id = 3;
+  int32 target_entity_id = 4;
+  elder.entity.DependencyType dependency_type = 5;
+}
+
+// List dependencies response
+message ListDependenciesResponse {
+  repeated elder.entity.Dependency dependencies = 1;
+  elder.common.PaginationResponse pagination = 2;
+}
+
+// Get dependency request
+message GetDependencyRequest {
+  int32 id = 1;
+}
+
+// Get dependency response
+message GetDependencyResponse {
+  elder.entity.Dependency dependency = 1;
+}
+
+// Create dependency request
+message CreateDependencyRequest {
+  int32 source_entity_id = 1;
+  int32 target_entity_id = 2;
+  elder.entity.DependencyType dependency_type = 3;
+  map<string, string> metadata = 4;
+}
+
+// Create dependency response
+message CreateDependencyResponse {
+  elder.entity.Dependency dependency = 1;
+}
+
+// Update dependency request
+message UpdateDependencyRequest {
+  int32 id = 1;
+  optional elder.entity.DependencyType dependency_type = 2;
+  map<string, string> metadata = 3;
+}
+
+// Update dependency response
+message UpdateDependencyResponse {
+  elder.entity.Dependency dependency = 1;
+}
+
+// Delete dependency request
+message DeleteDependencyRequest {
+  int32 id = 1;
+}
+
+// Delete dependency response
+message DeleteDependencyResponse {
+  elder.common.StatusResponse status = 1;
+}
+
+// Bulk create dependencies request
+message BulkCreateDependenciesRequest {
+  repeated CreateDependencyRequest dependencies = 1;
+}
+
+// Bulk create dependencies response
+message BulkCreateDependenciesResponse {
+  repeated elder.entity.Dependency dependencies = 1;
+  repeated string errors = 2;
+}
+
+// Bulk delete dependencies request
+message BulkDeleteDependenciesRequest {
+  repeated int32 ids = 1;
+}
+
+// Bulk delete dependencies response
+message BulkDeleteDependenciesResponse {
+  int32 deleted_count = 1;
+  repeated string errors = 2;
+}

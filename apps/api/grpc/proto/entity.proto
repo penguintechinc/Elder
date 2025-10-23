@@ -1,0 +1,155 @@
+syntax = "proto3";
+
+package elder.entity;
+
+import "common.proto";
+
+option go_package = "github.com/penguintechinc/elder/proto/entity";
+option java_package = "io.penguintech.elder.entity";
+
+// Entity types enum
+enum EntityType {
+  ENTITY_TYPE_UNSPECIFIED = 0;
+  DATACENTER = 1;
+  VPC = 2;
+  SUBNET = 3;
+  COMPUTE = 4;
+  NETWORK = 5;
+  USER = 6;
+  SECURITY_ISSUE = 7;
+}
+
+// Entity message
+message Entity {
+  int32 id = 1;
+  string unique_id = 2;
+  int32 organization_id = 3;
+  EntityType entity_type = 4;
+  string name = 5;
+  string description = 6;
+  repeated elder.common.MetadataField metadata = 7;
+  int32 owner_identity_id = 8;
+  elder.common.Timestamp created_at = 9;
+  elder.common.Timestamp updated_at = 10;
+
+  // Optional relationships
+  string organization_name = 11;
+  int32 dependencies_count = 12;
+}
+
+// List entities request
+message ListEntitiesRequest {
+  elder.common.PaginationRequest pagination = 1;
+  elder.common.FilterOptions filters = 2;
+  int32 organization_id = 3;
+  EntityType entity_type = 4;
+  string search = 5;
+}
+
+// List entities response
+message ListEntitiesResponse {
+  repeated Entity entities = 1;
+  elder.common.PaginationResponse pagination = 2;
+}
+
+// Get entity request
+message GetEntityRequest {
+  oneof identifier {
+    int32 id = 1;
+    string unique_id = 2;
+  }
+  bool include_dependencies = 3;
+  bool include_metadata = 4;
+}
+
+// Get entity response
+message GetEntityResponse {
+  Entity entity = 1;
+  repeated Dependency dependencies = 2;
+}
+
+// Create entity request
+message CreateEntityRequest {
+  int32 organization_id = 1;
+  EntityType entity_type = 2;
+  string name = 3;
+  string description = 4;
+  map<string, string> metadata = 5;
+  int32 owner_identity_id = 6;
+}
+
+// Create entity response
+message CreateEntityResponse {
+  Entity entity = 1;
+}
+
+// Update entity request
+message UpdateEntityRequest {
+  int32 id = 1;
+  optional int32 organization_id = 2;
+  optional EntityType entity_type = 3;
+  optional string name = 4;
+  optional string description = 5;
+  map<string, string> metadata = 6;
+  optional int32 owner_identity_id = 7;
+}
+
+// Update entity response
+message UpdateEntityResponse {
+  Entity entity = 1;
+}
+
+// Delete entity request
+message DeleteEntityRequest {
+  int32 id = 1;
+}
+
+// Delete entity response
+message DeleteEntityResponse {
+  elder.common.StatusResponse status = 1;
+}
+
+// Get entity dependencies request
+message GetEntityDependenciesRequest {
+  int32 id = 1;
+  elder.common.PaginationRequest pagination = 2;
+}
+
+// Get entity dependencies response
+message GetEntityDependenciesResponse {
+  repeated Dependency dependencies = 1;
+  elder.common.PaginationResponse pagination = 2;
+}
+
+// Dependency type enum
+enum DependencyType {
+  DEPENDENCY_TYPE_UNSPECIFIED = 0;
+  DEPENDS_ON = 1;
+  RELATED_TO = 2;
+  PART_OF = 3;
+}
+
+// Dependency message
+message Dependency {
+  int32 id = 1;
+  int32 source_entity_id = 2;
+  int32 target_entity_id = 3;
+  DependencyType dependency_type = 4;
+  repeated elder.common.MetadataField metadata = 5;
+  elder.common.Timestamp created_at = 6;
+
+  // Optional entity details
+  Entity source_entity = 7;
+  Entity target_entity = 8;
+}
+
+// Batch create entities request
+message BatchCreateEntitiesRequest {
+  repeated CreateEntityRequest entities = 1;
+}
+
+// Batch create entities response
+message BatchCreateEntitiesResponse {
+  repeated Entity entities = 1;
+  repeated string errors = 2;
+}

@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package elder.common;
+
+option go_package = "github.com/penguintechinc/elder/proto/common";
+option java_package = "io.penguintech.elder.common";
+
+// Common timestamp message
+message Timestamp {
+  int64 seconds = 1;
+  int32 nanos = 2;
+}
+
+// Pagination request
+message PaginationRequest {
+  int32 page = 1;
+  int32 per_page = 2;
+}
+
+// Pagination response
+message PaginationResponse {
+  int32 page = 1;
+  int32 per_page = 2;
+  int32 total = 3;
+  int32 pages = 4;
+}
+
+// Empty response (for delete operations)
+message Empty {}
+
+// Generic metadata field
+message MetadataField {
+  string key = 1;
+  string value = 2;
+  string type = 3;  // string, number, date, boolean, json
+}
+
+// Status response
+message StatusResponse {
+  bool success = 1;
+  string message = 2;
+  map<string, string> details = 3;
+}
+
+// Filter options
+message FilterOptions {
+  repeated string fields = 1;
+  map<string, string> filters = 2;
+  string sort_by = 3;
+  string sort_order = 4;  // asc or desc
+}

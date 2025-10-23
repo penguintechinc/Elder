@@ -1,0 +1,169 @@
+syntax = "proto3";
+
+package elder;
+
+import "common.proto";
+import "organization.proto";
+import "entity.proto";
+import "dependency.proto";
+import "graph.proto";
+import "auth.proto";
+
+option go_package = "github.com/penguintechinc/elder/proto";
+option java_package = "io.penguintech.elder";
+
+// Elder Service - Main gRPC service for Elder application
+service ElderService {
+  // ============================================================================
+  // Authentication & Identity Management
+  // ============================================================================
+
+  // Authenticate user and get JWT tokens
+  rpc Login(elder.auth.LoginRequest) returns (elder.auth.LoginResponse);
+
+  // Refresh access token using refresh token
+  rpc RefreshToken(elder.auth.RefreshTokenRequest) returns (elder.auth.RefreshTokenResponse);
+
+  // Logout and invalidate tokens
+  rpc Logout(elder.auth.LogoutRequest) returns (elder.auth.LogoutResponse);
+
+  // Get current authenticated identity
+  rpc GetCurrentIdentity(elder.auth.GetCurrentIdentityRequest) returns (elder.auth.GetCurrentIdentityResponse);
+
+  // Change password for current user
+  rpc ChangePassword(elder.auth.ChangePasswordRequest) returns (elder.auth.ChangePasswordResponse);
+
+  // Register new identity
+  rpc RegisterIdentity(elder.auth.RegisterIdentityRequest) returns (elder.auth.RegisterIdentityResponse);
+
+  // Validate access token
+  rpc ValidateToken(elder.auth.ValidateTokenRequest) returns (elder.auth.ValidateTokenResponse);
+
+  // List identities
+  rpc ListIdentities(elder.auth.ListIdentitiesRequest) returns (elder.auth.ListIdentitiesResponse);
+
+  // Get identity by ID
+  rpc GetIdentity(elder.auth.GetIdentityRequest) returns (elder.auth.GetIdentityResponse);
+
+  // Update identity
+  rpc UpdateIdentity(elder.auth.UpdateIdentityRequest) returns (elder.auth.UpdateIdentityResponse);
+
+  // Delete identity
+  rpc DeleteIdentity(elder.auth.DeleteIdentityRequest) returns (elder.auth.DeleteIdentityResponse);
+
+  // ============================================================================
+  // Organization Management
+  // ============================================================================
+
+  // List organizations with pagination and filters
+  rpc ListOrganizations(elder.organization.ListOrganizationsRequest) returns (elder.organization.ListOrganizationsResponse);
+
+  // Get organization by ID
+  rpc GetOrganization(elder.organization.GetOrganizationRequest) returns (elder.organization.GetOrganizationResponse);
+
+  // Create new organization
+  rpc CreateOrganization(elder.organization.CreateOrganizationRequest) returns (elder.organization.CreateOrganizationResponse);
+
+  // Update existing organization
+  rpc UpdateOrganization(elder.organization.UpdateOrganizationRequest) returns (elder.organization.UpdateOrganizationResponse);
+
+  // Delete organization
+  rpc DeleteOrganization(elder.organization.DeleteOrganizationRequest) returns (elder.organization.DeleteOrganizationResponse);
+
+  // Get organization children
+  rpc GetOrganizationChildren(elder.organization.GetOrganizationChildrenRequest) returns (elder.organization.GetOrganizationChildrenResponse);
+
+  // Get organization hierarchy
+  rpc GetOrganizationHierarchy(elder.organization.GetOrganizationHierarchyRequest) returns (elder.organization.GetOrganizationHierarchyResponse);
+
+  // ============================================================================
+  // Entity Management
+  // ============================================================================
+
+  // List entities with pagination and filters
+  rpc ListEntities(elder.entity.ListEntitiesRequest) returns (elder.entity.ListEntitiesResponse);
+
+  // Get entity by ID or unique_id
+  rpc GetEntity(elder.entity.GetEntityRequest) returns (elder.entity.GetEntityResponse);
+
+  // Create new entity
+  rpc CreateEntity(elder.entity.CreateEntityRequest) returns (elder.entity.CreateEntityResponse);
+
+  // Update existing entity
+  rpc UpdateEntity(elder.entity.UpdateEntityRequest) returns (elder.entity.UpdateEntityResponse);
+
+  // Delete entity
+  rpc DeleteEntity(elder.entity.DeleteEntityRequest) returns (elder.entity.DeleteEntityResponse);
+
+  // Get entity dependencies
+  rpc GetEntityDependencies(elder.entity.GetEntityDependenciesRequest) returns (elder.entity.GetEntityDependenciesResponse);
+
+  // Batch create entities
+  rpc BatchCreateEntities(elder.entity.BatchCreateEntitiesRequest) returns (elder.entity.BatchCreateEntitiesResponse);
+
+  // ============================================================================
+  // Dependency Management
+  // ============================================================================
+
+  // List dependencies with pagination and filters
+  rpc ListDependencies(elder.dependency.ListDependenciesRequest) returns (elder.dependency.ListDependenciesResponse);
+
+  // Get dependency by ID
+  rpc GetDependency(elder.dependency.GetDependencyRequest) returns (elder.dependency.GetDependencyResponse);
+
+  // Create new dependency
+  rpc CreateDependency(elder.dependency.CreateDependencyRequest) returns (elder.dependency.CreateDependencyResponse);
+
+  // Update existing dependency
+  rpc UpdateDependency(elder.dependency.UpdateDependencyRequest) returns (elder.dependency.UpdateDependencyResponse);
+
+  // Delete dependency
+  rpc DeleteDependency(elder.dependency.DeleteDependencyRequest) returns (elder.dependency.DeleteDependencyResponse);
+
+  // Bulk create dependencies
+  rpc BulkCreateDependencies(elder.dependency.BulkCreateDependenciesRequest) returns (elder.dependency.BulkCreateDependenciesResponse);
+
+  // Bulk delete dependencies
+  rpc BulkDeleteDependencies(elder.dependency.BulkDeleteDependenciesRequest) returns (elder.dependency.BulkDeleteDependenciesResponse);
+
+  // ============================================================================
+  // Graph Operations
+  // ============================================================================
+
+  // Get dependency graph for organization or entity
+  rpc GetDependencyGraph(elder.graph.GetDependencyGraphRequest) returns (elder.graph.GetDependencyGraphResponse);
+
+  // Analyze graph for issues (circular dependencies, orphans, etc.)
+  rpc AnalyzeGraph(elder.graph.AnalyzeGraphRequest) returns (elder.graph.AnalyzeGraphResponse);
+
+  // Find path between two entities
+  rpc FindPath(elder.graph.FindPathRequest) returns (elder.graph.FindPathResponse);
+
+  // Get entity impact analysis
+  rpc GetEntityImpact(elder.graph.GetEntityImpactRequest) returns (elder.graph.GetEntityImpactResponse);
+
+  // ============================================================================
+  // Health & Status
+  // ============================================================================
+
+  // Health check
+  rpc HealthCheck(elder.common.Empty) returns (elder.common.StatusResponse);
+}
+
+// Elder service metadata
+message ServiceMetadata {
+  string version = 1;
+  string api_version = 2;
+  repeated string supported_features = 3;
+  map<string, string> capabilities = 4;
+}
+
+// Get service metadata request
+message GetServiceMetadataRequest {
+  elder.common.Empty empty = 1;
+}
+
+// Get service metadata response
+message GetServiceMetadataResponse {
+  ServiceMetadata metadata = 1;
+}

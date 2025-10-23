@@ -1,0 +1,175 @@
+syntax = "proto3";
+
+package elder.auth;
+
+import "common.proto";
+
+option go_package = "github.com/penguintechinc/elder/proto/auth";
+option java_package = "io.penguintech.elder.auth";
+
+// Identity type enum
+enum IdentityType {
+  IDENTITY_TYPE_UNSPECIFIED = 0;
+  HUMAN = 1;
+  SERVICE_ACCOUNT = 2;
+}
+
+// Auth provider enum
+enum AuthProvider {
+  AUTH_PROVIDER_UNSPECIFIED = 0;
+  LOCAL = 1;
+  SAML = 2;
+  OAUTH2 = 3;
+  LDAP = 4;
+}
+
+// Identity message
+message Identity {
+  int32 id = 1;
+  IdentityType identity_type = 2;
+  string username = 3;
+  string email = 4;
+  string display_name = 5;
+  AuthProvider auth_provider = 6;
+  string auth_provider_id = 7;
+  bool is_active = 8;
+  bool is_superuser = 9;
+  elder.common.Timestamp last_login = 10;
+  elder.common.Timestamp created_at = 11;
+  elder.common.Timestamp updated_at = 12;
+}
+
+// Login request
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+// Login response
+message LoginResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  string token_type = 3;
+  int32 expires_in = 4;
+  Identity identity = 5;
+}
+
+// Refresh token request
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+// Refresh token response
+message RefreshTokenResponse {
+  string access_token = 1;
+  string token_type = 2;
+  int32 expires_in = 3;
+}
+
+// Logout request
+message LogoutRequest {
+  string access_token = 1;
+}
+
+// Logout response
+message LogoutResponse {
+  elder.common.StatusResponse status = 1;
+}
+
+// Get current identity request
+message GetCurrentIdentityRequest {
+  string access_token = 1;
+}
+
+// Get current identity response
+message GetCurrentIdentityResponse {
+  Identity identity = 1;
+}
+
+// Change password request
+message ChangePasswordRequest {
+  string current_password = 1;
+  string new_password = 2;
+}
+
+// Change password response
+message ChangePasswordResponse {
+  elder.common.StatusResponse status = 1;
+}
+
+// Register identity request
+message RegisterIdentityRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+  string display_name = 4;
+  IdentityType identity_type = 5;
+}
+
+// Register identity response
+message RegisterIdentityResponse {
+  Identity identity = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+}
+
+// Validate token request
+message ValidateTokenRequest {
+  string access_token = 1;
+}
+
+// Validate token response
+message ValidateTokenResponse {
+  bool valid = 1;
+  Identity identity = 2;
+  elder.common.Timestamp expires_at = 3;
+}
+
+// List identities request
+message ListIdentitiesRequest {
+  elder.common.PaginationRequest pagination = 1;
+  elder.common.FilterOptions filters = 2;
+  IdentityType identity_type = 3;
+  AuthProvider auth_provider = 4;
+  bool active_only = 5;
+}
+
+// List identities response
+message ListIdentitiesResponse {
+  repeated Identity identities = 1;
+  elder.common.PaginationResponse pagination = 2;
+}
+
+// Get identity request
+message GetIdentityRequest {
+  int32 id = 1;
+}
+
+// Get identity response
+message GetIdentityResponse {
+  Identity identity = 1;
+}
+
+// Update identity request
+message UpdateIdentityRequest {
+  int32 id = 1;
+  optional string email = 2;
+  optional string display_name = 3;
+  optional bool is_active = 4;
+  optional bool is_superuser = 5;
+}
+
+// Update identity response
+message UpdateIdentityResponse {
+  Identity identity = 1;
+}
+
+// Delete identity request
+message DeleteIdentityRequest {
+  int32 id = 1;
+}
+
+// Delete identity response
+message DeleteIdentityResponse {
+  elder.common.StatusResponse status = 1;
+}

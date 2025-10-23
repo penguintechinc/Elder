@@ -124,6 +124,22 @@ dev-restart: ## Development - Restart development environment
 	@$(MAKE) dev-stop
 	@$(MAKE) dev-all
 
+generate-grpc: ## Development - Generate Python gRPC code from protobuf schemas
+	@echo "$(BLUE)Generating Python gRPC code...$(RESET)"
+	@docker run --rm -v $(PWD):/app -w /app python:3.13-slim bash -c "\
+		pip install --quiet grpcio-tools protobuf && \
+		python3 -m grpc_tools.protoc \
+			-Iapps/api/grpc/proto \
+			--python_out=apps/api/grpc/generated \
+			--grpc_python_out=apps/api/grpc/generated \
+			apps/api/grpc/proto/*.proto && \
+		cd apps/api/grpc/generated && \
+		for file in *.py; do \
+			sed -i 's/^import \\([a-z_]*\\)_pb2/from . import \\1_pb2/g' \$\$file 2>/dev/null || true; \
+		done"
+	@touch apps/api/grpc/generated/__init__.py
+	@echo "$(GREEN)✓ gRPC code generated successfully!$(RESET)"
+
 # Testing Commands
 test: ## Testing - Run all tests
 	@echo "$(BLUE)Running Elder tests...$(RESET)"

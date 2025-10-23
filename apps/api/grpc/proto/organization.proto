@@ -1,0 +1,122 @@
+syntax = "proto3";
+
+package elder.organization;
+
+import "common.proto";
+
+option go_package = "github.com/penguintechinc/elder/proto/organization";
+option java_package = "io.penguintech.elder.organization";
+
+// Organization message
+message Organization {
+  int32 id = 1;
+  int32 parent_id = 2;
+  string name = 3;
+  string description = 4;
+  string ldap_dn = 5;
+  string saml_group = 6;
+  int32 owner_identity_id = 7;
+  int32 owner_group_id = 8;
+  repeated elder.common.MetadataField metadata = 9;
+  elder.common.Timestamp created_at = 10;
+  elder.common.Timestamp updated_at = 11;
+
+  // Optional nested relationships
+  Organization parent = 12;
+  repeated Organization children = 13;
+}
+
+// List organizations request
+message ListOrganizationsRequest {
+  elder.common.PaginationRequest pagination = 1;
+  elder.common.FilterOptions filters = 2;
+  int32 parent_id = 3;
+  bool include_children = 4;
+}
+
+// List organizations response
+message ListOrganizationsResponse {
+  repeated Organization organizations = 1;
+  elder.common.PaginationResponse pagination = 2;
+}
+
+// Get organization request
+message GetOrganizationRequest {
+  int32 id = 1;
+  bool include_children = 2;
+  bool include_entities = 3;
+}
+
+// Get organization response
+message GetOrganizationResponse {
+  Organization organization = 1;
+}
+
+// Create organization request
+message CreateOrganizationRequest {
+  int32 parent_id = 1;
+  string name = 2;
+  string description = 3;
+  string ldap_dn = 4;
+  string saml_group = 5;
+  int32 owner_identity_id = 6;
+  int32 owner_group_id = 7;
+  map<string, string> metadata = 8;
+}
+
+// Create organization response
+message CreateOrganizationResponse {
+  Organization organization = 1;
+}
+
+// Update organization request
+message UpdateOrganizationRequest {
+  int32 id = 1;
+  optional int32 parent_id = 2;
+  optional string name = 3;
+  optional string description = 4;
+  optional string ldap_dn = 5;
+  optional string saml_group = 6;
+  optional int32 owner_identity_id = 7;
+  optional int32 owner_group_id = 8;
+  map<string, string> metadata = 9;
+}
+
+// Update organization response
+message UpdateOrganizationResponse {
+  Organization organization = 1;
+}
+
+// Delete organization request
+message DeleteOrganizationRequest {
+  int32 id = 1;
+}
+
+// Delete organization response
+message DeleteOrganizationResponse {
+  elder.common.StatusResponse status = 1;
+}
+
+// Get organization children request
+message GetOrganizationChildrenRequest {
+  int32 id = 1;
+  elder.common.PaginationRequest pagination = 2;
+}
+
+// Get organization children response
+message GetOrganizationChildrenResponse {
+  repeated Organization children = 1;
+  elder.common.PaginationResponse pagination = 2;
+}
+
+// Get organization hierarchy request
+message GetOrganizationHierarchyRequest {
+  int32 id = 1;
+  int32 max_depth = 2;
+}
+
+// Get organization hierarchy response
+message GetOrganizationHierarchyResponse {
+  Organization root = 1;
+  repeated Organization flattened_hierarchy = 2;
+}

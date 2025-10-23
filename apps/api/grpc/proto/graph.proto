@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+package elder.graph;
+
+import "common.proto";
+import "entity.proto";
+
+option go_package = "github.com/penguintechinc/elder/proto/graph";
+option java_package = "io.penguintech.elder.graph";
+
+// Graph node
+message GraphNode {
+  int32 id = 1;
+  string label = 2;
+  elder.entity.EntityType type = 3;
+  map<string, string> properties = 4;
+}
+
+// Graph edge
+message GraphEdge {
+  int32 id = 1;
+  int32 source_id = 2;
+  int32 target_id = 3;
+  elder.entity.DependencyType type = 4;
+  string label = 5;
+  map<string, string> properties = 6;
+}
+
+// Dependency graph
+message DependencyGraph {
+  repeated GraphNode nodes = 1;
+  repeated GraphEdge edges = 2;
+  map<string, string> metadata = 3;
+}
+
+// Get dependency graph request
+message GetDependencyGraphRequest {
+  int32 organization_id = 1;
+  int32 entity_id = 2;
+  int32 depth = 3;
+  repeated elder.entity.EntityType entity_types = 4;
+  bool include_metadata = 5;
+}
+
+// Get dependency graph response
+message GetDependencyGraphResponse {
+  DependencyGraph graph = 1;
+  elder.common.StatusResponse status = 2;
+}
+
+// Analyze graph request
+message AnalyzeGraphRequest {
+  int32 organization_id = 1;
+  int32 entity_id = 2;
+  repeated string analysis_types = 3;  // circular_dependencies, orphaned_entities, high_impact_nodes
+}
+
+// Graph analysis result
+message GraphAnalysisResult {
+  string analysis_type = 1;
+  repeated AnalysisItem items = 2;
+  map<string, string> statistics = 3;
+}
+
+// Analysis item
+message AnalysisItem {
+  string item_type = 1;
+  int32 entity_id = 2;
+  string entity_name = 3;
+  string severity = 4;
+  string description = 5;
+  repeated int32 related_entity_ids = 6;
+}
+
+// Analyze graph response
+message AnalyzeGraphResponse {
+  repeated GraphAnalysisResult results = 1;
+  elder.common.StatusResponse status = 2;
+}
+
+// Find path request
+message FindPathRequest {
+  int32 source_entity_id = 1;
+  int32 target_entity_id = 2;
+  int32 max_depth = 3;
+  repeated elder.entity.DependencyType dependency_types = 4;
+}
+
+// Graph path
+message GraphPath {
+  repeated GraphNode nodes = 1;
+  repeated GraphEdge edges = 2;
+  int32 total_hops = 3;
+  double weight = 4;
+}
+
+// Find path response
+message FindPathResponse {
+  repeated GraphPath paths = 1;
+  bool path_found = 2;
+  elder.common.StatusResponse status = 3;
+}
+
+// Get entity impact request
+message GetEntityImpactRequest {
+  int32 entity_id = 1;
+  int32 max_depth = 2;
+}
+
+// Entity impact analysis
+message EntityImpact {
+  int32 entity_id = 1;
+  string entity_name = 2;
+  int32 direct_dependencies = 3;
+  int32 indirect_dependencies = 4;
+  int32 dependents_count = 5;
+  int32 impact_score = 6;
+  repeated elder.entity.Entity affected_entities = 7;
+}
+
+// Get entity impact response
+message GetEntityImpactResponse {
+  EntityImpact impact = 1;
+  elder.common.StatusResponse status = 2;
+}
