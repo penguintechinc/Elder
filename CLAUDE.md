@@ -588,6 +588,10 @@ make license-check-features  # Check available features
 - **NEVER commit automatically** unless explicitly requested by the user
 - **NEVER push to remote repositories** under any circumstances
 - **ONLY commit when explicitly asked** - never assume commit permission
+- **GIT COMMIT AFTER PHASE COMPLETION**: Always create a git commit after completing each implementation phase
+  - Include comprehensive commit message describing all changes
+  - Follow the commit message format with Claude Code attribution
+  - Ensure all files for that phase are staged before committing
 - Always use feature branches for development
 - Require pull request reviews for main branch
 - Automated testing must pass before merge
