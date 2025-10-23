@@ -93,7 +93,7 @@ networkx==3.4.2
 
 # WebSocket Support (for real-time updates)
 Flask-SocketIO==5.4.1
-python-socketio==5.12.0
+python-socketio==5.14.0
 
 # Development Dependencies
 pytest==8.3.4
