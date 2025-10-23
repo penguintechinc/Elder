@@ -1,0 +1,696 @@
+# Elder - Entity Relationship Tracking Application Implementation Plan
+
+## Project Overview
+Elder is a comprehensive entity relationship tracking application that visualizes and manages dependencies between infrastructure and organizational entities.
+
+## Architecture
+- **Backend**: Flask + Python 3.13, PostgreSQL, Redis/Valkey
+- **APIs**: REST (OpenAPI 3.0) + gRPC (protobuf)
+- **Authentication**: SAML, OAuth2, Local (JWT tokens)
+- **Authorization**: Full RBAC (Super Admin, Org Admin, Editor, Viewer)
+- **Frontend**: HTML5/JavaScript with vis.js Network for graph visualization
+- **License**: PenguinTech License Server integration (3-tier)
+- **Infrastructure**: Docker multi-arch (amd64/arm64), Kubernetes, GitHub Actions
+
+## Entity Types
+1. Datacenters/VPCs
+2. Subnets
+3. Compute Devices (Laptops/Servers/VMs)
+4. Network Devices (VPNs, Proxies, Routers, Load Balancers)
+5. Users (human and non-human)
+6. Security Issues (Vulnerabilities)
+
+## Organizational Structure
+- Hierarchical: Company → Department → Teams
+- Each layer can associate with LDAP/SAML group/OU
+- Each layer has POC/Owner (Identity or Identity Group)
+- "Depends on" mappings between entities
+
+## Implementation Phases
+
+### Phase 1: Foundation & Core Models
+1. Set up project structure per CLAUDE.md template
+2. Create database models:
+   - Organizations (hierarchical with parent_id)
+   - Entities (polymorphic with type discriminator)
+   - Dependencies (many-to-many self-referential)
+   - Identities (users and service accounts)
+   - Identity Groups (teams)
+   - Roles & Permissions (RBAC)
+   - Audit logs
+3. Initialize Flask application with config management
+4. Set up PostgreSQL and Redis connections
+5. Create database migrations with Alembic
+6. Implement basic health check endpoint (/healthz)
+
+### Phase 2: REST API
+1. Implement Organization CRUD endpoints
+2. Implement Entity CRUD endpoints (all 6 types)
+3. Implement Dependency management endpoints
+4. Add User/Identity management endpoints
+5. Create OpenAPI 3.0 specification
+6. Implement pagination, filtering, and field selection
+7. Add rate limiting and request validation
+
+### Phase 3: Authentication & Authorization
+1. Implement local authentication with Flask-Login
+2. Add SAML authentication with Flask-SAML
+3. Add OAuth2 authentication with Authlib
+4. Implement RBAC system with roles and permissions
+5. Create permission decorators for route protection
+6. Implement org hierarchy permission inheritance
+7. Add JWT token generation and validation
+
+### Phase 4: Basic Web UI - COMPLETE ✅
+
+**Overview**: Created comprehensive web interface with Bootstrap 5, vis.js graph visualization, and full authentication flow.
+
+**Implementation Tasks**:
+1. ✅ Create base Jinja2 templates with Bootstrap 5
+2. ✅ Create login and registration pages
+3. ✅ Create main dashboard with entity statistics
+4. ✅ Implement vis.js Network graph visualization
+5. ✅ Create organization management UI (list/view)
+6. ✅ Add JavaScript for API calls and interactivity
+7. ✅ Create Flask routes for serving web UI
+8. ✅ Add static assets (CSS, JS)
+9. ✅ Register web blueprint in main.py
+
+**Files Created** (10 files):
+- `apps/api/templates/base.html` - Base template with navigation and layout
+- `apps/api/templates/auth/login.html` - Login page with JWT authentication
+- `apps/api/templates/auth/register.html` - User registration page
+- `apps/api/templates/dashboard.html` - Main dashboard with statistics cards
+- `apps/api/templates/graph.html` - Interactive vis.js graph visualization
+- `apps/api/templates/organizations/list.html` - Organizations table with CRUD actions
+- `apps/api/web/__init__.py` - Web blueprint package init
+- `apps/api/web/routes.py` - Flask routes for web UI (22 routes)
+- `apps/api/static/js/main.js` - API helpers and utilities (~266 lines)
+- `apps/api/static/css/main.css` - Custom styling with dark mode (~298 lines)
+
+**Files Modified**:
+- `apps/api/main.py` - Registered web blueprint with root URL prefix
+
+**Features Implemented**:
+- JWT authentication with access/refresh token flow
+- Automatic token refresh via Axios interceptors
+- Dashboard with real-time statistics (orgs, entities, dependencies, issues)
+- Interactive graph visualization with filters and zoom/pan
+- Organization list with search, filter, and pagination
+- Responsive design with mobile support
+- Dark mode CSS support
+- License tier display in navigation
+- Bootstrap 5.3.2 + vis.js 9.1.9 integration
+
+**Routes Added** (22 web routes):
+- `/` - Home (redirect to dashboard or login)
+- `/login` - Login page
+- `/register` - Registration page
+- `/logout` - Logout action
+- `/dashboard` - Main dashboard
+- `/graph` - Graph visualization
+- `/profile` - User profile
+- `/organizations` - Organization list
+- `/organizations/new` - Create organization
+- `/organizations/{id}` - View organization
+- `/organizations/{id}/edit` - Edit organization
+- `/entities` - Entity list
+- `/entities/new` - Create entity
+- `/entities/{id}` - View entity
+- `/entities/{id}/edit` - Edit entity
+- `/issues` - Issues list (enterprise)
+- `/issues/new` - Create issue (enterprise)
+- `/issues/{id}` - View issue (enterprise)
+- 404 and 500 error handlers
+
+**Total Lines of Code Added**: ~1200 lines
+
+**Pending Tasks**:
+- Entity CRUD forms (create/edit pages)
+- Dependency management UI
+- Full Issues management UI (enterprise)
+- Metadata management UI (enterprise)
+- WebSocket real-time updates
+- Additional responsive polish
+
+**Notes**:
+- HTTP/2 and HTTP/3 support to be configured at deployment/infrastructure level (nginx/traefik)
+- Environment variable toggles (HTTP2=boolean, HTTP3=boolean) will be added in Phase 8
+
+### Phase 4 Status: COMPLETE ✅ (Core Web UI)
+
+### Phase 5: gRPC API - IN PROGRESS ⏳
+
+**Overview**: Implement high-performance gRPC API for Elder application as enterprise-only feature.
+
+**Implementation Tasks**:
+1. ✅ Define protobuf schemas for all entities (7 proto files)
+2. ✅ Generate Python gRPC code from protos (automated via Makefile)
+3. ✅ Implement gRPC server initialization with license validation
+4. ⏳ Create gRPC servicers for all CRUD operations
+5. ⏳ Add gRPC-Web gateway for browser access (Envoy proxy)
+6. ⏳ Document gRPC API usage
+7. ⏳ Add TLS/mTLS support for production
+
+**Files Created** (10 files):
+- `apps/api/grpc/proto/common.proto` - Common types and utilities
+- `apps/api/grpc/proto/organization.proto` - Organization messages and RPCs
+- `apps/api/grpc/proto/entity.proto` - Entity messages and RPCs
+- `apps/api/grpc/proto/dependency.proto` - Dependency messages and RPCs
+- `apps/api/grpc/proto/graph.proto` - Graph analysis messages and RPCs
+- `apps/api/grpc/proto/auth.proto` - Authentication messages and RPCs
+- `apps/api/grpc/proto/elder.proto` - Main Elder service definition (45 RPC methods)
+- `apps/api/grpc/server.py` - gRPC server with license validation
+- `apps/api/grpc/__init__.py` - Package init
+- `apps/api/grpc/servicers/__init__.py` - Servicers package init
+
+**Files Modified**:
+- `Makefile` - Added `generate-grpc` target for code generation
+- `scripts/generate-grpc.sh` - Shell script for protoc code generation
+
+**Generated Files** (15 Python files):
+- All protobuf Python code in `apps/api/grpc/generated/`
+
+**gRPC Service Definition** (45 RPC methods):
+- **Authentication** (11 methods): Login, RefreshToken, Logout, GetCurrentIdentity, ChangePassword, RegisterIdentity, ValidateToken, List/Get/Update/Delete Identities
+- **Organizations** (7 methods): List, Get, Create, Update, Delete, GetChildren, GetHierarchy
+- **Entities** (7 methods): List, Get, Create, Update, Delete, GetDependencies, BatchCreate
+- **Dependencies** (7 methods): List, Get, Create, Update, Delete, BulkCreate, BulkDelete
+- **Graph** (4 methods): GetDependencyGraph, AnalyzeGraph, FindPath, GetEntityImpact
+- **Health** (1 method): HealthCheck
+
+**Features Implemented**:
+- Protobuf schema definitions with proper imports and namespacing
+- Automated Python code generation via Docker
+- gRPC server with enterprise license validation
+- Graceful shutdown handling (SIGINT/SIGTERM)
+- Server reflection for grpcurl/grpcui debugging
+- Configurable via environment variables (host, port, workers, license check)
+- Connection pooling and keepalive configuration
+- 100MB message size limits
+
+**Pending Tasks**:
+- Implement all 45 gRPC servicer methods
+- Create gRPC-Web gateway (Envoy proxy configuration)
+- Add TLS/mTLS certificate support
+- Implement authentication interceptors
+- Add comprehensive gRPC documentation
+- Create gRPC client examples (Python, Go, Node.js)
+- Add gRPC performance tests
+
+**Total Lines of Code**: ~1500 lines (proto + server)
+
+### Phase 5 Status: IN PROGRESS ⏳ (Protobuf schemas and server foundation complete)
+
+### Phase 6: Enterprise Features - Issues, Resource Roles, and Typed Metadata
+
+**Overview**: Add three enterprise-only features requiring PenguinTech License Server validation:
+1. GitHub-style Issues System with resource-level permissions
+2. Enhanced Resource Roles (Maintainer/Operator/Viewer per entity/org)
+3. Typed Metadata with validation
+
+**Permission Model** (Two-layer authorization):
+1. License tier check: Enterprise tier required for all mutations
+2. Resource-level role check: Maintainer/Operator/Viewer role on specific entity/org
+
+**Resource Role Permissions Matrix**:
+- **Maintainer**: Full CRUD on issues/metadata, can manage roles
+- **Operator**: Create/close issues (not delete/edit), add comments/labels, metadata read-only
+- **Viewer**: View issues, create new issues, add comments, metadata read-only
+
+**Database Changes**:
+1. resource_roles table (identity_id, resource_type, resource_id, role_type)
+2. issues, issue_labels, issue_comments, issue_entity_links tables
+3. metadata_fields table (typed: string, number, date, boolean, json)
+
+**Implementation Tasks**:
+1. ✅ License Server Integration (shared/licensing/) - COMPLETE
+2. ✅ Resource Roles Models & API (6 endpoints) - COMPLETE
+3. ✅ Issues System Models & API (14 endpoints) - COMPLETE
+4. ✅ Typed Metadata Models & API (8 endpoints) - COMPLETE
+5. ✅ Database Migrations - COMPLETE
+6. ✅ Update Main Application - COMPLETE
+7. ⏳ Web UI Integration (Phase 4 dependency)
+8. ⏳ Testing
+
+**New Endpoints**: 28 total (Resource Roles: 6, Issues: 14, Metadata: 8)
+**Total API Endpoints**: 79
+
+### Phase 6 Status: COMPLETE ✅ (Backend Implementation)
+
+**Files Created**:
+- `shared/licensing/client.py` - PenguinTech License Server client with validation and keepalive
+- `shared/licensing/decorators.py` - @license_required and @feature_required decorators
+- `apps/api/models/resource_role.py` - ResourceRole model with permission checking
+- `apps/api/models/issue.py` - Issue, IssueLabel, IssueComment, IssueEntityLink models
+- `apps/api/models/metadata.py` - MetadataField model with type validation
+- `apps/api/schemas/resource_role.py` - Resource role validation schemas
+- `apps/api/schemas/issue.py` - Issue validation schemas
+- `apps/api/schemas/metadata.py` - Metadata validation schemas
+- `apps/api/api/v1/resource_roles.py` - 6 REST endpoints for resource role management
+- `apps/api/api/v1/issues.py` - 14 REST endpoints for issues system
+- `apps/api/api/v1/metadata.py` - 8 REST endpoints for typed metadata
+- `alembic/versions/001_add_enterprise_features.py` - Database migration
+
+**Files Modified**:
+- `apps/api/auth/decorators.py` - Added @resource_role_required decorator
+- `apps/api/main.py` - Registered enterprise blueprints and license client initialization
+
+**Database Tables Added**:
+- resource_roles (resource-level permissions)
+- issues (GitHub-style issue tracking)
+- issue_labels (issue categorization)
+- issue_label_assignments (many-to-many)
+- issue_comments (issue discussion)
+- issue_entity_links (entity relationships)
+- metadata_fields (typed metadata storage)
+
+**Total Lines of Code**: ~3500 lines
+
+### Phase 6a: Advanced Features (Post-Enterprise)
+1. LDAP/SAML group synchronization
+2. Import/export functionality (JSON, YAML, CSV)
+3. WebSocket real-time updates for graph changes
+4. Advanced search and filtering
+5. Bulk operations
+
+### Phase 7: License Integration
+1. Integrate PenguinTech License Server client
+2. Implement feature gating:
+   - Community: 100 entities, local auth only
+   - Professional: Unlimited entities, SAML/OAuth2, advanced visualization
+   - Enterprise: All features + LDAP sync + audit logging + gRPC API
+3. Add license validation on startup
+4. Implement keepalive reporting
+5. Create license management UI for admins
+
+### Phase 8: Infrastructure & DevOps
+1. Create multi-stage Dockerfiles (debian-slim base)
+2. Set up docker-compose.yml for development
+3. Create docker-compose.prod.yml for production
+4. Build Kubernetes manifests (deployment, service, ingress)
+5. Create Helm charts
+6. Set up GitHub Actions:
+   - Test workflow
+   - Build workflow (multi-arch amd64/arm64)
+   - Deploy workflow
+7. Add Prometheus metrics endpoint
+8. Configure structured logging (console + UDP syslog + HTTP3/Kafka)
+
+### Phase 9: Websites & Documentation
+1. Create elder/ folder in penguintechinc/website repo
+2. Create elder-docs/ folder in penguintechinc/website repo
+3. Set up sparse checkout submodule
+4. Build marketing website (Node.js):
+   - Modern design with gradients
+   - Multi-page structure
+   - Not overly bright
+   - Responsive
+5. Build documentation website (Markdown-based)
+6. Deploy both websites
+
+### Phase 10: Testing & Polish
+1. Write unit tests (pytest):
+   - Model tests
+   - API endpoint tests
+   - Auth tests
+   - RBAC tests
+2. Write integration tests:
+   - Full API test suite
+   - Authentication flows
+   - Graph operations
+3. Perform security scanning:
+   - Trivy for containers
+   - CodeQL for code
+   - Dependency scanning
+4. Optimize performance:
+   - Query optimization
+   - Caching strategy
+   - Graph rendering optimization
+5. Final documentation:
+   - README.md with badges and ASCII art
+   - API documentation
+   - Deployment guides
+   - RELEASE_NOTES.md
+
+## Database Schema (High-Level)
+
+```sql
+organizations:
+  - id (PK), parent_id (FK self, nullable), name, ldap_dn, saml_group
+  - owner_identity_id (FK), owner_group_id (FK)
+  - created_at, updated_at
+
+entities:
+  - id (PK), organization_id (FK), entity_type (enum)
+  - name, description, metadata (JSONB)
+  - owner_identity_id (FK)
+  - created_at, updated_at
+
+dependencies:
+  - id (PK), source_entity_id (FK), target_entity_id (FK)
+  - dependency_type (depends_on|related_to|part_of)
+  - metadata (JSONB), created_at
+
+identities:
+  - id (PK), identity_type (human|service_account)
+  - username, email, auth_provider, auth_provider_id
+  - created_at, updated_at
+
+identity_groups:
+  - id (PK), name, ldap_dn, saml_group
+  - created_at, updated_at
+
+identity_group_memberships:
+  - identity_id (FK), group_id (FK)
+
+roles:
+  - id (PK), name, description
+
+permissions:
+  - id (PK), name, resource_type, action
+
+role_permissions:
+  - role_id (FK), permission_id (FK)
+
+user_roles:
+  - identity_id (FK), role_id (FK)
+  - organization_id (FK, nullable), scope (global|organization)
+
+audit_logs:
+  - id (PK), identity_id (FK), action, resource_type
+  - resource_id, metadata (JSONB), ip_address, timestamp
+```
+
+## API Endpoints
+
+### REST API (v1)
+```
+Organizations:
+  GET    /api/v1/organizations
+  POST   /api/v1/organizations
+  GET    /api/v1/organizations/{id}
+  PATCH  /api/v1/organizations/{id}
+  DELETE /api/v1/organizations/{id}
+  GET    /api/v1/organizations/{id}/children
+
+Entities:
+  GET    /api/v1/entities
+  POST   /api/v1/entities
+  GET    /api/v1/entities/{id}
+  PATCH  /api/v1/entities/{id}
+  DELETE /api/v1/entities/{id}
+  GET    /api/v1/entities/{id}/dependencies
+
+Dependencies:
+  GET    /api/v1/dependencies
+  POST   /api/v1/dependencies
+  GET    /api/v1/dependencies/{id}
+  DELETE /api/v1/dependencies/{id}
+
+Graph:
+  GET    /api/v1/graph
+  GET    /api/v1/graph?organization_id={id}
+  GET    /api/v1/graph?entity_id={id}&depth=2
+
+Users/Identities:
+  GET    /api/v1/identities
+  POST   /api/v1/identities
+  GET    /api/v1/identities/{id}
+  PATCH  /api/v1/identities/{id}
+  DELETE /api/v1/identities/{id}
+
+Auth:
+  POST   /api/v1/auth/login
+  POST   /api/v1/auth/logout
+  POST   /api/v1/auth/refresh
+  GET    /api/v1/auth/saml/login
+  POST   /api/v1/auth/saml/acs
+  GET    /api/v1/auth/oauth2/authorize
+  GET    /api/v1/auth/oauth2/callback
+
+Metrics & Health:
+  GET    /healthz
+  GET    /metrics
+```
+
+### gRPC API
+```protobuf
+service ElderService {
+  // Organizations
+  rpc ListOrganizations(ListOrganizationsRequest) returns (ListOrganizationsResponse);
+  rpc GetOrganization(GetOrganizationRequest) returns (Organization);
+  rpc CreateOrganization(CreateOrganizationRequest) returns (Organization);
+  rpc UpdateOrganization(UpdateOrganizationRequest) returns (Organization);
+  rpc DeleteOrganization(DeleteOrganizationRequest) returns (Empty);
+
+  // Entities
+  rpc ListEntities(ListEntitiesRequest) returns (ListEntitiesResponse);
+  rpc GetEntity(GetEntityRequest) returns (Entity);
+  rpc CreateEntity(CreateEntityRequest) returns (Entity);
+  rpc UpdateEntity(UpdateEntityRequest) returns (Entity);
+  rpc DeleteEntity(DeleteEntityRequest) returns (Empty);
+
+  // Dependencies
+  rpc CreateDependency(CreateDependencyRequest) returns (Dependency);
+  rpc DeleteDependency(DeleteDependencyRequest) returns (Empty);
+
+  // Graph
+  rpc GetDependencyGraph(GetDependencyGraphRequest) returns (DependencyGraph);
+}
+```
+
+## Security Considerations
+1. Input validation with marshmallow schemas
+2. SQL injection prevention via SQLAlchemy ORM
+3. XSS prevention with Jinja2 auto-escaping
+4. CSRF protection with Flask-WTF
+5. Multi-factor authentication support
+6. RBAC with least-privilege principle
+7. TLS 1.3 enforcement
+8. Secrets in environment variables only
+9. Comprehensive audit logging
+10. Rate limiting with Flask-Limiter
+
+## Performance Optimizations
+1. PostgreSQL connection pooling
+2. Redis caching for frequently accessed data
+3. Materialized views for complex queries
+4. Recursive CTEs for dependency traversal
+5. Async Flask views where appropriate
+6. API pagination and field selection
+7. Graph lazy loading and virtualization
+
+## License Tiers
+- **Community**: Up to 100 entities, local auth only
+- **Professional**: Unlimited entities, SAML/OAuth2, advanced visualization
+- **Enterprise**: All features + LDAP sync + audit logging + gRPC API + SSO
+
+## Project Structure
+```
+Elder/
+├── apps/api/                 # Main Flask application
+├── shared/                   # Shared components (licensing, monitoring)
+├── scripts/                  # Utility scripts
+├── infrastructure/           # Docker, K8s, monitoring configs
+├── tests/                    # Unit, integration, e2e tests
+├── docs/                     # Documentation
+├── websites/                 # Sparse submodule (elder/, elder-docs/)
+├── .github/workflows/        # CI/CD pipelines
+├── docker-compose.yml        # Development environment
+├── Makefile                  # Build automation
+├── requirements.txt          # Python dependencies
+├── .version                  # Version tracking
+└── .gitignore
+```
+
+## Current Status
+**Phase 1 COMPLETE ✅** (Foundation & Core Models)
+**Phase 2 COMPLETE ✅** (REST API)
+**Phase 3 COMPLETE ✅** (Core Authentication & Authorization)
+**Phase 4 COMPLETE ✅** (Basic Web UI)
+**Phase 5 IN PROGRESS ⏳** (gRPC API - Protobuf schemas and server foundation complete)
+**Phase 6 COMPLETE ✅** (Enterprise Features - Backend)
+
+### Phase 1 Tasks - All Complete:
+- ✅ Project directory structure created
+- ✅ .gitignore configured with .PLAN and .TODO files
+- ✅ Python 3.13 requirements.txt configured with Flask and all dependencies
+- ✅ Database models created (Organizations, Entities, Dependencies, Identities, RBAC, Audit)
+- ✅ Flask application initialized with config management
+- ✅ PostgreSQL and Redis configured via docker-compose.yml
+- ✅ Alembic migrations setup complete
+- ✅ /healthz and /metrics endpoints implemented
+- ✅ Comprehensive Makefile created
+- ✅ README.md with badges and ASCII art created
+- ✅ .version file updated to 0.1.0
+- ✅ Dockerfile created for Flask API
+- ✅ Prometheus and Grafana monitoring configured
+
+## Phase 1 Accomplishments
+
+### Database Models
+- **Organization**: Hierarchical org structure with LDAP/SAML mappings
+- **Entity**: 7 entity types (datacenter, vpc, subnet, compute, network, user, security_issue)
+- **Dependency**: Relationship tracking between entities
+- **Identity**: Users and service accounts with multi-auth support
+- **IdentityGroup**: Teams and groups with membership
+- **RBAC**: Roles, Permissions, RolePermissions, UserRoles with org-scoping
+- **AuditLog**: Comprehensive audit trail
+
+### Application Infrastructure
+- Flask application factory pattern
+- Configuration management (dev/prod/testing)
+- SQLAlchemy + Alembic for database migrations
+- Redis integration for caching and sessions
+- Structured logging with structlog
+- Prometheus metrics integration
+- Health check endpoint
+- Docker multi-stage build with debian-slim
+- docker-compose for local development
+- Makefile with 40+ commands
+
+### Development Tooling
+- Comprehensive Makefile
+- Docker and docker-compose setup
+- Alembic migrations framework
+- pytest configuration (ready for tests)
+- Code formatting (black, isort)
+- Linting (flake8, mypy)
+
+### Phase 2 Tasks - REST API Implementation ✅
+
+**All organizational elements, entities, and dependencies are fully editable via REST API!**
+
+1. ✅ Create API blueprint structure
+2. ✅ Add request validation with marshmallow schemas
+3. ✅ Add pagination and filtering utilities
+4. ✅ Implement Organization CRUD endpoints (9 endpoints)
+   - List, Create, Get, Update, Delete
+   - Get children, Get hierarchy
+5. ✅ Implement Entity CRUD endpoints (8 endpoints)
+   - List, Create, Get, Update, Delete
+   - Get dependencies, Update metadata
+6. ✅ Implement Dependency CRUD endpoints (9 endpoints)
+   - List, Create, Get, Update, Delete
+   - Bulk create, Bulk delete
+7. ✅ Implement Graph API endpoints (3 endpoints)
+   - Get graph (with filters), Analyze graph, Find path
+8. ✅ Wire up blueprints to Flask app
+9. ✅ Create basic API tests
+
+**API Endpoints Summary (29 total)**:
+- Organizations: 9 endpoints
+- Entities: 8 endpoints
+- Dependencies: 9 endpoints
+- Graph: 3 endpoints
+
+### Phase 3 Tasks - Authentication & Authorization ✅
+
+1. ✅ Implement JWT token generation and validation
+2. ✅ Create authentication decorators (@login_required, @permission_required)
+3. ✅ Implement local authentication endpoints (7 endpoints):
+   - POST /auth/register - User registration
+   - POST /auth/login - Login with username/password
+   - POST /auth/logout - Logout current user
+   - GET /auth/me - Get current user info
+   - POST /auth/change-password - Change password
+   - POST /auth/refresh - Refresh access token
+4. ✅ Implement Identity/User management endpoints (13 endpoints):
+   - Full CRUD for identities (list, create, get, update, delete)
+   - Full CRUD for identity groups (list, create, get, update, delete)
+   - Group membership management (add/remove members)
+5. ✅ Create audit logging helper for auth events
+6. ✅ Password hashing with werkzeug.security
+7. ✅ RBAC permission checking system
+
+**Authentication Features**:
+- JWT access tokens (1 hour expiry)
+- JWT refresh tokens (30 days expiry)
+- Password complexity validation (min 8 chars)
+- Username uniqueness enforcement
+- Email uniqueness enforcement
+- Active user checking
+- Last login tracking
+- Audit logging for auth events
+
+**Authorization Features**:
+- @login_required decorator
+- @permission_required decorator
+- @permissions_required decorator (multiple perms)
+- @org_permission_required decorator (org-scoped)
+- Global vs organization-scoped permissions
+- Superuser bypass
+
+**API Endpoints Added (20 total)**:
+- Auth: 7 endpoints
+- Identities: 10 endpoints
+- Identity Groups: 3 endpoints
+
+### Additional Features Added:
+- ✅ Unique 64-bit identifier system for all entities
+- ✅ Public lookup endpoint: GET /lookup/{unique_id}
+- ✅ Batch lookup endpoint: POST /lookup/batch
+- ✅ Auto-generation of unique IDs on entity creation
+
+**Total API Endpoints: 51**
+- Organizations: 9
+- Entities: 8
+- Dependencies: 9
+- Graph: 3
+- Auth: 7
+- Identities: 13
+- Lookup: 2
+
+## Next Steps - Phase 5: gRPC API (Continue)
+
+Continue implementing gRPC API for high-performance client integrations:
+1. ✅ Define protobuf schemas for all entities (COMPLETE)
+2. ✅ Generate Python gRPC code from protos (COMPLETE)
+3. ⏳ Implement gRPC servicers for all 45 RPC methods
+4. Add gRPC-Web gateway (Envoy proxy configuration)
+5. Implement authentication interceptors for gRPC
+6. Add TLS/mTLS certificate support
+7. Document gRPC API usage and create client examples
+8. Add gRPC performance tests
+
+### Performance Optimizations (Python 3.13 Best Practices)
+**IMPORTANT**: Utilize modern Python 3.13 features for maximum performance:
+- **Dataclasses**: Use @dataclass for DTOs and structured data
+- **Type hints**: Comprehensive typing for better optimization
+- **Async/await**: async Flask views for I/O-bound operations
+- **Threading**: Use ThreadPoolExecutor for CPU-bound batch operations
+- **Memory optimization**: Use __slots__, frozen dataclasses where appropriate
+- **Connection pooling**: SQLAlchemy + Redis connection pools
+- **Caching**: Redis caching for frequently accessed data
+- **Batch operations**: Bulk endpoints for reducing round trips
+
+### Phase 5: Web UI (Updated Requirements)
+- Interactive graph visualization (vis.js)
+- **Full CRUD operations via UI**:
+  - Create/Edit/Delete Organizations
+  - Create/Edit/Delete Entities
+  - Create/Edit/Delete Dependencies
+  - Drag-and-drop interface
+  - Inline editing for all fields
+  - Real-time updates via WebSocket
+- Authentication UI (login, MFA)
+- Admin dashboard
+
+## Command to Start Development
+
+```bash
+# Setup environment
+make setup
+
+# Start services
+make dev
+
+# In another terminal, run migrations
+make db-migrate
+
+# Start the API
+make dev-api
+```
+
+The Elder API will be available at http://localhost:5000/healthz
