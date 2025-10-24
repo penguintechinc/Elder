@@ -15,6 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsasl2-dev \
     libldap2-dev \
     libssl-dev \
+    pkg-config \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libxmlsec1-openssl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
@@ -33,7 +37,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     libsasl2-2 \
-    libldap-2.5-0 \
+    libldap2 \
+    libxml2 \
+    libxmlsec1-openssl \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
