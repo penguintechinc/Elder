@@ -43,22 +43,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Python dependencies from builder
-COPY --from=builder /root/.local /root/.local
-
-# Make sure scripts in .local are usable
-ENV PATH=/root/.local/bin:$PATH
-
-# Copy application code
-COPY apps /app/apps
-COPY shared /app/shared
-COPY requirements.txt /app/
-
 # Create non-root user for security
-RUN useradd -m -u 1000 elder && chown -R elder:elder /app
+RUN useradd -m -u 1000 elder
+
+# Copy Python dependencies from builder to elder user
+COPY --from=builder /root/.local /home/elder/.local
+RUN chown -R elder:elder /home/elder/.local
 
 # Switch to non-root user
 USER elder
+
+# Make sure scripts in .local are usable
+ENV PATH=/home/elder/.local/bin:$PATH
+
+# Copy application code
+COPY --chown=elder:elder apps /app/apps
+COPY --chown=elder:elder shared /app/shared
+COPY --chown=elder:elder requirements.txt /app/
 
 # Expose ports
 EXPOSE 5000 50051

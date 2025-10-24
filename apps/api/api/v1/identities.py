@@ -47,7 +47,7 @@ def list_identities():
     pagination_params = get_pagination_params()
 
     # Build query
-    query = Identity.query
+    query = db.session.query(Identity)
 
     # Apply filters
     identity_type = request.args.get("identity_type")
@@ -105,7 +105,7 @@ def create_identity():
         return handle_validation_error(e)
 
     # Check if username exists
-    existing = Identity.query.filter_by(username=data["username"]).first()
+    existing = db.session.query(Identity).filter_by(username=data["username"]).first()
     if existing:
         return make_error_response("Username already exists", 400)
 
@@ -246,7 +246,7 @@ def list_groups():
     """
     pagination_params = get_pagination_params()
 
-    query = IdentityGroup.query.order_by(IdentityGroup.name)
+    query = db.session.query(IdentityGroup).order_by(IdentityGroup.name)
 
     items, pagination = paginate(
         query,
@@ -280,7 +280,7 @@ def create_group():
         return handle_validation_error(e)
 
     # Check if group name exists
-    existing = IdentityGroup.query.filter_by(name=data["name"]).first()
+    existing = db.session.query(IdentityGroup).filter_by(name=data["name"]).first()
     if existing:
         return make_error_response("Group name already exists", 400)
 
@@ -369,7 +369,7 @@ def add_group_member(group_id: int, identity_id: int):
     identity = get_or_404(Identity, identity_id)
 
     # Check if already a member
-    existing = IdentityGroupMembership.query.filter_by(
+    existing = db.session.query(IdentityGroupMembership).filter_by(
         group_id=group_id,
         identity_id=identity_id,
     ).first()
@@ -401,7 +401,7 @@ def remove_group_member(group_id: int, identity_id: int):
         204: Member removed
         404: Not a member
     """
-    membership = IdentityGroupMembership.query.filter_by(
+    membership = db.session.query(IdentityGroupMembership).filter_by(
         group_id=group_id,
         identity_id=identity_id,
     ).first()

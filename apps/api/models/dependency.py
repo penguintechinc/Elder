@@ -54,7 +54,8 @@ class Dependency(Base, IDMixin):
     )
 
     # Additional metadata
-    metadata = Column(
+    dependency_metadata = Column(
+        "metadata",  # Column name in database
         JSON,
         nullable=True,
         default=dict,
@@ -108,9 +109,9 @@ class Dependency(Base, IDMixin):
         Returns:
             Criticality level (high, medium, low) from metadata or 'medium' as default
         """
-        if not self.metadata:
+        if not self.dependency_metadata:
             return "medium"
-        return self.metadata.get("criticality", "medium")
+        return self.dependency_metadata.get("criticality", "medium")
 
     def set_criticality(self, level: str) -> None:
         """
@@ -119,6 +120,6 @@ class Dependency(Base, IDMixin):
         Args:
             level: Criticality level (high, medium, low)
         """
-        if self.metadata is None:
-            self.metadata = {}
-        self.metadata["criticality"] = level
+        if self.dependency_metadata is None:
+            self.dependency_metadata = {}
+        self.dependency_metadata["criticality"] = level

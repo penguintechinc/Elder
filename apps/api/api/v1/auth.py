@@ -62,12 +62,12 @@ def register():
         return handle_validation_error(e)
 
     # Check if username already exists
-    existing = Identity.query.filter_by(username=data["username"]).first()
+    existing = db.session.query(Identity).filter_by(username=data["username"]).first()
     if existing:
         return make_error_response("Username already exists", 400)
 
     # Check if email already exists
-    existing_email = Identity.query.filter_by(email=data["email"]).first()
+    existing_email = db.session.query(Identity).filter_by(email=data["email"]).first()
     if existing_email:
         return make_error_response("Email already exists", 400)
 
@@ -132,7 +132,7 @@ def login():
         return handle_validation_error(e)
 
     # Find user
-    identity = Identity.query.filter_by(username=data["username"]).first()
+    identity = db.session.query(Identity).filter_by(username=data["username"]).first()
 
     if not identity or not verify_password(identity, data["password"]):
         # Create failed login audit log (if identity exists)

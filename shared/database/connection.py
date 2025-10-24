@@ -23,9 +23,10 @@ def init_db(app: Flask) -> None:
     with app.app_context():
         # Import all models to ensure they're registered with SQLAlchemy
         from apps.api import models  # noqa: F401
+        from apps.api.models.base import Base
 
-        # Create all tables
-        db.create_all()
+        # Create all tables using Base metadata (since we use custom Base, not db.Model)
+        Base.metadata.create_all(bind=db.engine)
 
         # Initialize default data if needed
         _init_default_data()
@@ -40,8 +41,12 @@ def _init_default_data() -> None:
     from werkzeug.security import generate_password_hash
 
     # Check if roles already exist
-    if Role.query.count() > 0:
-        return
+    try:
+        if db.session.query(Role).count() > 0:
+            return
+    except Exception:
+        # Tables don't exist yet, will be created below
+        pass
 
     # Create default roles
     roles_data = [

@@ -47,7 +47,7 @@ def list_entities():
         return handle_validation_error(e)
 
     # Build base query
-    query = Entity.query
+    query = db.session.query(Entity)
 
     # Apply filters
     filters = {
@@ -243,7 +243,7 @@ def get_entity_dependencies(id: int):
         else:
             # Get recursive dependencies
             deps = entity.get_all_dependencies(depth=depth)
-            outgoing = [Entity.query.get(d.id) for d in deps if d]
+            outgoing = [db.session.query(Entity).get(d.id) for d in deps if d]
 
         from apps.api.schemas.dependency import DependencySchema
         result["depends_on"] = DependencySchema(many=True).dump(outgoing)
@@ -255,7 +255,7 @@ def get_entity_dependencies(id: int):
         else:
             # Get recursive dependents
             deps = entity.get_all_dependents(depth=depth)
-            incoming = [Entity.query.get(d.id) for d in deps if d]
+            incoming = [db.session.query(Entity).get(d.id) for d in deps if d]
 
         from apps.api.schemas.dependency import DependencySchema
         result["depended_by"] = DependencySchema(many=True).dump(incoming)

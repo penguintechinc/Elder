@@ -84,7 +84,8 @@ class AuditLog(Base, IDMixin):
     )
 
     # Additional metadata
-    metadata = Column(
+    audit_metadata = Column(
+        "metadata",  # Column name in database
         JSON,
         nullable=True,
         comment="Additional context (e.g., reason, ticket number)",

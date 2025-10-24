@@ -43,7 +43,7 @@ def list_organizations():
     pagination_params = get_pagination_params()
 
     # Build base query
-    query = Organization.query
+    query = db.session.query(Organization)
 
     # Apply filters
     filters = {}

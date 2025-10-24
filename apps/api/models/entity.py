@@ -76,7 +76,8 @@ class Entity(Base, IDMixin, TimestampMixin):
     # - compute: {"hostname": "web-01", "ip": "10.0.1.5", "os": "Ubuntu 22.04", "cpu": 4, "memory_gb": 16}
     # - network: {"device_type": "load_balancer", "ip": "10.0.1.10", "ports": [80, 443]}
     # - security_issue: {"cve": "CVE-2024-1234", "severity": "high", "cvss_score": 8.5}
-    metadata = Column(
+    entity_metadata = Column(
+        "metadata",  # Column name in database
         JSON,
         nullable=True,
         default=dict,
@@ -201,9 +202,9 @@ class Entity(Base, IDMixin, TimestampMixin):
         Returns:
             Field value or default
         """
-        if not self.metadata:
+        if not self.entity_metadata:
             return default
-        return self.metadata.get(field, default)
+        return self.entity_metadata.get(field, default)
 
     def set_metadata_field(self, field: str, value: any) -> None:
         """
@@ -213,6 +214,6 @@ class Entity(Base, IDMixin, TimestampMixin):
             field: Field name to set
             value: Value to set
         """
-        if self.metadata is None:
-            self.metadata = {}
-        self.metadata[field] = value
+        if self.entity_metadata is None:
+            self.entity_metadata = {}
+        self.entity_metadata[field] = value

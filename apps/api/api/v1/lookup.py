@@ -43,7 +43,7 @@ def lookup_entity(unique_id: int):
         }
     """
     # Find entity by unique_id
-    entity = Entity.query.filter_by(unique_id=unique_id).first()
+    entity = db.session.query(Entity).filter_by(unique_id=unique_id).first()
 
     if not entity:
         return make_error_response(
@@ -110,7 +110,7 @@ def lookup_entities_batch():
         return make_error_response("Maximum 100 entities per batch lookup", 400)
 
     # Query all entities
-    entities = Entity.query.filter(Entity.unique_id.in_(unique_ids)).all()
+    entities = db.session.query(Entity).filter(Entity.unique_id.in_(unique_ids)).all()
 
     # Build lookup map
     entity_map = {e.unique_id: e for e in entities}

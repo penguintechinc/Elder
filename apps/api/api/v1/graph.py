@@ -40,7 +40,7 @@ def get_graph():
     include_metadata = request.args.get("include_metadata", "false").lower() == "true"
 
     # Build entity query
-    entity_query = Entity.query
+    entity_query = db.session.query(Entity)
 
     if org_id:
         entity_query = entity_query.filter(Entity.organization_id == org_id)
@@ -65,7 +65,7 @@ def get_graph():
     entity_ids = {e.id for e in entities}
 
     # Get dependencies between these entities
-    dependencies = Dependency.query.filter(
+    dependencies = db.session.query(Dependency).filter(
         Dependency.source_entity_id.in_(entity_ids),
         Dependency.target_entity_id.in_(entity_ids),
     ).all()
@@ -127,14 +127,14 @@ def analyze_graph():
     org_id = request.args.get("organization_id", type=int)
 
     # Build query
-    entity_query = Entity.query
+    entity_query = db.session.query(Entity)
     if org_id:
         entity_query = entity_query.filter(Entity.organization_id == org_id)
 
     entities = entity_query.all()
     entity_ids = {e.id for e in entities}
 
-    dependencies = Dependency.query.filter(
+    dependencies = db.session.query(Dependency).filter(
         Dependency.source_entity_id.in_(entity_ids),
         Dependency.target_entity_id.in_(entity_ids),
     ).all()
@@ -226,7 +226,7 @@ def find_path():
     to_entity = get_or_404(Entity, to_id)
 
     # Build graph
-    dependencies = Dependency.query.all()
+    dependencies = db.session.query(Dependency).all()
     G = nx.DiGraph()
 
     for dep in dependencies:
@@ -238,7 +238,7 @@ def find_path():
         path_length = len(path) - 1
 
         # Get entities in path
-        entities_in_path = Entity.query.filter(Entity.id.in_(path)).all()
+        entities_in_path = db.session.query(Entity).filter(Entity.id.in_(path)).all()
         entity_map = {e.id: e for e in entities_in_path}
 
         path_details = [

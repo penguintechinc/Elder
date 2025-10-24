@@ -130,14 +130,15 @@ def _init_license_client(app: Flask) -> None:
     Args:
         app: Flask application
     """
-    from shared.licensing import init_license_client
+    from shared.licensing import get_license_client
 
     try:
-        client = init_license_client(app)
+        client = get_license_client()
+        validation = client.validate()
         logger.info(
             "license_client_initialized",
-            tier=client.validate().tier,
-            enterprise_features_enabled=client.check_tier("enterprise"),
+            tier=validation.tier,
+            enterprise_features_enabled=(validation.tier == "enterprise"),
         )
     except Exception as e:
         logger.warning(

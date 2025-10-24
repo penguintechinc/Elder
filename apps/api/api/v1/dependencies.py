@@ -45,7 +45,7 @@ def list_dependencies():
         return handle_validation_error(e)
 
     # Build base query
-    query = Dependency.query
+    query = db.session.query(Dependency)
 
     # Apply filters
     filters = {
@@ -119,7 +119,7 @@ def create_dependency():
         )
 
     # Check if dependency already exists
-    existing = Dependency.query.filter_by(
+    existing = db.session.query(Dependency).filter_by(
         source_entity_id=data["source_entity_id"],
         target_entity_id=data["target_entity_id"],
         dependency_type=data["dependency_type"],
@@ -319,7 +319,7 @@ def delete_bulk_dependencies():
         return make_error_response("Maximum 100 dependencies per bulk delete", 400)
 
     try:
-        deleted = Dependency.query.filter(Dependency.id.in_(ids)).delete(
+        deleted = db.session.query(Dependency).filter(Dependency.id.in_(ids)).delete(
             synchronize_session=False
         )
         db.session.commit()
