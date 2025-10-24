@@ -42,6 +42,20 @@ services:
     networks:
       - elder-network
 
+  # Elder Web UI
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: elder-web
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    depends_on:
+      - api
+    networks:
+      - elder-network
+    restart: unless-stopped
+
   # Elder Flask API
   api:
     build:

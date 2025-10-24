@@ -26,7 +26,10 @@
       "Bash(docker-compose exec:*)",
       "Bash(docker stop:*)",
       "Bash(docker rm:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm install:*)",
+      "Bash(docker run:*)",
+      "Bash(docker exec:*)"
     ],
     "deny": [],
     "ask": []
