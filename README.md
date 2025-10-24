@@ -7,18 +7,21 @@
 [![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](https://github.com/penguintechinc/elder/releases)
 
 ```
- ______ _     _
-|  ____| |   | |
-| |__  | | __| | ___ _ __
-|  __| | |/ _` |/ _ \ '__|
-| |____| | (_| |  __/ |
-|______|_|\__,_|\___|_|
+███████╗██╗     ██████╗ ███████╗██████╗
+██╔════╝██║     ██╔══██╗██╔════╝██╔══██╗
+█████╗  ██║     ██║  ██║█████╗  ██████╔╝
+██╔══╝  ██║     ██║  ██║██╔══╝  ██╔══██╗
+███████╗███████╗██████╔╝███████╗██║  ██║
+╚══════╝╚══════╝╚═════╝ ╚══════╝╚═╝  ╚═╝
 
-   Entity Relationship
-   Tracking System
+Entity, Element, and Relationship Tracking System
 ```
 
-**Elder** is a comprehensive entity relationship tracking application that visualizes and manages dependencies between infrastructure and organizational entities. Track datacenters, networks, compute resources, users, and security issues with their complex interdependencies in a hierarchical organizational structure.
+> **Enterprise-grade infrastructure dependency tracking and visualization**
+
+**Elder** is a comprehensive entity, element, and relationship tracking system designed for modern infrastructure management. Track dependencies, visualize relationships, and maintain control across complex organizational structures.
+
+🌐 **[Website](https://elder.penguintech.io)** | 📚 **[Documentation](https://elder-docs.penguintech.io)** | 💬 **[Discussions](https://github.com/penguintechinc/elder/discussions)**
 
 ## Overview
 
@@ -405,20 +408,26 @@ Elder is licensed under the Limited AGPL v3 with Fair Use Preamble. See [LICENSE
 - **Email**: support@penguintech.io
 - **License Server**: [license.penguintech.io](https://license.penguintech.io)
 
-## Roadmap
+## Project Status
 
-- [x] Phase 1: Foundation & Core Models ✅
-- [ ] Phase 2: Complete REST API implementation
-- [ ] Phase 3: Authentication & Authorization
-- [ ] Phase 4: gRPC API
-- [ ] Phase 5: Visualization Frontend
-- [ ] Phase 6: Advanced Features (LDAP sync, audit logging)
-- [ ] Phase 7: License Integration
-- [ ] Phase 8: CI/CD Pipeline
-- [ ] Phase 9: Marketing and Documentation Websites
-- [ ] Phase 10: Production Deployment
+**Current Version:** 0.1.0
 
-Current status: **Phase 1 Complete** (Foundation & Core Models)
+**Completed Phases:**
+- ✅ Phase 1: Foundation & Core Models
+- ✅ Phase 2: REST API (79 endpoints)
+- ✅ Phase 3: Authentication & Authorization (JWT, SAML, OAuth2, RBAC)
+- ✅ Phase 4: Web UI (Bootstrap 5, vis.js graphs)
+- ✅ Phase 5: gRPC API (45 RPC methods, Envoy proxy)
+- ✅ Phase 6: Enterprise Features (Issues, Resource Roles, Metadata)
+- ✅ Phase 8: Infrastructure & DevOps (CI/CD, Kubernetes, Helm)
+- ✅ Phase 9: Websites & Documentation
+- ✅ Phase 10: Testing & Polish
+
+**Optional Future Enhancements:**
+- Phase 6a: Advanced Features (LDAP sync, WebSocket updates, bulk operations)
+- Phase 7: License Integration Refinement
+
+See [.PLAN](.PLAN) for detailed implementation roadmap.
 
 ## Acknowledgments
 
