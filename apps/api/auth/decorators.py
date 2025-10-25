@@ -374,3 +374,66 @@ def resource_role_required(required_role: str, resource_param: str = "id") -> Ca
         return decorated_function
 
     return decorator
+
+
+def role_required(allowed_roles):
+    """
+    Decorator to require specific portal roles for an endpoint.
+
+    Args:
+        allowed_roles: String or list of allowed portal roles ('admin', 'editor', 'observer')
+
+    Usage:
+        @bp.route('/admin-only')
+        @login_required
+        @role_required('admin')
+        async def admin_route():
+            return jsonify({"message": "Admin access"})
+
+        @bp.route('/write-access')
+        @login_required
+        @role_required(['admin', 'editor'])
+        async def write_route():
+            return jsonify({"message": "Write access"})
+    """
+    # Normalize to list
+    if isinstance(allowed_roles, str):
+        allowed_roles = [allowed_roles]
+
+    def decorator(f: Callable) -> Callable:
+        @wraps(f)
+        async def decorated_function(*args, **kwargs):
+            user = get_current_user()
+
+            if not user:
+                return jsonify({"error": "Authentication required"}), 401
+
+            # Superusers bypass all role checks
+            if user.is_superuser:
+                g.current_user = user
+                if inspect.iscoroutinefunction(f):
+                    return await f(*args, **kwargs)
+                else:
+                    return f(*args, **kwargs)
+
+            # Check portal role
+            user_role = user.get('portal_role', 'observer')
+            if user_role not in allowed_roles:
+                return (
+                    jsonify({
+                        "error": "Insufficient permissions",
+                        "required_roles": allowed_roles,
+                        "your_role": user_role
+                    }),
+                    403,
+                )
+
+            g.current_user = user
+            if inspect.iscoroutinefunction(f):
+                return await f(*args, **kwargs)
+            else:
+                return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
