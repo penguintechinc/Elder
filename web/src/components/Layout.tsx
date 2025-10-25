@@ -8,6 +8,8 @@ import {
   AlertCircle,
   Tag,
   Search as SearchIcon,
+  FolderKanban,
+  Flag,
   Settings,
   LogOut,
 } from 'lucide-react'
@@ -20,6 +22,8 @@ const navigation = [
   { name: 'Dependencies', href: '/dependencies', icon: GitBranch },
   { name: 'Identities', href: '/identities', icon: Users },
   { name: 'Issues', href: '/issues', icon: AlertCircle },
+  { name: 'Projects', href: '/projects', icon: FolderKanban },
+  { name: 'Milestones', href: '/milestones', icon: Flag },
   { name: 'Labels', href: '/labels', icon: Tag },
 ]
 

@@ -9,6 +9,8 @@ import Dependencies from './pages/Dependencies'
 import Identities from './pages/Identities'
 import Issues from './pages/Issues'
 import IssueDetail from './pages/IssueDetail'
+import Projects from './pages/Projects'
+import Milestones from './pages/Milestones'
 import Labels from './pages/Labels'
 import Search from './pages/Search'
 import Login from './pages/Login'
@@ -41,6 +43,8 @@ export default function App() {
         <Route path="identities" element={<Identities />} />
         <Route path="issues" element={<Issues />} />
         <Route path="issues/:id" element={<IssueDetail />} />
+        <Route path="projects" element={<Projects />} />
+        <Route path="milestones" element={<Milestones />} />
         <Route path="labels" element={<Labels />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />

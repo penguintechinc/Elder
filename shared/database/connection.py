@@ -165,7 +165,7 @@ def init_db(app: Flask) -> None:
                 database_url,
                 folder=app.instance_path if hasattr(app, 'instance_path') else 'databases',
                 migrate=True,
-                fake_migrate_all=True,  # Don't recreate existing tables (cluster-safe)
+                fake_migrate_all=False,  # Allow table creation on first run
                 lazy_tables=False,
                 pool_size=0,  # Disable pooling for thread safety
             )
