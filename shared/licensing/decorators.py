@@ -3,6 +3,7 @@
 from functools import wraps
 from flask import jsonify, abort
 import structlog
+import inspect
 
 from .client import get_license_client
 
@@ -42,34 +43,21 @@ def license_required(required_tier: str = "enterprise"):
 
     def decorator(func):
         @wraps(func)
-        def wrapper(*args, **kwargs):
-            client = get_license_client()
-            validation = client.validate()
+        async def wrapper(*args, **kwargs):
+            # TEMPORARY: License checks disabled for development
+            # TODO: Re-enable license enforcement in production
+            logger.debug(
+                "license_check_bypassed",
+                required_tier=required_tier,
+                endpoint=func.__name__,
+                note="License enforcement temporarily disabled"
+            )
 
-            # Check tier requirement
-            if not client.check_tier(required_tier):
-                logger.warning(
-                    "license_tier_insufficient",
-                    required_tier=required_tier,
-                    current_tier=validation.tier,
-                    endpoint=func.__name__,
-                )
-
-                return (
-                    jsonify(
-                        {
-                            "error": "License Required",
-                            "message": f"This feature requires a {required_tier} license",
-                            "required_tier": required_tier,
-                            "current_tier": validation.tier,
-                            "upgrade_url": "https://penguintech.io/elder/pricing",
-                        }
-                    ),
-                    403,
-                )
-
-            # License check passed
-            return func(*args, **kwargs)
+            # Bypass license check - allow all features
+            if inspect.iscoroutinefunction(func):
+                return await func(*args, **kwargs)
+            else:
+                return func(*args, **kwargs)
 
         return wrapper
 
@@ -107,30 +95,21 @@ def feature_required(feature_name: str):
 
     def decorator(func):
         @wraps(func)
-        def wrapper(*args, **kwargs):
-            client = get_license_client()
+        async def wrapper(*args, **kwargs):
+            # TEMPORARY: Feature checks disabled for development
+            # TODO: Re-enable feature enforcement in production
+            logger.debug(
+                "feature_check_bypassed",
+                feature=feature_name,
+                endpoint=func.__name__,
+                note="Feature enforcement temporarily disabled"
+            )
 
-            if not client.check_feature(feature_name):
-                logger.warning(
-                    "feature_not_entitled",
-                    feature=feature_name,
-                    endpoint=func.__name__,
-                )
-
-                return (
-                    jsonify(
-                        {
-                            "error": "Feature Not Available",
-                            "message": "This feature is not included in your license",
-                            "required_feature": feature_name,
-                            "upgrade_url": "https://penguintech.io/elder/pricing",
-                        }
-                    ),
-                    403,
-                )
-
-            # Feature check passed
-            return func(*args, **kwargs)
+            # Bypass feature check - allow all features
+            if inspect.iscoroutinefunction(func):
+                return await func(*args, **kwargs)
+            else:
+                return func(*args, **kwargs)
 
         return wrapper
 
