@@ -175,7 +175,6 @@ def _register_blueprints(app: Flask) -> None:
         projects,
         milestones,
         labels,
-        alert_configs,
         organization_tree,
     )
     from apps.api.web import routes as web
@@ -198,7 +197,6 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(metadata.bp, url_prefix=f"{api_prefix}/metadata")
     app.register_blueprint(projects.bp, url_prefix=f"{api_prefix}/projects")
     app.register_blueprint(milestones.bp, url_prefix=f"{api_prefix}/milestones")
-    app.register_blueprint(alert_configs.bp, url_prefix=f"{api_prefix}")
     app.register_blueprint(organization_tree.bp, url_prefix=f"{api_prefix}")
 
     # Public lookup endpoint (no /api/v1 prefix for cleaner URLs)
