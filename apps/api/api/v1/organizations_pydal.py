@@ -13,12 +13,14 @@ from apps.api.models.dataclasses import (
     from_pydal_row,
     from_pydal_rows,
 )
+from apps.api.auth.decorators import login_required
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("organizations", __name__)
 
 
 @bp.route("", methods=["GET"])
+@login_required
 async def list_organizations():
     """
     List all Organization Units (OUs) with pagination and filtering.
@@ -135,6 +137,7 @@ async def create_organization():
 
 
 @bp.route("/<int:id>", methods=["GET"])
+@login_required
 async def get_organization(id: int):
     """
     Get a single Organization Unit (OU) by ID.
@@ -242,6 +245,7 @@ async def delete_organization(id: int):
 
 
 @bp.route("/<int:id>/graph", methods=["GET"])
+@login_required
 async def get_organization_graph(id: int):
     """
     Get relationship graph for an organization and its nearby entities.

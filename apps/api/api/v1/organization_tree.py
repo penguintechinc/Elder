@@ -1,12 +1,14 @@
 """API endpoints for recursive organization tree operations."""
 
 from flask import Blueprint, jsonify, request, current_app
+from apps.api.auth.decorators import login_required
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("organization_tree", __name__)
 
 
 @bp.route("/organizations/<int:org_id>/tree-stats", methods=["GET"])
+@login_required
 async def get_organization_tree_stats(org_id: int):
     """
     Get recursive statistics for an organization and all its descendants.

@@ -13,12 +13,14 @@ from apps.api.models.dataclasses import (
     from_pydal_row,
     from_pydal_rows,
 )
+from apps.api.auth.decorators import login_required
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("entities", __name__)
 
 
 @bp.route("", methods=["GET"])
+@login_required
 async def list_entities():
     """
     List all entities with pagination and filtering.
@@ -146,6 +148,7 @@ async def create_entity():
 
 
 @bp.route("/<int:id>", methods=["GET"])
+@login_required
 async def get_entity(id: int):
     """
     Get a single entity by ID.
@@ -270,6 +273,7 @@ async def delete_entity(id: int):
 
 
 @bp.route("/<int:id>/dependencies", methods=["GET"])
+@login_required
 async def get_entity_dependencies(id: int):
     """
     Get all dependencies for an entity.
