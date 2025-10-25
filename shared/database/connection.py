@@ -187,6 +187,9 @@ def init_db(app: Flask) -> None:
     # Define all tables
     _define_tables(db)
 
+    # Commit table definitions before trying to use them
+    db.commit()
+
     # Initialize default data
     with app.app_context():
         _init_default_data(db)

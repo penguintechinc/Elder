@@ -23,6 +23,8 @@ export default function IssueDetail() {
   const [newComment, setNewComment] = useState('')
   const [showAddLabel, setShowAddLabel] = useState(false)
   const [showLinkEntity, setShowLinkEntity] = useState(false)
+  const [showAddProject, setShowAddProject] = useState(false)
+  const [showAddMilestone, setShowAddMilestone] = useState(false)
 
   const { data: issue, isLoading } = useQuery({
     queryKey: ['issue', id],
@@ -61,6 +63,16 @@ export default function IssueDetail() {
   const { data: allIdentities } = useQuery({
     queryKey: ['identities-all'],
     queryFn: () => api.getIdentities({ per_page: 1000 }),
+  })
+
+  const { data: allProjects } = useQuery({
+    queryKey: ['projects-all'],
+    queryFn: () => api.getProjects({ per_page: 1000 }),
+  })
+
+  const { data: allMilestones } = useQuery({
+    queryKey: ['milestones-all'],
+    queryFn: () => api.getMilestones({ per_page: 1000 }),
   })
 
   const updateMutation = useMutation({
@@ -138,6 +150,52 @@ export default function IssueDetail() {
     },
     onError: () => {
       toast.error('Failed to unlink entity')
+    },
+  })
+
+  const linkProjectMutation = useMutation({
+    mutationFn: (projectId: number) => api.linkIssueToProject(parseInt(id!), projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['issue', id] })
+      setShowAddProject(false)
+      toast.success('Project linked')
+    },
+    onError: () => {
+      toast.error('Failed to link project')
+    },
+  })
+
+  const unlinkProjectMutation = useMutation({
+    mutationFn: (projectId: number) => api.unlinkIssueFromProject(parseInt(id!), projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['issue', id] })
+      toast.success('Project unlinked')
+    },
+    onError: () => {
+      toast.error('Failed to unlink project')
+    },
+  })
+
+  const linkMilestoneMutation = useMutation({
+    mutationFn: (milestoneId: number) => api.linkIssueToMilestone(parseInt(id!), milestoneId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['issue', id] })
+      setShowAddMilestone(false)
+      toast.success('Milestone linked')
+    },
+    onError: () => {
+      toast.error('Failed to link milestone')
+    },
+  })
+
+  const unlinkMilestoneMutation = useMutation({
+    mutationFn: (milestoneId: number) => api.unlinkIssueFromMilestone(parseInt(id!), milestoneId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['issue', id] })
+      toast.success('Milestone unlinked')
+    },
+    onError: () => {
+      toast.error('Failed to unlink milestone')
     },
   })
 
@@ -488,6 +546,92 @@ export default function IssueDetail() {
                 {linkedEntities?.items?.length === 0 && !showLinkEntity && (
                   <p className="text-slate-500 text-sm">No linked entities</p>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Projects */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <LinkIcon className="w-5 h-5" />
+                  Projects
+                </h3>
+                <button
+                  onClick={() => setShowAddProject(!showAddProject)}
+                  className="p-1 hover:bg-slate-700 rounded transition-colors"
+                >
+                  {showAddProject ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {showAddProject && (
+                <div className="mb-4">
+                  <Select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        linkProjectMutation.mutate(parseInt(e.target.value))
+                      }
+                    }}
+                    value=""
+                  >
+                    <option value="">Select project...</option>
+                    {allProjects?.items?.map((project: any) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
+                {/* Note: Projects would be stored in issue data from backend */}
+                <p className="text-slate-500 text-sm">No linked projects</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Milestones */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <LinkIcon className="w-5 h-5" />
+                  Milestones
+                </h3>
+                <button
+                  onClick={() => setShowAddMilestone(!showAddMilestone)}
+                  className="p-1 hover:bg-slate-700 rounded transition-colors"
+                >
+                  {showAddMilestone ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {showAddMilestone && (
+                <div className="mb-4">
+                  <Select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        linkMilestoneMutation.mutate(parseInt(e.target.value))
+                      }
+                    }}
+                    value=""
+                  >
+                    <option value="">Select milestone...</option>
+                    {allMilestones?.items?.map((milestone: any) => (
+                      <option key={milestone.id} value={milestone.id}>
+                        {milestone.title}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
+                {/* Note: Milestones would be stored in issue data from backend */}
+                <p className="text-slate-500 text-sm">No linked milestones</p>
               </div>
             </CardContent>
           </Card>

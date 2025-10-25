@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
@@ -12,6 +12,7 @@ import Select from '@/components/Select'
 const ENTITY_TYPES = [
   { value: 'application', label: 'Application' },
   { value: 'service', label: 'Service' },
+  { value: 'repository', label: 'Repository' },
   { value: 'datacenter', label: 'Datacenter' },
   { value: 'vpc', label: 'VPC' },
   { value: 'subnet', label: 'Subnet' },
@@ -28,6 +29,15 @@ export default function Entities() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
+  const initialOrgId = searchParams.get('organization_id')
+
+  // Auto-open create modal if organization_id is in query params
+  useEffect(() => {
+    if (initialOrgId) {
+      setShowCreateModal(true)
+    }
+  }, [initialOrgId])
 
   const { data, isLoading } = useQuery({
     queryKey: ['entities', { search }],
@@ -100,10 +110,21 @@ export default function Entities() {
 
       {showCreateModal && (
         <CreateEntityModal
-          onClose={() => setShowCreateModal(false)}
+          initialOrganizationId={initialOrgId}
+          onClose={() => {
+            setShowCreateModal(false)
+            // Clear query params when closing modal
+            if (initialOrgId) {
+              navigate('/entities', { replace: true })
+            }
+          }}
           onSuccess={() => {
             setShowCreateModal(false)
             queryClient.invalidateQueries({ queryKey: ['entities'] })
+            // Clear query params on success
+            if (initialOrgId) {
+              navigate('/entities', { replace: true })
+            }
           }}
         />
       )}
@@ -111,11 +132,11 @@ export default function Entities() {
   )
 }
 
-function CreateEntityModal({ onClose, onSuccess }: any) {
+function CreateEntityModal({ initialOrganizationId, onClose, onSuccess }: any) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [entityType, setEntityType] = useState('compute')
-  const [orgId, setOrgId] = useState('')
+  const [orgId, setOrgId] = useState(initialOrganizationId || '')
 
   const { data: orgs } = useQuery({
     queryKey: ['organizations'],

@@ -863,3 +863,233 @@ async def delete_issue_entity_link(id: int, link_id: int):
         return jsonify({"error": error}), status
 
     return "", 204
+
+
+# ==========================================
+# Issue-Project Linking Endpoints
+# ==========================================
+
+
+@bp.route("/<int:id>/projects", methods=["POST"])
+@login_required
+async def link_issue_to_project(id: int):
+    """
+    Link an issue to a project.
+
+    Path Parameters:
+        - id: Issue ID
+
+    Request Body:
+        - project_id: Project ID to link
+
+    Returns:
+        201: Link created
+        400: Invalid request
+        404: Issue or project not found
+
+    Example:
+        POST /api/v1/issues/1/projects
+        {"project_id": 5}
+    """
+    db = current_app.db
+    data = request.get_json()
+
+    if not data or "project_id" not in data:
+        return jsonify({"error": "project_id is required"}), 400
+
+    def create_link():
+        # Verify issue exists
+        issue = db.issues[id]
+        if not issue:
+            return None, "Issue not found", 404
+
+        # Verify project exists
+        project = db.projects[data["project_id"]]
+        if not project:
+            return None, "Project not found", 404
+
+        # Check if link already exists
+        existing = db(
+            (db.issue_project_links.issue_id == id)
+            & (db.issue_project_links.project_id == data["project_id"])
+        ).select().first()
+
+        if existing:
+            return None, "Issue is already linked to this project", 400
+
+        # Create link
+        link_id = db.issue_project_links.insert(
+            issue_id=id,
+            project_id=data["project_id"]
+        )
+        db.commit()
+
+        link = db.issue_project_links[link_id]
+        return link, None, None
+
+    link, error, status = await run_in_threadpool(create_link)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    return jsonify({"id": link.id, "issue_id": link.issue_id, "project_id": link.project_id}), 201
+
+
+@bp.route("/<int:id>/projects/<int:project_id>", methods=["DELETE"])
+@login_required
+async def unlink_issue_from_project(id: int, project_id: int):
+    """
+    Remove a project link from an issue.
+
+    Path Parameters:
+        - id: Issue ID
+        - project_id: Project ID
+
+    Returns:
+        204: Link removed
+        404: Issue or link not found
+
+    Example:
+        DELETE /api/v1/issues/1/projects/5
+    """
+    db = current_app.db
+
+    def delete_link():
+        # Verify issue exists
+        issue = db.issues[id]
+        if not issue:
+            return None, "Issue not found", 404
+
+        # Find and delete link
+        deleted = db(
+            (db.issue_project_links.issue_id == id)
+            & (db.issue_project_links.project_id == project_id)
+        ).delete()
+
+        if not deleted:
+            return None, "Link not found", 404
+
+        db.commit()
+        return True, None, None
+
+    result, error, status = await run_in_threadpool(delete_link)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    return "", 204
+
+
+# ==========================================
+# Issue-Milestone Linking Endpoints
+# ==========================================
+
+
+@bp.route("/<int:id>/milestones", methods=["POST"])
+@login_required
+async def link_issue_to_milestone(id: int):
+    """
+    Link an issue to a milestone.
+
+    Path Parameters:
+        - id: Issue ID
+
+    Request Body:
+        - milestone_id: Milestone ID to link
+
+    Returns:
+        201: Link created
+        400: Invalid request
+        404: Issue or milestone not found
+
+    Example:
+        POST /api/v1/issues/1/milestones
+        {"milestone_id": 3}
+    """
+    db = current_app.db
+    data = request.get_json()
+
+    if not data or "milestone_id" not in data:
+        return jsonify({"error": "milestone_id is required"}), 400
+
+    def create_link():
+        # Verify issue exists
+        issue = db.issues[id]
+        if not issue:
+            return None, "Issue not found", 404
+
+        # Verify milestone exists
+        milestone = db.milestones[data["milestone_id"]]
+        if not milestone:
+            return None, "Milestone not found", 404
+
+        # Check if link already exists
+        existing = db(
+            (db.issue_milestone_links.issue_id == id)
+            & (db.issue_milestone_links.milestone_id == data["milestone_id"])
+        ).select().first()
+
+        if existing:
+            return None, "Issue is already linked to this milestone", 400
+
+        # Create link
+        link_id = db.issue_milestone_links.insert(
+            issue_id=id,
+            milestone_id=data["milestone_id"]
+        )
+        db.commit()
+
+        link = db.issue_milestone_links[link_id]
+        return link, None, None
+
+    link, error, status = await run_in_threadpool(create_link)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    return jsonify({"id": link.id, "issue_id": link.issue_id, "milestone_id": link.milestone_id}), 201
+
+
+@bp.route("/<int:id>/milestones/<int:milestone_id>", methods=["DELETE"])
+@login_required
+async def unlink_issue_from_milestone(id: int, milestone_id: int):
+    """
+    Remove a milestone link from an issue.
+
+    Path Parameters:
+        - id: Issue ID
+        - milestone_id: Milestone ID
+
+    Returns:
+        204: Link removed
+        404: Issue or link not found
+
+    Example:
+        DELETE /api/v1/issues/1/milestones/3
+    """
+    db = current_app.db
+
+    def delete_link():
+        # Verify issue exists
+        issue = db.issues[id]
+        if not issue:
+            return None, "Issue not found", 404
+
+        # Find and delete link
+        deleted = db(
+            (db.issue_milestone_links.issue_id == id)
+            & (db.issue_milestone_links.milestone_id == milestone_id)
+        ).delete()
+
+        if not deleted:
+            return None, "Link not found", 404
+
+        db.commit()
+        return True, None, None
+
+    result, error, status = await run_in_threadpool(delete_link)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    return "", 204

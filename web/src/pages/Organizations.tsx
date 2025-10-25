@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Search, Trash2, Edit } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
@@ -15,6 +15,15 @@ export default function Organizations() {
   const [editingOrg, setEditingOrg] = useState<Organization | null>(null)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
+  const initialParentId = searchParams.get('parent_id')
+
+  // Auto-open create modal if parent_id is in query params
+  useEffect(() => {
+    if (initialParentId) {
+      setShowCreateModal(true)
+    }
+  }, [initialParentId])
 
   const { data, isLoading } = useQuery({
     queryKey: ['organizations', { search }],
@@ -120,10 +129,21 @@ export default function Organizations() {
       {/* Create Modal */}
       {showCreateModal && (
         <CreateOrganizationModal
-          onClose={() => setShowCreateModal(false)}
+          initialParentId={initialParentId}
+          onClose={() => {
+            setShowCreateModal(false)
+            // Clear query params when closing modal
+            if (initialParentId) {
+              navigate('/organizations', { replace: true })
+            }
+          }}
           onSuccess={() => {
             setShowCreateModal(false)
             queryClient.invalidateQueries({ queryKey: ['organizations'] })
+            // Clear query params on success
+            if (initialParentId) {
+              navigate('/organizations', { replace: true })
+            }
           }}
         />
       )}
@@ -144,16 +164,17 @@ export default function Organizations() {
 }
 
 interface CreateOrganizationModalProps {
+  initialParentId?: string | null
   onClose: () => void
   onSuccess: () => void
 }
 
-function CreateOrganizationModal({ onClose, onSuccess }: CreateOrganizationModalProps) {
+function CreateOrganizationModal({ initialParentId, onClose, onSuccess }: CreateOrganizationModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
 
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; description?: string }) =>
+    mutationFn: (data: { name: string; description?: string; parent_id?: number }) =>
       api.createOrganization(data),
     onSuccess: () => {
       toast.success('Organization created successfully')
@@ -166,7 +187,14 @@ function CreateOrganizationModal({ onClose, onSuccess }: CreateOrganizationModal
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    createMutation.mutate({ name, description: description || undefined })
+    const data: { name: string; description?: string; parent_id?: number } = {
+      name,
+      description: description || undefined
+    }
+    if (initialParentId) {
+      data.parent_id = parseInt(initialParentId)
+    }
+    createMutation.mutate(data)
   }
 
   return (
