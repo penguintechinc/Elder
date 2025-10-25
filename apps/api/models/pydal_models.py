@@ -23,6 +23,8 @@ def define_all_tables(db):
         Field('email', 'string', length=255, requires=IS_EMAIL()),
         Field('full_name', 'string', length=255),
         Field('organization_id', 'integer'),  # Integer field to avoid circular FK reference
+        Field('portal_role', 'string', length=20, default='observer', notnull=True,
+              requires=IS_IN_SET(['admin', 'editor', 'observer'])),  # Portal access level
         Field('auth_provider', 'string', length=50, notnull=True),
         Field('auth_provider_id', 'string', length=255),
         Field('password_hash', 'string', length=255),
@@ -101,6 +103,21 @@ def define_all_tables(db):
         Field('scope', 'string', length=50, notnull=True),
         Field('scope_id', 'integer'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # API Keys table (depends on: identities)
+    db.define_table(
+        'api_keys',
+        Field('identity_id', 'reference identities', notnull=True, ondelete='CASCADE'),
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('key_hash', 'string', length=255, notnull=True),  # SHA256 hash of the API key
+        Field('prefix', 'string', length=20, notnull=True),  # First few chars for display (e.g., "elder_123...")
+        Field('last_used_at', 'datetime'),
+        Field('expires_at', 'datetime'),
+        Field('is_active', 'boolean', default=True, notnull=True),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
         migrate=True,
     )
 

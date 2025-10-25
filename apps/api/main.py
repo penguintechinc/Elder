@@ -177,6 +177,7 @@ def _register_blueprints(app: Flask) -> None:
         auth,
         profile,
         identities,
+        api_keys,
         lookup,
         resource_roles,
         issues,
@@ -199,6 +200,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(auth.bp, url_prefix=f"{api_prefix}/auth")
     app.register_blueprint(profile.bp, url_prefix=f"{api_prefix}/profile")
     app.register_blueprint(identities.bp, url_prefix=f"{api_prefix}/identities")
+    app.register_blueprint(api_keys.bp, url_prefix=f"{api_prefix}/api-keys")
 
     # Enterprise feature blueprints
     app.register_blueprint(resource_roles.bp, url_prefix=f"{api_prefix}/resource-roles")

@@ -67,6 +67,7 @@ async def list_identities():
             db.identities.email,
             db.identities.full_name,
             db.identities.organization_id,
+            db.identities.portal_role,
             db.identities.auth_provider,
             db.identities.auth_provider_id,
             db.identities.is_active,

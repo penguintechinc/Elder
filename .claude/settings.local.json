@@ -52,7 +52,8 @@
       "Bash(/tmp/test_profile.sh)",
       "Bash(cat:*)",
       "Bash(/tmp/test_all.sh)",
-      "Bash(/tmp/test_identity.sh)"
+      "Bash(/tmp/test_identity.sh)",
+      "Bash(bash:*)"
     ],
     "deny": [],
     "ask": []

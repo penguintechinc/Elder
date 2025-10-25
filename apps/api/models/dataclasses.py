@@ -129,6 +129,7 @@ class IdentityDTO:
     email: Optional[str]
     full_name: Optional[str]
     organization_id: Optional[int]  # Link to organization
+    portal_role: str  # admin, editor, observer
     auth_provider: str
     auth_provider_id: Optional[str]
     is_active: bool
@@ -430,6 +431,40 @@ class CreateMetadataFieldRequest:
     resource_type: str
     resource_id: int
     is_system: bool = False
+
+
+# ==================== API Keys ====================
+
+@dataclass(slots=True, frozen=True)
+class APIKeyDTO:
+    """Immutable API Key data transfer object."""
+    id: int
+    identity_id: int
+    name: str
+    prefix: str  # First few chars for display
+    last_used_at: Optional[datetime]
+    expires_at: Optional[datetime]
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True)
+class CreateAPIKeyRequest:
+    """Request to create a new API Key."""
+    name: str
+    expires_at: Optional[datetime] = None
+
+
+@dataclass(slots=True, frozen=True)
+class CreateAPIKeyResponse:
+    """Response when creating a new API Key (includes full key once)."""
+    id: int
+    name: str
+    api_key: str  # Full key - shown only once!
+    prefix: str
+    expires_at: Optional[datetime]
+    created_at: datetime
 
 
 # ==================== Auth Requests/Responses ====================
