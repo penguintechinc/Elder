@@ -17,7 +17,7 @@ webargs==8.6.0
 grpcio==1.68.1
 grpcio-tools==1.68.1
 grpcio-reflection==1.68.1
-protobuf==5.29.2
+protobuf==5.29.5
 
 # Database & ORM
 SQLAlchemy==2.0.36
