@@ -16,6 +16,7 @@ import Labels from './pages/Labels'
 import Search from './pages/Search'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import RelationshipGraph from './pages/RelationshipGraph'
 
 // Protected route wrapper component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="search" element={<Search />} />
         <Route path="organizations" element={<Organizations />} />
         <Route path="organizations/:id" element={<OrganizationDetail />} />
+        <Route path="relationships/:id" element={<RelationshipGraph />} />
         <Route path="entities" element={<Entities />} />
         <Route path="entities/:id" element={<EntityDetail />} />
         <Route path="dependencies" element={<Dependencies />} />

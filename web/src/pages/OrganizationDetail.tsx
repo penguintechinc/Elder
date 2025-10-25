@@ -8,6 +8,7 @@ import type { Organization, Entity } from '@/types'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
+import { NetworkGraph } from '@/components/NetworkGraph'
 
 interface TreeNode {
   type: 'organization' | 'entity'
@@ -209,6 +210,54 @@ export default function OrganizationDetail() {
           </div>
         )}
       </div>
+    )
+  }
+
+  // Relationship Graph Section Component
+  const RelationshipGraphSection = ({ organizationId }: { organizationId: string }) => {
+    const { data: graphData, isLoading } = useQuery({
+      queryKey: ['organization-graph', organizationId],
+      queryFn: () => api.getOrganizationGraph(parseInt(organizationId), 3),
+      enabled: !!organizationId,
+    })
+
+    const handleNodeClick = (node: any) => {
+      const nodeId = node.metadata?.id
+      if (!nodeId) return
+
+      if (node.type === 'organization') {
+        navigate(`/organizations/${nodeId}`)
+      } else {
+        navigate(`/entities/${nodeId}`)
+      }
+    }
+
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-[500px]">
+          <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )
+    }
+
+    if (!graphData || graphData.nodes.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-[500px] bg-slate-50 rounded-lg border-2 border-dashed border-slate-300">
+          <div className="text-center text-slate-500">
+            <p className="text-lg font-medium">No relationships to display</p>
+            <p className="text-sm mt-2">Create entities and dependencies to see the graph</p>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <NetworkGraph
+        nodes={graphData.nodes}
+        edges={graphData.edges}
+        height="500px"
+        onNodeClick={handleNodeClick}
+      />
     )
   }
 
@@ -572,6 +621,30 @@ export default function OrganizationDetail() {
               ) : (
                 <p className="text-sm text-slate-400">No projects</p>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Relationship Graph */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">Relationship Map</h2>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Interactive graph showing connections up to 3 hops away
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/relationships/${id}`)}
+                >
+                  Full Screen
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <RelationshipGraphSection organizationId={id} />
             </CardContent>
           </Card>
         </div>

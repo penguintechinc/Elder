@@ -44,7 +44,8 @@
       "Bash(docker ps:*)",
       "Bash(docker-compose:*)",
       "Bash(mkdir:*)",
-      "Bash(elder_api:latest)"
+      "Bash(elder_api:latest)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

@@ -256,3 +256,129 @@ def get_organization_hierarchy(id: int):
         "depth": org.depth,
         "hierarchy_string": org.get_hierarchy_string(),
     }), 200
+
+
+@bp.route("/<int:id>/graph", methods=["GET"])
+def get_organization_graph(id: int):
+    """
+    Get relationship graph for an organization and its nearby entities.
+
+    Path Parameters:
+        - id: Organization ID
+
+    Query Parameters:
+        - depth: How many hops away to include (default: 3, max: 10)
+
+    Returns:
+        200: Graph data with nodes and edges
+        404: Organization not found
+    """
+    from apps.api.models import Entity, Dependency
+
+    org = get_or_404(Organization, id)
+
+    # Get depth parameter
+    depth = min(request.args.get("depth", 3, type=int), 10)
+
+    # Build graph data
+    nodes = []
+    edges = []
+    visited_orgs = set()
+    visited_entities = set()
+
+    # Helper function to add organization node
+    def add_org_node(organization):
+        if organization.id in visited_orgs:
+            return
+        visited_orgs.add(organization.id)
+        nodes.append({
+            "id": f"org-{organization.id}",
+            "label": organization.name,
+            "type": "organization",
+            "metadata": {
+                "id": organization.id,
+                "description": organization.description,
+                "parent_id": organization.parent_id,
+            }
+        })
+
+    # Helper function to add entity node
+    def add_entity_node(entity):
+        if entity.id in visited_entities:
+            return
+        visited_entities.add(entity.id)
+        nodes.append({
+            "id": f"entity-{entity.id}",
+            "label": entity.name,
+            "type": entity.entity_type or "default",
+            "metadata": {
+                "id": entity.id,
+                "entity_type": entity.entity_type,
+                "organization_id": entity.organization_id,
+            }
+        })
+
+    # Add current organization
+    add_org_node(org)
+
+    # Get all child organizations recursively
+    all_children = org.get_all_children(recursive=True)
+    for child in all_children[:depth * 10]:  # Limit total orgs
+        add_org_node(child)
+        # Add edge from parent to child
+        if child.parent_id:
+            edges.append({
+                "from": f"org-{child.parent_id}",
+                "to": f"org-{child.id}",
+                "label": "parent"
+            })
+
+    # Get parent hierarchy up to depth
+    current = org
+    for _ in range(depth):
+        if current.parent:
+            add_org_node(current.parent)
+            edges.append({
+                "from": f"org-{current.parent.id}",
+                "to": f"org-{current.id}",
+                "label": "parent"
+            })
+            current = current.parent
+        else:
+            break
+
+    # Get entities for all visited organizations
+    org_ids = list(visited_orgs)
+    entities = db.session.query(Entity).filter(
+        Entity.organization_id.in_(org_ids)
+    ).limit(100).all()  # Limit entities
+
+    for entity in entities:
+        add_entity_node(entity)
+        # Add edge from organization to entity
+        edges.append({
+            "from": f"org-{entity.organization_id}",
+            "to": f"entity-{entity.id}",
+            "label": "contains"
+        })
+
+    # Get dependencies between entities
+    entity_ids = list(visited_entities)
+    dependencies = db.session.query(Dependency).filter(
+        Dependency.source_entity_id.in_(entity_ids),
+        Dependency.target_entity_id.in_(entity_ids)
+    ).all()
+
+    for dep in dependencies:
+        edges.append({
+            "from": f"entity-{dep.source_entity_id}",
+            "to": f"entity-{dep.target_entity_id}",
+            "label": dep.dependency_type or "depends"
+        })
+
+    return jsonify({
+        "nodes": nodes,
+        "edges": edges,
+        "center_node": f"org-{org.id}",
+        "depth": depth,
+    }), 200

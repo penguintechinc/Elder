@@ -239,3 +239,155 @@ async def delete_organization(id: int):
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
         return jsonify({'error': f'Database error: {str(e)}'}), 500
+
+
+@bp.route("/<int:id>/graph", methods=["GET"])
+async def get_organization_graph(id: int):
+    """
+    Get relationship graph for an organization and its nearby entities.
+
+    Path Parameters:
+        - id: Organization ID
+
+    Query Parameters:
+        - depth: How many hops away to include (default: 3, max: 10)
+
+    Returns:
+        200: Graph data with nodes and edges
+        404: Organization not found
+    """
+    db = current_app.db
+
+    # Check if organization exists
+    try:
+        org_row = await run_in_threadpool(lambda: db.organizations[id])
+        if org_row is None:
+            return jsonify({'error': 'Organization Unit not found'}), 404
+    except Exception:
+        return jsonify({'error': 'Organization Unit not found'}), 404
+
+    # Get depth parameter
+    depth = min(request.args.get("depth", 3, type=int), 10)
+
+    # Build graph data
+    nodes = []
+    edges = []
+    visited_orgs = set()
+    visited_entities = set()
+
+    # Helper to add organization node
+    def add_org_node(org_id):
+        if org_id in visited_orgs:
+            return
+        org = db.organizations[org_id]
+        if not org:
+            return
+        visited_orgs.add(org_id)
+        nodes.append({
+            "id": f"org-{org_id}",
+            "label": org.name,
+            "type": "organization",
+            "metadata": {
+                "id": org_id,
+                "description": org.description,
+                "parent_id": org.parent_id,
+            }
+        })
+        return org
+
+    # Helper to add entity node
+    def add_entity_node(entity_id):
+        if entity_id in visited_entities:
+            return
+        entity = db.entities[entity_id]
+        if not entity:
+            return
+        visited_entities.add(entity_id)
+        nodes.append({
+            "id": f"entity-{entity_id}",
+            "label": entity.name,
+            "type": entity.entity_type or "default",
+            "metadata": {
+                "id": entity_id,
+                "entity_type": entity.entity_type,
+                "organization_id": entity.organization_id,
+            }
+        })
+
+    # Add current organization
+    add_org_node(id)
+
+    # Get all child organizations recursively (limit to depth * 10)
+    def get_children_recursive(parent_id, current_depth=0):
+        if current_depth >= depth:
+            return []
+        children = db(db.organizations.parent_id == parent_id).select()
+        all_children = list(children)
+        for child in children:
+            all_children.extend(get_children_recursive(child.id, current_depth + 1))
+        return all_children[:depth * 10]
+
+    all_children = await run_in_threadpool(lambda: get_children_recursive(id))
+    for child in all_children:
+        add_org_node(child.id)
+        if child.parent_id:
+            edges.append({
+                "from": f"org-{child.parent_id}",
+                "to": f"org-{child.id}",
+                "label": "parent"
+            })
+
+    # Get parent hierarchy up to depth
+    current_org = org_row
+    for _ in range(depth):
+        if current_org and current_org.parent_id:
+            parent = db.organizations[current_org.parent_id]
+            if parent:
+                add_org_node(parent.id)
+                edges.append({
+                    "from": f"org-{parent.id}",
+                    "to": f"org-{current_org.id}",
+                    "label": "parent"
+                })
+                current_org = parent
+            else:
+                break
+        else:
+            break
+
+    # Get entities for all visited organizations
+    org_ids = list(visited_orgs)
+    entities = await run_in_threadpool(
+        lambda: db(db.entities.organization_id.belongs(org_ids)).select(limitby=(0, 100))
+    )
+
+    for entity in entities:
+        add_entity_node(entity.id)
+        edges.append({
+            "from": f"org-{entity.organization_id}",
+            "to": f"entity-{entity.id}",
+            "label": "contains"
+        })
+
+    # Get dependencies between entities
+    entity_ids = list(visited_entities)
+    dependencies = await run_in_threadpool(
+        lambda: db(
+            (db.dependencies.source_entity_id.belongs(entity_ids)) &
+            (db.dependencies.target_entity_id.belongs(entity_ids))
+        ).select()
+    )
+
+    for dep in dependencies:
+        edges.append({
+            "from": f"entity-{dep.source_entity_id}",
+            "to": f"entity-{dep.target_entity_id}",
+            "label": dep.dependency_type or "depends"
+        })
+
+    return jsonify({
+        "nodes": nodes,
+        "edges": edges,
+        "center_node": f"org-{id}",
+        "depth": depth,
+    }), 200
