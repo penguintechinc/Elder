@@ -1,426 +1,100 @@
-# SQLAlchemy → PyDAL + Async Flask Migration Plan
-## Python 3.12 Performance-Optimized Architecture
+## Plan: Complete Authentication System Implementation
 
 **Date:** 2025-10-25
-**Status:** IN PROGRESS - Phase 1-3 Complete, Testing in Progress
-
-## Overview
-Migrate Elder from SQLAlchemy + Marshmallow + Python 3.13 to PyDAL (with native validators) + Async Flask + Python 3.12.
-
-**Key decisions:**
-- ✅ Async Flask with async/await endpoints
-- ✅ Sync gRPC with threading (keep simple)
-- ✅ Python 3.12 dataclasses with slots
-- ✅ asyncio TaskGroups for background tasks
-- ✅ PyDAL validators (remove Marshmallow completely)
-
-## Phase 1: Foundation - Database & Python 3.12 Setup
-
-### Requirements Update
-**File:** `requirements.txt`
-
-Remove:
-- SQLAlchemy, Flask-SQLAlchemy, Alembic
-- Marshmallow, marshmallow-sqlalchemy
-
-Add:
-- `flask[async]==3.1.0` - Async support
-- `uvicorn[standard]==0.25.0` - ASGI server
-- `uvloop==0.20.0` - Fast event loop
-
-Keep:
-- `pydal==20251018.1`
-- `psycopg2-binary==2.9.10`
-
-### Dockerfile Update
-**File:** `apps/api/Dockerfile`
-- Change: `FROM python:3.13-slim` → `FROM python:3.12-slim` (both stages)
-- Update CMD for uvicorn ASGI server
-
-### PyDAL Database Connection
-**File:** `shared/database/connection.py`
-- Replace SQLAlchemy with PyDAL DAL
-- Implement `init_db(app)` with PyDAL
-- Create table definitions with validators
-- Initialize default data (admin user, roles, permissions)
-
-### PyDAL Table Definitions
-**File:** `apps/api/models/pydal_models.py`
-
-Define 18 tables with PyDAL Field() and validators:
-1. organizations
-2. entities
-3. dependencies
-4. identities
-5. identity_groups
-6. identity_group_memberships
-7. roles
-8. permissions
-9. role_permissions
-10. user_roles
-11. audit_logs
-12. resource_roles
-13. issues
-14. issue_labels
-15. issue_label_assignments
-16. issue_comments
-17. issue_entity_links
-18. metadata_fields
-
-**Validator examples:**
-```python
-Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY())
-Field('email', 'string', length=255, requires=IS_EMAIL())
-Field('username', 'string', unique=True, requires=IS_NOT_IN_DB(db, 'identities.username'))
-Field('password_hash', 'string', requires=IS_STRONG())
-Field('status', 'string', requires=IS_IN_SET(['open', 'closed']))
-```
-
-## Phase 2: Data Models - Python 3.12 Dataclasses with Slots
-
-### Create Dataclass DTOs
-**New file:** `apps/api/models/dataclasses.py`
-
-Use `@dataclass(slots=True)` for all DTOs (30-50% memory reduction):
-
-```python
-from dataclasses import dataclass, asdict
-from datetime import datetime
-
-@dataclass(slots=True, frozen=True)
-class OrganizationDTO:
-    id: int
-    name: str
-    description: str | None
-    parent_id: int | None
-    created_at: datetime
-    updated_at: datetime
-
-@dataclass(slots=True)
-class CreateOrganizationRequest:
-    name: str
-    description: str | None = None
-    parent_id: int | None = None
-```
-
-Create DTOs for:
-- Organizations, Entities, Dependencies
-- Identities, Identity Groups
-- Issues, Metadata, Resource Roles
-- Auth requests/responses
-
-### Delete Marshmallow Schemas
-**Delete:** All files in `apps/api/schemas/` (~10 files)
-
-## Phase 3: Async Flask REST API
-
-### Create Async Utilities
-**New file:** `shared/async_utils.py`
-
-```python
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-
-_executor = ThreadPoolExecutor(max_workers=20)
-
-async def run_in_threadpool(func, *args, **kwargs):
-    """Run blocking PyDAL operation in thread pool."""
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(_executor, func, *args, **kwargs)
-```
-
-### Convert REST API Endpoints to Async (10 files)
-
-**Priority 1 - Core APIs:**
-1. **auth.py** - Async login/register
-   - Password hashing in threadpool
-   - PyDAL user queries
-   - JWT token generation
-
-2. **organizations.py** - Async CRUD
-   - Concurrent count + list queries with TaskGroups
-   - Convert PyDAL Rows to DTOs
-   - Hierarchy queries with recursion
-
-3. **entities.py** - Async CRUD
-   - Parallel dependency loading
-   - Type validation via PyDAL
-
-4. **dependencies.py** - Async graph operations
-   - Concurrent graph traversal
-   - Cycle detection
-
-**Priority 2 - Identity Management:**
-5. **identities.py** - Async user/group management
-
-**Priority 3 - Enterprise:**
-6. **issues.py** - Async issue tracking
-7. **metadata.py** - Async metadata with type coercion
-8. **resource_roles.py** - Async RBAC
-
-**Priority 4 - Utilities:**
-9. **lookup.py** - Async autocomplete
-10. **graph.py** - Async dependency graph
-
-**Async endpoint pattern:**
-```python
-@bp.route("", methods=["GET"])
-async def list_organizations():
-    db = current_app.db
-
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 50, type=int)
-
-    # Concurrent queries
-    async with asyncio.TaskGroup() as tg:
-        count_task = tg.create_task(
-            run_in_threadpool(lambda: db(db.organizations).count())
-        )
-        rows_task = tg.create_task(
-            run_in_threadpool(lambda: db(db.organizations).select(
-                limitby=((page-1)*per_page, page*per_page)
-            ))
-        )
-
-    total = count_task.result()
-    rows = rows_task.result()
-
-    items = [OrganizationDTO(**row.as_dict()) for row in rows]
-
-    return jsonify({
-        'items': [asdict(item) for item in items],
-        'total': total,
-        'page': page,
-        'per_page': per_page
-    })
-```
-
-## Phase 4: Authentication - Async JWT Handler
-
-### Update JWT Handler
-**File:** `apps/api/auth/jwt_handler.py`
-
-```python
-async def get_current_user() -> Optional[IdentityDTO]:
-    """Async user authentication."""
-    if hasattr(g, "current_user"):
-        return g.current_user
-
-    token = get_token_from_header()
-    if not token:
-        return None
-
-    payload = verify_token(token)  # CPU-bound, keep sync
-    if not payload:
-        return None
-
-    db = current_app.db
-
-    # Run DB query in thread pool
-    identity_row = await run_in_threadpool(
-        lambda: db.identities[payload["sub"]]
-    )
-
-    if identity_row and identity_row.is_active:
-        identity = IdentityDTO(**identity_row.as_dict())
-        g.current_user = identity
-        return identity
-
-    return None
-```
-
-### Update Decorators
-**File:** `apps/api/auth/decorators.py`
-
-Convert all decorators to async:
-- `login_required`
-- `permission_required`
-- `permissions_required`
-- `org_permission_required`
-- `resource_role_required`
-
-## Phase 5: Background Tasks - asyncio TaskGroups
-
-### Create Background Task Module
-**New file:** `apps/api/tasks/background.py`
-
-```python
-import asyncio
-from datetime import datetime, timezone
-
-async def log_audit_async(db, action: str, user_id: int, details: dict):
-    """Async audit logging."""
-    await run_in_threadpool(lambda: db.audit_logs.insert(
-        identity_id=user_id,
-        action=action,
-        details=details,
-        created_at=datetime.now(timezone.utc)
-    ))
-
-async def handle_entity_created(entity_id: int, user_id: int):
-    """Background tasks after entity creation."""
-    db = current_app.db
-
-    async with asyncio.TaskGroup() as tg:
-        tg.create_task(log_audit_async(db, "create_entity", user_id, {"entity_id": entity_id}))
-        tg.create_task(send_notification_async(user_id, f"Entity {entity_id} created"))
-```
-
-## Phase 6: gRPC Services - Sync with Threading
-
-**Keep gRPC synchronous**, add threading for concurrency:
-
-```python
-from concurrent.futures import ThreadPoolExecutor
-
-class OrganizationService(organization_pb2_grpc.OrganizationServiceServicer):
-    def __init__(self, db):
-        self.db = db
-        self.thread_pool = ThreadPoolExecutor(max_workers=10)
-
-    def GetOrganization(self, request, context):
-        future = self.thread_pool.submit(
-            lambda: self.db.organizations[request.id]
-        )
-        org_row = future.result()
-
-        if not org_row:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            return organization_pb2.OrganizationResponse()
-
-        return organization_pb2.OrganizationResponse(
-            id=org_row.id,
-            name=org_row.name,
-            description=org_row.description or "",
-        )
-```
-
-**Update 6 gRPC service files:**
-- auth_service.py
-- organization_service.py
-- entity_service.py
-- dependency_service.py
-- graph_service.py
-- Common services
-
-## Phase 7: ASGI Server Configuration
-
-### Update Dockerfile
-**File:** `apps/api/Dockerfile`
-
-```dockerfile
-# Old CMD with gunicorn sync
-CMD ["gunicorn", "--worker-class", "sync", ...]
-
-# New CMD with uvicorn for async
-CMD ["uvicorn", "apps.api.main:create_app", \
-     "--factory", \
-     "--host", "0.0.0.0", \
-     "--port", "5000", \
-     "--workers", "4", \
-     "--loop", "uvloop", \
-     "--http", "h11", \
-     "--access-log"]
-```
-
-## Phase 8: Main Application - Async Init
-
-### Update Flask App
-**File:** `apps/api/main.py`
-
-- Remove SQLAlchemy initialization
-- Remove Marshmallow references
-- Use PyDAL `init_db()` from connection.py
-- Update error handlers for PyDAL validation errors
-- Enable async mode
-
-## Python 3.12 Performance Features
-
-### 1. Dataclasses with Slots
-- 30-50% memory reduction
-- Faster attribute access
-- All DTOs use `@dataclass(slots=True)`
-
-### 2. asyncio TaskGroups (PEP 654)
-- Structured concurrency
-- Automatic exception propagation
-- Background task management
-
-### 3. Type Hints (PEP 604)
-- `str | None` instead of `Optional[str]`
-- Better runtime performance
-- IDE support
-
-### 4. f-string Improvements
-- Faster string formatting
-- Used throughout
-
-### 5. Threading Improvements
-- ThreadPoolExecutor for PyDAL operations
-- Better thread safety
-
-## Testing Strategy
-
-### Phase 1-2: Foundation (Day 1)
-- Set up PyDAL with validators
-- Test dataclass serialization
-- Verify datetime handling (critical!)
-
-### Phase 3-4: Async REST + Auth (Day 2-3)
-- Test async endpoints
-- Verify concurrent queries
-- Test authentication flow
-- Load test with async workers
-
-### Phase 5: Background Tasks (Day 3)
-- Test TaskGroups
-- Verify error handling
-- Test concurrent audit logging
-
-### Phase 6: gRPC (Day 4)
-- Test all gRPC services
-- Verify threading works
-- Load test
-
-### Phase 7-8: Integration (Day 5-6)
-- End-to-end testing
-- Performance benchmarking
-- Memory profiling
-
-## File Summary
-
-**Modify:** ~35 files
-- Core: 4 (requirements, Dockerfile, connection.py, main.py)
-- Models: 2 (pydal_models.py, dataclasses.py)
-- Auth: 2 (jwt_handler.py, decorators.py)
-- REST APIs: 10 (all async)
-- gRPC: 6 (threading)
-- Utils: 2 (async_utils.py, api_utils.py)
-- Tasks: 1 (background.py)
-
-**Delete:** ~10 schema files
-
-**Create:** ~3 new files
-
-**NET: ~35 modified, ~10 deleted, ~3 new**
-
-## Migration Execution Order
-
-1. Phase 1: Database layer + Python 3.12
-2. Phase 2: Dataclasses
-3. Phase 3-4: Async REST + Auth
-4. Phase 5: Background tasks
-5. Phase 6: gRPC updates
-6. Phase 7-8: ASGI server + main app
-7. Testing & validation
-
-## Success Criteria
-
-✅ No datetime serialization errors
-✅ 30-50% memory reduction
-✅ Faster response times with async
-✅ Higher throughput with uvicorn
-✅ Better error handling with TaskGroups
-✅ All tests passing
-✅ All 79 REST endpoints working
-✅ All 45 gRPC methods working
+**Status:** READY TO EXECUTE
+
+### Phase 1: Add Authentication to All API Endpoints
+**Files to modify:**
+- `apps/api/api/v1/organizations_pydal.py` - Add `@login_required` to GET endpoints
+- `apps/api/api/v1/entities.py` - Add `@login_required` to GET endpoints
+- `apps/api/api/v1/dependencies.py` - Add `@login_required` to GET endpoints
+- `apps/api/api/v1/organization_tree.py` - Add `@login_required` to GET endpoints
+- Any other endpoints missing auth decorators
+
+### Phase 2: User Profile System
+**Backend API (`apps/api/api/v1/`):**
+- Create `profile.py` with endpoints:
+  - `GET /profile/me` - Get current user's profile
+  - `PATCH /profile/me` - Update profile (organization_id, full_name, email)
+
+**Frontend (`web/src/`):**
+- Create `pages/Profile.tsx` with tabs:
+  - **Profile Info** tab: Display/edit user info and OU assignment
+  - **API Keys** tab: Manage authentication keys
+- Add route `/profile` in `App.tsx`
+- Add profile link in navigation/header
+
+### Phase 3: API Key Management System
+**Backend API:**
+- Create `api_keys.py` with endpoints:
+  - `GET /api-keys` - List user's API keys
+  - `POST /api-keys` - Generate new API key (returns JWT with long expiration)
+  - `DELETE /api-keys/{id}` - Revoke API key
+
+**Database (PyDAL model in `apps/api/models/pydal_models.py`):**
+- Add `api_keys` table:
+  - `id`, `user_id`, `name`, `key_hash`, `prefix` (for display), `created_at`, `last_used_at`, `expires_at`
+
+**Frontend:**
+- API Keys tab in Profile page with:
+  - List of existing keys (show prefix only, creation date, last used)
+  - "Generate New Key" button with name input
+  - Display full key ONCE on creation (copy to clipboard)
+  - Delete button for each key
+
+### Phase 4: User Management Portal
+**Backend API:**
+- Create `users.py` with endpoints:
+  - `GET /users` - List all users (admin only)
+  - `POST /users` - Create new user (admin only)
+  - `PATCH /users/{id}` - Update user role/status (admin only)
+  - `DELETE /users/{id}` - Delete user (admin only)
+
+**Database:**
+- Update `identities` table to include:
+  - `portal_role` field: 'admin', 'editor', 'observer'
+  - Add portal role checking to auth decorators
+
+**Frontend:**
+- Create `pages/Users.tsx` with:
+  - User list table (username, email, role, OU, status)
+  - Create user modal (username, password, email, role, OU)
+  - Edit user modal (update role, OU, activate/deactivate)
+  - Delete user with confirmation
+- Add route `/users` (admin only)
+- Add "Users" link in nav (visible only to admins)
+
+### Phase 5: Role-Based Access Control
+**Update auth decorators:**
+- Add `@role_required('admin')` decorator for admin-only endpoints
+- Add `@role_required(['admin', 'editor'])` for write operations
+- Observers get read-only access
+
+**Portal Roles:**
+- **Admin**: Full access (users, settings, all CRUD operations)
+- **Editor**: Can create/edit/delete entities, OUs, dependencies, issues
+- **Observer**: Read-only access to all data
+
+### Files to Create:
+- `apps/api/api/v1/profile.py`
+- `apps/api/api/v1/api_keys.py`
+- `apps/api/api/v1/users.py`
+- `web/src/pages/Profile.tsx`
+- `web/src/pages/Users.tsx`
+
+### Files to Modify:
+- `apps/api/models/pydal_models.py` - Add api_keys table, portal_role field
+- `apps/api/auth/decorators.py` - Add role_required decorator
+- `web/src/App.tsx` - Add routes
+- `web/src/components/Layout.tsx` - Add nav links
+- All endpoint files - Add @login_required decorators
+
+### Implementation Order:
+1. Add @login_required to all endpoints (fix immediate issue)
+2. Add portal_role field and role decorators
+3. Create Profile page with basic info
+4. Add API Keys management
+5. Create Users management page
+6. Test complete authentication flow
+
+This creates a complete, production-ready authentication and user management system.

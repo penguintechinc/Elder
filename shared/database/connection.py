@@ -159,15 +159,17 @@ def init_db(app: Flask) -> None:
     for attempt in range(max_retries):
         try:
             # Initialize PyDAL with connection pooling
-            # NOTE: pool_size=0 disables pooling, giving each thread its own connection
-            # This is important for thread safety with async/threadpool execution
+            # Use pool_size=1 instead of 0 to enable migration properly
+            # pool_size=0 can cause migration issues as tables aren't created
+            # With pool_size=1, we get proper migration while maintaining thread safety
             db = DAL(
                 database_url,
                 folder=app.instance_path if hasattr(app, 'instance_path') else 'databases',
                 migrate=True,
                 fake_migrate_all=False,  # Allow table creation on first run
                 lazy_tables=False,
-                pool_size=0,  # Disable pooling for thread safety
+                pool_size=1,  # Minimum pool size to enable migration
+                adapter_args={'attempts': 1}  # Don't retry failed connections
             )
             # Test the connection
             db.executesql("SELECT 1")
@@ -187,12 +189,34 @@ def init_db(app: Flask) -> None:
     # Define all tables
     _define_tables(db)
 
-    # Commit table definitions before trying to use them
+    # Commit table definitions
     db.commit()
 
+    # WORKAROUND: PyDAL migration not working reliably with pool_size=1 in async context
+    # Manually create tables using raw SQL to ensure they exist before data initialization
+    try:
+        db.executesql("SELECT 1 FROM roles LIMIT 0")
+        logger.info("Tables already exist, skipping creation")
+    except Exception:
+        # Table doesn't exist, rollback failed query and create tables
+        db.rollback()
+        logger.info("Tables don't exist, creating them manually...")
+        # Create tables using PyDAL's SQL generation
+        for table_name in db.tables:
+            table = db[table_name]
+            # Get create table SQL from PyDAL
+            create_sql = db._adapter.create_table(table, migrate=False)
+            if create_sql:
+                try:
+                    logger.info(f"Creating table: {table_name}")
+                    db.executesql(create_sql)
+                except Exception as e:
+                    logger.error(f"Failed to create table {table_name}: {e}")
+                    db.rollback()  # Rollback failed create and continue
+        db.commit()
+
     # Initialize default data
-    with app.app_context():
-        _init_default_data(db)
+    _init_default_data(db)
 
 
 def _define_tables(db: DAL) -> None:
@@ -209,8 +233,14 @@ def _init_default_data(db: DAL) -> None:
     from werkzeug.security import generate_password_hash
 
     # Check if roles already exist
-    if db(db.roles).count() > 0:
-        return
+    # Note: On first run, tables might not exist yet
+    try:
+        if db(db.roles).count() > 0:
+            return
+    except Exception:
+        # Tables don't exist yet (first run), rollback failed transaction and continue
+        db.rollback()
+        pass
 
     # Create default roles
     roles_data = [

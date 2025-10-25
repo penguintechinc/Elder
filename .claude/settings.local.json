@@ -46,7 +46,11 @@
       "Bash(mkdir:*)",
       "Bash(elder_api:latest)",
       "Bash(python3:*)",
-      "Bash(docker network:*)"
+      "Bash(docker network:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzZXJuYW1lIjoiYWRtaW4iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzYxNDE4NjA4LCJleHAiOjE3NjE0MjIyMDh9.PMYweQ6dY5Ky93Nd0USetBkEc_cuWyljuNEgoqndFWM\" curl -s http://localhost:5000/api/v1/organizations -H \"Authorization: Bearer $TOKEN\")",
+      "Read(//tmp/**)",
+      "Bash(/tmp/test_profile.sh)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
