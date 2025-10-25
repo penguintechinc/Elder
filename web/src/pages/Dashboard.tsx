@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { Building2, Box, GitBranch, Users, AlertCircle } from 'lucide-react'
 import api from '@/lib/api'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const { data: orgs } = useQuery({
     queryKey: ['organizations', { page: 1, per_page: 5 }],
     queryFn: () => api.getOrganizations({ page: 1, per_page: 5 }),
@@ -109,7 +111,11 @@ export default function Dashboard() {
             ) : (
               <ul className="space-y-3">
                 {orgs?.items?.map((org: any) => (
-                  <li key={org.id} className="flex items-center justify-between">
+                  <li
+                    key={org.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 hover:bg-slate-800/50 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/organizations/${org.id}`)}
+                  >
                     <div>
                       <p className="text-white font-medium">{org.name}</p>
                       {org.description && (
@@ -134,7 +140,11 @@ export default function Dashboard() {
             ) : (
               <ul className="space-y-3">
                 {entities?.items?.map((entity: any) => (
-                  <li key={entity.id} className="flex items-center justify-between">
+                  <li
+                    key={entity.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-slate-800/30 hover:bg-slate-800/50 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/entities/${entity.id}`)}
+                  >
                     <div>
                       <p className="text-white font-medium">{entity.name}</p>
                       <p className="text-sm text-slate-400">

@@ -7,6 +7,120 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0] - 2025-10-25
+
+### 🎉 Production Release - v1.0.0
+
+First production-ready release of Elder with comprehensive UI/UX improvements, enhanced issue management, and complete branding integration.
+
+### ✨ New Features
+
+#### Enhanced Issue Creation
+- **Organization/Entity Assignment**: Issues can now be assigned to either an organization OR entities (mutually exclusive)
+- **Radio button toggle** for choosing between Organization and Entity assignment modes
+- **Multi-select entity assignment**: Ability to assign issues to multiple entities simultaneously
+- **Label selection during creation**: Apply multiple labels when creating an issue via checkbox list
+- **Visual label indicators**: Colored dots showing label colors in selection interface
+- **Scrollable selection lists**: Clean UI with max-height containers for large entity/label lists
+
+#### UI/UX Improvements
+- **Organization Type Management**:
+  - Edit organization type (Department, Organization, Team, Collection, Other) via modal
+  - Type field displayed in organization detail information card
+  - Type selection dropdown in create/edit organization modals
+- **Clickable Dashboard Items**:
+  - Recent Organizations list items now navigate to organization detail pages
+  - Recent Entities list items now navigate to entity detail pages
+  - Hover effects and visual feedback on all clickable items
+- **Anchor Link Navigation**:
+  - Overview bubbles now scroll to corresponding sections
+  - Smooth scroll behavior for better UX
+  - Section IDs for Issues, Projects, Identities, and Hierarchy
+  - Quick navigation from statistics to detailed views
+
+#### Branding & Visual Identity
+- **Elder Logo Integration**:
+  - Elder-Logo.png used as sidebar logo (48px height)
+  - Elder-Logo.png used as browser favicon
+  - Professional branding throughout the application
+  - Consistent visual identity across all pages
+
+#### Modal-First UI Pattern
+- **Edit Organization Modal**: Inline editing without navigation disruption
+- Follows CLAUDE.md modal-first approach for secondary actions
+- Keeps users focused on main organizational views
+- Improved workflow efficiency
+
+### 🐛 Bug Fixes
+
+- **Async Decorator Support**: Fixed metadata endpoint 500 errors by making `@resource_role_required` and `@org_permission_required` decorators async-aware
+- **Network Graph Edge Rendering**: Added `Handle` components to ReactFlow custom nodes to fix missing edge visualization
+- **Edge Direction**: Implemented proper top-to-bottom hierarchical flow for organizational charts
+- **Tree Depth Calculation**: Recursive algorithm for accurate multi-level organization hierarchies
+- **Entity Positioning**: Entities now correctly placed one level below their containing organization
+
+### 🔧 Technical Improvements
+
+#### Frontend (React/TypeScript)
+- Added `organization_type` field to Organization interface
+- Created `OrganizationType` type definition
+- Enhanced CreateIssueModal with assignment type selection
+- Implemented entity and label multiselect components
+- Added smooth scroll functionality for section navigation
+- React Query integration for entities and labels fetching
+
+#### Backend (Flask/Python)
+- Async/await support in authentication decorators
+- Proper coroutine handling with `inspect.iscoroutinefunction()`
+- Support for `entity_ids` and `label_ids` in issue creation API
+
+#### Network Graph
+- Custom ReactFlow nodes with proper Handle components
+- Top-to-bottom layout with configurable spacing
+- Tree depth calculation for hierarchical positioning
+- Colored edges based on relationship types
+- Animated edges with arrow markers
+
+### 📊 API Enhancements
+
+- **Issues API**: Enhanced createIssue endpoint to support:
+  - `entity_ids` array for multi-entity assignment
+  - `label_ids` array for label application
+  - Mutually exclusive `organization_id` or `entity_ids`
+- **Organizations API**: Support for `organization_type` field in create/update operations
+
+### 🎨 UI Components
+
+- **EditOrganizationModal**: Full organization editing with type selection
+- **CreateIssueModal**: Comprehensive issue creation with assignment and label options
+- **Radio Button Groups**: Clean assignment type selection
+- **Checkbox Lists**: Multi-select for entities and labels
+- **Scrollable Containers**: Better handling of long lists
+- **Visual Indicators**: Label color dots and hover effects
+
+### 📦 Container Updates
+
+- Web container rebuilt with all UI/UX improvements
+- Elder logo properly integrated into build pipeline
+- Multi-stage builds optimized for production
+- Nginx serving static assets efficiently
+
+### 🔄 Upgrade Notes from v0.1.0
+
+1. **Database**: No schema changes required
+2. **API**: Backward compatible - new optional fields in issue creation
+3. **Frontend**: Complete rebuild - clear browser cache after update
+4. **Assets**: New logo file added to public directory
+
+### 🙏 Acknowledgments
+
+This release represents a significant UI/UX milestone, transforming Elder from a functional system into a polished, production-ready enterprise application.
+
+**Development Timeline**: October 23-25, 2025
+**Major Focus**: User experience, visual polish, and workflow optimization
+
+---
+
 ## [0.1.0] - 2024-10-23
 
 ### 🎉 Initial Release

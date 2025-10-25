@@ -43,9 +43,7 @@ export default function Layout() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-center h-16 px-6 border-b border-slate-700">
-            <h1 className="text-2xl font-bold text-white">
-              Elder
-            </h1>
+            <img src="/elder-logo.png" alt="Elder Logo" className="h-12 w-auto" />
           </div>
 
           {/* Navigation */}

@@ -2,11 +2,14 @@ export interface Organization {
   id: number
   name: string
   description?: string
+  organization_type?: string
   parent_id?: number
   metadata?: Record<string, any>
   created_at: string
   updated_at: string
 }
+
+export type OrganizationType = 'department' | 'organization' | 'team' | 'collection' | 'other'
 
 export interface Entity {
   id: number

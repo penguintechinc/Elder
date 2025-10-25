@@ -26,6 +26,15 @@ export default function OrganizationDetail() {
   const [showMetadataModal, setShowMetadataModal] = useState(false)
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false)
   const [showCreateEntityModal, setShowCreateEntityModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+
+  // Smooth scroll to section
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
 
   // Validate ID is a valid number
   const orgId = id ? parseInt(id) : NaN
@@ -330,7 +339,7 @@ export default function OrganizationDetail() {
         <div className="flex gap-3">
           <Button
             variant="ghost"
-            onClick={() => navigate(`/organizations/${id}/edit`)}
+            onClick={() => setShowEditModal(true)}
           >
             <Edit className="w-4 h-4 mr-2" />
             Edit
@@ -360,7 +369,10 @@ export default function OrganizationDetail() {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-8 w-full">
                 {/* Sub-Organizations Bubble */}
                 <div className="flex flex-col items-center">
-                  <div className="w-24 h-24 rounded-full bg-primary-500/20 border-2 border-primary-500 flex items-center justify-center cursor-pointer hover:bg-primary-500/30 transition-colors">
+                  <div
+                    className="w-24 h-24 rounded-full bg-primary-500/20 border-2 border-primary-500 flex items-center justify-center cursor-pointer hover:bg-primary-500/30 transition-colors"
+                    onClick={() => scrollToSection('hierarchy-section')}
+                  >
                     <div className="text-center">
                       <Folder className="w-8 h-8 text-primary-400 mx-auto" />
                       <p className="text-2xl font-bold text-white mt-1">
@@ -374,7 +386,10 @@ export default function OrganizationDetail() {
 
                 {/* Entities Bubble */}
                 <div className="flex flex-col items-center">
-                  <div className="w-24 h-24 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-500/30 transition-colors">
+                  <div
+                    className="w-24 h-24 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-500/30 transition-colors"
+                    onClick={() => scrollToSection('hierarchy-section')}
+                  >
                     <div className="text-center">
                       <Box className="w-8 h-8 text-blue-400 mx-auto" />
                       <p className="text-2xl font-bold text-white mt-1">
@@ -388,7 +403,10 @@ export default function OrganizationDetail() {
 
                 {/* Identities Bubble */}
                 <div className="flex flex-col items-center">
-                  <div className="w-24 h-24 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center cursor-pointer hover:bg-purple-500/30 transition-colors">
+                  <div
+                    className="w-24 h-24 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center cursor-pointer hover:bg-purple-500/30 transition-colors"
+                    onClick={() => scrollToSection('identities-section')}
+                  >
                     <div className="text-center">
                       <Users className="w-8 h-8 text-purple-400 mx-auto" />
                       <p className="text-2xl font-bold text-white mt-1">
@@ -404,7 +422,7 @@ export default function OrganizationDetail() {
                 <div className="flex flex-col items-center">
                   <div
                     className="w-24 h-24 rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center cursor-pointer hover:bg-red-500/30 transition-colors"
-                    onClick={() => navigate(`/issues?organization_id=${id}`)}
+                    onClick={() => scrollToSection('issues-section')}
                   >
                     <div className="text-center">
                       <svg className="w-8 h-8 text-red-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -423,7 +441,7 @@ export default function OrganizationDetail() {
                 <div className="flex flex-col items-center">
                   <div
                     className="w-24 h-24 rounded-full bg-green-500/20 border-2 border-green-500 flex items-center justify-center cursor-pointer hover:bg-green-500/30 transition-colors"
-                    onClick={() => navigate(`/projects?organization_id=${id}`)}
+                    onClick={() => scrollToSection('projects-section')}
                   >
                     <div className="text-center">
                       <svg className="w-8 h-8 text-green-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -484,6 +502,12 @@ export default function OrganizationDetail() {
                 <div>
                   <dt className="text-sm font-medium text-slate-400">Name</dt>
                   <dd className="mt-1 text-sm text-white">{organization.name}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-slate-400">Type</dt>
+                  <dd className="mt-1 text-sm text-white capitalize">
+                    {organization.organization_type || 'organization'}
+                  </dd>
                 </div>
                 {organization.description && (
                   <div>
@@ -547,7 +571,7 @@ export default function OrganizationDetail() {
           </Card>
 
           {/* Issues Card */}
-          <Card>
+          <Card id="issues-section">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-white">Issues</h2>
@@ -607,7 +631,7 @@ export default function OrganizationDetail() {
           </Card>
 
           {/* Projects Card */}
-          <Card>
+          <Card id="projects-section">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-white">Projects</h2>
@@ -664,7 +688,7 @@ export default function OrganizationDetail() {
           </Card>
 
           {/* Identities Card */}
-          <Card>
+          <Card id="identities-section">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-white">Identities</h2>
@@ -755,7 +779,7 @@ export default function OrganizationDetail() {
 
         {/* Hierarchy Tree */}
         <div className="lg:col-span-1">
-          <Card>
+          <Card id="hierarchy-section">
             <CardHeader>
               <h2 className="text-xl font-semibold text-white">Hierarchy</h2>
             </CardHeader>
@@ -829,6 +853,18 @@ export default function OrganizationDetail() {
           onSuccess={() => {
             setShowMetadataModal(false)
             queryClient.invalidateQueries({ queryKey: ['organization-metadata', id] })
+          }}
+        />
+      )}
+
+      {/* Edit Organization Modal */}
+      {showEditModal && (
+        <EditOrganizationModal
+          organization={organization}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={() => {
+            setShowEditModal(false)
+            queryClient.invalidateQueries({ queryKey: ['organization', id] })
           }}
         />
       )}
@@ -1216,6 +1252,105 @@ function MetadataModal({ organizationId, onClose, onSuccess }: MetadataModalProp
               Close
             </Button>
           </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+interface EditOrganizationModalProps {
+  organization: Organization
+  onClose: () => void
+  onSuccess: () => void
+}
+
+function EditOrganizationModal({ organization, onClose, onSuccess }: EditOrganizationModalProps) {
+  const [name, setName] = useState(organization.name)
+  const [description, setDescription] = useState(organization.description || '')
+  const [organizationType, setOrganizationType] = useState(organization.organization_type || 'organization')
+
+  const ORGANIZATION_TYPES = [
+    { value: 'department', label: 'Department' },
+    { value: 'organization', label: 'Organization' },
+    { value: 'team', label: 'Team' },
+    { value: 'collection', label: 'Collection' },
+    { value: 'other', label: 'Other' },
+  ]
+
+  const updateMutation = useMutation({
+    mutationFn: (data: { name: string; description?: string; organization_type?: string }) =>
+      api.updateOrganization(organization.id, data),
+    onSuccess: () => {
+      toast.success('Organization updated successfully')
+      onSuccess()
+    },
+    onError: () => {
+      toast.error('Failed to update organization')
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    updateMutation.mutate({
+      name,
+      description: description || undefined,
+      organization_type: organizationType,
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <h2 className="text-xl font-semibold text-white">Edit Organization</h2>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter organization name"
+            />
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Type
+              </label>
+              <select
+                required
+                value={organizationType}
+                onChange={(e) => setOrganizationType(e.target.value)}
+                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
+              >
+                {ORGANIZATION_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter description (optional)"
+                rows={3}
+                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button type="button" variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" isLoading={updateMutation.isPending}>
+                Save Changes
+              </Button>
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>

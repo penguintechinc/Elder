@@ -241,11 +241,24 @@ function CreateIssueModal({ onClose, onSuccess, defaultOrganizationId, defaultEn
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState<IssuePriority>('medium')
+  const [assignmentType, setAssignmentType] = useState<'organization' | 'entity'>('organization')
   const [organizationId, setOrganizationId] = useState<number | undefined>(defaultOrganizationId)
+  const [selectedEntities, setSelectedEntities] = useState<number[]>(defaultEntityId ? [defaultEntityId] : [])
+  const [selectedLabels, setSelectedLabels] = useState<number[]>([])
 
   const { data: organizations } = useQuery({
     queryKey: ['organizations-all'],
     queryFn: () => api.getOrganizations({ per_page: 1000 }),
+  })
+
+  const { data: entities } = useQuery({
+    queryKey: ['entities-all'],
+    queryFn: () => api.getEntities({ per_page: 1000 }),
+  })
+
+  const { data: labels } = useQuery({
+    queryKey: ['labels-all'],
+    queryFn: () => api.getLabels({ per_page: 1000 }),
   })
 
   const createMutation = useMutation({
@@ -254,6 +267,8 @@ function CreateIssueModal({ onClose, onSuccess, defaultOrganizationId, defaultEn
       description?: string
       priority: string
       organization_id?: number
+      entity_ids?: number[]
+      label_ids?: number[]
     }) => api.createIssue(data),
     onSuccess: () => {
       toast.success('Issue created successfully')
@@ -270,8 +285,26 @@ function CreateIssueModal({ onClose, onSuccess, defaultOrganizationId, defaultEn
       title,
       description: description || undefined,
       priority,
-      organization_id: organizationId,
+      organization_id: assignmentType === 'organization' ? organizationId : undefined,
+      entity_ids: assignmentType === 'entity' && selectedEntities.length > 0 ? selectedEntities : undefined,
+      label_ids: selectedLabels.length > 0 ? selectedLabels : undefined,
     })
+  }
+
+  const toggleEntity = (entityId: number) => {
+    setSelectedEntities(prev =>
+      prev.includes(entityId)
+        ? prev.filter(id => id !== entityId)
+        : [...prev, entityId]
+    )
+  }
+
+  const toggleLabel = (labelId: number) => {
+    setSelectedLabels(prev =>
+      prev.includes(labelId)
+        ? prev.filter(id => id !== labelId)
+        : [...prev, labelId]
+    )
   }
 
   return (
@@ -312,18 +345,96 @@ function CreateIssueModal({ onClose, onSuccess, defaultOrganizationId, defaultEn
               <option value="high">High</option>
               <option value="critical">Critical</option>
             </Select>
-            <Select
-              label="Organization"
-              value={organizationId?.toString() || ''}
-              onChange={(e) => setOrganizationId(e.target.value ? parseInt(e.target.value) : undefined)}
-            >
-              <option value="">None</option>
-              {organizations?.items?.map((org: any) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </Select>
+
+            {/* Assignment Type Selection */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Assign To
+              </label>
+              <div className="flex gap-4 mb-3">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="organization"
+                    checked={assignmentType === 'organization'}
+                    onChange={(e) => setAssignmentType(e.target.value as 'organization' | 'entity')}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-slate-300">Organization</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="entity"
+                    checked={assignmentType === 'entity'}
+                    onChange={(e) => setAssignmentType(e.target.value as 'organization' | 'entity')}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-slate-300">Entity</span>
+                </label>
+              </div>
+
+              {assignmentType === 'organization' ? (
+                <Select
+                  value={organizationId?.toString() || ''}
+                  onChange={(e) => setOrganizationId(e.target.value ? parseInt(e.target.value) : undefined)}
+                >
+                  <option value="">None</option>
+                  {organizations?.items?.map((org: any) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <div className="max-h-40 overflow-y-auto border border-slate-700 rounded-lg p-2 bg-slate-900">
+                  {entities?.items && entities.items.length > 0 ? (
+                    entities.items.map((entity: any) => (
+                      <label key={entity.id} className="flex items-center p-2 hover:bg-slate-800 rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedEntities.includes(entity.id)}
+                          onChange={() => toggleEntity(entity.id)}
+                          className="mr-2"
+                        />
+                        <span className="text-sm text-slate-300">{entity.name}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500 p-2">No entities available</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Labels Selection */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Labels
+              </label>
+              <div className="max-h-40 overflow-y-auto border border-slate-700 rounded-lg p-2 bg-slate-900">
+                {labels?.items && labels.items.length > 0 ? (
+                  labels.items.map((label: any) => (
+                    <label key={label.id} className="flex items-center p-2 hover:bg-slate-800 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedLabels.includes(label.id)}
+                        onChange={() => toggleLabel(label.id)}
+                        className="mr-2"
+                      />
+                      <span
+                        className="inline-block w-3 h-3 rounded-full mr-2"
+                        style={{ backgroundColor: label.color }}
+                      />
+                      <span className="text-sm text-slate-300">{label.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500 p-2">No labels available</p>
+                )}
+              </div>
+            </div>
+
             <div className="flex justify-end gap-3 mt-6">
               <Button type="button" variant="ghost" onClick={onClose}>
                 Cancel

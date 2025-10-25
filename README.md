@@ -36,6 +36,14 @@ Elder provides visibility into your infrastructure and organizational relationsh
 - **Comprehensive APIs**: Both REST and gRPC for maximum flexibility
 - **Enterprise Features**: Audit logging, MFA, SSO, and license management
 
+## Screenshots
+
+### Relationship Map Visualization
+
+![Relationship Graph](docs/screenshots/relationship-graph.png)
+
+*Interactive graph visualization showing organizational relationships with React Flow. Nodes represent organizations and entities, while edges show parent-child and dependency relationships.*
+
 ## Features
 
 ### Core Capabilities

@@ -71,9 +71,9 @@ const CustomNode: React.FC<{ data: any }> = ({ data }) => {
 
   return (
     <>
-      {/* Connection handles - required for edges to render */}
-      <Handle type="target" position={Position.Left} />
-      <Handle type="source" position={Position.Right} />
+      {/* Connection handles for top-to-bottom flow */}
+      <Handle type="target" position={Position.Top} />
+      <Handle type="source" position={Position.Bottom} />
 
       <div
         className="px-4 py-2 shadow-lg rounded-lg border-2 min-w-[150px] text-center cursor-pointer hover:shadow-xl transition-shadow"
@@ -103,12 +103,49 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
 }) => {
   // Convert our graph data to React Flow format
   const initialNodes: Node[] = useMemo(() => {
-    // Use hierarchical layout: parents on left, children on right
-    // Group nodes by level (depth in the tree)
-    const nodesByLevel = new Map<number, typeof graphNodes>();
+    // Calculate proper tree depth for each node
+    const nodeMap = new Map(graphNodes.map(n => [n.id, n]));
+    const nodeLevels = new Map<string, number>();
 
+    // Calculate depth by following parent chain
+    const getDepth = (nodeId: string): number => {
+      if (nodeLevels.has(nodeId)) {
+        return nodeLevels.get(nodeId)!;
+      }
+
+      const node = nodeMap.get(nodeId);
+      if (!node) return 0;
+
+      // For organizations, check parent_id
+      if (node.type === 'organization') {
+        if (!node.metadata?.parent_id) {
+          nodeLevels.set(nodeId, 0);
+          return 0;
+        }
+        const parentId = `org-${node.metadata.parent_id}`;
+        const depth = getDepth(parentId) + 1;
+        nodeLevels.set(nodeId, depth);
+        return depth;
+      }
+
+      // For entities, they're one level below their containing organization
+      if (node.metadata?.organization_id) {
+        const orgId = `org-${node.metadata.organization_id}`;
+        const depth = getDepth(orgId) + 1;
+        nodeLevels.set(nodeId, depth);
+        return depth;
+      }
+
+      return 0;
+    };
+
+    // Calculate depth for all nodes
+    graphNodes.forEach(node => getDepth(node.id));
+
+    // Group nodes by level
+    const nodesByLevel = new Map<number, typeof graphNodes>();
     graphNodes.forEach((node) => {
-      const level = node.metadata?.parent_id ? 1 : 0;
+      const level = nodeLevels.get(node.id) || 0;
       if (!nodesByLevel.has(level)) {
         nodesByLevel.set(level, []);
       }
@@ -116,17 +153,20 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
     });
 
     const nodes: Node[] = [];
-    const horizontalSpacing = 400;
-    const verticalSpacing = 150;
+    const horizontalSpacing = 250; // Space between nodes at same level
+    const verticalSpacing = 150;   // Space between levels (parent to child)
 
     nodesByLevel.forEach((nodesAtLevel, level) => {
+      const totalWidth = (nodesAtLevel.length - 1) * horizontalSpacing;
+      const startX = -totalWidth / 2; // Center the nodes at this level
+
       nodesAtLevel.forEach((node, indexInLevel) => {
         nodes.push({
           id: node.id,
           type: 'custom',
           position: {
-            x: level * horizontalSpacing + 50,
-            y: indexInLevel * verticalSpacing + 50,
+            x: startX + indexInLevel * horizontalSpacing + 200,
+            y: level * verticalSpacing + 50,
           },
           data: {
             label: node.label,
@@ -159,9 +199,9 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
 
       const reactFlowEdge: Edge = {
         id: `edge-${index}`,
-        // For "parent" relationships, reverse direction: child points to parent
-        source: edge.label === 'parent' ? edge.to : edge.from,
-        target: edge.label === 'parent' ? edge.from : edge.to,
+        // For top-to-bottom flow: parent -> child (use original direction)
+        source: edge.from,
+        target: edge.to,
         label: edge.label || '',
         type: 'default',
         animated: true,
