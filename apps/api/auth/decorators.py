@@ -173,7 +173,7 @@ def org_permission_required(permission_name: str, org_id_param: str = "id") -> C
 
     def decorator(f: Callable) -> Callable:
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        async def decorated_function(*args, **kwargs):
             user = get_current_user()
 
             if not user:
@@ -182,7 +182,10 @@ def org_permission_required(permission_name: str, org_id_param: str = "id") -> C
             # Superusers have all permissions
             if user.is_superuser:
                 g.current_user = user
-                return f(*args, **kwargs)
+                if inspect.iscoroutinefunction(f):
+                    return await f(*args, **kwargs)
+                else:
+                    return f(*args, **kwargs)
 
             # Get organization ID from route params
             org_id = kwargs.get(org_id_param)
@@ -206,7 +209,10 @@ def org_permission_required(permission_name: str, org_id_param: str = "id") -> C
                 )
 
             g.current_user = user
-            return f(*args, **kwargs)
+            if inspect.iscoroutinefunction(f):
+                return await f(*args, **kwargs)
+            else:
+                return f(*args, **kwargs)
 
         return decorated_function
 
@@ -294,7 +300,7 @@ def resource_role_required(required_role: str, resource_param: str = "id") -> Ca
 
     def decorator(f: Callable) -> Callable:
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        async def decorated_function(*args, **kwargs):
             user = get_current_user()
 
             if not user:
@@ -303,7 +309,10 @@ def resource_role_required(required_role: str, resource_param: str = "id") -> Ca
             # Superusers bypass resource role checks
             if user.is_superuser:
                 g.current_user = user
-                return f(*args, **kwargs)
+                if inspect.iscoroutinefunction(f):
+                    return await f(*args, **kwargs)
+                else:
+                    return f(*args, **kwargs)
 
             # Get resource ID and type
             resource_id = kwargs.get(resource_param)
@@ -369,7 +378,10 @@ def resource_role_required(required_role: str, resource_param: str = "id") -> Ca
                 )
 
             g.current_user = user
-            return f(*args, **kwargs)
+            if inspect.iscoroutinefunction(f):
+                return await f(*args, **kwargs)
+            else:
+                return f(*args, **kwargs)
 
         return decorated_function
 
