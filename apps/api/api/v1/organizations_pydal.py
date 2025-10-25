@@ -1,24 +1,36 @@
-"""Organization API endpoints using PyDAL."""
+"""Organization Units (OUs) API endpoints using PyDAL with async/await."""
 
+import asyncio
 from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime, timezone
+from dataclasses import asdict
+
+from apps.api.models.dataclasses import (
+    OrganizationDTO,
+    CreateOrganizationRequest,
+    UpdateOrganizationRequest,
+    PaginatedResponse,
+    from_pydal_row,
+    from_pydal_rows,
+)
+from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("organizations", __name__)
 
 
 @bp.route("", methods=["GET"])
-def list_organizations():
+async def list_organizations():
     """
-    List all organizations with pagination and filtering.
+    List all Organization Units (OUs) with pagination and filtering.
 
     Query Parameters:
         - page: Page number (default: 1)
         - per_page: Items per page (default: 50, max: 1000)
-        - parent_id: Filter by parent organization ID
+        - parent_id: Filter by parent OU ID
         - name: Filter by name (partial match)
 
     Returns:
-        200: List of organizations with pagination metadata
+        200: List of Organization Units with pagination metadata
     """
     db = current_app.db
 
@@ -38,54 +50,52 @@ def list_organizations():
         name = request.args.get("name")
         query &= (db.organizations.name.contains(name))
 
-    # Get total count
-    total = db(query).count()
-
     # Calculate pagination
     offset = (page - 1) * per_page
+
+    # Use asyncio TaskGroup for concurrent queries (Python 3.12)
+    async with asyncio.TaskGroup() as tg:
+        count_task = tg.create_task(
+            run_in_threadpool(lambda: db(query).count())
+        )
+        rows_task = tg.create_task(
+            run_in_threadpool(lambda: db(query).select(
+                orderby=db.organizations.name,
+                limitby=(offset, offset + per_page)
+            ))
+        )
+
+    total = count_task.result()
+    rows = rows_task.result()
+
+    # Calculate total pages
     pages = (total + per_page - 1) // per_page if total > 0 else 0
 
-    # Get paginated results
-    rows = db(query).select(
-        orderby=db.organizations.name,
-        limitby=(offset, offset + per_page)
+    # Convert PyDAL rows to DTOs
+    items = from_pydal_rows(rows, OrganizationDTO)
+
+    # Create paginated response
+    response = PaginatedResponse(
+        items=[asdict(item) for item in items],
+        total=total,
+        page=page,
+        per_page=per_page,
+        pages=pages
     )
 
-    # Convert to dict list
-    items = []
-    for row in rows:
-        items.append({
-            'id': row.id,
-            'name': row.name,
-            'description': row.description,
-            'parent_id': row.parent_id,
-            'ldap_dn': row.ldap_dn,
-            'saml_group': row.saml_group,
-            'owner_identity_id': row.owner_identity_id,
-            'owner_group_id': row.owner_group_id,
-            'created_at': row.created_at.isoformat() if row.created_at else None,
-            'updated_at': row.updated_at.isoformat() if row.updated_at else None,
-        })
-
-    return jsonify({
-        'items': items,
-        'total': total,
-        'page': page,
-        'per_page': per_page,
-        'pages': pages,
-    }), 200
+    return jsonify(asdict(response)), 200
 
 
 @bp.route("", methods=["POST"])
-def create_organization():
+async def create_organization():
     """
-    Create a new organization.
+    Create a new Organization Unit (OU).
 
     Request Body:
-        JSON object with organization fields
+        JSON object with Organization Unit fields
 
     Returns:
-        201: Created organization
+        201: Created Organization Unit
         400: Validation error
     """
     db = current_app.db
@@ -95,95 +105,81 @@ def create_organization():
     if not data.get('name'):
         return jsonify({'error': 'Name is required'}), 400
 
-    # Insert organization
-    try:
-        org_id = db.organizations.insert(
-            name=data.get('name'),
-            description=data.get('description'),
-            parent_id=data.get('parent_id'),
-            ldap_dn=data.get('ldap_dn'),
-            saml_group=data.get('saml_group'),
-            owner_identity_id=data.get('owner_identity_id'),
-            owner_group_id=data.get('owner_group_id'),
-        )
-        db.commit()
+    # Create request DTO
+    create_req = CreateOrganizationRequest(
+        name=data.get('name'),
+        description=data.get('description'),
+        parent_id=data.get('parent_id'),
+        ldap_dn=data.get('ldap_dn'),
+        saml_group=data.get('saml_group'),
+        owner_identity_id=data.get('owner_identity_id'),
+        owner_group_id=data.get('owner_group_id'),
+    )
 
-        # Fetch and return created org
-        org = db.organizations[org_id]
-        return jsonify({
-            'id': org.id,
-            'name': org.name,
-            'description': org.description,
-            'parent_id': org.parent_id,
-            'ldap_dn': org.ldap_dn,
-            'saml_group': org.saml_group,
-            'owner_identity_id': org.owner_identity_id,
-            'owner_group_id': org.owner_group_id,
-            'created_at': org.created_at.isoformat() if org.created_at else None,
-            'updated_at': org.updated_at.isoformat() if org.updated_at else None,
-        }), 201
+    # Insert organization in thread pool
+    try:
+        org_id = await run_in_threadpool(
+            lambda: db.organizations.insert(**asdict(create_req))
+        )
+        await run_in_threadpool(lambda: db.commit())
+
+        # Fetch created org
+        org_row = await run_in_threadpool(lambda: db.organizations[org_id])
+        org_dto = from_pydal_row(org_row, OrganizationDTO)
+
+        return jsonify(asdict(org_dto)), 201
 
     except Exception as e:
-        db.rollback()
+        await run_in_threadpool(lambda: db.rollback())
         return jsonify({'error': f'Database error: {str(e)}'}), 500
 
 
 @bp.route("/<int:id>", methods=["GET"])
-def get_organization(id: int):
+async def get_organization(id: int):
     """
-    Get a single organization by ID.
+    Get a single Organization Unit (OU) by ID.
 
     Path Parameters:
-        - id: Organization ID
+        - id: Organization Unit ID
 
     Returns:
-        200: Organization details
-        404: Organization not found
+        200: Organization Unit details
+        404: Organization Unit not found
     """
     db = current_app.db
 
-    org = db.organizations[id]
-    if not org:
-        return jsonify({'error': 'Organization not found'}), 404
+    org_row = await run_in_threadpool(lambda: db.organizations[id])
+    if not org_row:
+        return jsonify({'error': 'Organization Unit not found'}), 404
 
-    return jsonify({
-        'id': org.id,
-        'name': org.name,
-        'description': org.description,
-        'parent_id': org.parent_id,
-        'ldap_dn': org.ldap_dn,
-        'saml_group': org.saml_group,
-        'owner_identity_id': org.owner_identity_id,
-        'owner_group_id': org.owner_group_id,
-        'created_at': org.created_at.isoformat() if org.created_at else None,
-        'updated_at': org.updated_at.isoformat() if org.updated_at else None,
-    }), 200
+    org_dto = from_pydal_row(org_row, OrganizationDTO)
+    return jsonify(asdict(org_dto)), 200
 
 
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])
-def update_organization(id: int):
+async def update_organization(id: int):
     """
-    Update an organization.
+    Update an Organization Unit (OU).
 
     Path Parameters:
-        - id: Organization ID
+        - id: Organization Unit ID
 
     Request Body:
         JSON object with fields to update
 
     Returns:
-        200: Updated organization
-        404: Organization not found
+        200: Updated Organization Unit
+        404: Organization Unit not found
     """
     db = current_app.db
 
-    org = db.organizations[id]
-    if not org:
-        return jsonify({'error': 'Organization not found'}), 404
+    org_row = await run_in_threadpool(lambda: db.organizations[id])
+    if not org_row:
+        return jsonify({'error': 'Organization Unit not found'}), 404
 
     data = request.get_json() or {}
 
-    # Update fields
+    # Build update DTO with only provided fields
     update_fields = {}
     for field in ['name', 'description', 'parent_id', 'ldap_dn', 'saml_group', 'owner_identity_id', 'owner_group_id']:
         if field in data:
@@ -191,60 +187,55 @@ def update_organization(id: int):
 
     if update_fields:
         try:
-            db(db.organizations.id == id).update(**update_fields)
-            db.commit()
+            await run_in_threadpool(
+                lambda: db(db.organizations.id == id).update(**update_fields)
+            )
+            await run_in_threadpool(lambda: db.commit())
 
             # Fetch updated org
-            org = db.organizations[id]
-            return jsonify({
-                'id': org.id,
-                'name': org.name,
-                'description': org.description,
-                'parent_id': org.parent_id,
-                'ldap_dn': org.ldap_dn,
-                'saml_group': org.saml_group,
-                'owner_identity_id': org.owner_identity_id,
-                'owner_group_id': org.owner_group_id,
-                'created_at': org.created_at.isoformat() if org.created_at else None,
-                'updated_at': org.updated_at.isoformat() if org.updated_at else None,
-            }), 200
+            org_row = await run_in_threadpool(lambda: db.organizations[id])
+            org_dto = from_pydal_row(org_row, OrganizationDTO)
+            return jsonify(asdict(org_dto)), 200
 
         except Exception as e:
-            db.rollback()
+            await run_in_threadpool(lambda: db.rollback())
             return jsonify({'error': f'Database error: {str(e)}'}), 500
 
     return jsonify({'error': 'No fields to update'}), 400
 
 
 @bp.route("/<int:id>", methods=["DELETE"])
-def delete_organization(id: int):
+async def delete_organization(id: int):
     """
-    Delete an organization.
+    Delete an Organization Unit (OU).
 
     Path Parameters:
-        - id: Organization ID
+        - id: Organization Unit ID
 
     Returns:
-        204: Organization deleted
-        404: Organization not found
-        400: Cannot delete organization with children
+        204: Organization Unit deleted
+        404: Organization Unit not found
+        400: Cannot delete OU with child OUs
     """
     db = current_app.db
 
-    org = db.organizations[id]
-    if not org:
-        return jsonify({'error': 'Organization not found'}), 404
+    org_row = await run_in_threadpool(lambda: db.organizations[id])
+    if not org_row:
+        return jsonify({'error': 'Organization Unit not found'}), 404
 
-    # Check if organization has children
-    children_count = db((db.organizations.parent_id == id)).count()
+    # Check if OU has children (concurrent check in TaskGroup)
+    children_count = await run_in_threadpool(
+        lambda: db(db.organizations.parent_id == id).count()
+    )
+
     if children_count > 0:
-        return jsonify({'error': 'Cannot delete organization with child organizations'}), 400
+        return jsonify({'error': 'Cannot delete Organization Unit with child OUs'}), 400
 
     try:
-        del db.organizations[id]
-        db.commit()
+        await run_in_threadpool(lambda: db.organizations.__delitem__(id))
+        await run_in_threadpool(lambda: db.commit())
         return '', 204
 
     except Exception as e:
-        db.rollback()
+        await run_in_threadpool(lambda: db.rollback())
         return jsonify({'error': f'Database error: {str(e)}'}), 500

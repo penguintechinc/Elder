@@ -207,19 +207,20 @@ def _init_license_client(app: Flask) -> None:
 
 def _register_blueprints(app: Flask) -> None:
     """
-    Register Flask blueprints.
+    Register Flask blueprints (async and sync).
 
     Args:
         app: Flask application
     """
-    # Import blueprints
-    from apps.api.api.v1 import organizations, entities, dependencies, graph, auth, identities, lookup, resource_roles, issues, metadata
+    # Import blueprints (async versions where available)
+    from apps.api.api.v1 import organizations_pydal, entities, dependencies, graph, auth, identities, lookup, resource_roles, issues, metadata
     from apps.api.web import routes as web
 
     # Register API v1 blueprints
     api_prefix = app.config["API_PREFIX"]
 
-    app.register_blueprint(organizations.bp, url_prefix=f"{api_prefix}/organizations")
+    # Use async organizations_pydal blueprint (PyDAL + async/await)
+    app.register_blueprint(organizations_pydal.bp, url_prefix=f"{api_prefix}/organizations")
     app.register_blueprint(entities.bp, url_prefix=f"{api_prefix}/entities")
     app.register_blueprint(dependencies.bp, url_prefix=f"{api_prefix}/dependencies")
     app.register_blueprint(graph.bp, url_prefix=f"{api_prefix}/graph")
@@ -237,7 +238,7 @@ def _register_blueprints(app: Flask) -> None:
     # Web UI blueprint (root routes)
     app.register_blueprint(web.bp, url_prefix="")
 
-    logger.info("blueprints_registered", api_prefix=api_prefix, blueprints=["organizations", "entities", "dependencies", "graph", "auth", "identities", "resource_roles", "issues", "metadata", "lookup", "web"])
+    logger.info("blueprints_registered", api_prefix=api_prefix, blueprints=["organizations (async PyDAL)", "entities", "dependencies", "graph", "auth", "identities", "resource_roles", "issues", "metadata", "lookup", "web"])
 
 
 def _register_error_handlers(app: Flask) -> None:
