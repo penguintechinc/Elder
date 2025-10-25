@@ -22,6 +22,7 @@ def define_all_tables(db):
         Field('username', 'string', length=255, notnull=True, unique=True, requires=IS_NOT_EMPTY()),
         Field('email', 'string', length=255, requires=IS_EMAIL()),
         Field('full_name', 'string', length=255),
+        Field('organization_id', 'integer'),  # Integer field to avoid circular FK reference
         Field('auth_provider', 'string', length=50, notnull=True),
         Field('auth_provider_id', 'string', length=255),
         Field('password_hash', 'string', length=255),
