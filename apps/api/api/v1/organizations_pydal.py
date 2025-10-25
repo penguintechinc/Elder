@@ -111,6 +111,7 @@ async def create_organization():
     create_req = CreateOrganizationRequest(
         name=data.get('name'),
         description=data.get('description'),
+        organization_type=data.get('organization_type', 'organization'),
         parent_id=data.get('parent_id'),
         ldap_dn=data.get('ldap_dn'),
         saml_group=data.get('saml_group'),
@@ -184,7 +185,7 @@ async def update_organization(id: int):
 
     # Build update DTO with only provided fields
     update_fields = {}
-    for field in ['name', 'description', 'parent_id', 'ldap_dn', 'saml_group', 'owner_identity_id', 'owner_group_id']:
+    for field in ['name', 'description', 'organization_type', 'parent_id', 'ldap_dn', 'saml_group', 'owner_identity_id', 'owner_group_id']:
         if field in data:
             update_fields[field] = data[field]
 

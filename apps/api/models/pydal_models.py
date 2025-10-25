@@ -109,6 +109,8 @@ def define_all_tables(db):
         'organizations',
         Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
         Field('description', 'text'),
+        Field('organization_type', 'string', length=50, notnull=True, default='organization',
+              requires=IS_IN_SET(['department', 'organization', 'team', 'collection', 'other'])),
         Field('parent_id', 'reference organizations', ondelete='CASCADE'),
         Field('ldap_dn', 'string', length=512),
         Field('saml_group', 'string', length=255),

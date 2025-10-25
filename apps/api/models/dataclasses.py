@@ -16,6 +16,7 @@ class OrganizationDTO:
     id: int
     name: str
     description: Optional[str]
+    organization_type: str  # department, organization, team, collection, other
     parent_id: Optional[int]
     ldap_dn: Optional[str]
     saml_group: Optional[str]
@@ -30,6 +31,7 @@ class CreateOrganizationRequest:
     """Request to create a new Organization Unit (OU)."""
     name: str
     description: Optional[str] = None
+    organization_type: str = 'organization'  # department, organization, team, collection, other
     parent_id: Optional[int] = None
     ldap_dn: Optional[str] = None
     saml_group: Optional[str] = None
@@ -42,6 +44,7 @@ class UpdateOrganizationRequest:
     """Request to update an Organization Unit (OU)."""
     name: Optional[str] = None
     description: Optional[str] = None
+    organization_type: Optional[str] = None  # department, organization, team, collection, other
     parent_id: Optional[int] = None
     ldap_dn: Optional[str] = None
     saml_group: Optional[str] = None
