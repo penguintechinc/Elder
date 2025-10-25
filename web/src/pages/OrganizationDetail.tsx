@@ -272,6 +272,117 @@ export default function OrganizationDetail() {
         </div>
       </div>
 
+      {/* Overview */}
+      <div className="mb-6">
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold text-white">Overview</h2>
+            <p className="text-sm text-slate-400 mt-1">
+              Recursive view of all resources in this organization tree
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-slate-900 rounded-lg p-8 min-h-[400px] flex items-center justify-center">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 w-full">
+                {/* Sub-Organizations Bubble */}
+                <div className="flex flex-col items-center">
+                  <div className="w-24 h-24 rounded-full bg-primary-500/20 border-2 border-primary-500 flex items-center justify-center cursor-pointer hover:bg-primary-500/30 transition-colors">
+                    <div className="text-center">
+                      <Folder className="w-8 h-8 text-primary-400 mx-auto" />
+                      <p className="text-2xl font-bold text-white mt-1">
+                        {treeStats?.total_sub_organizations || 0}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-400 mt-2 text-center">Sub-Orgs</p>
+                  <p className="text-xs text-slate-500 mt-0.5">(recursive)</p>
+                </div>
+
+                {/* Entities Bubble */}
+                <div className="flex flex-col items-center">
+                  <div className="w-24 h-24 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-500/30 transition-colors">
+                    <div className="text-center">
+                      <Box className="w-8 h-8 text-blue-400 mx-auto" />
+                      <p className="text-2xl font-bold text-white mt-1">
+                        {treeStats?.total_entities || 0}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-400 mt-2 text-center">Entities</p>
+                  <p className="text-xs text-slate-500 mt-0.5">(all levels)</p>
+                </div>
+
+                {/* Issues Bubble */}
+                <div className="flex flex-col items-center">
+                  <div
+                    className="w-24 h-24 rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center cursor-pointer hover:bg-red-500/30 transition-colors"
+                    onClick={() => navigate(`/issues?organization_id=${id}`)}
+                  >
+                    <div className="text-center">
+                      <svg className="w-8 h-8 text-red-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <p className="text-2xl font-bold text-white mt-1">
+                        {treeStats?.total_issues || 0}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-400 mt-2 text-center">Issues</p>
+                  <p className="text-xs text-slate-500 mt-0.5">({treeStats?.active_issues || 0} active)</p>
+                </div>
+
+                {/* Projects Bubble */}
+                <div className="flex flex-col items-center">
+                  <div
+                    className="w-24 h-24 rounded-full bg-green-500/20 border-2 border-green-500 flex items-center justify-center cursor-pointer hover:bg-green-500/30 transition-colors"
+                    onClick={() => navigate(`/projects?organization_id=${id}`)}
+                  >
+                    <div className="text-center">
+                      <svg className="w-8 h-8 text-green-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                      <p className="text-2xl font-bold text-white mt-1">
+                        {treeStats?.total_projects || 0}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-400 mt-2 text-center">Projects</p>
+                  <p className="text-xs text-slate-500 mt-0.5">({treeStats?.active_projects || 0} active)</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Connections Summary */}
+            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-3 bg-slate-800/30 rounded-lg">
+                <p className="text-xs text-slate-500">Total Resources</p>
+                <p className="text-lg font-semibold text-white">
+                  {(treeStats?.total_sub_organizations || 0) + (treeStats?.total_entities || 0) + (treeStats?.total_issues || 0) + (treeStats?.total_projects || 0)}
+                </p>
+              </div>
+              <div className="p-3 bg-slate-800/30 rounded-lg">
+                <p className="text-xs text-slate-500">Organizations in Tree</p>
+                <p className="text-lg font-semibold text-white">
+                  {treeStats?.organizations?.length || 1}
+                </p>
+              </div>
+              <div className="p-3 bg-slate-800/30 rounded-lg">
+                <p className="text-xs text-slate-500">Milestones</p>
+                <p className="text-lg font-semibold text-white">
+                  {treeStats?.total_milestones || 0}
+                </p>
+              </div>
+              <div className="p-3 bg-slate-800/30 rounded-lg">
+                <p className="text-xs text-slate-500">Tree Depth</p>
+                <p className="text-lg font-semibold text-white">
+                  {treeStats?.total_sub_organizations > 0 ? '2+' : '1'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Info */}
         <div className="lg:col-span-2 space-y-6">
@@ -507,117 +618,6 @@ export default function OrganizationDetail() {
             </CardContent>
           </Card>
         </div>
-      </div>
-
-      {/* Relationship Visualization Map */}
-      <div className="mt-6">
-        <Card>
-          <CardHeader>
-            <h2 className="text-xl font-semibold text-white">Relationship Map</h2>
-            <p className="text-sm text-slate-400 mt-1">
-              Recursive view of all resources in this organization tree
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-slate-900 rounded-lg p-8 min-h-[400px] flex items-center justify-center">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 w-full">
-                {/* Sub-Organizations Bubble */}
-                <div className="flex flex-col items-center">
-                  <div className="w-24 h-24 rounded-full bg-primary-500/20 border-2 border-primary-500 flex items-center justify-center cursor-pointer hover:bg-primary-500/30 transition-colors">
-                    <div className="text-center">
-                      <Folder className="w-8 h-8 text-primary-400 mx-auto" />
-                      <p className="text-2xl font-bold text-white mt-1">
-                        {treeStats?.total_sub_organizations || 0}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-400 mt-2 text-center">Sub-Orgs</p>
-                  <p className="text-xs text-slate-500 mt-0.5">(recursive)</p>
-                </div>
-
-                {/* Entities Bubble */}
-                <div className="flex flex-col items-center">
-                  <div className="w-24 h-24 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center cursor-pointer hover:bg-blue-500/30 transition-colors">
-                    <div className="text-center">
-                      <Box className="w-8 h-8 text-blue-400 mx-auto" />
-                      <p className="text-2xl font-bold text-white mt-1">
-                        {treeStats?.total_entities || 0}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-400 mt-2 text-center">Entities</p>
-                  <p className="text-xs text-slate-500 mt-0.5">(all levels)</p>
-                </div>
-
-                {/* Issues Bubble */}
-                <div className="flex flex-col items-center">
-                  <div
-                    className="w-24 h-24 rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center cursor-pointer hover:bg-red-500/30 transition-colors"
-                    onClick={() => navigate(`/issues?organization_id=${id}`)}
-                  >
-                    <div className="text-center">
-                      <svg className="w-8 h-8 text-red-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <p className="text-2xl font-bold text-white mt-1">
-                        {treeStats?.total_issues || 0}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-400 mt-2 text-center">Issues</p>
-                  <p className="text-xs text-slate-500 mt-0.5">({treeStats?.active_issues || 0} active)</p>
-                </div>
-
-                {/* Projects Bubble */}
-                <div className="flex flex-col items-center">
-                  <div
-                    className="w-24 h-24 rounded-full bg-green-500/20 border-2 border-green-500 flex items-center justify-center cursor-pointer hover:bg-green-500/30 transition-colors"
-                    onClick={() => navigate(`/projects?organization_id=${id}`)}
-                  >
-                    <div className="text-center">
-                      <svg className="w-8 h-8 text-green-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                      <p className="text-2xl font-bold text-white mt-1">
-                        {treeStats?.total_projects || 0}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-slate-400 mt-2 text-center">Projects</p>
-                  <p className="text-xs text-slate-500 mt-0.5">({treeStats?.active_projects || 0} active)</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Connections Summary */}
-            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-3 bg-slate-800/30 rounded-lg">
-                <p className="text-xs text-slate-500">Total Resources</p>
-                <p className="text-lg font-semibold text-white">
-                  {(treeStats?.total_sub_organizations || 0) + (treeStats?.total_entities || 0) + (treeStats?.total_issues || 0) + (treeStats?.total_projects || 0)}
-                </p>
-              </div>
-              <div className="p-3 bg-slate-800/30 rounded-lg">
-                <p className="text-xs text-slate-500">Organizations in Tree</p>
-                <p className="text-lg font-semibold text-white">
-                  {treeStats?.organizations?.length || 1}
-                </p>
-              </div>
-              <div className="p-3 bg-slate-800/30 rounded-lg">
-                <p className="text-xs text-slate-500">Milestones</p>
-                <p className="text-lg font-semibold text-white">
-                  {treeStats?.total_milestones || 0}
-                </p>
-              </div>
-              <div className="p-3 bg-slate-800/30 rounded-lg">
-                <p className="text-xs text-slate-500">Tree Depth</p>
-                <p className="text-lg font-semibold text-white">
-                  {treeStats?.total_sub_organizations > 0 ? '2+' : '1'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Create Sub-Organization Modal */}

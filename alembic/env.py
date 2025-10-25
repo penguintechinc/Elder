@@ -10,21 +10,17 @@ from alembic import context
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 
-# Import Base and all models
+# Import Base and all SQLAlchemy models
 from apps.api.models.base import Base
-from apps.api.models import (
-    Organization,
-    Entity,
-    Dependency,
-    Identity,
-    IdentityGroup,
-    IdentityGroupMembership,
-    Role,
-    Permission,
-    RolePermission,
-    UserRole,
-    AuditLog,
-)
+from apps.api.models.organization import Organization
+from apps.api.models.entity import Entity
+from apps.api.models.dependency import Dependency
+from apps.api.models.identity import Identity, IdentityGroup, IdentityGroupMembership
+from apps.api.models.rbac import Role, Permission, RolePermission, UserRole
+from apps.api.models.audit import AuditLog
+from apps.api.models.resource_role import ResourceRole
+from apps.api.models.issue import Issue, IssueLabel, IssueComment, IssueEntityLink
+from apps.api.models.metadata import MetadataField
 
 # Alembic Config object
 config = context.config

@@ -43,7 +43,8 @@
       "Bash(docker start:*)",
       "Bash(docker ps:*)",
       "Bash(docker-compose:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(elder_api:latest)"
     ],
     "deny": [],
     "ask": []

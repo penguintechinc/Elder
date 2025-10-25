@@ -64,6 +64,8 @@ ENV PATH=/home/elder/.local/bin:$PATH
 COPY --chown=elder:elder apps /app/apps
 COPY --chown=elder:elder shared /app/shared
 COPY --chown=elder:elder requirements.txt /app/
+COPY --chown=elder:elder alembic.ini /app/
+COPY --chown=elder:elder alembic /app/alembic
 
 # Expose ports
 EXPOSE 5000 50051
