@@ -28,6 +28,21 @@ class IssuePriority(enum.Enum):
     CRITICAL = "critical"
 
 
+class IssueType(enum.Enum):
+    """Issue type categories."""
+
+    OPERATIONS = "operations"
+    CODE = "code"
+    CONFIG = "config"
+    SECURITY = "security"
+    ARCHITECTURE = "architecture"
+    PROCESS = "process"
+    APPROVAL = "approval"
+    FEATURE = "feature"
+    BUG = "bug"
+    OTHER = "other"
+
+
 class IssueLinkType(enum.Enum):
     """Types of links between issues and entities."""
 
@@ -105,6 +120,14 @@ class Issue(Base, IDMixin, TimestampMixin):
         default=IssuePriority.MEDIUM,
         index=True,
         comment="Issue priority level",
+    )
+
+    issue_type = Column(
+        Enum(IssueType),
+        nullable=False,
+        default=IssueType.OTHER,
+        index=True,
+        comment="Issue type category",
     )
 
     # Incident tracking
@@ -193,7 +216,7 @@ class Issue(Base, IDMixin, TimestampMixin):
 
     def __repr__(self) -> str:
         """String representation of issue."""
-        return f"<Issue(id={self.id}, title='{self.title}', status={self.status.value}, priority={self.priority.value})>"
+        return f"<Issue(id={self.id}, title='{self.title}', type={self.issue_type.value}, status={self.status.value}, priority={self.priority.value})>"
 
     def close(self, closed_by_id: int) -> None:
         """

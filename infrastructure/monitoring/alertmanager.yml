@@ -2,12 +2,12 @@
 
 global:
   resolve_timeout: 5m
-  # SMTP configuration for email alerts
-  smtp_smarthost: '${SMTP_HOST:-localhost:587}'
-  smtp_from: '${SMTP_FROM:-alerts@elder.local}'
-  smtp_auth_username: '${SMTP_USER:-}'
-  smtp_auth_password: '${SMTP_PASS:-}'
-  smtp_require_tls: true
+  # SMTP configuration for email alerts (configure via environment variables)
+  # smtp_smarthost: 'localhost:587'
+  # smtp_from: 'alerts@elder.local'
+  # smtp_auth_username: ''
+  # smtp_auth_password: ''
+  # smtp_require_tls: true
 
 # Alert routing configuration
 route:
@@ -68,59 +68,26 @@ receivers:
       - url: 'http://api:5000/api/v1/alerts/webhook'
         send_resolved: true
 
-  # Critical incidents - multiple channels
+  # Critical incidents - webhook only (configure email/pagerduty per-OU via API)
   - name: 'critical-incidents'
-    email_configs:
-      - to: '${ALERT_EMAIL_CRITICAL:-oncall@example.com}'
-        headers:
-          Subject: '[CRITICAL] Elder Incident Alert'
-        html: |
-          <h2>Critical Incident Alert</h2>
-          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
-          <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
-          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
-          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
-          <p><strong>Time:</strong> {{ .StartsAt }}</p>
     webhook_configs:
       - url: 'http://api:5000/api/v1/alerts/webhook'
         send_resolved: true
-    # Add Slack webhook for critical alerts
-    # slack_configs:
-    #   - api_url: '${SLACK_WEBHOOK_URL}'
-    #     channel: '#incidents-critical'
-    #     title: 'Critical Incident Alert'
-    #     text: '{{ .CommonAnnotations.summary }}'
+    # Email configuration example (requires SMTP setup):
+    # email_configs:
+    #   - to: 'oncall@example.com'
+    #     headers:
+    #       Subject: '[CRITICAL] Elder Incident Alert'
 
-  # High priority incidents
+  # High priority incidents - webhook only
   - name: 'high-priority-incidents'
-    email_configs:
-      - to: '${ALERT_EMAIL_HIGH:-team@example.com}'
-        headers:
-          Subject: '[HIGH] Elder Incident Alert'
     webhook_configs:
       - url: 'http://api:5000/api/v1/alerts/webhook'
         send_resolved: true
 
-  # Elder application incidents from issues
+  # Elder application incidents from issues - webhook only
+  # Actual notification destinations are configured per-OU via /api/v1/organizations/{id}/alert-configs
   - name: 'elder-incidents'
-    email_configs:
-      - to: '${ALERT_EMAIL_INCIDENTS:-incidents@example.com}'
-        headers:
-          Subject: '[INCIDENT] Elder Issue {{ .GroupLabels.issue_id }}'
-        html: |
-          <h2>Elder Incident Issue</h2>
-          <p><strong>Issue ID:</strong> {{ .CommonLabels.issue_id }}</p>
-          <p><strong>Title:</strong> {{ .CommonLabels.issue_title }}</p>
-          <p><strong>Priority:</strong> {{ .CommonLabels.priority }}</p>
-          <p><strong>Organization:</strong> {{ .CommonLabels.organization }}</p>
-          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
-          <p><strong>Entities Affected:</strong> {{ .CommonAnnotations.entities }}</p>
-          <p><strong>Created:</strong> {{ .StartsAt }}</p>
-          <p><a href="{{ .CommonAnnotations.url }}">View Issue</a></p>
     webhook_configs:
       - url: 'http://api:5000/api/v1/alerts/webhook'
         send_resolved: true
-    # Add PagerDuty integration for incidents
-    # pagerduty_configs:
-    #   - service_key: '${PAGERDUTY_SERVICE_KEY}'
-    #     description: '{{ .CommonLabels.issue_title }}'

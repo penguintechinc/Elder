@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, Edit, Trash2, FolderKanban, Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -16,6 +17,7 @@ const PROJECT_STATUSES = [
 ]
 
 export default function Projects() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -121,7 +123,7 @@ export default function Projects() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {data?.items?.map((project: any) => (
-            <Card key={project.id}>
+            <Card key={project.id} className="cursor-pointer hover:border-primary-500/50 transition-colors" onClick={() => navigate(`/projects/${project.id}`)}>
               <CardContent>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -132,13 +134,19 @@ export default function Projects() {
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
                     <button
-                      onClick={() => setEditingProject(project)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setEditingProject(project)
+                      }}
                       className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(project.id, project.name)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDelete(project.id, project.name)
+                      }}
                       className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />

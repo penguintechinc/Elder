@@ -173,7 +173,7 @@ def define_all_tables(db):
         Field('description', 'text'),
         Field('status', 'string', length=50, notnull=True, default='open'),
         Field('priority', 'string', length=50, default='medium'),
-        Field('issue_type', 'string', length=50, default='issue'),
+        Field('issue_type', 'string', length=50, default='other'),
         Field('reporter_id', 'reference identities', notnull=True, ondelete='CASCADE'),
         Field('assignee_id', 'reference identities', ondelete='SET NULL'),
         Field('organization_id', 'reference organizations', ondelete='CASCADE'),

@@ -76,6 +76,12 @@ class Organization(Base, IDMixin, TimestampMixin):
         cascade="all, delete-orphan",
     )
 
+    alert_configurations: Mapped[List["AlertConfiguration"]] = relationship(
+        "AlertConfiguration",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )
+
     def __repr__(self) -> str:
         """String representation of organization."""
         return f"<Organization(id={self.id}, name='{self.name}', parent_id={self.parent_id})>"

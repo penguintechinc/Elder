@@ -262,7 +262,7 @@ class CreateIssueRequest:
     description: Optional[str] = None
     status: str = "open"
     priority: str = "medium"
-    issue_type: str = "issue"
+    issue_type: str = "other"
     assignee_id: Optional[int] = None
     organization_id: Optional[int] = None
     is_incident: int = 0
@@ -275,6 +275,7 @@ class UpdateIssueRequest:
     description: Optional[str] = None
     status: Optional[str] = None
     priority: Optional[str] = None
+    issue_type: Optional[str] = None
     assignee_id: Optional[int] = None
     is_incident: Optional[int] = None
 

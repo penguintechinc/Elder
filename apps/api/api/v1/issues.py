@@ -19,6 +19,7 @@ from apps.api.models.dataclasses import (
 )
 from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
+from shared.webhooks import send_issue_created_webhooks
 
 bp = Blueprint("issues", __name__)
 
@@ -149,16 +150,31 @@ async def create_issue():
             description=data.get("description"),
             status=data.get("status", "open"),
             priority=data.get("priority", "medium"),
-            issue_type=data.get("issue_type", "issue"),
+            issue_type=data.get("issue_type", "other"),
             reporter_id=g.current_user.id,
             assignee_id=data.get("assignee_id"),
             organization_id=data.get("organization_id"),
+            is_incident=data.get("is_incident", 0),
         )
         db.commit()
 
         return db.issues[issue_id]
 
     issue = await run_in_threadpool(create)
+
+    # Send issue created webhooks asynchronously (fire and forget)
+    if issue.organization_id:
+        asyncio.create_task(
+            send_issue_created_webhooks(
+                db=db,
+                issue_id=issue.id,
+                issue_title=issue.title,
+                issue_type=issue.issue_type,
+                is_incident=issue.is_incident if hasattr(issue, 'is_incident') else 0,
+                organization_id=issue.organization_id,
+                web_url_base=current_app.config.get("WEB_URL", "http://localhost:3000")
+            )
+        )
 
     issue_dto = from_pydal_row(issue, IssueDTO)
     return jsonify(asdict(issue_dto)), 201
