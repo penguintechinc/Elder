@@ -1,7 +1,7 @@
 """User management endpoints (admin only)."""
 
 from dataclasses import asdict
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from werkzeug.security import generate_password_hash
 from apps.api.auth.decorators import login_required, role_required, get_current_user
 from apps.api.models.dataclasses import (
@@ -11,7 +11,6 @@ from apps.api.models.dataclasses import (
     PaginatedResponse,
     from_pydal_rows
 )
-from shared.database import db
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("users", __name__)
@@ -22,6 +21,8 @@ bp = Blueprint("users", __name__)
 @role_required('admin')
 async def list_users():
     """List all users (admin only)."""
+    db = current_app.db
+
     # Get pagination parameters
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 50, type=int)
@@ -35,10 +36,13 @@ async def list_users():
     # Calculate pagination
     offset = (page - 1) * per_page
 
+    # Build query outside the threadpool function (db is thread-local)
+    query = db.identities.id > 0
+
     # Execute database queries
     def get_users():
-        total = db(db.identities.id > 0).count()
-        rows = db(db.identities.id > 0).select(
+        total = db(query).count()
+        rows = db(query).select(
             db.identities.id,
             db.identities.identity_type,
             db.identities.username,
@@ -84,6 +88,8 @@ async def list_users():
 @role_required('admin')
 async def create_user():
     """Create a new user (admin only)."""
+    db = current_app.db
+
     data = request.get_json()
     if not data:
         return jsonify({"error": "Request body is required"}), 400
@@ -96,8 +102,9 @@ async def create_user():
         return jsonify({"error": "Password is required"}), 400
 
     # Prepare insert data
+    username = data["username"].strip()
     insert_data = {
-        "username": data["username"].strip(),
+        "username": username,
         "password_hash": generate_password_hash(data["password"]),
         "identity_type": data.get("identity_type", "human"),
         "auth_provider": "local",
@@ -110,16 +117,20 @@ async def create_user():
         "mfa_enabled": data.get("mfa_enabled", False),
     }
 
+    # Build queries outside threadpool function (db is thread-local)
+    username_query = db.identities.username == username
+    email_query = (db.identities.email == insert_data["email"]) if insert_data.get("email") else None
+
     # Create user
     def create():
         # Check if username exists
-        existing = db(db.identities.username == insert_data["username"]).select().first()
+        existing = db(username_query).select().first()
         if existing:
             return None, "Username already exists", 400
 
         # Check if email exists (if provided)
-        if insert_data.get("email"):
-            existing_email = db(db.identities.email == insert_data["email"]).select().first()
+        if email_query is not None:
+            existing_email = db(email_query).select().first()
             if existing_email:
                 return None, "Email already exists", 400
 
@@ -159,6 +170,8 @@ async def create_user():
 @role_required('admin')
 async def update_user(user_id: int):
     """Update a user (admin only)."""
+    db = current_app.db
+
     data = request.get_json()
     if not data:
         return jsonify({"error": "Request body is required"}), 400
@@ -224,6 +237,7 @@ async def update_user(user_id: int):
 @role_required('admin')
 async def delete_user(user_id: int):
     """Delete a user (admin only)."""
+    db = current_app.db
     current_user = get_current_user()
 
     # Prevent self-deletion
