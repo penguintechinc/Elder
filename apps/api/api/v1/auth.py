@@ -392,7 +392,7 @@ def _create_audit_log_sync(
 
     db.audit_logs.insert(
         identity_id=identity_id,
-        action=action,
+        action_name=action,
         resource_type=resource_type,
         resource_id=resource_id,
         details=changes,  # PyDAL uses 'details' not 'changes'

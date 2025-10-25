@@ -1,14 +1,15 @@
-import { SelectHTMLAttributes, forwardRef } from 'react'
+import { SelectHTMLAttributes, forwardRef, ReactNode } from 'react'
 import { clsx } from 'clsx'
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string
   error?: string
-  options: Array<{ value: string | number; label: string }>
+  options?: Array<{ value: string | number; label: string }>
+  children?: ReactNode
 }
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, options, ...props }, ref) => {
+  ({ className, label, error, options, children, ...props }, ref) => {
     return (
       <div className="w-full">
         {label && (
@@ -29,11 +30,15 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           )}
           {...props}
         >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
+          {options ? (
+            options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))
+          ) : (
+            children
+          )}
         </select>
         {error && (
           <p className="mt-1.5 text-sm text-red-500">{error}</p>

@@ -45,26 +45,60 @@ async def run_in_threadpool(func: Callable[P, T], *args: P.args, **kwargs: P.kwa
     """
     loop = asyncio.get_event_loop()
 
-    # Wrapper to handle PyDAL transaction errors
+    # Wrapper to handle PyDAL transaction errors and stale connections
     def safe_wrapper():
-        try:
-            result = func(*args, **kwargs)
-            # On success, ensure transaction is committed if needed
-            # PyDAL auto-commits by default, but explicit is better
-            return result
-        except Exception as e:
-            # On any error, ensure we rollback the transaction
-            # This is critical for PyDAL thread safety
+        max_retries = 2
+        retry_count = 0
+
+        while retry_count <= max_retries:
             try:
-                # Import here to avoid circular dependencies
-                from flask import current_app
-                if hasattr(current_app, 'db'):
-                    current_app.db.rollback()
-            except:
-                # If we can't get current_app.db, the error was likely
-                # outside of a request context, so ignore
-                pass
-            raise  # Re-raise the original error
+                result = func(*args, **kwargs)
+                # On success, ensure transaction is committed if needed
+                # PyDAL auto-commits by default, but explicit is better
+                return result
+            except Exception as e:
+                error_msg = str(e).lower()
+
+                # Check if it's a database connection error
+                is_connection_error = any(msg in error_msg for msg in [
+                    'cursor already closed',
+                    'connection already closed',
+                    'server closed the connection',
+                    'connection refused',
+                    'can\'t connect to',
+                    'lost connection',
+                    'connection reset',
+                    'interfaceerror'
+                ])
+
+                if is_connection_error and retry_count < max_retries:
+                    # Try to reconnect
+                    try:
+                        from flask import current_app
+                        if hasattr(current_app, 'db'):
+                            # Force PyDAL to create new connection by closing old one
+                            try:
+                                current_app.db._adapter.close()
+                            except:
+                                pass
+                            # Reconnect
+                            current_app.db._adapter.reconnect()
+                    except Exception as reconnect_error:
+                        # If reconnect fails, continue to retry logic
+                        pass
+
+                    retry_count += 1
+                    continue  # Retry the operation
+
+                # On any error (including after retries), ensure we rollback
+                try:
+                    from flask import current_app
+                    if hasattr(current_app, 'db'):
+                        current_app.db.rollback()
+                except:
+                    pass
+
+                raise  # Re-raise the original error
 
     # If we're in a Flask request context, copy it to the thread
     if FLASK_AVAILABLE and has_request_context():

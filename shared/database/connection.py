@@ -41,6 +41,10 @@ def init_db(app: Flask) -> None:
     """
     global db
     import os
+    import time
+    import logging
+
+    logger = logging.getLogger(__name__)
 
     # Build database URL from environment variables or use full DATABASE_URL
     database_url = app.config.get("DATABASE_URL") or os.getenv("DATABASE_URL")
@@ -144,17 +148,34 @@ def init_db(app: Flask) -> None:
     # Get connection pool size
     pool_size = app.config.get("DB_POOL_SIZE") or int(os.getenv("DB_POOL_SIZE", "10"))
 
-    # Initialize PyDAL with connection pooling
-    # NOTE: pool_size=0 disables pooling, giving each thread its own connection
-    # This is important for thread safety with async/threadpool execution
-    db = DAL(
-        database_url,
-        folder=app.instance_path if hasattr(app, 'instance_path') else 'databases',
-        migrate=True,
-        fake_migrate_all=False,
-        lazy_tables=False,
-        pool_size=0,  # Disable pooling for thread safety
-    )
+    # Wait for database to be ready (retry logic for startup)
+    max_retries = 30  # 30 retries = 30 seconds max wait
+    retry_delay = 1   # 1 second between retries
+
+    for attempt in range(max_retries):
+        try:
+            # Initialize PyDAL with connection pooling
+            # NOTE: pool_size=0 disables pooling, giving each thread its own connection
+            # This is important for thread safety with async/threadpool execution
+            db = DAL(
+                database_url,
+                folder=app.instance_path if hasattr(app, 'instance_path') else 'databases',
+                migrate=True,
+                fake_migrate_all=True,  # Don't recreate existing tables (cluster-safe)
+                lazy_tables=False,
+                pool_size=0,  # Disable pooling for thread safety
+            )
+            # Test the connection
+            db.executesql("SELECT 1")
+            logger.info("Database connection established successfully")
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logger.warning(f"Database connection attempt {attempt + 1}/{max_retries} failed: {e}. Retrying in {retry_delay}s...")
+                time.sleep(retry_delay)
+            else:
+                logger.error(f"Failed to connect to database after {max_retries} attempts")
+                raise
 
     # Store db instance in app context
     app.db = db

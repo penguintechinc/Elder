@@ -39,7 +39,9 @@
       "Bash(xargs:*)",
       "Bash(docker system prune:*)",
       "Bash(./scripts/test-api-docker.sh:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(docker start:*)",
+      "Bash(docker ps:*)"
     ],
     "deny": [],
     "ask": []

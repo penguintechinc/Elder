@@ -80,7 +80,7 @@ export default function Entities() {
                   <p className="text-sm text-slate-400 mt-3">{entity.description}</p>
                 )}
                 <div className="flex items-center justify-between text-xs text-slate-500 mt-4">
-                  <span>ID: {entity.unique_id.toString().slice(0, 12)}</span>
+                  <span>ID: {entity.id}</span>
                 </div>
               </CardContent>
             </Card>
