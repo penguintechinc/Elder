@@ -6,17 +6,21 @@ import {
   GitBranch,
   Users,
   AlertCircle,
+  Tag,
+  Search as SearchIcon,
   Settings,
   LogOut,
 } from 'lucide-react'
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Search', href: '/search', icon: SearchIcon },
   { name: 'Organizations', href: '/organizations', icon: Building2 },
   { name: 'Entities', href: '/entities', icon: Box },
   { name: 'Dependencies', href: '/dependencies', icon: GitBranch },
   { name: 'Identities', href: '/identities', icon: Users },
   { name: 'Issues', href: '/issues', icon: AlertCircle },
+  { name: 'Labels', href: '/labels', icon: Tag },
 ]
 
 export default function Layout() {

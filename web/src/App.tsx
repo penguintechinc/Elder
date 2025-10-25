@@ -8,6 +8,9 @@ import EntityDetail from './pages/EntityDetail'
 import Dependencies from './pages/Dependencies'
 import Identities from './pages/Identities'
 import Issues from './pages/Issues'
+import IssueDetail from './pages/IssueDetail'
+import Labels from './pages/Labels'
+import Search from './pages/Search'
 import Login from './pages/Login'
 import Register from './pages/Register'
 
@@ -29,6 +32,7 @@ export default function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
+        <Route path="search" element={<Search />} />
         <Route path="organizations" element={<Organizations />} />
         <Route path="organizations/:id" element={<OrganizationDetail />} />
         <Route path="entities" element={<Entities />} />
@@ -36,6 +40,8 @@ export default function App() {
         <Route path="dependencies" element={<Dependencies />} />
         <Route path="identities" element={<Identities />} />
         <Route path="issues" element={<Issues />} />
+        <Route path="issues/:id" element={<IssueDetail />} />
+        <Route path="labels" element={<Labels />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
