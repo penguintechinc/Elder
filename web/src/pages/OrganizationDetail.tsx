@@ -26,50 +26,54 @@ export default function OrganizationDetail() {
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false)
   const [showCreateEntityModal, setShowCreateEntityModal] = useState(false)
 
+  // Validate ID is a valid number
+  const orgId = id ? parseInt(id) : NaN
+  const isValidId = !isNaN(orgId) && orgId > 0
+
   const { data: organization, isLoading: orgLoading } = useQuery({
     queryKey: ['organization', id],
-    queryFn: () => api.getOrganization(parseInt(id!)),
-    enabled: !!id,
+    queryFn: () => api.getOrganization(orgId),
+    enabled: isValidId,
   })
 
   const { data: childOrgs } = useQuery({
     queryKey: ['organizations', { parent_id: id }],
-    queryFn: () => api.getOrganizations({ parent_id: parseInt(id!) }),
-    enabled: !!id,
+    queryFn: () => api.getOrganizations({ parent_id: orgId }),
+    enabled: isValidId,
   })
 
   const { data: entities } = useQuery({
     queryKey: ['entities', { organization_id: id }],
-    queryFn: () => api.getEntities({ organization_id: parseInt(id!) }),
-    enabled: !!id,
+    queryFn: () => api.getEntities({ organization_id: orgId }),
+    enabled: isValidId,
   })
 
   const { data: metadata } = useQuery({
     queryKey: ['organization-metadata', id],
-    queryFn: () => api.getOrganizationMetadata(parseInt(id!)),
-    enabled: !!id,
+    queryFn: () => api.getOrganizationMetadata(orgId),
+    enabled: isValidId,
   })
 
   const { data: issues } = useQuery({
     queryKey: ['issues', { organization_id: id }],
-    queryFn: () => api.getIssues({ organization_id: parseInt(id!) }),
-    enabled: !!id,
+    queryFn: () => api.getIssues({ organization_id: orgId }),
+    enabled: isValidId,
   })
 
   const { data: projects } = useQuery({
     queryKey: ['projects', { organization_id: id }],
-    queryFn: () => api.getProjects({ organization_id: parseInt(id!) }),
-    enabled: !!id,
+    queryFn: () => api.getProjects({ organization_id: orgId }),
+    enabled: isValidId,
   })
 
   const { data: treeStats } = useQuery({
     queryKey: ['organization-tree-stats', id],
-    queryFn: () => api.getOrganizationTreeStats(parseInt(id!)),
-    enabled: !!id,
+    queryFn: () => api.getOrganizationTreeStats(orgId),
+    enabled: isValidId,
   })
 
   const deleteMutation = useMutation({
-    mutationFn: () => api.deleteOrganization(parseInt(id!)),
+    mutationFn: () => api.deleteOrganization(orgId),
     onSuccess: () => {
       toast.success('Organization deleted successfully')
       navigate('/organizations')
@@ -78,6 +82,22 @@ export default function OrganizationDetail() {
       toast.error('Failed to delete organization')
     },
   })
+
+  // Handle invalid ID
+  if (!isValidId) {
+    return (
+      <div className="p-8">
+        <Card>
+          <CardContent className="text-center py-12">
+            <p className="text-slate-400">Invalid organization ID</p>
+            <Button className="mt-4" onClick={() => navigate('/organizations')}>
+              Back to Organizations
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   const handleDelete = () => {
     if (window.confirm(`Are you sure you want to delete "${organization?.name}"?`)) {
@@ -603,7 +623,7 @@ export default function OrganizationDetail() {
       {/* Create Sub-Organization Modal */}
       {showCreateOrgModal && (
         <CreateOrganizationModal
-          parentId={parseInt(id!)}
+          parentId={orgId}
           onClose={() => setShowCreateOrgModal(false)}
           onSuccess={() => {
             setShowCreateOrgModal(false)
@@ -615,7 +635,7 @@ export default function OrganizationDetail() {
       {/* Create Entity Modal */}
       {showCreateEntityModal && (
         <CreateEntityModal
-          organizationId={parseInt(id!)}
+          organizationId={orgId}
           onClose={() => setShowCreateEntityModal(false)}
           onSuccess={() => {
             setShowCreateEntityModal(false)
@@ -627,7 +647,7 @@ export default function OrganizationDetail() {
       {/* Metadata Modal */}
       {showMetadataModal && (
         <MetadataModal
-          organizationId={parseInt(id!)}
+          organizationId={orgId}
           onClose={() => setShowMetadataModal(false)}
           onSuccess={() => {
             setShowMetadataModal(false)
