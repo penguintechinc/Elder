@@ -3,6 +3,7 @@
 Elder uses **PyDAL** (Python Database Abstraction Layer) for database operations, providing support for 18+ different database systems with a unified API.
 
 ## Quick Start
+Reference: https://py4web.com/_documentation/static/en/chapter-07.html
 
 ### PostgreSQL (Default)
 

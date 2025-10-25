@@ -18,15 +18,12 @@ class Config:
     APP_NAME = "Elder"
     APP_VERSION = config("APP_VERSION", default="0.1.0")
 
-    # Database
+    # Database (PyDAL - use individual components or DATABASE_URL)
+    # Note: PyDAL uses 'postgres://' not 'postgresql://'
     DATABASE_URL = config(
         "DATABASE_URL",
-        default="postgresql://elder:elder@localhost:5432/elder",
+        default=None,  # Let connection.py build from DB_TYPE, DB_HOST, etc.
     )
-    SQLALCHEMY_DATABASE_URI = DATABASE_URL
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ECHO = config("SQLALCHEMY_ECHO", default=False, cast=bool)
-    SQLALCHEMY_POOL_SIZE = config("SQLALCHEMY_POOL_SIZE", default=10, cast=int)
     SQLALCHEMY_MAX_OVERFLOW = config("SQLALCHEMY_MAX_OVERFLOW", default=20, cast=int)
 
     # Redis
