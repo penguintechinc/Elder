@@ -870,6 +870,22 @@ jobs:
   - **Gradient usage encouraged** - subtle gradients for visual depth and modern appeal
   - **Responsive design** - must work seamlessly across all device sizes
   - **Performance focused** - fast loading times and optimized assets
+- **Web Application UI/UX Principles**:
+  - **Modal-first approach** - prefer modals over dedicated routes for secondary actions
+  - **Minimize navigation disruption** - keep users focused on main pages (entity/organization views)
+  - **Inline editing when possible** - allow editing without leaving the current context
+  - **Progressive disclosure** - reveal complexity only when needed
+  - **Contextual actions** - actions should be available where they're needed
+  - **Consistent patterns** - use the same UI patterns throughout the application
+  - **Use modals for**:
+    - Create operations (creating sub-organizations, entities, issues, etc.)
+    - Edit operations (updating metadata, editing properties)
+    - Quick views (previewing details without full navigation)
+    - Confirmations and deletions
+  - **Use dedicated routes only for**:
+    - Primary entity views (organization detail, entity detail, issue detail)
+    - List pages (organizations list, entities list, issues list)
+    - Complex multi-step workflows that require dedicated space
 - **Website Repository Integration**:
   - Add `github.com/penguintechinc/website` as a sparse checkout submodule
   - Only include the project's specific website folders in the sparse checkout

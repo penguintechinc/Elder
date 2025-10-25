@@ -7,6 +7,17 @@ global:
     cluster: 'elder'
     environment: 'development'
 
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+
+# Alert rules files
+rule_files:
+  - '/etc/prometheus/alerts.yml'
+
 # Scrape configurations
 scrape_configs:
   # Elder API metrics

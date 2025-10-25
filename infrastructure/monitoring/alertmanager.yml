@@ -1,0 +1,126 @@
+# Alertmanager configuration for Elder incident management
+
+global:
+  resolve_timeout: 5m
+  # SMTP configuration for email alerts
+  smtp_smarthost: '${SMTP_HOST:-localhost:587}'
+  smtp_from: '${SMTP_FROM:-alerts@elder.local}'
+  smtp_auth_username: '${SMTP_USER:-}'
+  smtp_auth_password: '${SMTP_PASS:-}'
+  smtp_require_tls: true
+
+# Alert routing configuration
+route:
+  # Default receiver for all alerts
+  receiver: 'default-receiver'
+
+  # Group alerts by cluster and alertname
+  group_by: ['cluster', 'alertname', 'severity']
+
+  # Wait time before sending notification for a group
+  group_wait: 10s
+
+  # Wait time before sending notification about new alerts in existing group
+  group_interval: 10s
+
+  # Wait time before resending notification if alert is still firing
+  repeat_interval: 12h
+
+  # Routes for specific alert types
+  routes:
+    # Critical incidents - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-incidents'
+      group_wait: 0s
+      repeat_interval: 5m
+      continue: true
+
+    # High priority incidents
+    - match:
+        severity: high
+      receiver: 'high-priority-incidents'
+      group_wait: 30s
+      repeat_interval: 1h
+      continue: true
+
+    # Elder application incidents from issues marked as incidents
+    - match:
+        alertname: ElderIncidentIssue
+      receiver: 'elder-incidents'
+      group_wait: 10s
+      repeat_interval: 30m
+
+# Inhibition rules - suppress certain alerts based on others
+inhibit_rules:
+  # Inhibit warning if critical is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
+
+# Alert receivers - notification destinations
+receivers:
+  # Default receiver - log only
+  - name: 'default-receiver'
+    webhook_configs:
+      - url: 'http://api:5000/api/v1/alerts/webhook'
+        send_resolved: true
+
+  # Critical incidents - multiple channels
+  - name: 'critical-incidents'
+    email_configs:
+      - to: '${ALERT_EMAIL_CRITICAL:-oncall@example.com}'
+        headers:
+          Subject: '[CRITICAL] Elder Incident Alert'
+        html: |
+          <h2>Critical Incident Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
+          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Time:</strong> {{ .StartsAt }}</p>
+    webhook_configs:
+      - url: 'http://api:5000/api/v1/alerts/webhook'
+        send_resolved: true
+    # Add Slack webhook for critical alerts
+    # slack_configs:
+    #   - api_url: '${SLACK_WEBHOOK_URL}'
+    #     channel: '#incidents-critical'
+    #     title: 'Critical Incident Alert'
+    #     text: '{{ .CommonAnnotations.summary }}'
+
+  # High priority incidents
+  - name: 'high-priority-incidents'
+    email_configs:
+      - to: '${ALERT_EMAIL_HIGH:-team@example.com}'
+        headers:
+          Subject: '[HIGH] Elder Incident Alert'
+    webhook_configs:
+      - url: 'http://api:5000/api/v1/alerts/webhook'
+        send_resolved: true
+
+  # Elder application incidents from issues
+  - name: 'elder-incidents'
+    email_configs:
+      - to: '${ALERT_EMAIL_INCIDENTS:-incidents@example.com}'
+        headers:
+          Subject: '[INCIDENT] Elder Issue {{ .GroupLabels.issue_id }}'
+        html: |
+          <h2>Elder Incident Issue</h2>
+          <p><strong>Issue ID:</strong> {{ .CommonLabels.issue_id }}</p>
+          <p><strong>Title:</strong> {{ .CommonLabels.issue_title }}</p>
+          <p><strong>Priority:</strong> {{ .CommonLabels.priority }}</p>
+          <p><strong>Organization:</strong> {{ .CommonLabels.organization }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Entities Affected:</strong> {{ .CommonAnnotations.entities }}</p>
+          <p><strong>Created:</strong> {{ .StartsAt }}</p>
+          <p><a href="{{ .CommonAnnotations.url }}">View Issue</a></p>
+    webhook_configs:
+      - url: 'http://api:5000/api/v1/alerts/webhook'
+        send_resolved: true
+    # Add PagerDuty integration for incidents
+    # pagerduty_configs:
+    #   - service_key: '${PAGERDUTY_SERVICE_KEY}'
+    #     description: '{{ .CommonLabels.issue_title }}'

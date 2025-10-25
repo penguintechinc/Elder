@@ -7,6 +7,7 @@ import api from '@/lib/api'
 import type { Organization, Entity } from '@/types'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
+import Input from '@/components/Input'
 
 interface TreeNode {
   type: 'organization' | 'entity'
@@ -21,6 +22,9 @@ export default function OrganizationDetail() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set())
+  const [showMetadataModal, setShowMetadataModal] = useState(false)
+  const [showCreateOrgModal, setShowCreateOrgModal] = useState(false)
+  const [showCreateEntityModal, setShowCreateEntityModal] = useState(false)
 
   const { data: organization, isLoading: orgLoading } = useQuery({
     queryKey: ['organization', id],
@@ -284,7 +288,7 @@ export default function OrganizationDetail() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate(`/organizations/${id}/metadata`)}
+                  onClick={() => setShowMetadataModal(true)}
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   Manage
@@ -292,15 +296,15 @@ export default function OrganizationDetail() {
               </div>
             </CardHeader>
             <CardContent>
-              {metadata?.items && metadata.items.length > 0 ? (
+              {metadata?.metadata && Object.keys(metadata.metadata).length > 0 ? (
                 <dl className="grid grid-cols-1 gap-4">
-                  {metadata.items.map((field: any) => (
-                    <div key={field.id}>
-                      <dt className="text-sm font-medium text-slate-400">{field.key}</dt>
+                  {Object.entries(metadata.metadata).map(([key, value]) => (
+                    <div key={key}>
+                      <dt className="text-sm font-medium text-slate-400">{key}</dt>
                       <dd className="mt-1 text-sm text-white">
-                        {typeof field.value === 'object'
-                          ? JSON.stringify(field.value)
-                          : String(field.value)}
+                        {typeof value === 'object'
+                          ? JSON.stringify(value)
+                          : String(value)}
                       </dd>
                     </div>
                   ))}
@@ -397,7 +401,7 @@ export default function OrganizationDetail() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate(`/organizations/create?parent_id=${id}`)}
+                  onClick={() => setShowCreateOrgModal(true)}
                   className="w-full justify-center"
                 >
                   Add Sub-Organization
@@ -405,7 +409,7 @@ export default function OrganizationDetail() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigate(`/entities/create?organization_id=${id}`)}
+                  onClick={() => setShowCreateEntityModal(true)}
                   className="w-full justify-center mt-2"
                 >
                   Add Entity
@@ -415,6 +419,428 @@ export default function OrganizationDetail() {
           </Card>
         </div>
       </div>
+
+      {/* Create Sub-Organization Modal */}
+      {showCreateOrgModal && (
+        <CreateOrganizationModal
+          parentId={parseInt(id!)}
+          onClose={() => setShowCreateOrgModal(false)}
+          onSuccess={() => {
+            setShowCreateOrgModal(false)
+            queryClient.invalidateQueries({ queryKey: ['organizations', { parent_id: id }] })
+          }}
+        />
+      )}
+
+      {/* Create Entity Modal */}
+      {showCreateEntityModal && (
+        <CreateEntityModal
+          organizationId={parseInt(id!)}
+          onClose={() => setShowCreateEntityModal(false)}
+          onSuccess={() => {
+            setShowCreateEntityModal(false)
+            queryClient.invalidateQueries({ queryKey: ['entities', { organization_id: id }] })
+          }}
+        />
+      )}
+
+      {/* Metadata Modal */}
+      {showMetadataModal && (
+        <MetadataModal
+          organizationId={parseInt(id!)}
+          onClose={() => setShowMetadataModal(false)}
+          onSuccess={() => {
+            setShowMetadataModal(false)
+            queryClient.invalidateQueries({ queryKey: ['organization-metadata', id] })
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+interface CreateOrganizationModalProps {
+  parentId: number
+  onClose: () => void
+  onSuccess: () => void
+}
+
+function CreateOrganizationModal({ parentId, onClose, onSuccess }: CreateOrganizationModalProps) {
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+
+  const createMutation = useMutation({
+    mutationFn: (data: { name: string; description?: string; parent_id: number }) =>
+      api.createOrganization(data),
+    onSuccess: () => {
+      toast.success('Organization created successfully')
+      onSuccess()
+    },
+    onError: () => {
+      toast.error('Failed to create organization')
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    createMutation.mutate({
+      name,
+      description: description || undefined,
+      parent_id: parentId,
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <h2 className="text-xl font-semibold text-white">Create Sub-Organization</h2>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter organization name"
+            />
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter description (optional)"
+                rows={3}
+                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button type="button" variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" isLoading={createMutation.isPending}>
+                Create
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+interface CreateEntityModalProps {
+  organizationId: number
+  onClose: () => void
+  onSuccess: () => void
+}
+
+function CreateEntityModal({ organizationId, onClose, onSuccess }: CreateEntityModalProps) {
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [entityType, setEntityType] = useState('compute')
+
+  const ENTITY_TYPES = [
+    { value: 'application', label: 'Application' },
+    { value: 'service', label: 'Service' },
+    { value: 'repository', label: 'Repository' },
+    { value: 'datacenter', label: 'Datacenter' },
+    { value: 'vpc', label: 'VPC' },
+    { value: 'subnet', label: 'Subnet' },
+    { value: 'compute', label: 'Compute' },
+    { value: 'network', label: 'Network' },
+    { value: 'storage', label: 'Storage' },
+    { value: 'database', label: 'Database' },
+    { value: 'user', label: 'User' },
+    { value: 'security_issue', label: 'Security Issue' },
+  ]
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => api.createEntity(data),
+    onSuccess: () => {
+      toast.success('Entity created successfully')
+      onSuccess()
+    },
+    onError: () => {
+      toast.error('Failed to create entity')
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    createMutation.mutate({
+      name,
+      description: description || undefined,
+      entity_type: entityType,
+      organization_id: organizationId,
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <h2 className="text-xl font-semibold text-white">Create Entity</h2>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter entity name"
+            />
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Type
+              </label>
+              <select
+                required
+                value={entityType}
+                onChange={(e) => setEntityType(e.target.value)}
+                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
+              >
+                {ENTITY_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter description (optional)"
+                rows={3}
+                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button type="button" variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" isLoading={createMutation.isPending}>
+                Create
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+interface MetadataModalProps {
+  organizationId: number
+  onClose: () => void
+  onSuccess: () => void
+}
+
+function MetadataModal({ organizationId, onClose, onSuccess }: MetadataModalProps) {
+  const [key, setKey] = useState('')
+  const [value, setValue] = useState('')
+  const [fieldType, setFieldType] = useState('string')
+  const [editingKey, setEditingKey] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+
+  const { data: metadataResponse } = useQuery({
+    queryKey: ['organization-metadata', organizationId],
+    queryFn: () => api.getOrganizationMetadata(organizationId),
+  })
+
+  const metadata = metadataResponse?.metadata || {}
+
+  const createMutation = useMutation({
+    mutationFn: (data: { key: string; field_type: string; value: any }) =>
+      api.createOrganizationMetadata(organizationId, data),
+    onSuccess: () => {
+      toast.success('Metadata field created successfully')
+      setKey('')
+      setValue('')
+      setFieldType('string')
+      queryClient.invalidateQueries({ queryKey: ['organization-metadata', organizationId] })
+    },
+    onError: () => {
+      toast.error('Failed to create metadata field')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ key, value }: { key: string; value: any }) =>
+      api.updateOrganizationMetadata(organizationId, key, { value }),
+    onSuccess: () => {
+      toast.success('Metadata field updated successfully')
+      setEditingKey(null)
+      setValue('')
+      queryClient.invalidateQueries({ queryKey: ['organization-metadata', organizationId] })
+    },
+    onError: () => {
+      toast.error('Failed to update metadata field')
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (key: string) => api.deleteOrganizationMetadata(organizationId, key),
+    onSuccess: () => {
+      toast.success('Metadata field deleted successfully')
+      queryClient.invalidateQueries({ queryKey: ['organization-metadata', organizationId] })
+    },
+    onError: () => {
+      toast.error('Failed to delete metadata field')
+    },
+  })
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault()
+    createMutation.mutate({ key, field_type: fieldType, value })
+  }
+
+  const handleUpdate = (key: string) => {
+    updateMutation.mutate({ key, value })
+  }
+
+  const handleDelete = (key: string) => {
+    if (window.confirm(`Are you sure you want to delete the "${key}" metadata field?`)) {
+      deleteMutation.mutate(key)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <CardHeader>
+          <h2 className="text-xl font-semibold text-white">Manage Metadata</h2>
+        </CardHeader>
+        <CardContent>
+          {/* Add New Metadata Field */}
+          <form onSubmit={handleCreate} className="space-y-4 mb-6 pb-6 border-b border-slate-700">
+            <h3 className="text-sm font-medium text-slate-300">Add New Field</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <Input
+                label="Key"
+                required
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                placeholder="field_name"
+              />
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                  Type
+                </label>
+                <select
+                  value={fieldType}
+                  onChange={(e) => setFieldType(e.target.value)}
+                  className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="string">String</option>
+                  <option value="number">Number</option>
+                  <option value="boolean">Boolean</option>
+                  <option value="date">Date</option>
+                  <option value="json">JSON</option>
+                </select>
+              </div>
+              <Input
+                label="Value"
+                required
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder="value"
+              />
+            </div>
+            <Button type="submit" isLoading={createMutation.isPending}>
+              Add Field
+            </Button>
+          </form>
+
+          {/* Existing Metadata Fields */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-slate-300">Existing Fields</h3>
+            {Object.keys(metadata).length > 0 ? (
+              <div className="space-y-2">
+                {Object.entries(metadata).map(([metaKey, metaValue]) => (
+                  <div
+                    key={metaKey}
+                    className="p-3 bg-slate-800/30 rounded-lg border border-slate-700"
+                  >
+                    {editingKey === metaKey ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={value}
+                          onChange={(e) => setValue(e.target.value)}
+                          placeholder="New value"
+                          className="flex-1"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => handleUpdate(metaKey)}
+                          isLoading={updateMutation.isPending}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingKey(null)
+                            setValue('')
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <dt className="text-sm font-medium text-slate-400">{metaKey}</dt>
+                          <dd className="mt-1 text-sm text-white">
+                            {typeof metaValue === 'object'
+                              ? JSON.stringify(metaValue)
+                              : String(metaValue)}
+                          </dd>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingKey(metaKey)
+                              setValue(String(metaValue))
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(metaKey)}
+                            className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">No metadata fields defined</p>
+            )}
+          </div>
+
+          {/* Modal Actions */}
+          <div className="flex justify-end gap-3 mt-6 pt-6 border-t border-slate-700">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

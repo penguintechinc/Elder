@@ -144,7 +144,27 @@ services:
       - "${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./infrastructure/monitoring/alerts.yml:/etc/prometheus/alerts.yml
       - prometheus_data:/prometheus
+    networks:
+      - elder-network
+    restart: unless-stopped
+    depends_on:
+      - alertmanager
+
+  # Alertmanager for incident alerts
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: elder-alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    volumes:
+      - ./infrastructure/monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
     networks:
       - elder-network
     restart: unless-stopped
@@ -232,6 +252,86 @@ services:
       - elder-network
     restart: unless-stopped
 
+  # Elder Connector Service
+  connector:
+    build:
+      context: .
+      dockerfile: apps/connector/Dockerfile
+    container_name: elder-connector
+    environment:
+      # Elder API Configuration
+      - ELDER_API_URL=http://api:5000
+      - ELDER_API_KEY=${ELDER_API_KEY}
+
+      # AWS Configuration
+      - AWS_ENABLED=${AWS_ENABLED:-false}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      - AWS_REGIONS=${AWS_REGIONS:-us-east-1,us-west-2}
+      - AWS_SYNC_INTERVAL=${AWS_SYNC_INTERVAL:-3600}
+
+      # GCP Configuration
+      - GCP_ENABLED=${GCP_ENABLED:-false}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GCP_CREDENTIALS_PATH=${GCP_CREDENTIALS_PATH:-/app/credentials/gcp-credentials.json}
+      - GCP_SYNC_INTERVAL=${GCP_SYNC_INTERVAL:-3600}
+
+      # Google Workspace Configuration
+      - GOOGLE_WORKSPACE_ENABLED=${GOOGLE_WORKSPACE_ENABLED:-false}
+      - GOOGLE_WORKSPACE_CREDENTIALS_PATH=${GOOGLE_WORKSPACE_CREDENTIALS_PATH:-/app/credentials/workspace-credentials.json}
+      - GOOGLE_WORKSPACE_ADMIN_EMAIL=${GOOGLE_WORKSPACE_ADMIN_EMAIL}
+      - GOOGLE_WORKSPACE_CUSTOMER_ID=${GOOGLE_WORKSPACE_CUSTOMER_ID:-my_customer}
+      - GOOGLE_WORKSPACE_SYNC_INTERVAL=${GOOGLE_WORKSPACE_SYNC_INTERVAL:-3600}
+
+      # LDAP Configuration
+      - LDAP_ENABLED=${LDAP_ENABLED:-false}
+      - LDAP_SERVER=${LDAP_SERVER}
+      - LDAP_PORT=${LDAP_PORT:-389}
+      - LDAP_USE_SSL=${LDAP_USE_SSL:-false}
+      - LDAP_VERIFY_CERT=${LDAP_VERIFY_CERT:-true}
+      - LDAP_BIND_DN=${LDAP_BIND_DN}
+      - LDAP_BIND_PASSWORD=${LDAP_BIND_PASSWORD}
+      - LDAP_BASE_DN=${LDAP_BASE_DN}
+      - LDAP_USER_FILTER=${LDAP_USER_FILTER:-(objectClass=person)}
+      - LDAP_GROUP_FILTER=${LDAP_GROUP_FILTER:-(objectClass=group)}
+      - LDAP_SYNC_INTERVAL=${LDAP_SYNC_INTERVAL:-3600}
+
+      # Organization Mapping
+      - DEFAULT_ORGANIZATION_ID=${DEFAULT_ORGANIZATION_ID}
+      - CREATE_MISSING_ORGANIZATIONS=${CREATE_MISSING_ORGANIZATIONS:-true}
+
+      # Sync Configuration
+      - SYNC_ON_STARTUP=${SYNC_ON_STARTUP:-true}
+      - SYNC_BATCH_SIZE=${SYNC_BATCH_SIZE:-100}
+      - SYNC_MAX_RETRIES=${SYNC_MAX_RETRIES:-3}
+
+      # Health & Monitoring
+      - HEALTH_CHECK_PORT=8000
+      - METRICS_ENABLED=true
+
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+
+    ports:
+      - "${CONNECTOR_HEALTH_PORT:-8000}:8000"
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./apps/connector:/app/apps/connector
+      - ./shared:/app/shared
+      - connector_credentials:/app/credentials
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - elder-network
+
 volumes:
   postgres_data:
     driver: local
@@ -239,9 +339,13 @@ volumes:
     driver: local
   prometheus_data:
     driver: local
+  alertmanager_data:
+    driver: local
   grafana_data:
     driver: local
   pydal_migrations:
+    driver: local
+  connector_credentials:
     driver: local
 
 networks:

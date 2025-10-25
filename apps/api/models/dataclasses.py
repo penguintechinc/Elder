@@ -248,6 +248,7 @@ class IssueDTO:
     reporter_id: int
     assignee_id: Optional[int]
     organization_id: Optional[int]
+    is_incident: int
     closed_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
@@ -264,6 +265,7 @@ class CreateIssueRequest:
     issue_type: str = "issue"
     assignee_id: Optional[int] = None
     organization_id: Optional[int] = None
+    is_incident: int = 0
 
 
 @dataclass(slots=True)
@@ -274,6 +276,7 @@ class UpdateIssueRequest:
     status: Optional[str] = None
     priority: Optional[str] = None
     assignee_id: Optional[int] = None
+    is_incident: Optional[int] = None
 
 
 @dataclass(slots=True, frozen=True)

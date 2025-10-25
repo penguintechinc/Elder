@@ -41,7 +41,9 @@
       "Bash(./scripts/test-api-docker.sh:*)",
       "Bash(npm run build:*)",
       "Bash(docker start:*)",
-      "Bash(docker ps:*)"
+      "Bash(docker ps:*)",
+      "Bash(docker-compose:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

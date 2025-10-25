@@ -107,6 +107,15 @@ class Issue(Base, IDMixin, TimestampMixin):
         comment="Issue priority level",
     )
 
+    # Incident tracking
+    is_incident = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        index=True,
+        comment="Whether this issue is marked as an incident (0=no, 1=yes)",
+    )
+
     # User relationships
     created_by_id = Column(
         Integer,
