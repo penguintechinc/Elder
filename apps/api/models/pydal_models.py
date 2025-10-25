@@ -6,52 +6,16 @@ from pydal.validators import *
 
 
 def define_all_tables(db):
-    """Define all database tables using PyDAL."""
+    """Define all database tables using PyDAL.
 
-    # Organizations table
-    db.define_table(
-        'organizations',
-        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
-        Field('description', 'text'),
-        Field('parent_id', 'reference organizations', ondelete='CASCADE'),
-        Field('ldap_dn', 'string', length=512),
-        Field('saml_group', 'string', length=255),
-        Field('owner_identity_id', 'reference identities', ondelete='SET NULL'),
-        Field('owner_group_id', 'reference identity_groups', ondelete='SET NULL'),
-        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
-    )
+    Tables are defined in dependency order to satisfy foreign key references.
+    """
 
-    # Entities table
-    db.define_table(
-        'entities',
-        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
-        Field('description', 'text'),
-        Field('entity_type', 'string', length=50, notnull=True),
-        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
-        Field('parent_id', 'reference entities', ondelete='CASCADE'),
-        Field('attributes', 'json'),
-        Field('tags', 'list:string'),
-        Field('is_active', 'boolean', default=True),
-        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
-    )
+    # ==========================================
+    # LEVEL 1: Base tables with no dependencies
+    # ==========================================
 
-    # Dependencies table
-    db.define_table(
-        'dependencies',
-        Field('source_entity_id', 'reference entities', notnull=True, ondelete='CASCADE'),
-        Field('target_entity_id', 'reference entities', notnull=True, ondelete='CASCADE'),
-        Field('dependency_type', 'string', length=50, notnull=True),
-        Field('metadata', 'json'),
-        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
-    )
-
-    # Identities table
+    # Identities table - must be first (referenced by many tables)
     db.define_table(
         'identities',
         Field('identity_type', 'string', length=50, notnull=True),
@@ -71,7 +35,7 @@ def define_all_tables(db):
         migrate=True,
     )
 
-    # Identity Groups table
+    # Identity Groups table - must be before organizations
     db.define_table(
         'identity_groups',
         Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
@@ -84,16 +48,7 @@ def define_all_tables(db):
         migrate=True,
     )
 
-    # Identity Group Memberships table
-    db.define_table(
-        'identity_group_memberships',
-        Field('identity_id', 'reference identities', notnull=True, ondelete='CASCADE'),
-        Field('group_id', 'reference identity_groups', notnull=True, ondelete='CASCADE'),
-        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
-    )
-
-    # Roles table
+    # Roles table - no dependencies
     db.define_table(
         'roles',
         Field('name', 'string', length=100, notnull=True, unique=True, requires=IS_NOT_EMPTY()),
@@ -103,7 +58,7 @@ def define_all_tables(db):
         migrate=True,
     )
 
-    # Permissions table
+    # Permissions table - no dependencies
     db.define_table(
         'permissions',
         Field('name', 'string', length=100, notnull=True, unique=True, requires=IS_NOT_EMPTY()),
@@ -115,7 +70,20 @@ def define_all_tables(db):
         migrate=True,
     )
 
-    # Role Permissions table
+    # ==========================================
+    # LEVEL 2: Tables with Level 1 dependencies
+    # ==========================================
+
+    # Identity Group Memberships table (depends on: identities, identity_groups)
+    db.define_table(
+        'identity_group_memberships',
+        Field('identity_id', 'reference identities', notnull=True, ondelete='CASCADE'),
+        Field('group_id', 'reference identity_groups', notnull=True, ondelete='CASCADE'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Role Permissions table (depends on: roles, permissions)
     db.define_table(
         'role_permissions',
         Field('role_id', 'reference roles', notnull=True, ondelete='CASCADE'),
@@ -124,7 +92,7 @@ def define_all_tables(db):
         migrate=True,
     )
 
-    # User Roles table
+    # User Roles table (depends on: identities, roles)
     db.define_table(
         'user_roles',
         Field('identity_id', 'reference identities', notnull=True, ondelete='CASCADE'),
@@ -135,7 +103,35 @@ def define_all_tables(db):
         migrate=True,
     )
 
-    # Audit Logs table
+    # Organizations table (depends on: identities, identity_groups)
+    db.define_table(
+        'organizations',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('description', 'text'),
+        Field('parent_id', 'reference organizations', ondelete='CASCADE'),
+        Field('ldap_dn', 'string', length=512),
+        Field('saml_group', 'string', length=255),
+        Field('owner_identity_id', 'reference identities', ondelete='SET NULL'),
+        Field('owner_group_id', 'reference identity_groups', ondelete='SET NULL'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Resource Roles table (depends on: identities, identity_groups)
+    db.define_table(
+        'resource_roles',
+        Field('identity_id', 'reference identities', ondelete='CASCADE'),
+        Field('group_id', 'reference identity_groups', ondelete='CASCADE'),
+        Field('role', 'string', length=50, notnull=True),
+        Field('resource_type', 'string', length=50, notnull=True),
+        Field('resource_id', 'integer'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Audit Logs table (depends on: identities)
     db.define_table(
         'audit_logs',
         Field('identity_id', 'reference identities', ondelete='SET NULL'),
@@ -150,20 +146,27 @@ def define_all_tables(db):
         migrate=True,
     )
 
-    # Resource Roles table (Enterprise)
+    # ==========================================
+    # LEVEL 3: Tables with Level 2 dependencies
+    # ==========================================
+
+    # Entities table (depends on: organizations)
     db.define_table(
-        'resource_roles',
-        Field('identity_id', 'reference identities', ondelete='CASCADE'),
-        Field('group_id', 'reference identity_groups', ondelete='CASCADE'),
-        Field('role', 'string', length=50, notnull=True),
-        Field('resource_type', 'string', length=50, notnull=True),
-        Field('resource_id', 'integer'),
+        'entities',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('description', 'text'),
+        Field('entity_type', 'string', length=50, notnull=True),
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        Field('parent_id', 'reference entities', ondelete='CASCADE'),
+        Field('attributes', 'json'),
+        Field('tags', 'list:string'),
+        Field('is_active', 'boolean', default=True),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
         migrate=True,
     )
 
-    # Issues table (Enterprise)
+    # Issues table (depends on: identities, organizations)
     db.define_table(
         'issues',
         Field('title', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
@@ -180,7 +183,7 @@ def define_all_tables(db):
         migrate=True,
     )
 
-    # Issue Labels table (Enterprise)
+    # Issue Labels table - no dependencies
     db.define_table(
         'issue_labels',
         Field('name', 'string', length=100, notnull=True, unique=True, requires=IS_NOT_EMPTY()),
@@ -190,16 +193,23 @@ def define_all_tables(db):
         migrate=True,
     )
 
-    # Issue Label Assignments table
+    # ==========================================
+    # LEVEL 4: Tables with Level 3 dependencies
+    # ==========================================
+
+    # Dependencies table (depends on: entities)
     db.define_table(
-        'issue_label_assignments',
-        Field('issue_id', 'reference issues', notnull=True, ondelete='CASCADE'),
-        Field('label_id', 'reference issue_labels', notnull=True, ondelete='CASCADE'),
+        'dependencies',
+        Field('source_entity_id', 'reference entities', notnull=True, ondelete='CASCADE'),
+        Field('target_entity_id', 'reference entities', notnull=True, ondelete='CASCADE'),
+        Field('dependency_type', 'string', length=50, notnull=True),
+        Field('metadata', 'json'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
         migrate=True,
     )
 
-    # Issue Comments table
+    # Issue Comments table (depends on: issues, identities)
     db.define_table(
         'issue_comments',
         Field('issue_id', 'reference issues', notnull=True, ondelete='CASCADE'),
@@ -210,7 +220,16 @@ def define_all_tables(db):
         migrate=True,
     )
 
-    # Issue Entity Links table
+    # Issue Label Assignments table (depends on: issues, issue_labels)
+    db.define_table(
+        'issue_label_assignments',
+        Field('issue_id', 'reference issues', notnull=True, ondelete='CASCADE'),
+        Field('label_id', 'reference issue_labels', notnull=True, ondelete='CASCADE'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Issue Entity Links table (depends on: issues, entities)
     db.define_table(
         'issue_entity_links',
         Field('issue_id', 'reference issues', notnull=True, ondelete='CASCADE'),
@@ -219,7 +238,7 @@ def define_all_tables(db):
         migrate=True,
     )
 
-    # Metadata Fields table (Enterprise)
+    # Metadata Fields table - uses generic resource_type/resource_id pattern
     db.define_table(
         'metadata_fields',
         Field('key', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),

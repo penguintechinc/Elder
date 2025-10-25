@@ -51,6 +51,9 @@ RUN useradd -m -u 1000 elder
 COPY --from=builder /root/.local /home/elder/.local
 RUN chown -R elder:elder /home/elder/.local
 
+# Create instance directory for PyDAL migrations (before switching to elder user)
+RUN mkdir -p /app/instance && chown -R elder:elder /app/instance
+
 # Switch to non-root user
 USER elder
 
