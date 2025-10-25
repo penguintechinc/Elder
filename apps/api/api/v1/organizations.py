@@ -42,8 +42,15 @@ def list_organizations():
     # Get pagination params
     pagination_params = get_pagination_params()
 
-    # Build base query
-    query = db.session.query(Organization)
+    # Build base query (disable relationship loading to avoid serialization issues)
+    from sqlalchemy.orm import lazyload
+    query = db.session.query(Organization).options(
+        lazyload(Organization.parent),
+        lazyload(Organization.children),
+        lazyload(Organization.owner),
+        lazyload(Organization.owner_group),
+        lazyload(Organization.entities)
+    )
 
     # Apply filters
     filters = {}
@@ -64,8 +71,8 @@ def list_organizations():
         per_page=pagination_params["per_page"],
     )
 
-    # Serialize
-    schema = OrganizationSchema(many=True)
+    # Serialize (exclude nested relationships to avoid serialization issues)
+    schema = OrganizationSchema(many=True, exclude=("parent", "children"))
     list_schema = OrganizationListSchema()
 
     result = list_schema.dump({

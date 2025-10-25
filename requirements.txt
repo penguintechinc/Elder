@@ -1,18 +1,16 @@
 # Elder - Entity Relationship Tracking Application
-# Python 3.13+ required
+# Python 3.12+ required (optimized for 3.12 performance features)
 
-# Core Flask Framework
-Flask==3.1.0
+# Core Flask Framework (with async support)
+Flask[async]==3.1.0
 Flask-CORS==5.0.0
 Flask-Login==0.6.3
 Flask-WTF==1.2.2
-Flask-SQLAlchemy==3.1.1
 Werkzeug==3.1.3
 
 # REST API
 Flask-RESTful==0.3.10
 flask-restx==1.3.0
-marshmallow==3.23.2
 webargs==8.6.0
 
 # gRPC
@@ -22,10 +20,8 @@ grpcio-reflection==1.68.1
 protobuf==5.29.2
 
 # Database & ORM
-SQLAlchemy==2.0.36
 pydal==20251018.1
 psycopg2-binary==2.9.10
-alembic==1.14.0
 
 # Redis/Cache
 redis==5.2.1
@@ -76,12 +72,12 @@ apispec-webframeworks==1.2.0
 # Rate Limiting
 Flask-Limiter==3.8.0
 
-# WSGI Server
-gunicorn==23.0.0
-gevent==24.11.1
+# ASGI Server (for async Flask)
+uvicorn[standard]==0.25.0
+uvloop==0.20.0
 
-# Async Support
-eventlet==0.37.0
+# Async Support (removed gevent/eventlet for async/await patterns)
+# Using native Python 3.12 asyncio with uvloop
 
 # Utilities
 python-dateutil==2.9.0.post0

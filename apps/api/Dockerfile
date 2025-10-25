@@ -1,8 +1,9 @@
 # Elder Flask API Dockerfile
 # Multi-stage build with debian-slim base for optimal size and security
+# Python 3.12 for performance optimizations (dataclasses with slots, asyncio TaskGroups)
 
 # Builder stage
-FROM python:3.13-slim AS builder
+FROM python:3.12-slim AS builder
 
 # Set working directory
 WORKDIR /build
@@ -28,7 +29,7 @@ COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # Runtime stage
-FROM python:3.13-slim
+FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app
@@ -73,13 +74,14 @@ ENV FLASK_APP=apps.api.main:create_app
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Run application with gunicorn
-CMD ["gunicorn", \
-     "--bind", "0.0.0.0:5000", \
+# Run application with uvicorn ASGI server for async Flask support
+CMD ["uvicorn", \
+     "apps.api.main:create_app", \
+     "--factory", \
+     "--host", "0.0.0.0", \
+     "--port", "5000", \
      "--workers", "4", \
-     "--worker-class", "gevent", \
-     "--timeout", "120", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "info", \
-     "apps.api.main:create_app()"]
+     "--loop", "uvloop", \
+     "--http", "h11", \
+     "--access-log", \
+     "--log-level", "info"]
