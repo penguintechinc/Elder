@@ -115,13 +115,14 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   }, [graphNodes]);
 
   const initialEdges: Edge[] = useMemo(() => {
-    return graphEdges.map((edge, index) => {
+    console.log('NetworkGraph: Converting edges:', graphEdges);
+    const converted = graphEdges.map((edge, index) => {
       // Different colors for different edge types
       const edgeColor = edge.label === 'parent' ? '#10b981' :
                        edge.label === 'contains' ? '#3b82f6' :
                        '#f59e0b'; // dependencies
 
-      return {
+      const reactFlowEdge = {
         id: `edge-${index}`,
         source: edge.from,
         target: edge.to,
@@ -136,7 +137,11 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
           color: edgeColor,
         },
       };
+      console.log('NetworkGraph: Created edge:', reactFlowEdge);
+      return reactFlowEdge;
     });
+    console.log('NetworkGraph: Total edges converted:', converted.length);
+    return converted;
   }, [graphEdges]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);

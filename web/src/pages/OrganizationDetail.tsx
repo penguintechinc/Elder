@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Edit, Trash2, ChevronRight, ChevronDown, Folder, FolderOpen, Box } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, ChevronRight, ChevronDown, Folder, FolderOpen, Box, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import type { Organization, Entity } from '@/types'
@@ -64,6 +64,12 @@ export default function OrganizationDetail() {
   const { data: projects } = useQuery({
     queryKey: ['projects', { organization_id: id }],
     queryFn: () => api.getProjects({ organization_id: orgId }),
+    enabled: isValidId,
+  })
+
+  const { data: identities } = useQuery({
+    queryKey: ['identities', { organization_id: id }],
+    queryFn: () => api.getIdentities({ organization_id: orgId }),
     enabled: isValidId,
   })
 
@@ -332,7 +338,7 @@ export default function OrganizationDetail() {
           </CardHeader>
           <CardContent>
             <div className="bg-slate-900 rounded-lg p-8 min-h-[400px] flex items-center justify-center">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 w-full">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-8 w-full">
                 {/* Sub-Organizations Bubble */}
                 <div className="flex flex-col items-center">
                   <div className="w-24 h-24 rounded-full bg-primary-500/20 border-2 border-primary-500 flex items-center justify-center cursor-pointer hover:bg-primary-500/30 transition-colors">
@@ -359,6 +365,20 @@ export default function OrganizationDetail() {
                   </div>
                   <p className="text-sm text-slate-400 mt-2 text-center">Entities</p>
                   <p className="text-xs text-slate-500 mt-0.5">(all levels)</p>
+                </div>
+
+                {/* Identities Bubble */}
+                <div className="flex flex-col items-center">
+                  <div className="w-24 h-24 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center cursor-pointer hover:bg-purple-500/30 transition-colors">
+                    <div className="text-center">
+                      <Users className="w-8 h-8 text-purple-400 mx-auto" />
+                      <p className="text-2xl font-bold text-white mt-1">
+                        {identities?.items?.length || 0}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-400 mt-2 text-center">Identities</p>
+                  <p className="text-xs text-slate-500 mt-0.5">(this org)</p>
                 </div>
 
                 {/* Issues Bubble */}
@@ -620,6 +640,71 @@ export default function OrganizationDetail() {
                 </div>
               ) : (
                 <p className="text-sm text-slate-400">No projects</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Identities Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white">Identities</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/identities?organization_id=${id}`)}
+                >
+                  View All
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {identities?.items && identities.items.length > 0 ? (
+                <div className="space-y-3">
+                  {identities.items.slice(0, 5).map((identity: any) => (
+                    <div
+                      key={identity.id}
+                      className="p-3 bg-slate-800/30 rounded-lg hover:bg-slate-800/50 cursor-pointer transition-colors"
+                      onClick={() => navigate(`/identities/${identity.id}`)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-medium text-white truncate">
+                              {identity.username}
+                            </h4>
+                            {identity.portal_role && (
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded ${
+                                  identity.portal_role === 'admin'
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : identity.portal_role === 'editor'
+                                    ? 'bg-yellow-500/20 text-yellow-400'
+                                    : 'bg-blue-500/20 text-blue-400'
+                                }`}
+                              >
+                                {identity.portal_role}
+                              </span>
+                            )}
+                          </div>
+                          {identity.full_name && (
+                            <p className="text-xs text-slate-400 mt-1">{identity.full_name}</p>
+                          )}
+                          {identity.email && (
+                            <p className="text-xs text-slate-500 mt-0.5">{identity.email}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {identities.items.length > 5 && (
+                    <p className="text-xs text-slate-500 text-center">
+                      +{identities.items.length - 5} more
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">No identities</p>
               )}
             </CardContent>
           </Card>

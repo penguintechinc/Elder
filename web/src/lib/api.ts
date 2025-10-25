@@ -214,7 +214,7 @@ class ApiClient {
   }
 
   // Identities
-  async getIdentities(params?: { page?: number; per_page?: number; search?: string }) {
+  async getIdentities(params?: { page?: number; per_page?: number; search?: string; organization_id?: number }) {
     const response = await this.client.get('/identities', { params })
     return response.data
   }

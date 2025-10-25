@@ -31,6 +31,7 @@ async def list_identities():
         - per_page: Items per page (default: 50, max: 1000)
         - identity_type: Filter by type (human/service_account)
         - is_active: Filter by active status
+        - organization_id: Filter by organization
 
     Returns:
         200: List of identities
@@ -52,6 +53,10 @@ async def list_identities():
     is_active = request.args.get("is_active")
     if is_active is not None:
         query &= (db.identities.is_active == (is_active.lower() == "true"))
+
+    organization_id = request.args.get("organization_id", type=int)
+    if organization_id is not None:
+        query &= (db.identities.organization_id == organization_id)
 
     # Calculate pagination
     offset = (page - 1) * per_page
