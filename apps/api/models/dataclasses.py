@@ -128,6 +128,7 @@ class IdentityDTO:
     username: str
     email: Optional[str]
     full_name: Optional[str]
+    organization_id: Optional[int]  # Link to organization
     auth_provider: str
     auth_provider_id: Optional[str]
     is_active: bool

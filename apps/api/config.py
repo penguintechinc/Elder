@@ -45,7 +45,7 @@ class Config:
 
     # JWT
     JWT_SECRET_KEY = config("JWT_SECRET_KEY", default=None)
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=4)  # Extended to 4 hours for development
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     JWT_ALGORITHM = "HS256"
 

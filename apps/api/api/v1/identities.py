@@ -1,6 +1,5 @@
 """Identity and User management API endpoints using PyDAL with async/await."""
 
-import asyncio
 from flask import Blueprint, request, jsonify, current_app, g
 from werkzeug.security import generate_password_hash
 from dataclasses import asdict
@@ -23,7 +22,6 @@ bp = Blueprint("identities", __name__)
 
 @bp.route("", methods=["GET"])
 @login_required
-@permission_required("view_users")
 async def list_identities():
     """
     List all identities with pagination.
@@ -58,20 +56,31 @@ async def list_identities():
     # Calculate pagination
     offset = (page - 1) * per_page
 
-    # Use asyncio TaskGroup for concurrent queries (Python 3.12)
-    async with asyncio.TaskGroup() as tg:
-        count_task = tg.create_task(
-            run_in_threadpool(lambda: db(query).count())
+    # Execute database queries in a single thread pool task to avoid cursor issues
+    def get_identities():
+        total = db(query).count()
+        # Select only fields that exist in IdentityDTO (exclude password_hash)
+        rows = db(query).select(
+            db.identities.id,
+            db.identities.identity_type,
+            db.identities.username,
+            db.identities.email,
+            db.identities.full_name,
+            db.identities.organization_id,
+            db.identities.auth_provider,
+            db.identities.auth_provider_id,
+            db.identities.is_active,
+            db.identities.is_superuser,
+            db.identities.mfa_enabled,
+            db.identities.last_login_at,
+            db.identities.created_at,
+            db.identities.updated_at,
+            orderby=db.identities.username,
+            limitby=(offset, offset + per_page)
         )
-        rows_task = tg.create_task(
-            run_in_threadpool(lambda: db(query).select(
-                orderby=db.identities.username,
-                limitby=(offset, offset + per_page)
-            ))
-        )
+        return total, rows
 
-    total = count_task.result()
-    rows = rows_task.result()
+    total, rows = await run_in_threadpool(get_identities)
 
     # Calculate total pages
     pages = (total + per_page - 1) // per_page if total > 0 else 0
