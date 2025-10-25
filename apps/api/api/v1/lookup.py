@@ -1,39 +1,47 @@
-"""Public lookup endpoint for entities by unique 64-bit ID."""
+"""Public lookup endpoint for entities by ID using PyDAL with async/await.
 
-from flask import Blueprint, jsonify
+NOTE: Original unique_id (64-bit) functionality not yet migrated to PyDAL schema.
+Currently uses regular entity ID. TODO: Add unique_id field to entities table.
+"""
 
-from apps.api.models import Entity
-from apps.api.schemas.entity import EntitySchema
-from shared.api_utils import make_error_response
+from flask import Blueprint, request, jsonify, current_app
+from dataclasses import asdict
+
+from apps.api.models.dataclasses import (
+    EntityDTO,
+    from_pydal_row,
+)
+from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("lookup", __name__)
 
 
-@bp.route("/<int:unique_id>", methods=["GET"])
-def lookup_entity(unique_id: int):
+@bp.route("/<int:entity_id>", methods=["GET"])
+async def lookup_entity(entity_id: int):
     """
-    Lookup entity by unique 64-bit identifier.
+    Lookup entity by entity ID.
 
     Public endpoint - no authentication required.
     Returns entity type and details (not including children/dependencies).
 
+    NOTE: Original used unique_id (64-bit). Currently uses regular id.
+
     Path Parameters:
-        - unique_id: Unique 64-bit entity identifier
+        - entity_id: Entity identifier
 
     Returns:
         200: Entity details in JSON format
         404: Entity not found
 
     Example:
-        GET /lookup/1234567890123456
+        GET /lookup/42
         {
             "id": 42,
-            "unique_id": 1234567890123456,
             "name": "Web Server 01",
             "description": "Primary web server",
             "entity_type": "compute",
             "organization_id": 1,
-            "metadata": {
+            "attributes": {
                 "hostname": "web-01.example.com",
                 "ip": "10.0.1.5",
                 "os": "Ubuntu 22.04"
@@ -42,30 +50,33 @@ def lookup_entity(unique_id: int):
             "updated_at": "2024-10-23T15:30:00Z"
         }
     """
-    # Find entity by unique_id
-    entity = db.session.query(Entity).filter_by(unique_id=unique_id).first()
+    db = current_app.db
+
+    # Find entity by id
+    entity = await run_in_threadpool(lambda: db.entities[entity_id])
 
     if not entity:
-        return make_error_response(
-            f"Entity with unique_id {unique_id} not found",
-            404,
-        )
+        return jsonify({
+            "error": f"Entity with id {entity_id} not found"
+        }), 404
 
-    # Serialize entity (without nested relationships to keep response simple)
-    schema = EntitySchema(exclude=["organization", "owner"])
-    return jsonify(schema.dump(entity)), 200
+    # Convert to DTO
+    entity_dto = from_pydal_row(entity, EntityDTO)
+    return jsonify(asdict(entity_dto)), 200
 
 
 @bp.route("/batch", methods=["POST"])
-def lookup_entities_batch():
+async def lookup_entities_batch():
     """
-    Lookup multiple entities by unique IDs in a single request.
+    Lookup multiple entities by IDs in a single request.
 
     Public endpoint - no authentication required.
 
+    NOTE: Original used unique_ids (64-bit). Currently uses regular ids.
+
     Request Body:
         {
-            "unique_ids": [1234567890123456, 9876543210987654, ...]
+            "ids": [1, 2, 3, ...]
         }
 
     Returns:
@@ -75,62 +86,66 @@ def lookup_entities_batch():
     Example:
         POST /lookup/batch
         {
-            "unique_ids": [1234567890123456, 9876543210987654]
+            "ids": [42, 43]
         }
 
         Response:
         {
             "results": [
                 {
-                    "unique_id": 1234567890123456,
+                    "id": 42,
                     "found": true,
                     "entity": { ... }
                 },
                 {
-                    "unique_id": 9876543210987654,
+                    "id": 43,
                     "found": false,
                     "entity": null
                 }
             ]
         }
     """
-    from flask import request
+    db = current_app.db
 
     data = request.get_json() or {}
 
-    if "unique_ids" not in data or not isinstance(data["unique_ids"], list):
-        return make_error_response("Request must include 'unique_ids' array", 400)
+    if "ids" not in data or not isinstance(data["ids"], list):
+        return jsonify({"error": "Request must include 'ids' array"}), 400
 
-    unique_ids = data["unique_ids"]
+    entity_ids = data["ids"]
 
-    if len(unique_ids) == 0:
-        return make_error_response("At least one unique_id required", 400)
+    if len(entity_ids) == 0:
+        return jsonify({"error": "At least one id required"}), 400
 
-    if len(unique_ids) > 100:
-        return make_error_response("Maximum 100 entities per batch lookup", 400)
+    if len(entity_ids) > 100:
+        return jsonify({"error": "Maximum 100 entities per batch lookup"}), 400
 
     # Query all entities
-    entities = db.session.query(Entity).filter(Entity.unique_id.in_(unique_ids)).all()
+    def batch_lookup():
+        entities = db(db.entities.id.belongs(entity_ids)).select()
 
-    # Build lookup map
-    entity_map = {e.unique_id: e for e in entities}
+        # Build lookup map
+        entity_map = {e.id: e for e in entities}
 
-    # Build response
-    schema = EntitySchema(exclude=["organization", "owner"])
-    results = []
+        # Build response
+        results = []
+        for eid in entity_ids:
+            if eid in entity_map:
+                entity_dto = from_pydal_row(entity_map[eid], EntityDTO)
+                results.append({
+                    "id": eid,
+                    "found": True,
+                    "entity": asdict(entity_dto),
+                })
+            else:
+                results.append({
+                    "id": eid,
+                    "found": False,
+                    "entity": None,
+                })
 
-    for uid in unique_ids:
-        if uid in entity_map:
-            results.append({
-                "unique_id": uid,
-                "found": True,
-                "entity": schema.dump(entity_map[uid]),
-            })
-        else:
-            results.append({
-                "unique_id": uid,
-                "found": False,
-                "entity": None,
-            })
+        return results
+
+    results = await run_in_threadpool(batch_lookup)
 
     return jsonify({"results": results}), 200

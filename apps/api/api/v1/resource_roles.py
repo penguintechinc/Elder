@@ -1,22 +1,16 @@
-"""Resource Role management API endpoints."""
+"""Resource Role management API endpoints using PyDAL with async/await."""
 
-from flask import Blueprint, jsonify, request, g
-from marshmallow import ValidationError
+from flask import Blueprint, jsonify, request, current_app, g
+from dataclasses import asdict
 
 from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.resource_role import (
-    ResourceRole,
-    ResourceType,
-    ResourceRoleType,
+from apps.api.models.dataclasses import (
+    ResourceRoleDTO,
+    CreateResourceRoleRequest,
+    from_pydal_row,
+    from_pydal_rows,
 )
-from apps.api.schemas.resource_role import (
-    ResourceRoleSchema,
-    ResourceRoleCreateSchema,
-    ResourceRoleFilterSchema,
-    ResourceRoleListSchema,
-)
-from shared.api_utils import get_or_404, make_error_response
-from shared.database import db
+from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
 
 bp = Blueprint("resource_roles", __name__)
@@ -25,15 +19,16 @@ bp = Blueprint("resource_roles", __name__)
 @bp.route("", methods=["GET"])
 @login_required
 @license_required("enterprise")
-def list_resource_roles():
+async def list_resource_roles():
     """
     List resource role assignments with optional filtering.
 
     Query Parameters:
         - identity_id: Filter by identity
+        - group_id: Filter by group
         - resource_type: Filter by resource type (entity/organization)
         - resource_id: Filter by resource ID
-        - role_type: Filter by role type (maintainer/operator/viewer)
+        - role: Filter by role (maintainer/operator/viewer)
 
     Returns:
         200: List of resource roles
@@ -48,56 +43,70 @@ def list_resource_roles():
                     "identity_id": 5,
                     "resource_type": "entity",
                     "resource_id": 42,
-                    "role_type": "maintainer",
+                    "role": "maintainer",
                     "created_at": "2024-10-23T10:00:00Z"
                 }
             ],
             "total": 1
         }
     """
-    # Validate query parameters
-    filter_schema = ResourceRoleFilterSchema()
-    try:
-        filters = filter_schema.load(request.args)
-    except ValidationError as e:
-        return make_error_response(str(e.messages), 400)
+    db = current_app.db
 
     # Build query
-    query = db.session.query(ResourceRole)
+    def get_roles():
+        query = db.resource_roles.id > 0
 
-    # Apply filters
-    if "identity_id" in filters:
-        query = query.filter_by(identity_id=filters["identity_id"])
-    if "resource_type" in filters:
-        query = query.filter_by(resource_type=ResourceType(filters["resource_type"]))
-    if "resource_id" in filters:
-        query = query.filter_by(resource_id=filters["resource_id"])
-    if "role_type" in filters:
-        query = query.filter_by(role_type=ResourceRoleType(filters["role_type"]))
+        # Apply filters from query params
+        if request.args.get("identity_id"):
+            identity_id = request.args.get("identity_id", type=int)
+            query &= (db.resource_roles.identity_id == identity_id)
 
-    # Execute query
-    roles = query.all()
+        if request.args.get("group_id"):
+            group_id = request.args.get("group_id", type=int)
+            query &= (db.resource_roles.group_id == group_id)
 
-    # Serialize response
-    list_schema = ResourceRoleListSchema()
-    return jsonify(list_schema.dump({"items": roles, "total": len(roles)})), 200
+        if request.args.get("resource_type"):
+            resource_type = request.args.get("resource_type")
+            query &= (db.resource_roles.resource_type == resource_type)
+
+        if request.args.get("resource_id"):
+            resource_id = request.args.get("resource_id", type=int)
+            query &= (db.resource_roles.resource_id == resource_id)
+
+        if request.args.get("role"):
+            role = request.args.get("role")
+            query &= (db.resource_roles.role == role)
+
+        roles = db(query).select()
+        return roles
+
+    rows = await run_in_threadpool(get_roles)
+
+    # Convert to DTOs
+    items = from_pydal_rows(rows, ResourceRoleDTO)
+
+    return jsonify({
+        "items": [asdict(item) for item in items],
+        "total": len(items)
+    }), 200
 
 
 @bp.route("", methods=["POST"])
 @login_required
 @license_required("enterprise")
-def create_resource_role():
+async def create_resource_role():
     """
-    Grant a resource role to an identity.
+    Grant a resource role to an identity or group.
 
     Requires maintainer role on the resource to grant roles.
 
     Request Body:
         {
-            "identity_id": 5,
+            "identity_id": 5 (optional),
+            "group_id": 3 (optional),
             "resource_type": "entity",
             "resource_id": 42,
-            "role_type": "operator"
+            "role": "operator"
         }
 
     Returns:
@@ -112,7 +121,7 @@ def create_resource_role():
             "identity_id": 5,
             "resource_type": "entity",
             "resource_id": 42,
-            "role_type": "operator"
+            "role": "operator"
         }
 
         Response:
@@ -121,82 +130,87 @@ def create_resource_role():
             "identity_id": 5,
             "resource_type": "entity",
             "resource_id": 42,
-            "role_type": "operator",
-            "granted_by_id": 1,
+            "role": "operator",
             "created_at": "2024-10-23T10:00:00Z"
         }
     """
-    # Validate request
-    create_schema = ResourceRoleCreateSchema()
-    try:
-        data = create_schema.load(request.get_json())
-    except ValidationError as e:
-        return make_error_response(str(e.messages), 400)
+    db = current_app.db
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
+    # Validate required fields
+    if not data.get("resource_type"):
+        return jsonify({"error": "resource_type is required"}), 400
+    if not data.get("role"):
+        return jsonify({"error": "role is required"}), 400
+
+    # Must have either identity_id or group_id
+    if not data.get("identity_id") and not data.get("group_id"):
+        return jsonify({"error": "Either identity_id or group_id is required"}), 400
+
+    resource_type = data["resource_type"]
+    resource_id = data.get("resource_id")
+    role = data["role"]
 
     # Check if current user has maintainer role on this resource
-    resource_type_enum = ResourceType(data["resource_type"])
-    resource_id = data["resource_id"]
+    def check_and_create():
+        # Superusers can grant any role
+        if not g.current_user.is_superuser:
+            # Check if current user has maintainer role
+            has_maintainer = db(
+                (db.resource_roles.identity_id == g.current_user.id) &
+                (db.resource_roles.resource_type == resource_type) &
+                (db.resource_roles.resource_id == resource_id) &
+                (db.resource_roles.role == "maintainer")
+            ).select().first()
 
-    # Superusers can grant any role
-    if not g.current_user.is_superuser:
-        has_maintainer = ResourceRole.check_permission(
-            identity_id=g.current_user.id,
-            resource_type=resource_type_enum,
+            if not has_maintainer:
+                return None, "Insufficient permissions - only maintainers can grant resource roles", 403
+
+        # Check if role already exists
+        if data.get("identity_id"):
+            existing_role = db(
+                (db.resource_roles.identity_id == data["identity_id"]) &
+                (db.resource_roles.resource_type == resource_type) &
+                (db.resource_roles.resource_id == resource_id)
+            ).select().first()
+        else:
+            existing_role = db(
+                (db.resource_roles.group_id == data["group_id"]) &
+                (db.resource_roles.resource_type == resource_type) &
+                (db.resource_roles.resource_id == resource_id)
+            ).select().first()
+
+        if existing_role:
+            return None, f"Role already exists for this identity/group on this resource", 409
+
+        # Create resource role
+        role_id = db.resource_roles.insert(
+            identity_id=data.get("identity_id"),
+            group_id=data.get("group_id"),
+            resource_type=resource_type,
             resource_id=resource_id,
-            required_role=ResourceRoleType.MAINTAINER,
+            role=role,
         )
+        db.commit()
 
-        if not has_maintainer:
-            return (
-                jsonify(
-                    {
-                        "error": "Insufficient permissions",
-                        "message": "Only maintainers can grant resource roles",
-                    }
-                ),
-                403,
-            )
+        return db.resource_roles[role_id], None, None
 
-    # Check if role already exists
-    existing_role = ResourceRole.get_user_role(
-        identity_id=data["identity_id"],
-        resource_type=resource_type_enum,
-        resource_id=resource_id,
-    )
+    result, error, status = await run_in_threadpool(check_and_create)
 
-    if existing_role:
-        return (
-            jsonify(
-                {
-                    "error": "Role already exists",
-                    "message": f"Identity {data['identity_id']} already has {existing_role.role_type.value} role on this resource",
-                    "existing_role_id": existing_role.id,
-                }
-            ),
-            409,
-        )
+    if error:
+        return jsonify({"error": error}), status
 
-    # Create resource role
-    role = ResourceRole(
-        identity_id=data["identity_id"],
-        resource_type=resource_type_enum,
-        resource_id=resource_id,
-        role_type=ResourceRoleType(data["role_type"]),
-        granted_by_id=g.current_user.id,
-    )
-
-    db.session.add(role)
-    db.session.commit()
-
-    # Serialize response
-    schema = ResourceRoleSchema()
-    return jsonify(schema.dump(role)), 201
+    role_dto = from_pydal_row(result, ResourceRoleDTO)
+    return jsonify(asdict(role_dto)), 201
 
 
 @bp.route("/<int:id>", methods=["DELETE"])
 @login_required
 @license_required("enterprise")
-def revoke_resource_role(id: int):
+async def revoke_resource_role(id: int):
     """
     Revoke a resource role.
 
@@ -213,32 +227,37 @@ def revoke_resource_role(id: int):
     Example:
         DELETE /api/v1/resource-roles/1
     """
-    role = get_or_404(ResourceRole, id)
+    db = current_app.db
 
-    # Check if current user has maintainer role on this resource
-    # Superusers can revoke any role
-    if not g.current_user.is_superuser:
-        has_maintainer = ResourceRole.check_permission(
-            identity_id=g.current_user.id,
-            resource_type=role.resource_type,
-            resource_id=role.resource_id,
-            required_role=ResourceRoleType.MAINTAINER,
-        )
+    # Check and delete role
+    def check_and_delete():
+        role = db.resource_roles[id]
+        if not role:
+            return None, "Resource role not found", 404
 
-        if not has_maintainer:
-            return (
-                jsonify(
-                    {
-                        "error": "Insufficient permissions",
-                        "message": "Only maintainers can revoke resource roles",
-                    }
-                ),
-                403,
-            )
+        # Check if current user has maintainer role on this resource
+        # Superusers can revoke any role
+        if not g.current_user.is_superuser:
+            has_maintainer = db(
+                (db.resource_roles.identity_id == g.current_user.id) &
+                (db.resource_roles.resource_type == role.resource_type) &
+                (db.resource_roles.resource_id == role.resource_id) &
+                (db.resource_roles.role == "maintainer")
+            ).select().first()
 
-    # Delete role
-    db.session.delete(role)
-    db.session.commit()
+            if not has_maintainer:
+                return None, "Insufficient permissions - only maintainers can revoke resource roles", 403
+
+        # Delete role
+        db(db.resource_roles.id == id).delete()
+        db.commit()
+
+        return True, None, None
+
+    result, error, status = await run_in_threadpool(check_and_delete)
+
+    if error:
+        return jsonify({"error": error}), status
 
     return "", 204
 
@@ -246,7 +265,7 @@ def revoke_resource_role(id: int):
 @bp.route("/entities/<int:id>/roles", methods=["GET"])
 @login_required
 @license_required("enterprise")
-def list_entity_roles(id: int):
+async def list_entity_roles(id: int):
     """
     List all resource roles for an entity.
 
@@ -265,29 +284,46 @@ def list_entity_roles(id: int):
                 {
                     "id": 1,
                     "identity_id": 5,
-                    "identity": {"id": 5, "username": "john"},
-                    "role_type": "maintainer"
+                    "role": "maintainer"
                 }
             ],
             "total": 1
         }
     """
-    from apps.api.models import Entity
+    db = current_app.db
 
-    entity = get_or_404(Entity, id)
+    def get_entity_roles():
+        # Verify entity exists
+        entity = db.entities[id]
+        if not entity:
+            return None, "Entity not found", 404
 
-    # Get all roles for this entity
-    roles = ResourceRole.get_users_with_role(ResourceType.ENTITY, entity.id)
+        # Get all roles for this entity
+        roles = db(
+            (db.resource_roles.resource_type == "entity") &
+            (db.resource_roles.resource_id == id)
+        ).select()
 
-    # Serialize response
-    list_schema = ResourceRoleListSchema()
-    return jsonify(list_schema.dump({"items": roles, "total": len(roles)})), 200
+        return roles, None, None
+
+    result, error, status = await run_in_threadpool(get_entity_roles)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    # Convert to DTOs
+    items = from_pydal_rows(result, ResourceRoleDTO)
+
+    return jsonify({
+        "items": [asdict(item) for item in items],
+        "total": len(items)
+    }), 200
 
 
 @bp.route("/organizations/<int:id>/roles", methods=["GET"])
 @login_required
 @license_required("enterprise")
-def list_organization_roles(id: int):
+async def list_organization_roles(id: int):
     """
     List all resource roles for an organization.
 
@@ -306,29 +342,46 @@ def list_organization_roles(id: int):
                 {
                     "id": 2,
                     "identity_id": 3,
-                    "identity": {"id": 3, "username": "jane"},
-                    "role_type": "operator"
+                    "role": "operator"
                 }
             ],
             "total": 1
         }
     """
-    from apps.api.models import Organization
+    db = current_app.db
 
-    org = get_or_404(Organization, id)
+    def get_org_roles():
+        # Verify organization exists
+        org = db.organizations[id]
+        if not org:
+            return None, "Organization not found", 404
 
-    # Get all roles for this organization
-    roles = ResourceRole.get_users_with_role(ResourceType.ORGANIZATION, org.id)
+        # Get all roles for this organization
+        roles = db(
+            (db.resource_roles.resource_type == "organization") &
+            (db.resource_roles.resource_id == id)
+        ).select()
 
-    # Serialize response
-    list_schema = ResourceRoleListSchema()
-    return jsonify(list_schema.dump({"items": roles, "total": len(roles)})), 200
+        return roles, None, None
+
+    result, error, status = await run_in_threadpool(get_org_roles)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    # Convert to DTOs
+    items = from_pydal_rows(result, ResourceRoleDTO)
+
+    return jsonify({
+        "items": [asdict(item) for item in items],
+        "total": len(items)
+    }), 200
 
 
 @bp.route("/identities/<int:id>/resource-roles", methods=["GET"])
 @login_required
 @license_required("enterprise")
-def list_identity_resource_roles(id: int):
+async def list_identity_resource_roles(id: int):
     """
     List all resource roles assigned to an identity.
 
@@ -348,25 +401,40 @@ def list_identity_resource_roles(id: int):
                     "id": 1,
                     "resource_type": "entity",
                     "resource_id": 42,
-                    "role_type": "maintainer"
+                    "role": "maintainer"
                 },
                 {
                     "id": 2,
                     "resource_type": "organization",
                     "resource_id": 1,
-                    "role_type": "operator"
+                    "role": "operator"
                 }
             ],
             "total": 2
         }
     """
-    from apps.api.models import Identity
+    db = current_app.db
 
-    identity = get_or_404(Identity, id)
+    def get_identity_roles():
+        # Verify identity exists
+        identity = db.identities[id]
+        if not identity:
+            return None, "Identity not found", 404
 
-    # Get all roles for this identity
-    roles = db.session.query(ResourceRole).filter_by(identity_id=identity.id).all()
+        # Get all roles for this identity
+        roles = db(db.resource_roles.identity_id == id).select()
 
-    # Serialize response
-    list_schema = ResourceRoleListSchema()
-    return jsonify(list_schema.dump({"items": roles, "total": len(roles)})), 200
+        return roles, None, None
+
+    result, error, status = await run_in_threadpool(get_identity_roles)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    # Convert to DTOs
+    items = from_pydal_rows(result, ResourceRoleDTO)
+
+    return jsonify({
+        "items": [asdict(item) for item in items],
+        "total": len(items)
+    }), 200

@@ -1,22 +1,74 @@
-"""Metadata management API endpoints for Elder enterprise features."""
+"""Metadata management API endpoints for Elder enterprise features using PyDAL with async/await."""
 
-from flask import Blueprint, jsonify, request, g
-from marshmallow import ValidationError
+import json
+from datetime import datetime
+from flask import Blueprint, jsonify, request, current_app, g
+from dataclasses import asdict
 
 from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.metadata import MetadataField, MetadataFieldType
-from apps.api.schemas.metadata import (
-    MetadataFieldSchema,
-    MetadataFieldCreateSchema,
-    MetadataFieldUpdateSchema,
-    MetadataFieldListSchema,
-    MetadataDictSchema,
+from apps.api.models.dataclasses import (
+    MetadataFieldDTO,
+    CreateMetadataFieldRequest,
+    from_pydal_row,
+    from_pydal_rows,
 )
-from shared.api_utils import get_or_404, make_error_response
-from shared.database import db
+from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
 
 bp = Blueprint("metadata", __name__)
+
+
+# Helper functions for type conversion
+def _coerce_value(value, field_type: str):
+    """Convert value to appropriate type based on field_type."""
+    if field_type == "string":
+        return str(value)
+    elif field_type == "number":
+        try:
+            return float(value) if '.' in str(value) else int(value)
+        except (ValueError, TypeError):
+            raise ValueError(f"Invalid number value: {value}")
+    elif field_type == "boolean":
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.lower() in ('true', '1', 'yes')
+        return bool(value)
+    elif field_type == "date":
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return str(value)
+    elif field_type == "json":
+        if isinstance(value, (dict, list)):
+            return json.dumps(value)
+        return str(value)
+    else:
+        return str(value)
+
+
+def _parse_value(value_str: str, field_type: str):
+    """Parse stored string value back to original type."""
+    if value_str is None:
+        return None
+
+    if field_type == "string":
+        return value_str
+    elif field_type == "number":
+        try:
+            return float(value_str) if '.' in value_str else int(value_str)
+        except ValueError:
+            return value_str
+    elif field_type == "boolean":
+        return value_str.lower() in ('true', '1', 'yes')
+    elif field_type == "date":
+        return value_str
+    elif field_type == "json":
+        try:
+            return json.loads(value_str)
+        except json.JSONDecodeError:
+            return value_str
+    else:
+        return value_str
 
 
 # ============================================================================
@@ -28,7 +80,7 @@ bp = Blueprint("metadata", __name__)
 @login_required
 @license_required("enterprise")
 @resource_role_required("viewer", resource_param="id")
-def get_entity_metadata(id: int):
+async def get_entity_metadata(id: int):
     """
     Get all metadata for an entity.
 
@@ -54,26 +106,40 @@ def get_entity_metadata(id: int):
             }
         }
     """
-    from apps.api.models import Entity
+    db = current_app.db
 
-    entity = get_or_404(Entity, id)
+    def get_metadata():
+        # Verify entity exists
+        entity = db.entities[id]
+        if not entity:
+            return None, "Entity not found", 404
 
-    # Get all metadata fields
-    fields = db.session.query(MetadataField).filter_by(
-        resource_type="entity", resource_id=entity.id
-    ).all()
+        # Get all metadata fields
+        fields = db(
+            (db.metadata_fields.resource_type == "entity") &
+            (db.metadata_fields.resource_id == id)
+        ).select()
 
-    # Build metadata dictionary
-    metadata = {field.field_key: field.get_value() for field in fields}
+        # Build metadata dictionary with type conversion
+        metadata = {}
+        for field in fields:
+            metadata[field.key] = _parse_value(field.value, field.field_type)
 
-    return jsonify({"metadata": metadata}), 200
+        return {"metadata": metadata}, None, None
+
+    result, error, status = await run_in_threadpool(get_metadata)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    return jsonify(result), 200
 
 
 @bp.route("/entities/<int:id>/metadata", methods=["POST"])
 @login_required
 @license_required("enterprise")
 @resource_role_required("maintainer", resource_param="id")
-def create_entity_metadata(id: int):
+async def create_entity_metadata(id: int):
     """
     Create or update a metadata field for an entity.
 
@@ -84,7 +150,7 @@ def create_entity_metadata(id: int):
 
     Request Body:
         {
-            "field_key": "hostname",
+            "key": "hostname",
             "field_type": "string",
             "value": "web-01.example.com"
         }
@@ -98,60 +164,84 @@ def create_entity_metadata(id: int):
     Example:
         POST /api/v1/metadata/entities/42/metadata
     """
-    from apps.api.models import Entity
+    db = current_app.db
 
-    entity = get_or_404(Entity, id)
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
 
-    # Validate request
-    create_schema = MetadataFieldCreateSchema()
-    try:
-        data = create_schema.load(request.get_json())
-    except ValidationError as e:
-        return make_error_response(str(e.messages), 400)
+    # Validate required fields
+    if not data.get("key"):
+        return jsonify({"error": "key is required"}), 400
+    if not data.get("field_type"):
+        return jsonify({"error": "field_type is required"}), 400
+    if "value" not in data:
+        return jsonify({"error": "value is required"}), 400
 
-    # Check if system metadata
-    existing = db.session.query(MetadataField).filter_by(
-        resource_type="entity", resource_id=entity.id, field_key=data["field_key"]
-    ).first()
+    def create_or_update():
+        # Verify entity exists
+        entity = db.entities[id]
+        if not entity:
+            return None, "Entity not found", 404
 
-    if existing and existing.is_system:
-        return (
-            jsonify(
-                {
-                    "error": "System metadata",
-                    "message": "System metadata fields cannot be modified",
-                }
-            ),
-            403,
-        )
+        # Check if system metadata
+        existing = db(
+            (db.metadata_fields.resource_type == "entity") &
+            (db.metadata_fields.resource_id == id) &
+            (db.metadata_fields.key == data["key"])
+        ).select().first()
 
-    # Create or update metadata field
-    try:
-        field = MetadataField.set_metadata(
-            resource_type="entity",
-            resource_id=entity.id,
-            field_key=data["field_key"],
-            field_type=MetadataFieldType(data["field_type"]),
-            value=data["value"],
-            created_by_id=g.current_user.id,
-        )
-        db.session.commit()
-    except ValueError as e:
-        return make_error_response(f"Invalid value: {str(e)}", 400)
+        if existing and existing.is_system:
+            return None, "System metadata fields cannot be modified", 403
 
-    # Serialize response
-    schema = MetadataFieldSchema()
-    response_data = schema.dump(field)
-    response_data["value"] = field.get_value()
+        # Coerce value to correct type
+        try:
+            coerced_value = _coerce_value(data["value"], data["field_type"])
+            value_str = str(coerced_value)
+        except ValueError as e:
+            return None, str(e), 400
 
-    return jsonify(response_data), 201
+        # Create or update metadata field
+        if existing:
+            # Update existing
+            db(db.metadata_fields.id == existing.id).update(
+                field_type=data["field_type"],
+                value=value_str,
+            )
+            db.commit()
+            field = db.metadata_fields[existing.id]
+        else:
+            # Create new
+            field_id = db.metadata_fields.insert(
+                key=data["key"],
+                value=value_str,
+                field_type=data["field_type"],
+                resource_type="entity",
+                resource_id=id,
+                is_system=False,
+            )
+            db.commit()
+            field = db.metadata_fields[field_id]
+
+        # Build response with parsed value
+        field_dict = field.as_dict()
+        field_dict["value"] = _parse_value(field.value, field.field_type)
+
+        return field_dict, None, None
+
+    result, error, status = await run_in_threadpool(create_or_update)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    return jsonify(result), 201
 
 
 @bp.route("/entities/<int:id>/metadata/<string:field_key>", methods=["PATCH"])
 @login_required
 @license_required("enterprise")
 @resource_role_required("maintainer", resource_param="id")
-def update_entity_metadata(id: int, field_key: str):
+async def update_entity_metadata(id: int, field_key: str):
     """
     Update a metadata field for an entity.
 
@@ -163,7 +253,8 @@ def update_entity_metadata(id: int, field_key: str):
 
     Request Body:
         {
-            "value": "web-02.example.com"
+            "value": "web-02.example.com",
+            "field_type": "string" (optional)
         }
 
     Returns:
@@ -175,59 +266,75 @@ def update_entity_metadata(id: int, field_key: str):
     Example:
         PATCH /api/v1/metadata/entities/42/metadata/hostname
     """
-    from apps.api.models import Entity
+    db = current_app.db
 
-    entity = get_or_404(Entity, id)
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
 
-    # Get metadata field
-    field = db.session.query(MetadataField).filter_by(
-        resource_type="entity", resource_id=entity.id, field_key=field_key
-    ).first()
+    if "value" not in data:
+        return jsonify({"error": "value is required"}), 400
 
-    if not field:
-        return make_error_response(f"Metadata field '{field_key}' not found", 404)
+    def update():
+        # Verify entity exists
+        entity = db.entities[id]
+        if not entity:
+            return None, "Entity not found", 404
 
-    # Check if system metadata
-    if field.is_system:
-        return (
-            jsonify(
-                {
-                    "error": "System metadata",
-                    "message": "System metadata fields cannot be modified",
-                }
-            ),
-            403,
-        )
+        # Get metadata field
+        field = db(
+            (db.metadata_fields.resource_type == "entity") &
+            (db.metadata_fields.resource_id == id) &
+            (db.metadata_fields.key == field_key)
+        ).select().first()
 
-    # Validate request
-    update_schema = MetadataFieldUpdateSchema()
-    try:
-        data = update_schema.load(request.get_json())
-    except ValidationError as e:
-        return make_error_response(str(e.messages), 400)
+        if not field:
+            return None, f"Metadata field '{field_key}' not found", 404
 
-    # Update field
-    try:
+        # Check if system metadata
+        if field.is_system:
+            return None, "System metadata fields cannot be modified", 403
+
+        # Get field type (use provided or existing)
+        field_type = data.get("field_type", field.field_type)
+
+        # Coerce value to correct type
+        try:
+            coerced_value = _coerce_value(data["value"], field_type)
+            value_str = str(coerced_value)
+        except ValueError as e:
+            return None, str(e), 400
+
+        # Update field
+        update_fields = {"value": value_str}
         if "field_type" in data:
-            field.field_type = MetadataFieldType(data["field_type"])
-        field.set_value(data["value"])
-        db.session.commit()
-    except ValueError as e:
-        return make_error_response(f"Invalid value: {str(e)}", 400)
+            update_fields["field_type"] = data["field_type"]
 
-    # Serialize response
-    schema = MetadataFieldSchema()
-    response_data = schema.dump(field)
-    response_data["value"] = field.get_value()
+        db(db.metadata_fields.id == field.id).update(**update_fields)
+        db.commit()
 
-    return jsonify(response_data), 200
+        # Fetch updated field
+        updated_field = db.metadata_fields[field.id]
+
+        # Build response with parsed value
+        field_dict = updated_field.as_dict()
+        field_dict["value"] = _parse_value(updated_field.value, updated_field.field_type)
+
+        return field_dict, None, None
+
+    result, error, status = await run_in_threadpool(update)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    return jsonify(result), 200
 
 
 @bp.route("/entities/<int:id>/metadata/<string:field_key>", methods=["DELETE"])
 @login_required
 @license_required("enterprise")
 @resource_role_required("maintainer", resource_param="id")
-def delete_entity_metadata(id: int, field_key: str):
+async def delete_entity_metadata(id: int, field_key: str):
     """
     Delete a metadata field from an entity.
 
@@ -245,33 +352,38 @@ def delete_entity_metadata(id: int, field_key: str):
     Example:
         DELETE /api/v1/metadata/entities/42/metadata/hostname
     """
-    from apps.api.models import Entity
+    db = current_app.db
 
-    entity = get_or_404(Entity, id)
+    def delete():
+        # Verify entity exists
+        entity = db.entities[id]
+        if not entity:
+            return None, "Entity not found", 404
 
-    # Get metadata field
-    field = db.session.query(MetadataField).filter_by(
-        resource_type="entity", resource_id=entity.id, field_key=field_key
-    ).first()
+        # Get metadata field
+        field = db(
+            (db.metadata_fields.resource_type == "entity") &
+            (db.metadata_fields.resource_id == id) &
+            (db.metadata_fields.key == field_key)
+        ).select().first()
 
-    if not field:
-        return make_error_response(f"Metadata field '{field_key}' not found", 404)
+        if not field:
+            return None, f"Metadata field '{field_key}' not found", 404
 
-    # Check if system metadata
-    if field.is_system:
-        return (
-            jsonify(
-                {
-                    "error": "System metadata",
-                    "message": "System metadata fields cannot be deleted",
-                }
-            ),
-            403,
-        )
+        # Check if system metadata
+        if field.is_system:
+            return None, "System metadata fields cannot be deleted", 403
 
-    # Delete field
-    db.session.delete(field)
-    db.session.commit()
+        # Delete field
+        db(db.metadata_fields.id == field.id).delete()
+        db.commit()
+
+        return True, None, None
+
+    result, error, status = await run_in_threadpool(delete)
+
+    if error:
+        return jsonify({"error": error}), status
 
     return "", 204
 
@@ -285,7 +397,7 @@ def delete_entity_metadata(id: int, field_key: str):
 @login_required
 @license_required("enterprise")
 @resource_role_required("viewer", resource_param="id")
-def get_organization_metadata(id: int):
+async def get_organization_metadata(id: int):
     """
     Get all metadata for an organization.
 
@@ -309,26 +421,40 @@ def get_organization_metadata(id: int):
             }
         }
     """
-    from apps.api.models import Organization
+    db = current_app.db
 
-    org = get_or_404(Organization, id)
+    def get_metadata():
+        # Verify organization exists
+        org = db.organizations[id]
+        if not org:
+            return None, "Organization not found", 404
 
-    # Get all metadata fields
-    fields = db.session.query(MetadataField).filter_by(
-        resource_type="organization", resource_id=org.id
-    ).all()
+        # Get all metadata fields
+        fields = db(
+            (db.metadata_fields.resource_type == "organization") &
+            (db.metadata_fields.resource_id == id)
+        ).select()
 
-    # Build metadata dictionary
-    metadata = {field.field_key: field.get_value() for field in fields}
+        # Build metadata dictionary with type conversion
+        metadata = {}
+        for field in fields:
+            metadata[field.key] = _parse_value(field.value, field.field_type)
 
-    return jsonify({"metadata": metadata}), 200
+        return {"metadata": metadata}, None, None
+
+    result, error, status = await run_in_threadpool(get_metadata)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    return jsonify(result), 200
 
 
 @bp.route("/organizations/<int:id>/metadata", methods=["POST"])
 @login_required
 @license_required("enterprise")
 @resource_role_required("maintainer", resource_param="id")
-def create_organization_metadata(id: int):
+async def create_organization_metadata(id: int):
     """
     Create or update a metadata field for an organization.
 
@@ -339,7 +465,7 @@ def create_organization_metadata(id: int):
 
     Request Body:
         {
-            "field_key": "budget",
+            "key": "budget",
             "field_type": "number",
             "value": 1000000
         }
@@ -353,60 +479,84 @@ def create_organization_metadata(id: int):
     Example:
         POST /api/v1/metadata/organizations/1/metadata
     """
-    from apps.api.models import Organization
+    db = current_app.db
 
-    org = get_or_404(Organization, id)
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
 
-    # Validate request
-    create_schema = MetadataFieldCreateSchema()
-    try:
-        data = create_schema.load(request.get_json())
-    except ValidationError as e:
-        return make_error_response(str(e.messages), 400)
+    # Validate required fields
+    if not data.get("key"):
+        return jsonify({"error": "key is required"}), 400
+    if not data.get("field_type"):
+        return jsonify({"error": "field_type is required"}), 400
+    if "value" not in data:
+        return jsonify({"error": "value is required"}), 400
 
-    # Check if system metadata
-    existing = db.session.query(MetadataField).filter_by(
-        resource_type="organization", resource_id=org.id, field_key=data["field_key"]
-    ).first()
+    def create_or_update():
+        # Verify organization exists
+        org = db.organizations[id]
+        if not org:
+            return None, "Organization not found", 404
 
-    if existing and existing.is_system:
-        return (
-            jsonify(
-                {
-                    "error": "System metadata",
-                    "message": "System metadata fields cannot be modified",
-                }
-            ),
-            403,
-        )
+        # Check if system metadata
+        existing = db(
+            (db.metadata_fields.resource_type == "organization") &
+            (db.metadata_fields.resource_id == id) &
+            (db.metadata_fields.key == data["key"])
+        ).select().first()
 
-    # Create or update metadata field
-    try:
-        field = MetadataField.set_metadata(
-            resource_type="organization",
-            resource_id=org.id,
-            field_key=data["field_key"],
-            field_type=MetadataFieldType(data["field_type"]),
-            value=data["value"],
-            created_by_id=g.current_user.id,
-        )
-        db.session.commit()
-    except ValueError as e:
-        return make_error_response(f"Invalid value: {str(e)}", 400)
+        if existing and existing.is_system:
+            return None, "System metadata fields cannot be modified", 403
 
-    # Serialize response
-    schema = MetadataFieldSchema()
-    response_data = schema.dump(field)
-    response_data["value"] = field.get_value()
+        # Coerce value to correct type
+        try:
+            coerced_value = _coerce_value(data["value"], data["field_type"])
+            value_str = str(coerced_value)
+        except ValueError as e:
+            return None, str(e), 400
 
-    return jsonify(response_data), 201
+        # Create or update metadata field
+        if existing:
+            # Update existing
+            db(db.metadata_fields.id == existing.id).update(
+                field_type=data["field_type"],
+                value=value_str,
+            )
+            db.commit()
+            field = db.metadata_fields[existing.id]
+        else:
+            # Create new
+            field_id = db.metadata_fields.insert(
+                key=data["key"],
+                value=value_str,
+                field_type=data["field_type"],
+                resource_type="organization",
+                resource_id=id,
+                is_system=False,
+            )
+            db.commit()
+            field = db.metadata_fields[field_id]
+
+        # Build response with parsed value
+        field_dict = field.as_dict()
+        field_dict["value"] = _parse_value(field.value, field.field_type)
+
+        return field_dict, None, None
+
+    result, error, status = await run_in_threadpool(create_or_update)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    return jsonify(result), 201
 
 
 @bp.route("/organizations/<int:id>/metadata/<string:field_key>", methods=["PATCH"])
 @login_required
 @license_required("enterprise")
 @resource_role_required("maintainer", resource_param="id")
-def update_organization_metadata(id: int, field_key: str):
+async def update_organization_metadata(id: int, field_key: str):
     """
     Update a metadata field for an organization.
 
@@ -418,7 +568,8 @@ def update_organization_metadata(id: int, field_key: str):
 
     Request Body:
         {
-            "value": 1500000
+            "value": 1500000,
+            "field_type": "number" (optional)
         }
 
     Returns:
@@ -430,59 +581,75 @@ def update_organization_metadata(id: int, field_key: str):
     Example:
         PATCH /api/v1/metadata/organizations/1/metadata/budget
     """
-    from apps.api.models import Organization
+    db = current_app.db
 
-    org = get_or_404(Organization, id)
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
 
-    # Get metadata field
-    field = db.session.query(MetadataField).filter_by(
-        resource_type="organization", resource_id=org.id, field_key=field_key
-    ).first()
+    if "value" not in data:
+        return jsonify({"error": "value is required"}), 400
 
-    if not field:
-        return make_error_response(f"Metadata field '{field_key}' not found", 404)
+    def update():
+        # Verify organization exists
+        org = db.organizations[id]
+        if not org:
+            return None, "Organization not found", 404
 
-    # Check if system metadata
-    if field.is_system:
-        return (
-            jsonify(
-                {
-                    "error": "System metadata",
-                    "message": "System metadata fields cannot be modified",
-                }
-            ),
-            403,
-        )
+        # Get metadata field
+        field = db(
+            (db.metadata_fields.resource_type == "organization") &
+            (db.metadata_fields.resource_id == id) &
+            (db.metadata_fields.key == field_key)
+        ).select().first()
 
-    # Validate request
-    update_schema = MetadataFieldUpdateSchema()
-    try:
-        data = update_schema.load(request.get_json())
-    except ValidationError as e:
-        return make_error_response(str(e.messages), 400)
+        if not field:
+            return None, f"Metadata field '{field_key}' not found", 404
 
-    # Update field
-    try:
+        # Check if system metadata
+        if field.is_system:
+            return None, "System metadata fields cannot be modified", 403
+
+        # Get field type (use provided or existing)
+        field_type = data.get("field_type", field.field_type)
+
+        # Coerce value to correct type
+        try:
+            coerced_value = _coerce_value(data["value"], field_type)
+            value_str = str(coerced_value)
+        except ValueError as e:
+            return None, str(e), 400
+
+        # Update field
+        update_fields = {"value": value_str}
         if "field_type" in data:
-            field.field_type = MetadataFieldType(data["field_type"])
-        field.set_value(data["value"])
-        db.session.commit()
-    except ValueError as e:
-        return make_error_response(f"Invalid value: {str(e)}", 400)
+            update_fields["field_type"] = data["field_type"]
 
-    # Serialize response
-    schema = MetadataFieldSchema()
-    response_data = schema.dump(field)
-    response_data["value"] = field.get_value()
+        db(db.metadata_fields.id == field.id).update(**update_fields)
+        db.commit()
 
-    return jsonify(response_data), 200
+        # Fetch updated field
+        updated_field = db.metadata_fields[field.id]
+
+        # Build response with parsed value
+        field_dict = updated_field.as_dict()
+        field_dict["value"] = _parse_value(updated_field.value, updated_field.field_type)
+
+        return field_dict, None, None
+
+    result, error, status = await run_in_threadpool(update)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    return jsonify(result), 200
 
 
 @bp.route("/organizations/<int:id>/metadata/<string:field_key>", methods=["DELETE"])
 @login_required
 @license_required("enterprise")
 @resource_role_required("maintainer", resource_param="id")
-def delete_organization_metadata(id: int, field_key: str):
+async def delete_organization_metadata(id: int, field_key: str):
     """
     Delete a metadata field from an organization.
 
@@ -500,32 +667,37 @@ def delete_organization_metadata(id: int, field_key: str):
     Example:
         DELETE /api/v1/metadata/organizations/1/metadata/budget
     """
-    from apps.api.models import Organization
+    db = current_app.db
 
-    org = get_or_404(Organization, id)
+    def delete():
+        # Verify organization exists
+        org = db.organizations[id]
+        if not org:
+            return None, "Organization not found", 404
 
-    # Get metadata field
-    field = db.session.query(MetadataField).filter_by(
-        resource_type="organization", resource_id=org.id, field_key=field_key
-    ).first()
+        # Get metadata field
+        field = db(
+            (db.metadata_fields.resource_type == "organization") &
+            (db.metadata_fields.resource_id == id) &
+            (db.metadata_fields.key == field_key)
+        ).select().first()
 
-    if not field:
-        return make_error_response(f"Metadata field '{field_key}' not found", 404)
+        if not field:
+            return None, f"Metadata field '{field_key}' not found", 404
 
-    # Check if system metadata
-    if field.is_system:
-        return (
-            jsonify(
-                {
-                    "error": "System metadata",
-                    "message": "System metadata fields cannot be deleted",
-                }
-            ),
-            403,
-        )
+        # Check if system metadata
+        if field.is_system:
+            return None, "System metadata fields cannot be deleted", 403
 
-    # Delete field
-    db.session.delete(field)
-    db.session.commit()
+        # Delete field
+        db(db.metadata_fields.id == field.id).delete()
+        db.commit()
+
+        return True, None, None
+
+    result, error, status = await run_in_threadpool(delete)
+
+    if error:
+        return jsonify({"error": error}), status
 
     return "", 204

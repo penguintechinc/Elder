@@ -1,20 +1,24 @@
-"""Graph visualization API endpoints for dependency mapping."""
+"""Graph visualization API endpoints using PyDAL with async/await."""
 
-from flask import Blueprint, request, jsonify
+import asyncio
+from flask import Blueprint, request, jsonify, current_app
 from typing import Dict, List, Set, Any
+from dataclasses import asdict
 import networkx as nx
 
-from apps.api.models import Entity, Dependency, Organization
-from apps.api.schemas.entity import EntitySchema
-from apps.api.schemas.dependency import DependencySchema
-from shared.database import db
-from shared.api_utils import make_error_response, get_or_404
+from apps.api.models.dataclasses import (
+    EntityDTO,
+    DependencyDTO,
+    from_pydal_row,
+    from_pydal_rows,
+)
+from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("graph", __name__)
 
 
 @bp.route("", methods=["GET"])
-def get_graph():
+async def get_graph():
     """
     Get full dependency graph or filtered subgraph.
 
@@ -32,6 +36,8 @@ def get_graph():
             "edges": [{"from": 1, "to": 2, "type": "depends_on", ...}]
         }
     """
+    db = current_app.db
+
     # Get filter parameters
     org_id = request.args.get("organization_id", type=int)
     entity_type = request.args.get("entity_type")
@@ -39,82 +45,88 @@ def get_graph():
     depth = request.args.get("depth", 2, type=int)
     include_metadata = request.args.get("include_metadata", "false").lower() == "true"
 
-    # Build entity query
-    entity_query = db.session.query(Entity)
+    def get_graph_data():
+        # Build entity query
+        query = db.entities.id > 0
 
-    if org_id:
-        entity_query = entity_query.filter(Entity.organization_id == org_id)
+        if org_id:
+            query &= (db.entities.organization_id == org_id)
 
-    if entity_type:
-        from apps.api.models.entity import EntityType
-        try:
-            entity_type_enum = EntityType(entity_type)
-            entity_query = entity_query.filter(Entity.entity_type == entity_type_enum)
-        except ValueError:
-            return make_error_response(f"Invalid entity_type: {entity_type}", 400)
+        if entity_type:
+            query &= (db.entities.entity_type == entity_type)
 
-    # If entity_id specified, get subgraph centered on that entity
-    if entity_id:
-        entity = get_or_404(Entity, entity_id)
-        entities = _get_entity_subgraph(entity, depth)
-    else:
-        # Get all entities matching filters
-        entities = entity_query.all()
+        # If entity_id specified, get subgraph centered on that entity
+        if entity_id:
+            entity = db.entities[entity_id]
+            if not entity:
+                return None, "Entity not found", 404
 
-    # Get entity IDs for dependency filtering
-    entity_ids = {e.id for e in entities}
+            entities = _get_entity_subgraph(db, entity, depth)
+        else:
+            # Get all entities matching filters
+            entities = db(query).select()
 
-    # Get dependencies between these entities
-    dependencies = db.session.query(Dependency).filter(
-        Dependency.source_entity_id.in_(entity_ids),
-        Dependency.target_entity_id.in_(entity_ids),
-    ).all()
+        # Get entity IDs for dependency filtering
+        entity_ids = [e.id for e in entities]
 
-    # Build vis.js compatible graph data
-    nodes = []
-    for entity in entities:
-        node = {
-            "id": entity.id,
-            "label": entity.name,
-            "type": entity.entity_type.value,
-            "organization_id": entity.organization_id,
-        }
+        # Get dependencies between these entities
+        dependencies = db(
+            db.dependencies.source_entity_id.belongs(entity_ids) &
+            db.dependencies.target_entity_id.belongs(entity_ids)
+        ).select()
 
-        if include_metadata and entity.metadata:
-            node["metadata"] = entity.metadata
+        # Build vis.js compatible graph data
+        nodes = []
+        for entity in entities:
+            node = {
+                "id": entity.id,
+                "label": entity.name,
+                "type": entity.entity_type,
+                "organization_id": entity.organization_id,
+            }
 
-        # Add visual styling based on entity type
-        node["shape"], node["color"] = _get_node_style(entity.entity_type.value)
+            if include_metadata and entity.attributes:
+                node["metadata"] = entity.attributes
 
-        nodes.append(node)
+            # Add visual styling based on entity type
+            node["shape"], node["color"] = _get_node_style(entity.entity_type)
 
-    edges = []
-    for dep in dependencies:
-        edge = {
-            "id": dep.id,
-            "from": dep.source_entity_id,
-            "to": dep.target_entity_id,
-            "type": dep.dependency_type.value,
-            "arrows": "to",
-        }
+            nodes.append(node)
 
-        # Add visual styling based on dependency type
-        edge["color"], edge["dashes"] = _get_edge_style(dep.dependency_type.value)
+        edges = []
+        for dep in dependencies:
+            edge = {
+                "id": dep.id,
+                "from": dep.source_entity_id,
+                "to": dep.target_entity_id,
+                "type": dep.dependency_type,
+                "arrows": "to",
+            }
 
-        edges.append(edge)
+            # Add visual styling based on dependency type
+            edge["color"], edge["dashes"] = _get_edge_style(dep.dependency_type)
 
-    return jsonify({
-        "nodes": nodes,
-        "edges": edges,
-        "stats": {
-            "entity_count": len(entities),
-            "dependency_count": len(dependencies),
-        }
-    }), 200
+            edges.append(edge)
+
+        return {
+            "nodes": nodes,
+            "edges": edges,
+            "stats": {
+                "entity_count": len(entities),
+                "dependency_count": len(dependencies),
+            }
+        }, None, 200
+
+    result, error, status = await run_in_threadpool(get_graph_data)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    return jsonify(result), status
 
 
 @bp.route("/analyze", methods=["GET"])
-def analyze_graph():
+async def analyze_graph():
     """
     Analyze dependency graph and return insights.
 
@@ -124,86 +136,92 @@ def analyze_graph():
     Returns:
         200: Graph analysis metrics
     """
+    db = current_app.db
+
     org_id = request.args.get("organization_id", type=int)
 
-    # Build query
-    entity_query = db.session.query(Entity)
-    if org_id:
-        entity_query = entity_query.filter(Entity.organization_id == org_id)
+    def analyze():
+        # Build query
+        query = db.entities.id > 0
+        if org_id:
+            query &= (db.entities.organization_id == org_id)
 
-    entities = entity_query.all()
-    entity_ids = {e.id for e in entities}
+        entities = db(query).select()
+        entity_ids = [e.id for e in entities]
 
-    dependencies = db.session.query(Dependency).filter(
-        Dependency.source_entity_id.in_(entity_ids),
-        Dependency.target_entity_id.in_(entity_ids),
-    ).all()
+        dependencies = db(
+            db.dependencies.source_entity_id.belongs(entity_ids) &
+            db.dependencies.target_entity_id.belongs(entity_ids)
+        ).select()
 
-    # Build NetworkX graph for analysis
-    G = nx.DiGraph()
+        # Build NetworkX graph for analysis
+        G = nx.DiGraph()
 
-    for entity in entities:
-        G.add_node(entity.id, **{
-            "name": entity.name,
-            "type": entity.entity_type.value,
-        })
+        for entity in entities:
+            G.add_node(entity.id, **{
+                "name": entity.name,
+                "type": entity.entity_type,
+            })
 
-    for dep in dependencies:
-        G.add_edge(dep.source_entity_id, dep.target_entity_id)
+        for dep in dependencies:
+            G.add_edge(dep.source_entity_id, dep.target_entity_id)
 
-    # Calculate metrics
-    analysis = {
-        "basic_stats": {
-            "total_entities": len(entities),
-            "total_dependencies": len(dependencies),
-            "entities_by_type": _count_by_type(entities),
-        },
-        "graph_metrics": {
-            "density": nx.density(G) if len(entities) > 1 else 0,
-            "is_directed_acyclic": nx.is_directed_acyclic_graph(G),
-        },
-        "centrality": {},
-        "critical_paths": [],
-    }
-
-    # Node centrality (most connected/important entities)
-    if len(entities) > 0:
-        in_degree = dict(G.in_degree())
-        out_degree = dict(G.out_degree())
-
-        # Top 10 most depended upon (high in-degree)
-        most_depended = sorted(in_degree.items(), key=lambda x: x[1], reverse=True)[:10]
-        analysis["centrality"]["most_depended_upon"] = [
-            {"entity_id": eid, "name": G.nodes[eid]["name"], "in_degree": deg}
-            for eid, deg in most_depended if deg > 0
-        ]
-
-        # Top 10 with most dependencies (high out-degree)
-        most_dependent = sorted(out_degree.items(), key=lambda x: x[1], reverse=True)[:10]
-        analysis["centrality"]["most_dependent"] = [
-            {"entity_id": eid, "name": G.nodes[eid]["name"], "out_degree": deg}
-            for eid, deg in most_dependent if deg > 0
-        ]
-
-    # Detect cycles (circular dependencies)
-    try:
-        cycles = list(nx.simple_cycles(G))
-        analysis["issues"] = {
-            "circular_dependencies": len(cycles),
-            "cycles": cycles[:5] if cycles else [],  # Return first 5 cycles
+        # Calculate metrics
+        analysis = {
+            "basic_stats": {
+                "total_entities": len(entities),
+                "total_dependencies": len(dependencies),
+                "entities_by_type": _count_by_type(entities),
+            },
+            "graph_metrics": {
+                "density": nx.density(G) if len(entities) > 1 else 0,
+                "is_directed_acyclic": nx.is_directed_acyclic_graph(G),
+            },
+            "centrality": {},
+            "critical_paths": [],
         }
-    except:
-        analysis["issues"] = {"circular_dependencies": 0, "cycles": []}
 
-    # Find isolated entities (no dependencies)
-    isolated = [n for n in G.nodes() if G.degree(n) == 0]
-    analysis["issues"]["isolated_entities"] = len(isolated)
+        # Node centrality (most connected/important entities)
+        if len(entities) > 0:
+            in_degree = dict(G.in_degree())
+            out_degree = dict(G.out_degree())
 
+            # Top 10 most depended upon (high in-degree)
+            most_depended = sorted(in_degree.items(), key=lambda x: x[1], reverse=True)[:10]
+            analysis["centrality"]["most_depended_upon"] = [
+                {"entity_id": eid, "name": G.nodes[eid]["name"], "in_degree": deg}
+                for eid, deg in most_depended if deg > 0
+            ]
+
+            # Top 10 with most dependencies (high out-degree)
+            most_dependent = sorted(out_degree.items(), key=lambda x: x[1], reverse=True)[:10]
+            analysis["centrality"]["most_dependent"] = [
+                {"entity_id": eid, "name": G.nodes[eid]["name"], "out_degree": deg}
+                for eid, deg in most_dependent if deg > 0
+            ]
+
+        # Detect cycles (circular dependencies)
+        try:
+            cycles = list(nx.simple_cycles(G))
+            analysis["issues"] = {
+                "circular_dependencies": len(cycles),
+                "cycles": cycles[:5] if cycles else [],  # Return first 5 cycles
+            }
+        except:
+            analysis["issues"] = {"circular_dependencies": 0, "cycles": []}
+
+        # Find isolated entities (no dependencies)
+        isolated = [n for n in G.nodes() if G.degree(n) == 0]
+        analysis["issues"]["isolated_entities"] = len(isolated)
+
+        return analysis
+
+    analysis = await run_in_threadpool(analyze)
     return jsonify(analysis), 200
 
 
 @bp.route("/path", methods=["GET"])
-def find_path():
+async def find_path():
     """
     Find dependency path between two entities.
 
@@ -215,56 +233,72 @@ def find_path():
         200: Path information
         404: No path found
     """
+    db = current_app.db
+
     from_id = request.args.get("from", type=int)
     to_id = request.args.get("to", type=int)
 
     if not from_id or not to_id:
-        return make_error_response("Both 'from' and 'to' parameters required", 400)
+        return jsonify({"error": "Both 'from' and 'to' parameters required"}), 400
 
-    # Verify entities exist
-    from_entity = get_or_404(Entity, from_id)
-    to_entity = get_or_404(Entity, to_id)
+    def find_path_impl():
+        # Verify entities exist
+        from_entity = db.entities[from_id]
+        to_entity = db.entities[to_id]
 
-    # Build graph
-    dependencies = db.session.query(Dependency).all()
-    G = nx.DiGraph()
+        if not from_entity:
+            return None, "Source entity not found", 404
+        if not to_entity:
+            return None, "Target entity not found", 404
 
-    for dep in dependencies:
-        G.add_edge(dep.source_entity_id, dep.target_entity_id, dependency_id=dep.id)
+        # Build graph
+        dependencies = db(db.dependencies).select()
+        G = nx.DiGraph()
 
-    # Find path
-    try:
-        path = nx.shortest_path(G, from_id, to_id)
-        path_length = len(path) - 1
+        for dep in dependencies:
+            G.add_edge(dep.source_entity_id, dep.target_entity_id, dependency_id=dep.id)
 
-        # Get entities in path
-        entities_in_path = db.session.query(Entity).filter(Entity.id.in_(path)).all()
-        entity_map = {e.id: e for e in entities_in_path}
+        # Find path
+        try:
+            path = nx.shortest_path(G, from_id, to_id)
+            path_length = len(path) - 1
 
-        path_details = [
-            {"id": eid, "name": entity_map[eid].name, "type": entity_map[eid].entity_type.value}
-            for eid in path
-        ]
+            # Get entities in path
+            entities_in_path = db(db.entities.id.belongs(path)).select()
+            entity_map = {e.id: e for e in entities_in_path}
 
-        return jsonify({
-            "path_exists": True,
-            "path_length": path_length,
-            "path": path_details,
-        }), 200
+            path_details = [
+                {"id": eid, "name": entity_map[eid].name, "type": entity_map[eid].entity_type}
+                for eid in path
+            ]
 
-    except nx.NetworkXNoPath:
-        return jsonify({
-            "path_exists": False,
-            "message": f"No dependency path from {from_entity.name} to {to_entity.name}",
-        }), 200
+            return {
+                "path_exists": True,
+                "path_length": path_length,
+                "path": path_details,
+            }, None, 200
+
+        except nx.NetworkXNoPath:
+            return {
+                "path_exists": False,
+                "message": f"No dependency path from {from_entity.name} to {to_entity.name}",
+            }, None, 200
+
+    result, error, status = await run_in_threadpool(find_path_impl)
+
+    if error:
+        return jsonify({"error": error}), status
+
+    return jsonify(result), status
 
 
-def _get_entity_subgraph(entity: Entity, depth: int) -> List[Entity]:
+def _get_entity_subgraph(db, entity, depth: int):
     """
     Get entities within depth distance from given entity.
 
     Args:
-        entity: Center entity
+        db: PyDAL database instance
+        entity: Center entity (PyDAL row)
         depth: Maximum depth (-1 for unlimited)
 
     Returns:
@@ -284,20 +318,22 @@ def _get_entity_subgraph(entity: Entity, depth: int) -> List[Entity]:
         next_level = []
 
         for e in current_level:
-            # Get outgoing dependencies
-            for dep in e.outgoing_dependencies:
+            # Get outgoing dependencies (this entity depends on others)
+            outgoing = db(db.dependencies.source_entity_id == e.id).select()
+            for dep in outgoing:
                 if dep.target_entity_id not in visited:
                     visited.add(dep.target_entity_id)
-                    target = dep.target_entity
+                    target = db.entities[dep.target_entity_id]
                     if target:
                         next_level.append(target)
                         all_entities.append(target)
 
-            # Get incoming dependencies
-            for dep in e.incoming_dependencies:
+            # Get incoming dependencies (others depend on this entity)
+            incoming = db(db.dependencies.target_entity_id == e.id).select()
+            for dep in incoming:
                 if dep.source_entity_id not in visited:
                     visited.add(dep.source_entity_id)
-                    source = dep.source_entity
+                    source = db.entities[dep.source_entity_id]
                     if source:
                         next_level.append(source)
                         all_entities.append(source)
@@ -307,11 +343,11 @@ def _get_entity_subgraph(entity: Entity, depth: int) -> List[Entity]:
     return all_entities
 
 
-def _count_by_type(entities: List[Entity]) -> Dict[str, int]:
+def _count_by_type(entities) -> Dict[str, int]:
     """Count entities by type."""
     counts = {}
     for entity in entities:
-        type_val = entity.entity_type.value
+        type_val = entity.entity_type
         counts[type_val] = counts.get(type_val, 0) + 1
     return counts
 
