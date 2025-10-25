@@ -1,6 +1,5 @@
 """Organization Units (OUs) API endpoints using PyDAL with async/await."""
 
-import asyncio
 from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime, timezone
 from dataclasses import asdict
@@ -55,20 +54,16 @@ async def list_organizations():
     # Calculate pagination
     offset = (page - 1) * per_page
 
-    # Use asyncio TaskGroup for concurrent queries (Python 3.12)
-    async with asyncio.TaskGroup() as tg:
-        count_task = tg.create_task(
-            run_in_threadpool(lambda: db(query).count())
+    # Execute database queries in a single thread pool task to avoid cursor issues
+    def get_orgs():
+        total = db(query).count()
+        rows = db(query).select(
+            orderby=db.organizations.name,
+            limitby=(offset, offset + per_page)
         )
-        rows_task = tg.create_task(
-            run_in_threadpool(lambda: db(query).select(
-                orderby=db.organizations.name,
-                limitby=(offset, offset + per_page)
-            ))
-        )
+        return total, rows
 
-    total = count_task.result()
-    rows = rows_task.result()
+    total, rows = await run_in_threadpool(get_orgs)
 
     # Calculate total pages
     pages = (total + per_page - 1) // per_page if total > 0 else 0
