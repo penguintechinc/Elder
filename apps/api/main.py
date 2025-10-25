@@ -7,6 +7,7 @@ from flask_cors import CORS
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from prometheus_flask_exporter import PrometheusMetrics
+from asgiref.wsgi import WsgiToAsgi
 
 from apps.api.config import get_config
 from shared.database import init_db, db
@@ -82,7 +83,8 @@ def create_app(config_name: str = None) -> Flask:
         version=app.config["APP_VERSION"],
     )
 
-    return app
+    # Wrap Flask WSGI app with ASGI adapter for uvicorn
+    return WsgiToAsgi(app)
 
 
 def _init_extensions(app: Flask) -> None:
@@ -230,10 +232,12 @@ def _register_error_handlers(app: Flask) -> None:
 
 
 if __name__ == "__main__":
-    # Create and run application
-    app = create_app()
-    app.run(
+    # Create and run application directly with Flask dev server
+    # Note: create_app() returns ASGI app, so we need to unwrap it
+    import uvicorn
+    asgi_app = create_app()
+    uvicorn.run(
+        asgi_app,
         host=os.getenv("FLASK_HOST", "0.0.0.0"),
         port=int(os.getenv("FLASK_PORT", 5000)),
-        debug=app.config["DEBUG"],
     )

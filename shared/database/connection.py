@@ -145,13 +145,15 @@ def init_db(app: Flask) -> None:
     pool_size = app.config.get("DB_POOL_SIZE") or int(os.getenv("DB_POOL_SIZE", "10"))
 
     # Initialize PyDAL with connection pooling
+    # NOTE: pool_size=0 disables pooling, giving each thread its own connection
+    # This is important for thread safety with async/threadpool execution
     db = DAL(
         database_url,
         folder=app.instance_path if hasattr(app, 'instance_path') else 'databases',
         migrate=True,
         fake_migrate_all=False,
         lazy_tables=False,
-        pool_size=pool_size
+        pool_size=0,  # Disable pooling for thread safety
     )
 
     # Store db instance in app context
@@ -198,27 +200,27 @@ def _init_default_data(db: DAL) -> None:
     # Create default permissions
     permissions_data = [
         # Entity permissions
-        {"name": "create_entity", "resource_type": "entity", "action": "create"},
-        {"name": "edit_entity", "resource_type": "entity", "action": "edit"},
-        {"name": "delete_entity", "resource_type": "entity", "action": "delete"},
-        {"name": "view_entity", "resource_type": "entity", "action": "view"},
+        {"name": "create_entity", "resource_type": "entity", "action_name": "create"},
+        {"name": "edit_entity", "resource_type": "entity", "action_name": "edit"},
+        {"name": "delete_entity", "resource_type": "entity", "action_name": "delete"},
+        {"name": "view_entity", "resource_type": "entity", "action_name": "view"},
         # Organization permissions
-        {"name": "create_organization", "resource_type": "organization", "action": "create"},
-        {"name": "edit_organization", "resource_type": "organization", "action": "edit"},
-        {"name": "delete_organization", "resource_type": "organization", "action": "delete"},
-        {"name": "view_organization", "resource_type": "organization", "action": "view"},
+        {"name": "create_organization", "resource_type": "organization", "action_name": "create"},
+        {"name": "edit_organization", "resource_type": "organization", "action_name": "edit"},
+        {"name": "delete_organization", "resource_type": "organization", "action_name": "delete"},
+        {"name": "view_organization", "resource_type": "organization", "action_name": "view"},
         # Dependency permissions
-        {"name": "create_dependency", "resource_type": "dependency", "action": "create"},
-        {"name": "delete_dependency", "resource_type": "dependency", "action": "delete"},
-        {"name": "view_dependency", "resource_type": "dependency", "action": "view"},
+        {"name": "create_dependency", "resource_type": "dependency", "action_name": "create"},
+        {"name": "delete_dependency", "resource_type": "dependency", "action_name": "delete"},
+        {"name": "view_dependency", "resource_type": "dependency", "action_name": "view"},
         # User management
-        {"name": "manage_users", "resource_type": "identity", "action": "manage"},
-        {"name": "view_users", "resource_type": "identity", "action": "view"},
+        {"name": "manage_users", "resource_type": "identity", "action_name": "manage"},
+        {"name": "view_users", "resource_type": "identity", "action_name": "view"},
         # Role management
-        {"name": "manage_roles", "resource_type": "role", "action": "manage"},
-        {"name": "view_roles", "resource_type": "role", "action": "view"},
+        {"name": "manage_roles", "resource_type": "role", "action_name": "manage"},
+        {"name": "view_roles", "resource_type": "role", "action_name": "view"},
         # Audit logs
-        {"name": "view_audit_logs", "resource_type": "audit", "action": "view"},
+        {"name": "view_audit_logs", "resource_type": "audit", "action_name": "view"},
     ]
 
     permissions = {}

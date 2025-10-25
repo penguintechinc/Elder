@@ -40,14 +40,14 @@ export default function Organizations() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Organizations</h1>
+          <h1 className="text-3xl font-bold text-white">Organization Units</h1>
           <p className="mt-2 text-slate-400">
             Manage your organizational hierarchy
           </p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="w-4 h-4 mr-2" />
-          Create Organization
+          Create Organization Unit
         </Button>
       </div>
 
@@ -73,9 +73,9 @@ export default function Organizations() {
       ) : data?.items?.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
-            <p className="text-slate-400">No organizations found</p>
+            <p className="text-slate-400">No organization units found</p>
             <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
-              Create your first organization
+              Create your first organization unit
             </Button>
           </CardContent>
         </Card>
@@ -155,7 +155,7 @@ function CreateOrganizationModal({ onClose, onSuccess }: CreateOrganizationModal
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Create Organization</h2>
+          <h2 className="text-xl font-semibold text-white">Create Organization Unit</h2>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

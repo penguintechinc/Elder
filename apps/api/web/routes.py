@@ -4,8 +4,6 @@ import os
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
 
-from apps.api.models import Identity
-from shared.database import db
 from shared.licensing import get_license_client
 
 bp = Blueprint("web", __name__)

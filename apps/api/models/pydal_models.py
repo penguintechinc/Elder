@@ -63,7 +63,7 @@ def define_all_tables(db):
         'permissions',
         Field('name', 'string', length=100, notnull=True, unique=True, requires=IS_NOT_EMPTY()),
         Field('resource_type', 'string', length=50, notnull=True),
-        Field('action', 'string', length=50, notnull=True),
+        Field('action_name', 'string', length=50, notnull=True),
         Field('description', 'string', length=512),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
@@ -135,7 +135,7 @@ def define_all_tables(db):
     db.define_table(
         'audit_logs',
         Field('identity_id', 'reference identities', ondelete='SET NULL'),
-        Field('action', 'string', length=50, notnull=True),
+        Field('action_name', 'string', length=50, notnull=True),
         Field('resource_type', 'string', length=50, notnull=True),
         Field('resource_id', 'integer'),
         Field('details', 'json'),

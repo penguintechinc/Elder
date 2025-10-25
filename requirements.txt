@@ -75,6 +75,7 @@ Flask-Limiter==3.8.0
 # ASGI Server (for async Flask)
 uvicorn[standard]==0.25.0
 uvloop==0.20.0
+asgiref==3.8.1
 
 # Async Support (removed gevent/eventlet for async/await patterns)
 # Using native Python 3.12 asyncio with uvloop

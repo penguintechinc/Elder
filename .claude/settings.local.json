@@ -30,7 +30,16 @@
       "Bash(npm install:*)",
       "Bash(docker run:*)",
       "Bash(docker exec:*)",
-      "Bash(docker-compose stop:*)"
+      "Bash(docker-compose stop:*)",
+      "Bash(echo:*)",
+      "Bash(/home/penguin/code/Elder/scripts/test-api-docker.sh:*)",
+      "Bash(docker-compose restart:*)",
+      "Bash(docker volume rm:*)",
+      "Bash(awk:*)",
+      "Bash(xargs:*)",
+      "Bash(docker system prune:*)",
+      "Bash(./scripts/test-api-docker.sh:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

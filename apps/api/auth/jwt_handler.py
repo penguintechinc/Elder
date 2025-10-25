@@ -1,4 +1,4 @@
-"""JWT token handling for Elder authentication."""
+"""JWT token handling for Elder authentication using PyDAL."""
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
@@ -7,11 +7,10 @@ from functools import wraps
 import jwt
 from flask import request, current_app, g
 from werkzeug.security import check_password_hash
+from pydal.objects import Row
 
-from apps.api.models import Identity
 
-
-def generate_token(identity: Identity, token_type: str = "access") -> str:
+def generate_token(identity: Row, token_type: str = "access") -> str:
     """
     Generate JWT token for an identity.
 
@@ -85,12 +84,12 @@ def get_token_from_header() -> Optional[str]:
     return parts[1]
 
 
-def get_current_user() -> Optional[Identity]:
+def get_current_user() -> Optional[Row]:
     """
     Get current authenticated user from request context.
 
     Returns:
-        Identity instance or None
+        PyDAL Row representing identity or None
     """
     if hasattr(g, "current_user"):
         return g.current_user
@@ -103,9 +102,8 @@ def get_current_user() -> Optional[Identity]:
     if not payload:
         return None
 
-    from shared.database import db
-
-    identity = db.session.get(Identity, payload["sub"])
+    db = current_app.db
+    identity = db.identities[payload["sub"]]
 
     if identity and identity.is_active:
         g.current_user = identity
@@ -114,12 +112,12 @@ def get_current_user() -> Optional[Identity]:
     return None
 
 
-def verify_password(identity: Identity, password: str) -> bool:
+def verify_password(identity: Row, password: str) -> bool:
     """
     Verify password for local authentication.
 
     Args:
-        identity: Identity instance
+        identity: PyDAL Row representing identity
         password: Plain text password
 
     Returns:

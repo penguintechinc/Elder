@@ -9,15 +9,23 @@ import Issues from './pages/Issues'
 import Login from './pages/Login'
 import Register from './pages/Register'
 
-export default function App() {
-  // Check if user has a token
+// Protected route wrapper component
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const hasToken = localStorage.getItem('elder_token')
 
+  if (!hasToken) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <>{children}</>
+}
+
+export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/" element={<Layout />}>
+      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="organizations" element={<Organizations />} />
         <Route path="entities" element={<Entities />} />

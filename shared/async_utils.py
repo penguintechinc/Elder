@@ -9,6 +9,12 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 from typing import Callable, Any, TypeVar, ParamSpec
 
+try:
+    from flask import has_request_context, copy_current_request_context
+    FLASK_AVAILABLE = True
+except ImportError:
+    FLASK_AVAILABLE = False
+
 # Thread pool for blocking operations (PyDAL database calls)
 _executor = ThreadPoolExecutor(max_workers=20, thread_name_prefix="pydal_")
 
@@ -19,10 +25,11 @@ T = TypeVar('T')
 
 async def run_in_threadpool(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
     """
-    Run a blocking function in the thread pool.
+    Run a blocking function in the thread pool with Flask context support.
 
     This is essential for PyDAL operations since PyDAL is synchronous but we want
-    to use async Flask endpoints for better concurrency.
+    to use async Flask endpoints for better concurrency. Automatically copies
+    Flask request context into the thread if available.
 
     Args:
         func: The blocking function to run
@@ -37,7 +44,35 @@ async def run_in_threadpool(func: Callable[P, T], *args: P.args, **kwargs: P.kwa
         >>> count = await run_in_threadpool(lambda: db(db.organizations).count())
     """
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(_executor, lambda: func(*args, **kwargs))
+
+    # Wrapper to handle PyDAL transaction errors
+    def safe_wrapper():
+        try:
+            result = func(*args, **kwargs)
+            # On success, ensure transaction is committed if needed
+            # PyDAL auto-commits by default, but explicit is better
+            return result
+        except Exception as e:
+            # On any error, ensure we rollback the transaction
+            # This is critical for PyDAL thread safety
+            try:
+                # Import here to avoid circular dependencies
+                from flask import current_app
+                if hasattr(current_app, 'db'):
+                    current_app.db.rollback()
+            except:
+                # If we can't get current_app.db, the error was likely
+                # outside of a request context, so ignore
+                pass
+            raise  # Re-raise the original error
+
+    # If we're in a Flask request context, copy it to the thread
+    if FLASK_AVAILABLE and has_request_context():
+        wrapped_func = copy_current_request_context(safe_wrapper)
+    else:
+        wrapped_func = safe_wrapper
+
+    return await loop.run_in_executor(_executor, wrapped_func)
 
 
 def to_thread(func: Callable[P, T]) -> Callable[P, asyncio.Task[T]]:
