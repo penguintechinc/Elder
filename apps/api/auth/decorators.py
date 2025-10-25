@@ -1,9 +1,11 @@
 """Authentication and authorization decorators using PyDAL."""
 
+import asyncio
 from functools import wraps
 from flask import jsonify, g, request, current_app
 from typing import Callable, List, Optional
 from pydal.objects import Row
+import inspect
 
 from apps.api.auth.jwt_handler import get_current_user
 
@@ -12,22 +14,29 @@ def login_required(f: Callable) -> Callable:
     """
     Decorator to require authentication for an endpoint.
 
+    Supports both sync and async functions.
+
     Usage:
         @bp.route('/protected')
         @login_required
-        def protected_route():
+        async def protected_route():
             return jsonify({"user": g.current_user.username})
     """
 
     @wraps(f)
-    def decorated_function(*args, **kwargs):
+    async def decorated_function(*args, **kwargs):
         user = get_current_user()
 
         if not user:
             return jsonify({"error": "Authentication required"}), 401
 
         g.current_user = user
-        return f(*args, **kwargs)
+
+        # Call the wrapped function (it's async)
+        if inspect.iscoroutinefunction(f):
+            return await f(*args, **kwargs)
+        else:
+            return f(*args, **kwargs)
 
     return decorated_function
 
