@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tantml:react-query'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Search, Trash2, Edit } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
@@ -11,6 +12,7 @@ import Input from '@/components/Input'
 export default function Organizations() {
   const [search, setSearch] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -82,12 +84,15 @@ export default function Organizations() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {data?.items?.map((org: Organization) => (
-            <Card key={org.id}>
-              <CardContent>
+            <Card key={org.id} className="cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all">
+              <CardContent onClick={() => navigate(`/organizations/${org.id}`)}>
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="text-lg font-semibold text-white">{org.name}</h3>
-                  <div className="flex gap-2">
-                    <button className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors">
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => navigate(`/organizations/${org.id}/edit`)}
+                      className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                    >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button

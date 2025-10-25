@@ -9,11 +9,15 @@ import Input from '@/components/Input'
 import Select from '@/components/Select'
 
 const ENTITY_TYPES = [
+  { value: 'application', label: 'Application' },
+  { value: 'service', label: 'Service' },
   { value: 'datacenter', label: 'Datacenter' },
   { value: 'vpc', label: 'VPC' },
   { value: 'subnet', label: 'Subnet' },
   { value: 'compute', label: 'Compute' },
   { value: 'network', label: 'Network' },
+  { value: 'storage', label: 'Storage' },
+  { value: 'database', label: 'Database' },
   { value: 'user', label: 'User' },
   { value: 'security_issue', label: 'Security Issue' },
 ]
