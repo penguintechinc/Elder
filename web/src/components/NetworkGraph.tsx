@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useEffect } from 'react';
 import {
   ReactFlow,
   Node,
@@ -115,21 +115,42 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   }, [graphNodes]);
 
   const initialEdges: Edge[] = useMemo(() => {
-    return graphEdges.map((edge, index) => ({
-      id: `edge-${index}`,
-      source: edge.from,
-      target: edge.to,
-      label: edge.label,
-      type: 'smoothstep',
-      animated: true,
-      style: { stroke: '#64748b', strokeWidth: 2 },
-      labelStyle: { fill: '#64748b', fontSize: 10 },
-      labelBgStyle: { fill: '#f1f5f9' },
-    }));
+    return graphEdges.map((edge, index) => {
+      // Different colors for different edge types
+      const edgeColor = edge.label === 'parent' ? '#10b981' :
+                       edge.label === 'contains' ? '#3b82f6' :
+                       '#f59e0b'; // dependencies
+
+      return {
+        id: `edge-${index}`,
+        source: edge.from,
+        target: edge.to,
+        label: edge.label,
+        type: 'smoothstep',
+        animated: edge.label !== 'parent' && edge.label !== 'contains', // Only animate dependencies
+        style: { stroke: edgeColor, strokeWidth: 2 },
+        labelStyle: { fill: '#1e293b', fontSize: 11, fontWeight: 600 },
+        labelBgStyle: { fill: '#ffffff', fillOpacity: 0.9 },
+        markerEnd: {
+          type: 'arrowclosed',
+          color: edgeColor,
+        },
+      };
+    });
   }, [graphEdges]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Update nodes when graph data changes
+  useEffect(() => {
+    setNodes(initialNodes);
+  }, [initialNodes, setNodes]);
+
+  // Update edges when graph data changes
+  useEffect(() => {
+    setEdges(initialEdges);
+  }, [initialEdges, setEdges]);
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {

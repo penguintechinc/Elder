@@ -42,7 +42,7 @@ export interface Dependency {
   target_entity?: Entity
 }
 
-export type DependencyType = 'depends_on' | 'related_to' | 'part_of'
+export type DependencyType = 'calls' | 'related' | 'affects' | 'depends' | 'manages' | 'other'
 
 export interface Identity {
   id: number

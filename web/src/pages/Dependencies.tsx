@@ -212,7 +212,7 @@ interface CreateDependencyModalProps {
 function CreateDependencyModal({ entities, onClose, onSuccess }: CreateDependencyModalProps) {
   const [sourceEntityId, setSourceEntityId] = useState<number | undefined>()
   const [targetEntityId, setTargetEntityId] = useState<number | undefined>()
-  const [dependencyType, setDependencyType] = useState<DependencyType>('depends_on')
+  const [dependencyType, setDependencyType] = useState<DependencyType>('depends')
 
   const createMutation = useMutation({
     mutationFn: (data: {
@@ -281,9 +281,12 @@ function CreateDependencyModal({ entities, onClose, onSuccess }: CreateDependenc
                 value={dependencyType}
                 onChange={(e) => setDependencyType(e.target.value as DependencyType)}
               >
-                <option value="depends_on">Depends On</option>
-                <option value="related_to">Related To</option>
-                <option value="part_of">Part Of</option>
+                <option value="calls">Calls</option>
+                <option value="related">Related</option>
+                <option value="affects">Affects</option>
+                <option value="depends">Depends</option>
+                <option value="manages">Manages</option>
+                <option value="other">Other</option>
               </Select>
             </div>
 
