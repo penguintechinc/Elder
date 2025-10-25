@@ -17,7 +17,11 @@ This is a comprehensive project template incorporating best practices and patter
 
 ### Languages & Frameworks
 - **Go**: 1.23.x (latest patch version)
-- **Python**: 3.12 for py4web applications (py4web has issues with 3.13), 3.13 for non-web applications
+- **Python**: 3.13+ for all applications
+  - **Flask**: Primary web framework for REST APIs
+  - **Flask-RESTful / Flask-RESTX**: REST API development
+  - **SQLAlchemy**: ORM for database operations
+  - **Marshmallow**: Schema validation and serialization
 - **Node.js**: 18+ for sales/marketing websites and tooling only
 - **JavaScript/TypeScript**: Modern ES2022+ standards
 
@@ -32,9 +36,9 @@ This is a comprehensive project template incorporating best practices and patter
 ### Databases & Storage
 - **Primary**: PostgreSQL with connection pooling, non-root user/password, dedicated database
 - **Cache**: Redis/Valkey with optional TLS and authentication
-- **ORMs**: PyDAL for Python (supports MySQL, PostgreSQL, etc.), GORM for Go
-- **Migrations**: Automated schema management
-- **Database Support**: Use PyDAL only for databases with full PyDAL support
+- **ORMs**: SQLAlchemy for Python, GORM for Go
+- **Migrations**: Alembic for Python database migrations, automated schema management
+- **Database Support**: SQLAlchemy supports PostgreSQL, MySQL, SQLite, and many others
 
 ### Security & Authentication
 - **TLS**: Enforce TLS 1.2 minimum, prefer TLS 1.3
@@ -637,15 +641,15 @@ docker run --rm -v $(pwd):/app -w /app golang:1.23-slim go build -o bin/app
 docker build -t app:latest .
 
 # Python builds within containers (using debian-slim)
-# Use Python 3.12 for py4web applications due to py4web compatibility issues with 3.13
-docker run --rm -v $(pwd):/app -w /app python:3.12-slim pip install -r requirements.txt
+# Use Python 3.13+ for Flask applications
+docker run --rm -v $(pwd):/app -w /app python:3.13-slim pip install -r requirements.txt
 docker build -t web:latest .
 
 # Use multi-stage builds with debian-slim for optimized production images
 FROM golang:1.23-slim AS builder
 FROM debian:stable-slim AS runtime
 
-FROM python:3.12-slim AS builder
+FROM python:3.13-slim AS builder
 FROM debian:stable-slim AS runtime
 ```
 
@@ -748,9 +752,14 @@ jobs:
 ### Application Architecture Requirements
 
 #### Web Framework Standards
-- **py4web primary**: Use py4web for ALL application web structures (sales/docs websites exempt)
+- **Flask primary**: Use Flask for ALL REST API applications
+  - **Flask-CORS**: For cross-origin resource sharing
+  - **Flask-RESTful/RESTX**: For REST API development
+  - **Flask-SQLAlchemy**: For database ORM
+  - **Flask-Login**: For authentication management
+  - **CSRF Protection**: Disable for REST APIs using JWT (use Flask-WTF `WTF_CSRF_CHECK_DEFAULT = False`)
 - **Health endpoints**: ALL applications must implement `/healthz` endpoint
-- **Metrics endpoints**: ALL applications must implement Prometheus metrics endpoint using py4web
+- **Metrics endpoints**: ALL applications must implement Prometheus metrics endpoint using `prometheus-flask-exporter`
 
 #### Logging & Monitoring
 - **Console logging**: Always implement console output
@@ -765,9 +774,12 @@ jobs:
 - **getopts**: Use Python getopts library instead of params where possible
 
 #### Database & Caching Standards
-- **PostgreSQL default**: Default to PostgreSQL with non-root user/password and dedicated database
-- **PyDAL usage**: Only use PyDAL for databases with full PyDAL support
+- **PostgreSQL default**: Default to PostgreSQL with connection pooling, non-root user/password, and dedicated database
+- **SQLAlchemy usage**: Use SQLAlchemy as the primary ORM for Python applications
+  - **Flask-SQLAlchemy**: Flask integration for database operations
+  - **Alembic**: Database migration management
 - **Redis/Valkey**: Utilize Redis/Valkey with optional TLS and authentication where appropriate
+  - **Flask-Caching**: Flask integration for caching
 
 #### Security Implementation
 - **TLS enforcement**: Enforce TLS 1.2 minimum, prefer TLS 1.3
@@ -901,14 +913,20 @@ func main() {
 
 ### Database Integration
 ```python
-# Python with PyDAL
-from pydal import DAL, Field
+# Python with SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
-db = DAL('postgresql://user:pass@host/db')
-db.define_table('users',
-    Field('name', 'string', requires=IS_NOT_EMPTY()),
-    Field('email', 'string', requires=IS_EMAIL()),
-    migrate=True, fake_migrate=False)
+db = SQLAlchemy()
+
+class User(db.Model):
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
 ```
 
 ```go
@@ -924,15 +942,20 @@ type User struct {
 
 ### API Development
 ```python
-# Python with py4web
-from py4web import action, request, response
-from py4web.utils.cors import CORS
+# Python with Flask
+from flask import Blueprint, request, jsonify
+from flask_cors import cross_origin
+from apps.api.models import User
+from shared.database import db
 
-@action('api/users', method=['GET', 'POST'])
-@CORS()
+bp = Blueprint("users", __name__)
+
+@bp.route('/users', methods=['GET', 'POST'])
+@cross_origin()
 def api_users():
     if request.method == 'GET':
-        return {'users': db(db.users).select().as_list()}
+        users = User.query.all()
+        return jsonify({'users': [u.to_dict() for u in users]})
     # Handle POST...
 ```
 
@@ -953,15 +976,16 @@ func setupRoutes() *gin.Engine {
 
 ### Monitoring Integration
 ```python
-# Python metrics
-from prometheus_client import Counter, Histogram, generate_latest
+# Python metrics with Flask
+from prometheus_flask_exporter import PrometheusMetrics
+from flask import Flask
 
-REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint'])
-REQUEST_DURATION = Histogram('http_request_duration_seconds', 'HTTP request duration')
+app = Flask(__name__)
+metrics = PrometheusMetrics(app)
 
-@action('metrics')
-def metrics():
-    return generate_latest(), {'Content-Type': 'text/plain'}
+# Metrics are automatically collected and exposed at /metrics
+# Custom metrics can be added:
+metrics.info('app_info', 'Application info', version='1.0.0')
 ```
 
 ```go

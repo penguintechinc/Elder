@@ -60,6 +60,9 @@ def create_app(config_name: str = None) -> Flask:
     # Initialize database
     init_db(app)
 
+    # Initialize default admin user
+    _init_admin_user(app)
+
     # Initialize license client
     _init_license_client(app)
 
@@ -100,8 +103,11 @@ def _init_extensions(app: Flask) -> None:
         allow_headers=app.config["CORS_ALLOW_HEADERS"],
     )
 
-    # CSRF Protection
-    CSRFProtect(app)
+    # CSRF Protection - Exempt API routes (they use JWT, not cookies)
+    csrf = CSRFProtect(app)
+
+    # Exempt API routes from CSRF since they use JWT Bearer tokens
+    app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 
     # Login Manager
     login_manager = LoginManager()
@@ -121,6 +127,57 @@ def _init_extensions(app: Flask) -> None:
         metrics.info("elder_app_info", "Elder Application", version=app.config["APP_VERSION"])
 
     logger.info("extensions_initialized")
+
+
+def _init_admin_user(app: Flask) -> None:
+    """
+    Initialize default admin user if configured.
+
+    Args:
+        app: Flask application
+    """
+    admin_username = app.config.get("ADMIN_USERNAME") or os.getenv("ADMIN_USERNAME")
+    admin_password = app.config.get("ADMIN_PASSWORD") or os.getenv("ADMIN_PASSWORD")
+    admin_email = app.config.get("ADMIN_EMAIL") or os.getenv("ADMIN_EMAIL", "admin@localhost")
+
+    # Skip if no admin credentials provided
+    if not admin_username or not admin_password:
+        logger.info("admin_user_skip", reason="no_credentials_provided")
+        return
+
+    try:
+        from apps.api.models import Identity
+        from apps.api.models.identity import IdentityType, AuthProvider
+        from werkzeug.security import generate_password_hash
+
+        with app.app_context():
+            # Check if admin user already exists
+            existing_admin = db.session.query(Identity).filter_by(username=admin_username).first()
+            if existing_admin:
+                logger.info("admin_user_exists", username=admin_username)
+                return
+
+            # Create admin user
+            admin_user = Identity(
+                username=admin_username,
+                email=admin_email,
+                full_name="Administrator",
+                identity_type=IdentityType.HUMAN,
+                auth_provider=AuthProvider.LOCAL,
+                password_hash=generate_password_hash(admin_password),
+                is_active=True,
+                is_superuser=True,
+            )
+
+            db.session.add(admin_user)
+            db.session.commit()
+
+            logger.info("admin_user_created", username=admin_username, email=admin_email)
+
+    except Exception as e:
+        logger.error("admin_user_creation_failed", error=str(e))
+        with app.app_context():
+            db.session.rollback()
 
 
 def _init_license_client(app: Flask) -> None:
