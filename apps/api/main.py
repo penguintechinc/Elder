@@ -1,6 +1,7 @@
 """Main Flask application for Elder."""
 
 import os
+import logging
 import structlog
 from flask import Flask, jsonify
 from flask_cors import CORS
@@ -11,6 +12,13 @@ from asgiref.wsgi import WsgiToAsgi
 
 from apps.api.config import get_config
 from shared.database import init_db, db
+
+# Configure standard library logging
+log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, log_level),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 
 # Configure structured logging

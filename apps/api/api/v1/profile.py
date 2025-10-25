@@ -37,10 +37,11 @@ async def get_profile():
         404: User not found
     """
     db = current_app.db
+    user_id = g.current_user.id  # Get user ID before entering thread pool
 
-    def get_user_profile():
+    def get_user_profile(uid):
         # Get user from database
-        user = db.identities[g.current_user.id]
+        user = db.identities[uid]
         if not user:
             return None, "User not found", 404
 
@@ -70,7 +71,7 @@ async def get_profile():
 
         return profile_data, None, None
 
-    profile, error, status = await run_in_threadpool(get_user_profile)
+    profile, error, status = await run_in_threadpool(get_user_profile, user_id)
 
     if error:
         return jsonify({"error": error}), status
@@ -97,14 +98,15 @@ async def update_profile():
         404: User or organization not found
     """
     db = current_app.db
+    user_id = g.current_user.id  # Get user ID before entering thread pool
 
     data = request.get_json()
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
-    def update_user_profile():
+    def update_user_profile(uid):
         # Get user from database
-        user = db.identities[g.current_user.id]
+        user = db.identities[uid]
         if not user:
             return None, "User not found", 404
 
@@ -170,7 +172,7 @@ async def update_profile():
         db.commit()
 
         # Get updated user data
-        updated_user = db.identities[g.current_user.id]
+        updated_user = db.identities[uid]
 
         # Get organization name if user has organization_id
         org_name = None
@@ -198,7 +200,7 @@ async def update_profile():
 
         return profile_data, None, None
 
-    profile, error, status = await run_in_threadpool(update_user_profile)
+    profile, error, status = await run_in_threadpool(update_user_profile, user_id)
 
     if error:
         return jsonify({"error": error}), status
