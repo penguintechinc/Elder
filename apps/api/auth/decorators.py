@@ -116,7 +116,7 @@ def permissions_required(permission_names: List[str], require_all: bool = True) 
 
     def decorator(f: Callable) -> Callable:
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        async def decorated_function(*args, **kwargs):
             user = get_current_user()
 
             if not user:
@@ -125,7 +125,10 @@ def permissions_required(permission_names: List[str], require_all: bool = True) 
             # Superusers have all permissions
             if user.is_superuser:
                 g.current_user = user
-                return f(*args, **kwargs)
+                if inspect.iscoroutinefunction(f):
+                    return await f(*args, **kwargs)
+                else:
+                    return f(*args, **kwargs)
 
             # Check permissions
             checks = [_check_user_permission(user, perm) for perm in permission_names]
@@ -148,7 +151,10 @@ def permissions_required(permission_names: List[str], require_all: bool = True) 
                 )
 
             g.current_user = user
-            return f(*args, **kwargs)
+            if inspect.iscoroutinefunction(f):
+                return await f(*args, **kwargs)
+            else:
+                return f(*args, **kwargs)
 
         return decorated_function
 

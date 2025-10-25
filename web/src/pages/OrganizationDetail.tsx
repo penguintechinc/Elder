@@ -227,6 +227,10 @@ export default function OrganizationDetail() {
       enabled: !!organizationId,
     })
 
+    console.log('RelationshipGraphSection: organizationId:', organizationId);
+    console.log('RelationshipGraphSection: isLoading:', isLoading);
+    console.log('RelationshipGraphSection: graphData:', graphData);
+
     const handleNodeClick = (node: any) => {
       const nodeId = node.metadata?.id
       if (!nodeId) return
@@ -239,6 +243,7 @@ export default function OrganizationDetail() {
     }
 
     if (isLoading) {
+      console.log('RelationshipGraphSection: Rendering loading state');
       return (
         <div className="flex items-center justify-center h-[500px]">
           <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
@@ -246,7 +251,20 @@ export default function OrganizationDetail() {
       )
     }
 
-    if (!graphData || graphData.nodes.length === 0) {
+    if (!graphData) {
+      console.log('RelationshipGraphSection: No graphData!');
+      return (
+        <div className="flex items-center justify-center h-[500px] bg-slate-50 rounded-lg border-2 border-dashed border-slate-300">
+          <div className="text-center text-slate-500">
+            <p className="text-lg font-medium">No graph data available</p>
+            <p className="text-sm mt-2">Failed to load relationship data</p>
+          </div>
+        </div>
+      )
+    }
+
+    if (graphData.nodes.length === 0) {
+      console.log('RelationshipGraphSection: No nodes in graphData');
       return (
         <div className="flex items-center justify-center h-[500px] bg-slate-50 rounded-lg border-2 border-dashed border-slate-300">
           <div className="text-center text-slate-500">
@@ -257,6 +275,7 @@ export default function OrganizationDetail() {
       )
     }
 
+    console.log('RelationshipGraphSection: Rendering NetworkGraph with', graphData.nodes.length, 'nodes and', graphData.edges.length, 'edges');
     return (
       <NetworkGraph
         nodes={graphData.nodes}

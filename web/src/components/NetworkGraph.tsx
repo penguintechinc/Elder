@@ -10,6 +10,7 @@ import {
   useEdgesState,
   ConnectionMode,
   NodeTypes,
+  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -116,24 +117,38 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
 
   const initialEdges: Edge[] = useMemo(() => {
     console.log('NetworkGraph: Converting edges:', graphEdges);
+    console.log('NetworkGraph: graphEdges type:', typeof graphEdges, 'isArray:', Array.isArray(graphEdges));
+
+    if (!graphEdges || !Array.isArray(graphEdges)) {
+      console.error('NetworkGraph: graphEdges is not an array!', graphEdges);
+      return [];
+    }
+
     const converted = graphEdges.map((edge, index) => {
+      console.log(`NetworkGraph: Processing edge ${index}:`, edge);
+
       // Different colors for different edge types
       const edgeColor = edge.label === 'parent' ? '#10b981' :
                        edge.label === 'contains' ? '#3b82f6' :
                        '#f59e0b'; // dependencies
 
-      const reactFlowEdge = {
+      const reactFlowEdge: Edge = {
         id: `edge-${index}`,
         source: edge.from,
         target: edge.to,
-        label: edge.label,
+        label: edge.label || '',
         type: 'smoothstep',
-        animated: edge.label !== 'parent' && edge.label !== 'contains', // Only animate dependencies
-        style: { stroke: edgeColor, strokeWidth: 2 },
-        labelStyle: { fill: '#1e293b', fontSize: 11, fontWeight: 600 },
-        labelBgStyle: { fill: '#ffffff', fillOpacity: 0.9 },
+        animated: true,
+        style: {
+          stroke: edgeColor,
+          strokeWidth: 3,
+        },
+        labelStyle: {
+          fill: edgeColor,
+          fontWeight: 700,
+        },
         markerEnd: {
-          type: 'arrowclosed',
+          type: MarkerType.ArrowClosed,
           color: edgeColor,
         },
       };
@@ -141,11 +156,17 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
       return reactFlowEdge;
     });
     console.log('NetworkGraph: Total edges converted:', converted.length);
+    console.log('NetworkGraph: Final edges array:', converted);
     return converted;
   }, [graphEdges]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  console.log('NetworkGraph: Current nodes state:', nodes);
+  console.log('NetworkGraph: Node IDs:', nodes.map(n => n.id));
+  console.log('NetworkGraph: Current edges state:', edges);
+  console.log('NetworkGraph: Edge connections:', edges.map(e => ({ id: e.id, source: e.source, target: e.target })));
 
   // Update nodes when graph data changes
   useEffect(() => {
@@ -154,6 +175,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
 
   // Update edges when graph data changes
   useEffect(() => {
+    console.log('NetworkGraph: Updating edges state with:', initialEdges);
     setEdges(initialEdges);
   }, [initialEdges, setEdges]);
 
@@ -200,10 +222,13 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.1}
         maxZoom={4}
-        defaultEdgeOptions={{
-          type: 'smoothstep',
-          animated: true,
-        }}
+        elementsSelectable={true}
+        nodesConnectable={false}
+        nodesDraggable={true}
+        zoomOnScroll={true}
+        panOnScroll={false}
+        zoomOnDoubleClick={true}
+        proOptions={{ hideAttribution: true }}
       >
         <Background color="#94a3b8" gap={16} />
         <Controls />
