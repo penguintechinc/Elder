@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tantml:react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Search, Trash2, Edit } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -12,6 +12,7 @@ import Input from '@/components/Input'
 export default function Organizations() {
   const [search, setSearch] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editingOrg, setEditingOrg] = useState<Organization | null>(null)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -90,7 +91,7 @@ export default function Organizations() {
                   <h3 className="text-lg font-semibold text-white">{org.name}</h3>
                   <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <button
-                      onClick={() => navigate(`/organizations/${org.id}/edit`)}
+                      onClick={() => setEditingOrg(org)}
                       className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
                     >
                       <Edit className="w-4 h-4" />
@@ -122,6 +123,18 @@ export default function Organizations() {
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false)
+            queryClient.invalidateQueries({ queryKey: ['organizations'] })
+          }}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {editingOrg && (
+        <EditOrganizationModal
+          organization={editingOrg}
+          onClose={() => setEditingOrg(null)}
+          onSuccess={() => {
+            setEditingOrg(null)
             queryClient.invalidateQueries({ queryKey: ['organizations'] })
           }}
         />
@@ -189,6 +202,75 @@ function CreateOrganizationModal({ onClose, onSuccess }: CreateOrganizationModal
               </Button>
               <Button type="submit" isLoading={createMutation.isPending}>
                 Create
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+interface EditOrganizationModalProps {
+  organization: Organization
+  onClose: () => void
+  onSuccess: () => void
+}
+
+function EditOrganizationModal({ organization, onClose, onSuccess }: EditOrganizationModalProps) {
+  const [name, setName] = useState(organization.name)
+  const [description, setDescription] = useState(organization.description || '')
+
+  const updateMutation = useMutation({
+    mutationFn: (data: { name: string; description?: string }) =>
+      api.updateOrganization(organization.id, data),
+    onSuccess: () => {
+      toast.success('Organization updated successfully')
+      onSuccess()
+    },
+    onError: () => {
+      toast.error('Failed to update organization')
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    updateMutation.mutate({ name, description: description || undefined })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <h2 className="text-xl font-semibold text-white">Edit Organization Unit</h2>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter organization name"
+            />
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter description (optional)"
+                rows={3}
+                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button type="button" variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" isLoading={updateMutation.isPending}>
+                Update
               </Button>
             </div>
           </form>

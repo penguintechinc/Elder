@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
@@ -25,6 +26,7 @@ const ENTITY_TYPES = [
 export default function Entities() {
   const [search, setSearch] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -74,7 +76,11 @@ export default function Entities() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {data?.items?.map((entity: any) => (
-            <Card key={entity.id}>
+            <Card
+              key={entity.id}
+              className="cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all"
+              onClick={() => navigate(`/entities/${entity.id}`)}
+            >
               <CardContent>
                 <h3 className="text-lg font-semibold text-white mb-2">{entity.name}</h3>
                 <span className="inline-block px-2 py-1 text-xs font-medium bg-primary-500/20 text-primary-400 rounded">
