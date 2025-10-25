@@ -305,6 +305,98 @@ class CreateIssueCommentRequest:
     content: str
 
 
+@dataclass(slots=True)
+class CreateLabelRequest:
+    """Request to create a Label."""
+    name: str
+    description: Optional[str] = None
+    color: Optional[str] = '#cccccc'
+
+
+@dataclass(slots=True)
+class UpdateLabelRequest:
+    """Request to update a Label."""
+    name: Optional[str] = None
+    description: Optional[str] = None
+    color: Optional[str] = None
+
+
+# ==================== Projects ====================
+
+@dataclass(slots=True, frozen=True)
+class ProjectDTO:
+    """Immutable Project data transfer object."""
+    id: int
+    name: str
+    description: Optional[str]
+    status: str
+    organization_id: int
+    start_date: Optional[datetime]
+    end_date: Optional[datetime]
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True)
+class CreateProjectRequest:
+    """Request to create a new Project."""
+    name: str
+    organization_id: int
+    description: Optional[str] = None
+    status: str = 'active'
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+
+
+@dataclass(slots=True)
+class UpdateProjectRequest:
+    """Request to update a Project."""
+    name: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+
+
+# ==================== Milestones ====================
+
+@dataclass(slots=True, frozen=True)
+class MilestoneDTO:
+    """Immutable Milestone data transfer object."""
+    id: int
+    title: str
+    description: Optional[str]
+    status: str
+    organization_id: int
+    project_id: Optional[int]
+    due_date: Optional[datetime]
+    closed_at: Optional[datetime]
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True)
+class CreateMilestoneRequest:
+    """Request to create a new Milestone."""
+    title: str
+    organization_id: int
+    description: Optional[str] = None
+    status: str = 'open'
+    project_id: Optional[int] = None
+    due_date: Optional[datetime] = None
+
+
+@dataclass(slots=True)
+class UpdateMilestoneRequest:
+    """Request to update a Milestone."""
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    project_id: Optional[int] = None
+    due_date: Optional[datetime] = None
+    closed_at: Optional[datetime] = None
+
+
 # ==================== Metadata (Enterprise) ====================
 
 @dataclass(slots=True, frozen=True)

@@ -49,6 +49,10 @@ def init_db(app: Flask) -> None:
     # Build database URL from environment variables or use full DATABASE_URL
     database_url = app.config.get("DATABASE_URL") or os.getenv("DATABASE_URL")
 
+    # Fix PostgreSQL URL format for PyDAL (must be postgres:// not postgresql://)
+    if database_url and database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgres://", 1)
+
     if not database_url:
         # Build from individual components
         db_type = app.config.get("DB_TYPE") or os.getenv("DB_TYPE", "postgres")

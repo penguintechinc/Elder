@@ -25,7 +25,6 @@ bp = Blueprint("issues", __name__)
 
 @bp.route("", methods=["GET"])
 @login_required
-@license_required("enterprise")
 async def list_issues():
     """
     List issues with optional filtering.
@@ -110,8 +109,6 @@ async def list_issues():
 
 @bp.route("", methods=["POST"])
 @login_required
-@license_required("enterprise")
-@resource_role_required("viewer")
 async def create_issue():
     """
     Create a new issue.
@@ -169,7 +166,6 @@ async def create_issue():
 
 @bp.route("/<int:id>", methods=["GET"])
 @login_required
-@license_required("enterprise")
 async def get_issue(id: int):
     """
     Get a single issue by ID.

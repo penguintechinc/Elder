@@ -193,6 +193,35 @@ def define_all_tables(db):
         migrate=True,
     )
 
+    # Projects table (depends on: organizations)
+    db.define_table(
+        'projects',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('description', 'text'),
+        Field('status', 'string', length=50, notnull=True, default='active'),
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        Field('start_date', 'date'),
+        Field('end_date', 'date'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Milestones table (depends on: organizations, projects)
+    db.define_table(
+        'milestones',
+        Field('title', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('description', 'text'),
+        Field('status', 'string', length=50, notnull=True, default='open'),
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        Field('project_id', 'reference projects', ondelete='CASCADE'),
+        Field('due_date', 'date'),
+        Field('closed_at', 'datetime'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
     # ==========================================
     # LEVEL 4: Tables with Level 3 dependencies
     # ==========================================
@@ -234,6 +263,24 @@ def define_all_tables(db):
         'issue_entity_links',
         Field('issue_id', 'reference issues', notnull=True, ondelete='CASCADE'),
         Field('entity_id', 'reference entities', notnull=True, ondelete='CASCADE'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Issue Milestone Links table (depends on: issues, milestones)
+    db.define_table(
+        'issue_milestone_links',
+        Field('issue_id', 'reference issues', notnull=True, ondelete='CASCADE'),
+        Field('milestone_id', 'reference milestones', notnull=True, ondelete='CASCADE'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Issue Project Links table (depends on: issues, projects)
+    db.define_table(
+        'issue_project_links',
+        Field('issue_id', 'reference issues', notnull=True, ondelete='CASCADE'),
+        Field('project_id', 'reference projects', notnull=True, ondelete='CASCADE'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         migrate=True,
     )

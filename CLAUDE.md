@@ -507,6 +507,65 @@ make license-validate        # Validate license configuration
 make license-check-features  # Check available features
 ```
 
+### Docker Compose Usage
+
+**IMPORTANT**: Always use `docker-compose` commands for managing containers, NOT direct `docker` commands. This ensures proper service orchestration, network configuration, and dependency management.
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Start specific services
+docker-compose up -d postgres redis
+docker-compose up -d api web
+
+# Stop all services
+docker-compose down
+
+# Stop specific services
+docker-compose stop api web
+
+# Restart services
+docker-compose restart api
+
+# View logs
+docker-compose logs -f api
+docker-compose logs -f postgres
+
+# Check running services
+docker-compose ps
+
+# Rebuild and restart services
+docker-compose up -d --build api web
+
+# Remove all containers and volumes (DESTRUCTIVE)
+docker-compose down -v
+```
+
+**Never use these commands**:
+- ❌ `docker run -d --name elder-api ...` (Use `docker-compose up -d api` instead)
+- ❌ `docker stop elder-api` (Use `docker-compose stop api` instead)
+- ❌ `docker rm elder-api` (Use `docker-compose down` instead)
+- ❌ `docker ps` for Elder services (Use `docker-compose ps` instead)
+
+**Service Names** (use these with docker-compose):
+- `postgres` - PostgreSQL database
+- `redis` - Redis cache
+- `api` - Flask REST API
+- `web` - React web UI
+- `grpc-server` - gRPC server (enterprise)
+- `prometheus` - Prometheus monitoring
+- `grafana` - Grafana dashboards
+
+**Container Names** (for `docker exec` only):
+- `elder-postgres`
+- `elder-redis`
+- `elder-api`
+- `elder-web`
+- `elder-grpc-server`
+- `elder-prometheus`
+- `elder-grafana`
+
 ## Security Requirements
 
 ### Input Validation

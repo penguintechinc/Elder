@@ -161,7 +161,21 @@ def _register_blueprints(app: Flask) -> None:
         app: Flask application
     """
     # Import blueprints (async versions where available)
-    from apps.api.api.v1 import organizations_pydal, entities, dependencies, graph, auth, identities, lookup, resource_roles, issues, metadata
+    from apps.api.api.v1 import (
+        organizations_pydal,
+        entities,
+        dependencies,
+        graph,
+        auth,
+        identities,
+        lookup,
+        resource_roles,
+        issues,
+        metadata,
+        projects,
+        milestones,
+        labels,
+    )
     from apps.api.web import routes as web
 
     # Register API v1 blueprints
@@ -178,7 +192,10 @@ def _register_blueprints(app: Flask) -> None:
     # Enterprise feature blueprints
     app.register_blueprint(resource_roles.bp, url_prefix=f"{api_prefix}/resource-roles")
     app.register_blueprint(issues.bp, url_prefix=f"{api_prefix}/issues")
+    app.register_blueprint(labels.bp, url_prefix=f"{api_prefix}/labels")
     app.register_blueprint(metadata.bp, url_prefix=f"{api_prefix}/metadata")
+    app.register_blueprint(projects.bp, url_prefix=f"{api_prefix}/projects")
+    app.register_blueprint(milestones.bp, url_prefix=f"{api_prefix}/milestones")
 
     # Public lookup endpoint (no /api/v1 prefix for cleaner URLs)
     app.register_blueprint(lookup.bp, url_prefix="/lookup")
