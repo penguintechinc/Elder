@@ -2,7 +2,7 @@
 # Multi-stage build for optimal image size
 
 # Build stage
-FROM python:3.13-slim AS builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
@@ -21,14 +21,14 @@ COPY apps/connector/requirements.txt /app/requirements.txt
 RUN pip3 install --no-cache-dir --user -r requirements.txt
 
 # Runtime stage
-FROM python:3.13-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    libldap-2.5-0 \
+    libldap2 \
     libsasl2-2 \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
