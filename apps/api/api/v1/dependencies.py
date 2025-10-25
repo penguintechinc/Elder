@@ -1,30 +1,24 @@
-"""Dependency API endpoints - Full CRUD operations for relationship management."""
+"""Dependency API endpoints using PyDAL with async/await."""
 
-from flask import Blueprint, request, jsonify
-from marshmallow import ValidationError
+import asyncio
+from flask import Blueprint, request, jsonify, current_app
+from datetime import datetime, timezone
+from dataclasses import asdict
 
-from apps.api.models import Dependency, Entity
-from apps.api.schemas.dependency import (
-    DependencySchema,
-    DependencyCreateSchema,
-    DependencyListSchema,
-    DependencyFilterSchema,
+from apps.api.models.dataclasses import (
+    DependencyDTO,
+    CreateDependencyRequest,
+    PaginatedResponse,
+    from_pydal_row,
+    from_pydal_rows,
 )
-from shared.database import db
-from shared.api_utils import (
-    paginate,
-    validate_request,
-    make_error_response,
-    apply_filters,
-    get_or_404,
-    handle_validation_error,
-)
+from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("dependencies", __name__)
 
 
 @bp.route("", methods=["GET"])
-def list_dependencies():
+async def list_dependencies():
     """
     List all dependencies with pagination and filtering.
 
@@ -38,121 +32,141 @@ def list_dependencies():
     Returns:
         200: List of dependencies with pagination metadata
     """
-    # Validate query parameters
-    try:
-        filter_data = DependencyFilterSchema().load(request.args)
-    except ValidationError as e:
-        return handle_validation_error(e)
+    db = current_app.db
 
-    # Build base query
-    query = db.session.query(Dependency)
+    # Get pagination params
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 50, type=int), 1000)
+
+    # Build query
+    query = db.dependencies.id > 0
 
     # Apply filters
-    filters = {
-        "source_entity_id": filter_data.get("source_entity_id"),
-        "target_entity_id": filter_data.get("target_entity_id"),
-        "dependency_type": filter_data.get("dependency_type"),
-    }
-    query = apply_filters(query, Dependency, filters)
+    if request.args.get("source_entity_id"):
+        source_id = request.args.get("source_entity_id", type=int)
+        query &= (db.dependencies.source_entity_id == source_id)
 
-    # Order by created_at (newest first)
-    query = query.order_by(Dependency.created_at.desc())
+    if request.args.get("target_entity_id"):
+        target_id = request.args.get("target_entity_id", type=int)
+        query &= (db.dependencies.target_entity_id == target_id)
 
-    # Paginate
-    items, pagination = paginate(
-        query,
-        page=filter_data["page"],
-        per_page=filter_data["per_page"],
+    if request.args.get("dependency_type"):
+        dep_type = request.args.get("dependency_type")
+        query &= (db.dependencies.dependency_type == dep_type)
+
+    # Calculate pagination
+    offset = (page - 1) * per_page
+
+    # Use asyncio TaskGroup for concurrent queries (Python 3.12)
+    async with asyncio.TaskGroup() as tg:
+        count_task = tg.create_task(
+            run_in_threadpool(lambda: db(query).count())
+        )
+        rows_task = tg.create_task(
+            run_in_threadpool(lambda: db(query).select(
+                orderby=~db.dependencies.created_at,
+                limitby=(offset, offset + per_page)
+            ))
+        )
+
+    total = count_task.result()
+    rows = rows_task.result()
+
+    # Calculate total pages
+    pages = (total + per_page - 1) // per_page if total > 0 else 0
+
+    # Convert PyDAL rows to DTOs
+    items = from_pydal_rows(rows, DependencyDTO)
+
+    # Create paginated response
+    response = PaginatedResponse(
+        items=[asdict(item) for item in items],
+        total=total,
+        page=page,
+        per_page=per_page,
+        pages=pages
     )
 
-    # Serialize
-    schema = DependencySchema(many=True)
-    list_schema = DependencyListSchema()
-
-    result = list_schema.dump({
-        "items": schema.dump(items),
-        **pagination,
-    })
-
-    return jsonify(result), 200
+    return jsonify(asdict(response)), 200
 
 
 @bp.route("", methods=["POST"])
-def create_dependency():
+async def create_dependency():
     """
     Create a new dependency relationship.
 
     Request Body:
-        JSON object with dependency fields (see DependencyCreateSchema)
+        JSON object with dependency fields
 
     Returns:
         201: Created dependency
         400: Validation error or invalid entity IDs
         409: Dependency already exists
     """
-    try:
-        data = validate_request(DependencyCreateSchema)
-    except ValidationError as e:
-        return handle_validation_error(e)
+    db = current_app.db
 
-    # Validate that source and target entities exist
-    source = db.session.get(Entity, data["source_entity_id"])
-    target = db.session.get(Entity, data["target_entity_id"])
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
 
-    if not source:
-        return make_error_response(
-            f"Source entity {data['source_entity_id']} not found",
-            400,
-        )
+    # Validate required fields
+    if not data.get("source_entity_id"):
+        return jsonify({"error": "source_entity_id is required"}), 400
+    if not data.get("target_entity_id"):
+        return jsonify({"error": "target_entity_id is required"}), 400
+    if not data.get("dependency_type"):
+        return jsonify({"error": "dependency_type is required"}), 400
 
-    if not target:
-        return make_error_response(
-            f"Target entity {data['target_entity_id']} not found",
-            400,
-        )
+    source_id = data["source_entity_id"]
+    target_id = data["target_entity_id"]
 
     # Prevent self-dependencies
-    if data["source_entity_id"] == data["target_entity_id"]:
-        return make_error_response(
-            "Cannot create dependency from entity to itself",
-            400,
+    if source_id == target_id:
+        return jsonify({"error": "Cannot create dependency from entity to itself"}), 400
+
+    # Check if entities exist and dependency doesn't already exist
+    def validate_and_create():
+        # Check if source entity exists
+        source = db.entities[source_id]
+        if not source:
+            return {"error": f"Source entity {source_id} not found"}, 400, None
+
+        # Check if target entity exists
+        target = db.entities[target_id]
+        if not target:
+            return {"error": f"Target entity {target_id} not found"}, 400, None
+
+        # Check if dependency already exists
+        existing = db(
+            (db.dependencies.source_entity_id == source_id) &
+            (db.dependencies.target_entity_id == target_id) &
+            (db.dependencies.dependency_type == data["dependency_type"])
+        ).select().first()
+
+        if existing:
+            return {"error": "Dependency already exists", "dependency_id": existing.id}, 409, None
+
+        # Create dependency
+        dep_id = db.dependencies.insert(
+            source_entity_id=source_id,
+            target_entity_id=target_id,
+            dependency_type=data["dependency_type"],
+            metadata=data.get("metadata"),
         )
+        db.commit()
+        return None, None, db.dependencies[dep_id]
 
-    # Check if dependency already exists
-    existing = db.session.query(Dependency).filter_by(
-        source_entity_id=data["source_entity_id"],
-        target_entity_id=data["target_entity_id"],
-        dependency_type=data["dependency_type"],
-    ).first()
+    error, status, row = await run_in_threadpool(validate_and_create)
 
-    if existing:
-        return make_error_response(
-            "Dependency already exists",
-            409,
-            dependency_id=existing.id,
-        )
+    if error:
+        return jsonify(error), status
 
-    # Convert dependency_type string to enum
-    from apps.api.models.dependency import DependencyType
-    data["dependency_type"] = DependencyType(data["dependency_type"])
-
-    # Create dependency
-    dependency = Dependency(**data)
-    db.session.add(dependency)
-
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return make_error_response(f"Database error: {str(e)}", 500)
-
-    # Serialize and return
-    schema = DependencySchema()
-    return jsonify(schema.dump(dependency)), 201
+    dependency_dto = from_pydal_row(row, DependencyDTO)
+    return jsonify(asdict(dependency_dto)), 201
 
 
 @bp.route("/<int:id>", methods=["GET"])
-def get_dependency(id: int):
+async def get_dependency(id: int):
     """
     Get a single dependency by ID.
 
@@ -163,14 +177,19 @@ def get_dependency(id: int):
         200: Dependency details
         404: Dependency not found
     """
-    dependency = get_or_404(Dependency, id)
+    db = current_app.db
 
-    schema = DependencySchema()
-    return jsonify(schema.dump(dependency)), 200
+    row = await run_in_threadpool(lambda: db.dependencies[id])
+
+    if not row:
+        return jsonify({"error": "Dependency not found"}), 404
+
+    dependency_dto = from_pydal_row(row, DependencyDTO)
+    return jsonify(asdict(dependency_dto)), 200
 
 
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])
-def update_dependency(id: int):
+async def update_dependency(id: int):
     """
     Update a dependency (edit relationship type or metadata).
 
@@ -185,39 +204,37 @@ def update_dependency(id: int):
         400: Validation error
         404: Dependency not found
     """
-    dependency = get_or_404(Dependency, id)
+    db = current_app.db
 
-    data = request.get_json() or {}
+    # Check if dependency exists
+    existing = await run_in_threadpool(lambda: db.dependencies[id])
+    if not existing:
+        return jsonify({"error": "Dependency not found"}), 404
 
-    # Validate dependency_type if provided
-    if "dependency_type" in data:
-        from apps.api.models.dependency import DependencyType
-        try:
-            data["dependency_type"] = DependencyType(data["dependency_type"])
-        except ValueError:
-            return make_error_response(
-                f"Invalid dependency_type: {data['dependency_type']}",
-                400,
-            )
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
 
-    # Update allowed fields
-    for key in ["dependency_type", "metadata"]:
-        if key in data:
-            setattr(dependency, key, data[key])
+    # Update dependency
+    def update_in_db():
+        update_fields = {}
+        if "dependency_type" in data:
+            update_fields["dependency_type"] = data["dependency_type"]
+        if "metadata" in data:
+            update_fields["metadata"] = data["metadata"]
 
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return make_error_response(f"Database error: {str(e)}", 500)
+        db(db.dependencies.id == id).update(**update_fields)
+        db.commit()
+        return db.dependencies[id]
 
-    # Serialize and return
-    schema = DependencySchema()
-    return jsonify(schema.dump(dependency)), 200
+    row = await run_in_threadpool(update_in_db)
+
+    dependency_dto = from_pydal_row(row, DependencyDTO)
+    return jsonify(asdict(dependency_dto)), 200
 
 
 @bp.route("/<int:id>", methods=["DELETE"])
-def delete_dependency(id: int):
+async def delete_dependency(id: int):
     """
     Delete a dependency relationship.
 
@@ -228,20 +245,24 @@ def delete_dependency(id: int):
         204: Dependency deleted
         404: Dependency not found
     """
-    dependency = get_or_404(Dependency, id)
+    db = current_app.db
 
-    try:
-        db.session.delete(dependency)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return make_error_response(f"Database error: {str(e)}", 500)
+    # Check if dependency exists
+    existing = await run_in_threadpool(lambda: db.dependencies[id])
+    if not existing:
+        return jsonify({"error": "Dependency not found"}), 404
+
+    # Delete dependency
+    await run_in_threadpool(lambda: (
+        db(db.dependencies.id == id).delete(),
+        db.commit()
+    ))
 
     return "", 204
 
 
 @bp.route("/bulk", methods=["POST"])
-def create_bulk_dependencies():
+async def create_bulk_dependencies():
     """
     Create multiple dependencies at once.
 
@@ -252,49 +273,56 @@ def create_bulk_dependencies():
         201: Created dependencies
         400: Validation error
     """
-    data = request.get_json() or []
+    db = current_app.db
 
+    data = request.get_json()
     if not isinstance(data, list):
-        return make_error_response("Request body must be an array", 400)
+        return jsonify({"error": "Request body must be an array"}), 400
 
     if len(data) == 0:
-        return make_error_response("At least one dependency required", 400)
+        return jsonify({"error": "At least one dependency required"}), 400
 
     if len(data) > 100:
-        return make_error_response("Maximum 100 dependencies per bulk request", 400)
+        return jsonify({"error": "Maximum 100 dependencies per bulk request"}), 400
 
-    # Validate all dependencies
-    from apps.api.models.dependency import DependencyType
-    schema = DependencyCreateSchema()
-    dependencies = []
+    # Validate and create dependencies
+    def create_all():
+        created_ids = []
+        for i, dep_data in enumerate(data):
+            # Validate required fields
+            if not dep_data.get("source_entity_id"):
+                raise ValueError(f"source_entity_id required at index {i}")
+            if not dep_data.get("target_entity_id"):
+                raise ValueError(f"target_entity_id required at index {i}")
+            if not dep_data.get("dependency_type"):
+                raise ValueError(f"dependency_type required at index {i}")
 
-    for i, dep_data in enumerate(data):
-        try:
-            validated = schema.load(dep_data)
-            validated["dependency_type"] = DependencyType(validated["dependency_type"])
-            dependencies.append(Dependency(**validated))
-        except ValidationError as e:
-            return make_error_response(
-                f"Validation error at index {i}",
-                400,
-                validation_errors=e.messages,
+            # Create dependency
+            dep_id = db.dependencies.insert(
+                source_entity_id=dep_data["source_entity_id"],
+                target_entity_id=dep_data["target_entity_id"],
+                dependency_type=dep_data["dependency_type"],
+                metadata=dep_data.get("metadata"),
             )
+            created_ids.append(dep_id)
 
-    # Create all dependencies
+        db.commit()
+
+        # Fetch created dependencies
+        return db(db.dependencies.id.belongs(created_ids)).select()
+
     try:
-        db.session.add_all(dependencies)
-        db.session.commit()
+        rows = await run_in_threadpool(create_all)
+        dependencies = from_pydal_rows(rows, DependencyDTO)
+        return jsonify([asdict(d) for d in dependencies]), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
-        db.session.rollback()
-        return make_error_response(f"Database error: {str(e)}", 500)
-
-    # Serialize and return
-    result_schema = DependencySchema(many=True)
-    return jsonify(result_schema.dump(dependencies)), 201
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
 @bp.route("/bulk", methods=["DELETE"])
-def delete_bulk_dependencies():
+async def delete_bulk_dependencies():
     """
     Delete multiple dependencies at once.
 
@@ -305,26 +333,26 @@ def delete_bulk_dependencies():
         200: Number of deleted dependencies
         400: Validation error
     """
-    data = request.get_json() or {}
+    db = current_app.db
 
-    if "ids" not in data or not isinstance(data["ids"], list):
-        return make_error_response("Request must include 'ids' array", 400)
+    data = request.get_json()
+    if not data or "ids" not in data or not isinstance(data["ids"], list):
+        return jsonify({"error": "Request must include 'ids' array"}), 400
 
     ids = data["ids"]
 
     if len(ids) == 0:
-        return make_error_response("At least one ID required", 400)
+        return jsonify({"error": "At least one ID required"}), 400
 
     if len(ids) > 100:
-        return make_error_response("Maximum 100 dependencies per bulk delete", 400)
+        return jsonify({"error": "Maximum 100 dependencies per bulk delete"}), 400
 
-    try:
-        deleted = db.session.query(Dependency).filter(Dependency.id.in_(ids)).delete(
-            synchronize_session=False
-        )
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return make_error_response(f"Database error: {str(e)}", 500)
+    # Delete dependencies
+    def delete_all():
+        deleted = db(db.dependencies.id.belongs(ids)).delete()
+        db.commit()
+        return deleted
+
+    deleted = await run_in_threadpool(delete_all)
 
     return jsonify({"deleted": deleted, "requested": len(ids)}), 200

@@ -1,31 +1,25 @@
-"""Entity API endpoints - Full CRUD operations."""
+"""Entity API endpoints using PyDAL with async/await."""
 
-from flask import Blueprint, request, jsonify
-from marshmallow import ValidationError
+import asyncio
+from flask import Blueprint, request, jsonify, current_app
+from datetime import datetime, timezone
+from dataclasses import asdict
 
-from apps.api.models import Entity
-from apps.api.schemas.entity import (
-    EntitySchema,
-    EntityCreateSchema,
-    EntityUpdateSchema,
-    EntityListSchema,
-    EntityFilterSchema,
+from apps.api.models.dataclasses import (
+    EntityDTO,
+    CreateEntityRequest,
+    UpdateEntityRequest,
+    PaginatedResponse,
+    from_pydal_row,
+    from_pydal_rows,
 )
-from shared.database import db
-from shared.api_utils import (
-    paginate,
-    validate_request,
-    make_error_response,
-    apply_filters,
-    get_or_404,
-    handle_validation_error,
-)
+from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("entities", __name__)
 
 
 @bp.route("", methods=["GET"])
-def list_entities():
+async def list_entities():
     """
     List all entities with pagination and filtering.
 
@@ -34,90 +28,125 @@ def list_entities():
         - per_page: Items per page (default: 50, max: 1000)
         - entity_type: Filter by entity type
         - organization_id: Filter by organization ID
-        - owner_identity_id: Filter by owner identity ID
         - name: Filter by name (partial match)
+        - is_active: Filter by active status
 
     Returns:
         200: List of entities with pagination metadata
     """
-    # Validate query parameters
-    try:
-        filter_data = EntityFilterSchema().load(request.args)
-    except ValidationError as e:
-        return handle_validation_error(e)
+    db = current_app.db
 
-    # Build base query
-    query = db.session.query(Entity)
+    # Get pagination params
+    page = request.args.get('page', 1, type=int)
+    per_page = min(request.args.get('per_page', 50, type=int), 1000)
+
+    # Build query
+    query = db.entities.id > 0
 
     # Apply filters
-    filters = {
-        "entity_type": filter_data.get("entity_type"),
-        "organization_id": filter_data.get("organization_id"),
-        "owner_identity_id": filter_data.get("owner_identity_id"),
-        "name": filter_data.get("name"),
-    }
-    query = apply_filters(query, Entity, filters)
+    if request.args.get("entity_type"):
+        entity_type = request.args.get("entity_type")
+        query &= (db.entities.entity_type == entity_type)
 
-    # Order by name
-    query = query.order_by(Entity.name)
+    if request.args.get("organization_id"):
+        organization_id = request.args.get("organization_id", type=int)
+        query &= (db.entities.organization_id == organization_id)
 
-    # Paginate
-    items, pagination = paginate(
-        query,
-        page=filter_data["page"],
-        per_page=filter_data["per_page"],
+    if request.args.get("name"):
+        name = request.args.get("name")
+        query &= (db.entities.name.contains(name))
+
+    if request.args.get("is_active") is not None:
+        is_active = request.args.get("is_active", "true").lower() == "true"
+        query &= (db.entities.is_active == is_active)
+
+    # Calculate pagination
+    offset = (page - 1) * per_page
+
+    # Use asyncio TaskGroup for concurrent queries (Python 3.12)
+    async with asyncio.TaskGroup() as tg:
+        count_task = tg.create_task(
+            run_in_threadpool(lambda: db(query).count())
+        )
+        rows_task = tg.create_task(
+            run_in_threadpool(lambda: db(query).select(
+                orderby=db.entities.name,
+                limitby=(offset, offset + per_page)
+            ))
+        )
+
+    total = count_task.result()
+    rows = rows_task.result()
+
+    # Calculate total pages
+    pages = (total + per_page - 1) // per_page if total > 0 else 0
+
+    # Convert PyDAL rows to DTOs
+    items = from_pydal_rows(rows, EntityDTO)
+
+    # Create paginated response
+    response = PaginatedResponse(
+        items=[asdict(item) for item in items],
+        total=total,
+        page=page,
+        per_page=per_page,
+        pages=pages
     )
 
-    # Serialize
-    schema = EntitySchema(many=True)
-    list_schema = EntityListSchema()
-
-    result = list_schema.dump({
-        "items": schema.dump(items),
-        **pagination,
-    })
-
-    return jsonify(result), 200
+    return jsonify(asdict(response)), 200
 
 
 @bp.route("", methods=["POST"])
-def create_entity():
+async def create_entity():
     """
     Create a new entity.
 
     Request Body:
-        JSON object with entity fields (see EntityCreateSchema)
+        JSON object with entity fields
 
     Returns:
         201: Created entity
         400: Validation error
     """
-    try:
-        data = validate_request(EntityCreateSchema)
-    except ValidationError as e:
-        return handle_validation_error(e)
+    db = current_app.db
 
-    # Convert entity_type string to enum
-    from apps.api.models.entity import EntityType
-    data["entity_type"] = EntityType(data["entity_type"])
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
 
-    # Create entity
-    entity = Entity(**data)
-    db.session.add(entity)
+    # Validate required fields
+    if not data.get("name"):
+        return jsonify({"error": "name is required"}), 400
+    if not data.get("entity_type"):
+        return jsonify({"error": "entity_type is required"}), 400
+    if not data.get("organization_id"):
+        return jsonify({"error": "organization_id is required"}), 400
 
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return make_error_response(f"Database error: {str(e)}", 500)
+    # Create entity in database
+    def create_in_db():
+        entity_id = db.entities.insert(
+            name=data["name"],
+            description=data.get("description"),
+            entity_type=data["entity_type"],
+            organization_id=data["organization_id"],
+            parent_id=data.get("parent_id"),
+            attributes=data.get("attributes"),
+            tags=data.get("tags", []),
+            is_active=data.get("is_active", True),
+        )
+        db.commit()
+        return db.entities[entity_id]
 
-    # Serialize and return
-    schema = EntitySchema()
-    return jsonify(schema.dump(entity)), 201
+    row = await run_in_threadpool(create_in_db)
+
+    # Convert to DTO
+    entity_dto = from_pydal_row(row, EntityDTO)
+
+    return jsonify(asdict(entity_dto)), 201
 
 
 @bp.route("/<int:id>", methods=["GET"])
-def get_entity(id: int):
+async def get_entity(id: int):
     """
     Get a single entity by ID.
 
@@ -128,14 +157,19 @@ def get_entity(id: int):
         200: Entity details
         404: Entity not found
     """
-    entity = get_or_404(Entity, id)
+    db = current_app.db
 
-    schema = EntitySchema()
-    return jsonify(schema.dump(entity)), 200
+    row = await run_in_threadpool(lambda: db.entities[id])
+
+    if not row:
+        return jsonify({"error": "Entity not found"}), 404
+
+    entity_dto = from_pydal_row(row, EntityDTO)
+    return jsonify(asdict(entity_dto)), 200
 
 
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])
-def update_entity(id: int):
+async def update_entity(id: int):
     """
     Update an entity (full edit support).
 
@@ -143,42 +177,56 @@ def update_entity(id: int):
         - id: Entity ID
 
     Request Body:
-        JSON object with fields to update (see EntityUpdateSchema)
+        JSON object with fields to update
 
     Returns:
         200: Updated entity
         400: Validation error
         404: Entity not found
     """
-    entity = get_or_404(Entity, id)
+    db = current_app.db
 
-    try:
-        data = validate_request(EntityUpdateSchema)
-    except ValidationError as e:
-        return handle_validation_error(e)
+    # Check if entity exists
+    existing = await run_in_threadpool(lambda: db.entities[id])
+    if not existing:
+        return jsonify({"error": "Entity not found"}), 404
 
-    # Convert entity_type string to enum if provided
-    if "entity_type" in data:
-        from apps.api.models.entity import EntityType
-        data["entity_type"] = EntityType(data["entity_type"])
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
 
-    # Update fields
-    for key, value in data.items():
-        setattr(entity, key, value)
+    # Update entity
+    def update_in_db():
+        update_fields = {}
+        if "name" in data:
+            update_fields["name"] = data["name"]
+        if "description" in data:
+            update_fields["description"] = data["description"]
+        if "entity_type" in data:
+            update_fields["entity_type"] = data["entity_type"]
+        if "organization_id" in data:
+            update_fields["organization_id"] = data["organization_id"]
+        if "parent_id" in data:
+            update_fields["parent_id"] = data["parent_id"]
+        if "attributes" in data:
+            update_fields["attributes"] = data["attributes"]
+        if "tags" in data:
+            update_fields["tags"] = data["tags"]
+        if "is_active" in data:
+            update_fields["is_active"] = data["is_active"]
 
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return make_error_response(f"Database error: {str(e)}", 500)
+        db(db.entities.id == id).update(**update_fields)
+        db.commit()
+        return db.entities[id]
 
-    # Serialize and return
-    schema = EntitySchema()
-    return jsonify(schema.dump(entity)), 200
+    row = await run_in_threadpool(update_in_db)
+
+    entity_dto = from_pydal_row(row, EntityDTO)
+    return jsonify(asdict(entity_dto)), 200
 
 
 @bp.route("/<int:id>", methods=["DELETE"])
-def delete_entity(id: int):
+async def delete_entity(id: int):
     """
     Delete an entity.
 
@@ -190,28 +238,39 @@ def delete_entity(id: int):
         404: Entity not found
         400: Cannot delete entity with dependencies
     """
-    entity = get_or_404(Entity, id)
+    db = current_app.db
+
+    # Check if entity exists
+    existing = await run_in_threadpool(lambda: db.entities[id])
+    if not existing:
+        return jsonify({"error": "Entity not found"}), 404
 
     # Check for dependencies
-    total_deps = len(entity.outgoing_dependencies) + len(entity.incoming_dependencies)
-    if total_deps > 0:
-        return make_error_response(
-            f"Cannot delete entity with {total_deps} dependencies. Remove dependencies first.",
-            400,
-        )
+    def check_and_delete():
+        # Check outgoing dependencies (this entity depends on others)
+        outgoing_count = db((db.dependencies.source_entity_id == id)).count()
+        # Check incoming dependencies (others depend on this entity)
+        incoming_count = db((db.dependencies.target_entity_id == id)).count()
 
-    try:
-        db.session.delete(entity)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return make_error_response(f"Database error: {str(e)}", 500)
+        total_deps = outgoing_count + incoming_count
+        if total_deps > 0:
+            return {"error": f"Cannot delete entity with {total_deps} dependencies. Remove dependencies first."}, False
+
+        # Delete entity
+        del db.entities[id]
+        db.commit()
+        return None, True
+
+    result, success = await run_in_threadpool(check_and_delete)
+
+    if not success:
+        return jsonify(result), 400
 
     return "", 204
 
 
 @bp.route("/<int:id>/dependencies", methods=["GET"])
-def get_entity_dependencies(id: int):
+async def get_entity_dependencies(id: int):
     """
     Get all dependencies for an entity.
 
@@ -220,86 +279,94 @@ def get_entity_dependencies(id: int):
 
     Query Parameters:
         - direction: 'outgoing' (depends on), 'incoming' (depended by), or 'all' (default)
-        - depth: Maximum depth for recursive dependencies (default: 1, -1 for unlimited)
 
     Returns:
         200: Dependencies information
         404: Entity not found
     """
-    entity = get_or_404(Entity, id)
+    db = current_app.db
+
+    # Check if entity exists
+    entity = await run_in_threadpool(lambda: db.entities[id])
+    if not entity:
+        return jsonify({"error": "Entity not found"}), 404
 
     direction = request.args.get("direction", "all")
-    depth = request.args.get("depth", 1, type=int)
 
-    result = {
-        "entity_id": entity.id,
-        "entity_name": entity.name,
-    }
+    def get_dependencies():
+        result = {
+            "entity_id": entity.id,
+            "entity_name": entity.name,
+        }
 
-    if direction in ("outgoing", "all"):
-        # Entities this entity depends on
-        if depth == 1:
-            outgoing = entity.outgoing_dependencies
-        else:
-            # Get recursive dependencies
-            deps = entity.get_all_dependencies(depth=depth)
-            outgoing = [db.session.query(Entity).get(d.id) for d in deps if d]
+        if direction in ("outgoing", "all"):
+            # Entities this entity depends on
+            outgoing = db(db.dependencies.source_entity_id == id).select()
+            result["depends_on"] = [
+                {
+                    "id": dep.id,
+                    "target_entity_id": dep.target_entity_id,
+                    "dependency_type": dep.dependency_type,
+                    "metadata": dep.metadata,
+                }
+                for dep in outgoing
+            ]
 
-        from apps.api.schemas.dependency import DependencySchema
-        result["depends_on"] = DependencySchema(many=True).dump(outgoing)
+        if direction in ("incoming", "all"):
+            # Entities that depend on this entity
+            incoming = db(db.dependencies.target_entity_id == id).select()
+            result["depended_by"] = [
+                {
+                    "id": dep.id,
+                    "source_entity_id": dep.source_entity_id,
+                    "dependency_type": dep.dependency_type,
+                    "metadata": dep.metadata,
+                }
+                for dep in incoming
+            ]
 
-    if direction in ("incoming", "all"):
-        # Entities that depend on this entity
-        if depth == 1:
-            incoming = entity.incoming_dependencies
-        else:
-            # Get recursive dependents
-            deps = entity.get_all_dependents(depth=depth)
-            incoming = [db.session.query(Entity).get(d.id) for d in deps if d]
+        return result
 
-        from apps.api.schemas.dependency import DependencySchema
-        result["depended_by"] = DependencySchema(many=True).dump(incoming)
-
+    result = await run_in_threadpool(get_dependencies)
     return jsonify(result), 200
 
 
-@bp.route("/<int:id>/metadata", methods=["PATCH"])
-def update_entity_metadata(id: int):
+@bp.route("/<int:id>/attributes", methods=["PATCH"])
+async def update_entity_attributes(id: int):
     """
-    Update entity metadata (for type-specific fields).
+    Update entity attributes (JSON field for type-specific fields).
 
     Path Parameters:
         - id: Entity ID
 
     Request Body:
-        JSON object with metadata fields to update
+        JSON object with attribute fields to update
 
     Returns:
         200: Updated entity
         404: Entity not found
     """
-    entity = get_or_404(Entity, id)
+    db = current_app.db
 
-    data = request.get_json() or {}
+    # Check if entity exists
+    existing = await run_in_threadpool(lambda: db.entities[id])
+    if not existing:
+        return jsonify({"error": "Entity not found"}), 404
 
+    data = request.get_json()
     if not isinstance(data, dict):
-        return make_error_response("Metadata must be a JSON object", 400)
+        return jsonify({"error": "Attributes must be a JSON object"}), 400
 
-    # Update metadata fields
-    if entity.metadata is None:
-        entity.metadata = {}
+    # Update attributes
+    def update_attributes():
+        current_attrs = existing.attributes or {}
+        current_attrs.update(data)
 
-    entity.metadata.update(data)
+        db(db.entities.id == id).update(attributes=current_attrs)
+        db.commit()
+        return db.entities[id]
 
-    try:
-        # Mark as modified for SQLAlchemy to detect change
-        from sqlalchemy.orm.attributes import flag_modified
-        flag_modified(entity, "metadata")
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return make_error_response(f"Database error: {str(e)}", 500)
+    row = await run_in_threadpool(update_attributes)
 
-    # Serialize and return
-    schema = EntitySchema()
-    return jsonify(schema.dump(entity)), 200
+    entity_dto = from_pydal_row(row, EntityDTO)
+    return jsonify(asdict(entity_dto)), 200

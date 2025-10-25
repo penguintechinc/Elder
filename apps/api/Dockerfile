@@ -83,7 +83,7 @@ CMD ["uvicorn", \
      "--factory", \
      "--host", "0.0.0.0", \
      "--port", "5000", \
-     "--workers", "4", \
+     "--workers", "1", \
      "--loop", "uvloop", \
      "--http", "h11", \
      "--access-log", \

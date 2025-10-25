@@ -432,4 +432,5 @@ tramp
 *.orig
 *.rej
 .vagrant/
-vagrant/
+vagrant/.TODO
+.PLAN

@@ -127,6 +127,7 @@ services:
     volumes:
       - ./apps:/app/apps
       - ./shared:/app/shared
+      - pydal_migrations:/app/instance
 
   # Prometheus Monitoring
   prometheus:
@@ -239,6 +240,8 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  pydal_migrations:
     driver: local
 
 networks:
