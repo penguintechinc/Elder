@@ -11,6 +11,8 @@ import {
   ConnectionMode,
   NodeTypes,
   MarkerType,
+  Handle,
+  Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -68,18 +70,24 @@ const CustomNode: React.FC<{ data: any }> = ({ data }) => {
   const color = entityTypeColors[data.nodeType] || entityTypeColors.default;
 
   return (
-    <div
-      className="px-4 py-2 shadow-lg rounded-lg border-2 min-w-[150px] text-center cursor-pointer hover:shadow-xl transition-shadow"
-      style={{
-        backgroundColor: `${color}20`,
-        borderColor: color,
-      }}
-    >
-      <div className="font-semibold text-sm" style={{ color }}>
-        {data.nodeType === 'organization' ? '🏢' : '📦'} {data.nodeType}
+    <>
+      {/* Connection handles - required for edges to render */}
+      <Handle type="target" position={Position.Left} />
+      <Handle type="source" position={Position.Right} />
+
+      <div
+        className="px-4 py-2 shadow-lg rounded-lg border-2 min-w-[150px] text-center cursor-pointer hover:shadow-xl transition-shadow"
+        style={{
+          backgroundColor: `${color}20`,
+          borderColor: color,
+        }}
+      >
+        <div className="font-semibold text-sm" style={{ color }}>
+          {data.nodeType === 'organization' ? '🏢' : '📦'} {data.nodeType}
+        </div>
+        <div className="text-xs text-slate-700 mt-1 font-medium">{data.label}</div>
       </div>
-      <div className="text-xs text-slate-700 mt-1 font-medium">{data.label}</div>
-    </div>
+    </>
   );
 };
 
@@ -95,24 +103,41 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
 }) => {
   // Convert our graph data to React Flow format
   const initialNodes: Node[] = useMemo(() => {
-    return graphNodes.map((node, index) => {
-      const angle = (index / graphNodes.length) * 2 * Math.PI;
-      const radius = Math.min(300, graphNodes.length * 50);
+    // Use hierarchical layout: parents on left, children on right
+    // Group nodes by level (depth in the tree)
+    const nodesByLevel = new Map<number, typeof graphNodes>();
 
-      return {
-        id: node.id,
-        type: 'custom',
-        position: {
-          x: 400 + radius * Math.cos(angle),
-          y: 300 + radius * Math.sin(angle),
-        },
-        data: {
-          label: node.label,
-          nodeType: node.type,
-          metadata: node.metadata,
-        },
-      };
+    graphNodes.forEach((node) => {
+      const level = node.metadata?.parent_id ? 1 : 0;
+      if (!nodesByLevel.has(level)) {
+        nodesByLevel.set(level, []);
+      }
+      nodesByLevel.get(level)!.push(node);
     });
+
+    const nodes: Node[] = [];
+    const horizontalSpacing = 400;
+    const verticalSpacing = 150;
+
+    nodesByLevel.forEach((nodesAtLevel, level) => {
+      nodesAtLevel.forEach((node, indexInLevel) => {
+        nodes.push({
+          id: node.id,
+          type: 'custom',
+          position: {
+            x: level * horizontalSpacing + 50,
+            y: indexInLevel * verticalSpacing + 50,
+          },
+          data: {
+            label: node.label,
+            nodeType: node.type,
+            metadata: node.metadata,
+          },
+        });
+      });
+    });
+
+    return nodes;
   }, [graphNodes]);
 
   const initialEdges: Edge[] = useMemo(() => {
@@ -134,10 +159,11 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
 
       const reactFlowEdge: Edge = {
         id: `edge-${index}`,
-        source: edge.from,
-        target: edge.to,
+        // For "parent" relationships, reverse direction: child points to parent
+        source: edge.label === 'parent' ? edge.to : edge.from,
+        target: edge.label === 'parent' ? edge.from : edge.to,
         label: edge.label || '',
-        type: 'smoothstep',
+        type: 'default',
         animated: true,
         style: {
           stroke: edgeColor,
@@ -168,15 +194,28 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
   console.log('NetworkGraph: Current edges state:', edges);
   console.log('NetworkGraph: Edge connections:', edges.map(e => ({ id: e.id, source: e.source, target: e.target })));
 
+  // Check if edges have valid source/target that match node IDs
+  edges.forEach((edge) => {
+    const sourceExists = nodes.find(n => n.id === edge.source);
+    const targetExists = nodes.find(n => n.id === edge.target);
+    console.log(`Edge ${edge.id}: source=${edge.source} (exists: ${!!sourceExists}), target=${edge.target} (exists: ${!!targetExists})`);
+  });
+
   // Update nodes when graph data changes
   useEffect(() => {
+    console.log('NetworkGraph: Setting nodes:', initialNodes);
     setNodes(initialNodes);
   }, [initialNodes, setNodes]);
 
   // Update edges when graph data changes
   useEffect(() => {
-    console.log('NetworkGraph: Updating edges state with:', initialEdges);
-    setEdges(initialEdges);
+    console.log('NetworkGraph: Setting edges:', initialEdges);
+    // Set edges multiple times to force re-render
+    setEdges([]);
+    setTimeout(() => {
+      setEdges(initialEdges);
+      console.log('NetworkGraph: Edges set after timeout');
+    }, 100);
   }, [initialEdges, setEdges]);
 
   const handleNodeClick = useCallback(
@@ -217,30 +256,11 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
         onEdgesChange={onEdgesChange}
         onNodeClick={handleNodeClick}
         nodeTypes={nodeTypes}
-        connectionMode={ConnectionMode.Loose}
         fitView
-        fitViewOptions={{ padding: 0.2 }}
-        minZoom={0.1}
-        maxZoom={4}
-        elementsSelectable={true}
-        nodesConnectable={false}
-        nodesDraggable={true}
-        zoomOnScroll={true}
-        panOnScroll={false}
-        zoomOnDoubleClick={true}
-        proOptions={{ hideAttribution: true }}
       >
         <Background color="#94a3b8" gap={16} />
         <Controls />
-        <MiniMap
-          nodeColor={(node) => {
-            const nodeType = node.data?.nodeType || 'default';
-            return entityTypeColors[nodeType] || entityTypeColors.default;
-          }}
-          nodeStrokeWidth={3}
-          zoomable
-          pannable
-        />
+        <MiniMap />
       </ReactFlow>
     </div>
   );

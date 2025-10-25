@@ -54,7 +54,8 @@
       "Bash(/tmp/test_all.sh)",
       "Bash(/tmp/test_identity.sh)",
       "Bash(bash:*)",
-      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzZXJuYW1lIjoiYWRtaW4iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzYxNDE4NjA4LCJleHAiOjE3NjE0MjIyMDh9.PMYweQ6dY5Ky93Nd0USetBkEc_cuWyljuNEgoqndFWM\" curl:*)"
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzZXJuYW1lIjoiYWRtaW4iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzYxNDE4NjA4LCJleHAiOjE3NjE0MjIyMDh9.PMYweQ6dY5Ky93Nd0USetBkEc_cuWyljuNEgoqndFWM\" curl:*)",
+      "Read(//home/penguin/Pictures/Screenshots/**)"
     ],
     "deny": [],
     "ask": []
