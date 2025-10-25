@@ -17,6 +17,7 @@ import Search from './pages/Search'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import RelationshipGraph from './pages/RelationshipGraph'
+import Profile from './pages/Profile'
 
 // Protected route wrapper component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -37,6 +38,7 @@ export default function App() {
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="search" element={<Search />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="organizations" element={<Organizations />} />
         <Route path="organizations/:id" element={<OrganizationDetail />} />
         <Route path="relationships/:id" element={<RelationshipGraph />} />

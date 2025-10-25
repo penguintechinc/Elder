@@ -11,6 +11,7 @@ import {
   FolderKanban,
   Flag,
   Settings,
+  User,
   LogOut,
 } from 'lucide-react'
 
@@ -72,7 +73,18 @@ export default function Layout() {
           </nav>
 
           {/* User section */}
-          <div className="p-4 border-t border-slate-700">
+          <div className="p-4 border-t border-slate-700 space-y-1">
+            <Link
+              to="/profile"
+              className={`flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                location.pathname === '/profile'
+                  ? 'bg-primary-600 text-white'
+                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+              }`}
+            >
+              <User className="w-5 h-5 mr-3" />
+              Profile
+            </Link>
             <button
               onClick={handleLogout}
               className="flex items-center w-full px-4 py-3 text-sm font-medium text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"

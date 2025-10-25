@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Elder tree icon representing wisdom and entity relationships -->
+  <defs>
+    <linearGradient id="treeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4F46E5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7C3AED;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Tree trunk -->
+  <rect x="42" y="60" width="16" height="30" rx="2" fill="url(#treeGradient)" />
+
+  <!-- Tree canopy - layered circles representing entity hierarchy -->
+  <circle cx="50" cy="35" r="25" fill="url(#treeGradient)" opacity="0.9" />
+  <circle cx="35" cy="45" r="18" fill="url(#treeGradient)" opacity="0.8" />
+  <circle cx="65" cy="45" r="18" fill="url(#treeGradient)" opacity="0.8" />
+  <circle cx="50" cy="50" r="20" fill="url(#treeGradient)" opacity="0.95" />
+
+  <!-- Connection nodes representing relationships -->
+  <circle cx="50" cy="35" r="3" fill="white" opacity="0.9" />
+  <circle cx="35" cy="45" r="2.5" fill="white" opacity="0.8" />
+  <circle cx="65" cy="45" r="2.5" fill="white" opacity="0.8" />
+  <circle cx="50" cy="50" r="2.5" fill="white" opacity="0.9" />
+
+  <!-- Root system hint -->
+  <path d="M 42 88 Q 35 92 30 95" stroke="url(#treeGradient)" stroke-width="2" fill="none" opacity="0.6" />
+  <path d="M 58 88 Q 65 92 70 95" stroke="url(#treeGradient)" stroke-width="2" fill="none" opacity="0.6" />
+  <path d="M 50 90 L 50 95" stroke="url(#treeGradient)" stroke-width="2" opacity="0.6" />
+</svg>
