@@ -277,6 +277,14 @@ def _init_default_data(db: DAL) -> None:
             perm_id = permissions[perm_name]
             db.role_permissions.insert(role_id=role_id, permission_id=perm_id)
 
+    # Create root organization (default system org)
+    root_org_id = db.organizations.insert(
+        name="System",
+        description="Root organization for system administrators",
+        organization_type="organization",
+        parent_id=None,
+    )
+
     # Create default admin user if specified in environment
     admin_username = os.getenv("ADMIN_USERNAME", "admin")
     admin_password = os.getenv("ADMIN_PASSWORD")
@@ -291,6 +299,7 @@ def _init_default_data(db: DAL) -> None:
             password_hash=generate_password_hash(admin_password),
             is_active=True,
             is_superuser=True,
+            organization_id=root_org_id,  # Link admin to root OU
         )
 
         # Assign super_admin role
