@@ -4,7 +4,7 @@
 [![Test Coverage](https://codecov.io/gh/penguintechinc/elder/branch/main/graph/badge.svg)](https://codecov.io/gh/penguintechinc/elder)
 [![Python Version](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Version](https://img.shields.io/badge/version-0.1.0-green.svg)](https://github.com/penguintechinc/elder/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/penguintechinc/elder/releases)
 
 ```
 ███████╗██╗     ██████╗ ███████╗██████╗
@@ -16,6 +16,10 @@
 
 Entity, Element, and Relationship Tracking System
 ```
+
+<p align="center">
+  <img src="Elder-Logo.png" alt="Elder Logo" width="200">
+</p>
 
 > **Enterprise-grade infrastructure dependency tracking and visualization**
 
@@ -38,11 +42,69 @@ Elder provides visibility into your infrastructure and organizational relationsh
 
 ## Screenshots
 
-### Relationship Map Visualization
+### Organization Network Map
 
-![Relationship Graph](docs/screenshots/relationship-graph.png)
+![Organization Network Map](docs/screenshots/elder-organization-map.png)
 
-*Interactive graph visualization showing organizational relationships with React Flow. Nodes represent organizations and entities, while edges show parent-child and dependency relationships.*
+*Interactive network visualization showing organizational relationships with React Flow. Nodes represent organizations and entities, while edges show parent-child and dependency relationships.*
+
+### Dashboard & Core Features
+
+<table>
+<tr>
+<td width="50%">
+
+![Organizations](docs/screenshots/elder-organizationunits.png)
+*Hierarchical organization management with types, metadata, and relationship tracking*
+
+</td>
+<td width="50%">
+
+![Entities](docs/screenshots/elder-entities.png)
+*Entity tracking for datacenters, compute, network devices, and more*
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+![Dependencies](docs/screenshots/elder-dependencies.png)
+*Dependency mapping and relationship visualization between entities*
+
+</td>
+<td width="50%">
+
+![Identities](docs/screenshots/elder-identities.png)
+*User and group management with role-based access control*
+
+</td>
+</tr>
+</table>
+
+### Project Management Features
+
+<table>
+<tr>
+<td width="33%">
+
+![Projects](docs/screenshots/elder-projects.png)
+*Project tracking and organization*
+
+</td>
+<td width="33%">
+
+![Milestones](docs/screenshots/elder-milestones.png)
+*Milestone management for project planning*
+
+</td>
+<td width="33%">
+
+![Labels](docs/screenshots/elder-labels.png)
+*Customizable labels for categorization*
+
+</td>
+</tr>
+</table>
 
 ## Features
 
@@ -418,24 +480,36 @@ Elder is licensed under the Limited AGPL v3 with Fair Use Preamble. See [LICENSE
 
 ## Project Status
 
-**Current Version:** 0.1.0
+**Current Version:** 1.0.0 - Production Ready 🎉
+
+Elder v1.0.0 represents the first production-ready release with comprehensive UI/UX improvements, enhanced issue management, and complete branding integration.
 
 **Completed Phases:**
 - ✅ Phase 1: Foundation & Core Models
 - ✅ Phase 2: REST API (79 endpoints)
 - ✅ Phase 3: Authentication & Authorization (JWT, SAML, OAuth2, RBAC)
-- ✅ Phase 4: Web UI (Bootstrap 5, vis.js graphs)
+- ✅ Phase 4: Modern React UI (TypeScript, React Query, ReactFlow)
 - ✅ Phase 5: gRPC API (45 RPC methods, Envoy proxy)
-- ✅ Phase 6: Enterprise Features (Issues, Resource Roles, Metadata)
+- ✅ Phase 6: Enterprise Features (Issues, Projects, Milestones, Labels, Resource Roles, Metadata)
 - ✅ Phase 8: Infrastructure & DevOps (CI/CD, Kubernetes, Helm)
 - ✅ Phase 9: Websites & Documentation
 - ✅ Phase 10: Testing & Polish
+- ✅ v1.0.0: Production UI/UX, Enhanced Issue Management, Branding Integration
+
+**Recent v1.0.0 Highlights:**
+- Enhanced issue creation with organization/entity assignment and labels
+- Modal-first UI pattern for improved workflow efficiency
+- Clickable dashboard navigation and anchor link scrolling
+- Organization type management (Department, Team, Collection, etc.)
+- Complete Elder branding integration
+- Network graph visualization with ReactFlow
+- Comprehensive project management features
 
 **Optional Future Enhancements:**
 - Phase 6a: Advanced Features (LDAP sync, WebSocket updates, bulk operations)
 - Phase 7: License Integration Refinement
 
-See [.PLAN](.PLAN) for detailed implementation roadmap.
+See [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) for detailed release history.
 
 ## Acknowledgments
 
