@@ -434,3 +434,5 @@ tramp
 .vagrant/
 vagrant/.TODO
 .PLAN
+.FUTURE
+.TODO

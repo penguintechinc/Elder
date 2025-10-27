@@ -73,6 +73,27 @@ def define_all_tables(db):
         migrate=True,
     )
 
+    # Sync Configs table - no dependencies
+    db.define_table(
+        'sync_configs',
+        Field('name', 'string', length=255, notnull=True, unique=True, requires=IS_NOT_EMPTY()),
+        Field('platform', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['github', 'gitlab', 'jira', 'trello', 'openproject'])),
+        Field('enabled', 'boolean', default=True, notnull=True),
+        Field('sync_interval', 'integer', default=300, notnull=True),  # seconds
+        Field('batch_fallback_enabled', 'boolean', default=True, notnull=True),
+        Field('batch_size', 'integer', default=100, notnull=True),
+        Field('two_way_create', 'boolean', default=False, notnull=True),
+        Field('webhook_enabled', 'boolean', default=True, notnull=True),
+        Field('webhook_secret', 'string', length=255),
+        Field('last_sync_at', 'datetime'),
+        Field('last_batch_sync_at', 'datetime'),
+        Field('config_json', 'json'),  # Platform-specific configuration (API tokens, URLs, etc.)
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
     # ==========================================
     # LEVEL 2: Tables with Level 1 dependencies
     # ==========================================
@@ -118,6 +139,45 @@ def define_all_tables(db):
         Field('is_active', 'boolean', default=True, notnull=True),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Sync Mappings table (depends on: sync_configs)
+    db.define_table(
+        'sync_mappings',
+        Field('elder_type', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['issue', 'project', 'milestone', 'label', 'organization'])),
+        Field('elder_id', 'integer', notnull=True),
+        Field('external_platform', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['github', 'gitlab', 'jira', 'trello', 'openproject'])),
+        Field('external_id', 'string', length=255, notnull=True),
+        Field('sync_config_id', 'reference sync_configs', notnull=True, ondelete='CASCADE'),
+        Field('sync_status', 'string', length=50, default='synced',
+              requires=IS_IN_SET(['synced', 'conflict', 'error', 'pending'])),
+        Field('sync_method', 'string', length=50, default='webhook',
+              requires=IS_IN_SET(['webhook', 'poll', 'batch', 'manual'])),
+        Field('last_synced_at', 'datetime'),
+        Field('elder_updated_at', 'datetime'),
+        Field('external_updated_at', 'datetime'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Sync History table (depends on: sync_configs, identities)
+    db.define_table(
+        'sync_history',
+        Field('sync_config_id', 'reference sync_configs', notnull=True, ondelete='CASCADE'),
+        Field('correlation_id', 'string', length=36),  # UUID for distributed tracing
+        Field('sync_type', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['webhook', 'poll', 'batch', 'manual'])),
+        Field('items_synced', 'integer', default=0, notnull=True),
+        Field('items_failed', 'integer', default=0, notnull=True),
+        Field('started_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc), notnull=True),
+        Field('completed_at', 'datetime'),
+        Field('success', 'boolean', default=True, notnull=True),
+        Field('error_message', 'text'),
+        Field('sync_metadata', 'json'),  # Additional sync details, platform-specific data
         migrate=True,
     )
 
@@ -301,6 +361,23 @@ def define_all_tables(db):
         'issue_project_links',
         Field('issue_id', 'reference issues', notnull=True, ondelete='CASCADE'),
         Field('project_id', 'reference projects', notnull=True, ondelete='CASCADE'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Sync Conflicts table (depends on: sync_mappings, identities)
+    db.define_table(
+        'sync_conflicts',
+        Field('mapping_id', 'reference sync_mappings', notnull=True, ondelete='CASCADE'),
+        Field('conflict_type', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['timestamp', 'field_mismatch', 'deleted_external', 'deleted_local'])),
+        Field('elder_data', 'json', notnull=True),  # Elder's version of the data
+        Field('external_data', 'json', notnull=True),  # External platform's version of the data
+        Field('resolution_strategy', 'string', length=50, default='manual',
+              requires=IS_IN_SET(['manual', 'elder_wins', 'external_wins', 'merge'])),
+        Field('resolved', 'boolean', default=False, notnull=True),
+        Field('resolved_at', 'datetime'),
+        Field('resolved_by_id', 'reference identities', ondelete='SET NULL'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         migrate=True,
     )
