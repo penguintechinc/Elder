@@ -141,6 +141,52 @@ class Settings(BaseSettings):
         description="Maximum number of retries for failed sync operations",
     )
 
+    # Sync Batch Fallback Configuration (v1.1.0)
+    sync_batch_fallback_enabled: bool = Field(
+        default=True,
+        description="Enable batch sync fallback when webhooks fail or timeout",
+    )
+    sync_batch_interval: int = Field(
+        default=3600,
+        description="Interval in seconds for batch sync fallback (default: 1 hour)",
+    )
+    sync_batch_fallback_size: int = Field(
+        default=100,
+        description="Number of items to sync per batch in fallback mode",
+    )
+
+    # Syslog Configuration
+    syslog_enabled: bool = Field(
+        default=False,
+        description="Enable UDP syslog logging",
+    )
+    syslog_host: str = Field(
+        default="localhost",
+        description="Syslog server hostname or IP",
+    )
+    syslog_port: int = Field(
+        default=514,
+        description="Syslog server UDP port",
+    )
+
+    # KillKrill Configuration (HTTP3/QUIC Logging)
+    killkrill_enabled: bool = Field(
+        default=False,
+        description="Enable KillKrill HTTP3/QUIC logging",
+    )
+    killkrill_url: str = Field(
+        default="https://killkrill.penguintech.io",
+        description="KillKrill server URL",
+    )
+    killkrill_api_key: Optional[str] = Field(
+        default=None,
+        description="KillKrill API authentication key",
+    )
+    killkrill_use_http3: bool = Field(
+        default=True,
+        description="Use HTTP3/QUIC for KillKrill (fallback to HTTP/2 if False)",
+    )
+
     # Health Check & Monitoring
     health_check_port: int = Field(
         default=8000,

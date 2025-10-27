@@ -44,9 +44,11 @@ Elder provides visibility into your infrastructure and organizational relationsh
 
 ### Organization Network Map
 
-![Organization Network Map](docs/screenshots/elder-organization-map.png)
+<a href="docs/screenshots/elder-organization-map.png" target="_blank">
+  <img src="docs/screenshots/elder-organization-map.png" alt="Organization Network Map" style="max-width: 100%; cursor: pointer;">
+</a>
 
-*Interactive network visualization showing organizational relationships with React Flow. Nodes represent organizations and entities, while edges show parent-child and dependency relationships.*
+*Interactive network visualization showing organizational relationships with React Flow. Nodes represent organizations and entities, while edges show parent-child and dependency relationships. **Click to view full size.***
 
 ### Dashboard & Core Features
 
@@ -54,28 +56,40 @@ Elder provides visibility into your infrastructure and organizational relationsh
 <tr>
 <td width="50%">
 
-![Organizations](docs/screenshots/elder-organizationunits.png)
-*Hierarchical organization management with types, metadata, and relationship tracking*
+<a href="docs/screenshots/elder-organizationunits.png" target="_blank">
+  <img src="docs/screenshots/elder-organizationunits.png" alt="Organizations" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Hierarchical organization management with types, metadata, and relationship tracking. **Click to enlarge.***
 
 </td>
 <td width="50%">
 
-![Entities](docs/screenshots/elder-entities.png)
-*Entity tracking for datacenters, compute, network devices, and more*
+<a href="docs/screenshots/elder-entities.png" target="_blank">
+  <img src="docs/screenshots/elder-entities.png" alt="Entities" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Entity tracking for datacenters, compute, network devices, and more. **Click to enlarge.***
 
 </td>
 </tr>
 <tr>
 <td width="50%">
 
-![Dependencies](docs/screenshots/elder-dependencies.png)
-*Dependency mapping and relationship visualization between entities*
+<a href="docs/screenshots/elder-dependencies.png" target="_blank">
+  <img src="docs/screenshots/elder-dependencies.png" alt="Dependencies" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Dependency mapping and relationship visualization between entities. **Click to enlarge.***
 
 </td>
 <td width="50%">
 
-![Identities](docs/screenshots/elder-identities.png)
-*User and group management with role-based access control*
+<a href="docs/screenshots/elder-identities.png" target="_blank">
+  <img src="docs/screenshots/elder-identities.png" alt="Identities" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*User and group management with role-based access control. **Click to enlarge.***
 
 </td>
 </tr>
@@ -87,20 +101,29 @@ Elder provides visibility into your infrastructure and organizational relationsh
 <tr>
 <td width="33%">
 
-![Projects](docs/screenshots/elder-projects.png)
-*Project tracking and organization*
+<a href="docs/screenshots/elder-projects.png" target="_blank">
+  <img src="docs/screenshots/elder-projects.png" alt="Projects" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Project tracking and organization. **Click to enlarge.***
 
 </td>
 <td width="33%">
 
-![Milestones](docs/screenshots/elder-milestones.png)
-*Milestone management for project planning*
+<a href="docs/screenshots/elder-milestones.png" target="_blank">
+  <img src="docs/screenshots/elder-milestones.png" alt="Milestones" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Milestone management for project planning. **Click to enlarge.***
 
 </td>
 <td width="33%">
 
-![Labels](docs/screenshots/elder-labels.png)
-*Customizable labels for categorization*
+<a href="docs/screenshots/elder-labels.png" target="_blank">
+  <img src="docs/screenshots/elder-labels.png" alt="Labels" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Customizable labels for categorization. **Click to enlarge.***
 
 </td>
 </tr>
@@ -148,7 +171,7 @@ Elder integrates with the [PenguinTech License Server](https://license.penguinte
 
 - Python 3.13+
 - Docker & Docker Compose
-- PostgreSQL 15+ (via Docker)
+- Database: PostgreSQL 15+ (recommended, via Docker), or MySQL, SQLite, Oracle, MSSQL, etc.
 - Redis 7+ (via Docker)
 
 ### Installation
@@ -203,8 +226,11 @@ Elder is configured via environment variables. Key settings:
 FLASK_ENV=development
 SECRET_KEY=your-secret-key
 
-# Database
+# Database (PyDAL supports PostgreSQL, MySQL, SQLite, Oracle, MSSQL, and more)
 DATABASE_URL=postgresql://elder:password@localhost:5432/elder
+# Alternative examples:
+# DATABASE_URL=mysql://user:password@localhost:3306/elder
+# DATABASE_URL=sqlite://storage.db
 
 # Redis
 REDIS_URL=redis://:password@localhost:6379/0
@@ -227,6 +253,51 @@ ADMIN_EMAIL=admin@example.com
 ```
 
 See `.env` for full configuration options.
+
+## Database Support
+
+Elder uses **PyDAL** (Python Database Abstraction Layer) for maximum database flexibility. This allows you to choose the database backend that best fits your needs without changing any application code.
+
+### Supported Databases
+
+- ✅ **PostgreSQL** (Recommended for production)
+- ✅ **MySQL** / MariaDB
+- ✅ **SQLite** (Perfect for development and small deployments)
+- ✅ **Oracle**
+- ✅ **Microsoft SQL Server**
+- ✅ **Firebird**
+- ✅ **DB2**
+- ✅ **Informix**
+- ✅ **Ingres**
+- ✅ And many more via PyDAL adapters
+
+### Database Configuration Examples
+
+```bash
+# PostgreSQL (Recommended)
+DATABASE_URL=postgresql://user:password@localhost:5432/elder
+
+# MySQL
+DATABASE_URL=mysql://user:password@localhost:3306/elder
+
+# SQLite (Great for development)
+DATABASE_URL=sqlite://storage.db
+
+# Microsoft SQL Server
+DATABASE_URL=mssql://user:password@localhost:1433/elder
+
+# Oracle
+DATABASE_URL=oracle://user:password@localhost:1521/elder
+```
+
+### Why PyDAL?
+
+- **Database Agnostic**: Write once, run on any supported database
+- **Automatic Migrations**: Schema changes are handled automatically
+- **Security**: Built-in protection against SQL injection
+- **Performance**: Connection pooling and query optimization
+- **Simplicity**: Clean, Pythonic API for database operations
+- **Validators**: Comprehensive input validation at the database layer
 
 ## API Documentation
 
@@ -383,19 +454,22 @@ Elder is built on a modern, scalable architecture:
                             │
 ┌─────────────────────────────────────────────────────────┐
 │                   Data Layer                            │
-│  PostgreSQL (Entities, Orgs, Users, RBAC, Audit)       │
+│  Database via PyDAL (PostgreSQL, MySQL, SQLite, etc.)  │
 │  Redis (Cache, Sessions, Real-time)                     │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ### Technology Stack
 
-- **Backend**: Flask (Python 3.13), SQLAlchemy, Alembic
-- **Database**: PostgreSQL 15+ with connection pooling
-- **Cache**: Redis 7+ for sessions and caching
+- **Backend**: Flask (Python 3.13), PyDAL (Database Abstraction Layer)
+- **Database**: Multi-database support via PyDAL
+  - **Supported**: PostgreSQL, MySQL, SQLite, Oracle, MSSQL, Firebird, DB2, Informix, Ingres, and more
+  - **Recommended**: PostgreSQL 15+ with connection pooling
+  - **Development**: SQLite for quick local development
+- **Cache**: Redis 7+ or Valkey for sessions and caching
 - **APIs**: REST (OpenAPI 3.0), gRPC (protobuf)
 - **Auth**: SAML (python3-saml), OAuth2 (Authlib), LDAP
-- **Frontend**: HTML5, JavaScript, vis.js Network
+- **Frontend**: Modern React UI (TypeScript, Vite, ReactFlow, React Query, Tailwind CSS)
 - **Monitoring**: Prometheus, Grafana
 - **Container**: Docker, docker-compose
 - **Orchestration**: Kubernetes with Helm charts
@@ -407,8 +481,8 @@ Elder implements security best practices:
 - ✅ **Authentication**: Multi-factor authentication support
 - ✅ **Authorization**: Fine-grained RBAC with org-scoped permissions
 - ✅ **TLS**: Enforce TLS 1.3 for all connections
-- ✅ **Input Validation**: Comprehensive validation with marshmallow
-- ✅ **SQL Injection Prevention**: SQLAlchemy ORM with parameterized queries
+- ✅ **Input Validation**: Comprehensive validation with PyDAL validators and marshmallow
+- ✅ **SQL Injection Prevention**: PyDAL ORM with parameterized queries and automatic escaping
 - ✅ **XSS Prevention**: Jinja2 auto-escaping
 - ✅ **CSRF Protection**: Flask-WTF CSRF tokens
 - ✅ **Rate Limiting**: Request rate limiting to prevent abuse
