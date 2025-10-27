@@ -172,6 +172,7 @@ def _register_blueprints(app: Flask) -> None:
     from apps.api.api.v1 import (
         organizations_pydal,
         entities,
+        entity_types,
         dependencies,
         graph,
         auth,
@@ -188,6 +189,12 @@ def _register_blueprints(app: Flask) -> None:
         labels,
         organization_tree,
         sync,
+        secrets,  # Phase 2: Secrets Management
+        keys,  # Phase 3: Keys Management
+        discovery,  # Phase 5: Cloud Auto-Discovery
+        webhooks,  # Phase 9: Webhook & Notification System
+        search,  # Phase 10: Advanced Search
+        backup,  # Phase 10: Backup & Data Management
     )
     from apps.api.web import routes as web
 
@@ -197,6 +204,7 @@ def _register_blueprints(app: Flask) -> None:
     # Use async organizations_pydal blueprint (PyDAL + async/await)
     app.register_blueprint(organizations_pydal.bp, url_prefix=f"{api_prefix}/organizations")
     app.register_blueprint(entities.bp, url_prefix=f"{api_prefix}/entities")
+    app.register_blueprint(entity_types.bp, url_prefix=f"{api_prefix}/entity-types")
     app.register_blueprint(dependencies.bp, url_prefix=f"{api_prefix}/dependencies")
     app.register_blueprint(graph.bp, url_prefix=f"{api_prefix}/graph")
     app.register_blueprint(auth.bp, url_prefix=f"{api_prefix}/auth")
@@ -214,6 +222,14 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(milestones.bp, url_prefix=f"{api_prefix}/milestones")
     app.register_blueprint(organization_tree.bp, url_prefix=f"{api_prefix}")
     app.register_blueprint(sync.bp, url_prefix=f"{api_prefix}/sync")
+
+    # v1.2.0 Feature blueprints (stub implementations)
+    app.register_blueprint(secrets.bp, url_prefix=f"{api_prefix}/secrets")  # Phase 2
+    app.register_blueprint(keys.bp, url_prefix=f"{api_prefix}/keys")  # Phase 3
+    app.register_blueprint(discovery.bp, url_prefix=f"{api_prefix}/discovery")  # Phase 5
+    app.register_blueprint(webhooks.bp, url_prefix=f"{api_prefix}/webhooks")  # Phase 9
+    app.register_blueprint(search.bp, url_prefix=f"{api_prefix}/search")  # Phase 10
+    app.register_blueprint(backup.bp, url_prefix=f"{api_prefix}/backup")  # Phase 10
 
     # Public lookup endpoint (no /api/v1 prefix for cleaner URLs)
     app.register_blueprint(lookup.bp, url_prefix="/lookup")

@@ -94,6 +94,46 @@ def define_all_tables(db):
         migrate=True,
     )
 
+    # Discovery Jobs table - no dependencies (Phase 5: Cloud Auto-Discovery)
+    db.define_table(
+        'discovery_jobs',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('provider', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['aws', 'gcp', 'azure', 'kubernetes'])),
+        Field('config_json', 'json', notnull=True),  # Provider-specific configuration
+        Field('schedule_interval', 'integer', default=3600, notnull=True),  # seconds
+        Field('enabled', 'boolean', default=True, notnull=True),
+        Field('last_run_at', 'datetime'),
+        Field('next_run_at', 'datetime'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Backup Jobs table - no dependencies (Phase 10: Advanced Search & Data Management)
+    db.define_table(
+        'backup_jobs',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('schedule', 'string', length=100, notnull=True),  # Cron expression
+        Field('retention_days', 'integer', default=30, notnull=True),
+        Field('enabled', 'boolean', default=True, notnull=True),
+        Field('last_run_at', 'datetime'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Audit Retention Policies table - no dependencies (Phase 8: Audit System Enhancement)
+    db.define_table(
+        'audit_retention_policies',
+        Field('resource_type', 'string', length=50, notnull=True, unique=True),
+        Field('retention_days', 'integer', default=90, notnull=True),
+        Field('enabled', 'boolean', default=True, notnull=True),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
     # ==========================================
     # LEVEL 2: Tables with Level 1 dependencies
     # ==========================================
@@ -181,6 +221,32 @@ def define_all_tables(db):
         migrate=True,
     )
 
+    # Discovery History table (depends on: discovery_jobs) - Phase 5: Cloud Auto-Discovery
+    db.define_table(
+        'discovery_history',
+        Field('job_id', 'reference discovery_jobs', notnull=True, ondelete='CASCADE'),
+        Field('started_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc), notnull=True),
+        Field('completed_at', 'datetime'),
+        Field('status', 'string', length=50, notnull=True, default='running',
+              requires=IS_IN_SET(['running', 'success', 'failed', 'partial'])),
+        Field('entities_discovered', 'integer', default=0, notnull=True),
+        Field('entities_created', 'integer', default=0, notnull=True),
+        Field('entities_updated', 'integer', default=0, notnull=True),
+        Field('error_message', 'text'),
+        migrate=True,
+    )
+
+    # Saved Searches table (depends on: identities) - Phase 10: Advanced Search & Data Management
+    db.define_table(
+        'saved_searches',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('query', 'text', notnull=True),
+        Field('filters', 'json'),
+        Field('identity_id', 'reference identities', notnull=True, ondelete='CASCADE'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
     # Organizations table (depends on: identities, identity_groups)
     db.define_table(
         'organizations',
@@ -235,10 +301,12 @@ def define_all_tables(db):
         'entities',
         Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
         Field('description', 'text'),
-        Field('entity_type', 'string', length=50, notnull=True),
+        Field('entity_type', 'string', length=50, notnull=True),  # network, compute, storage, datacenter, security
+        Field('sub_type', 'string', length=50),  # router, server, database, etc. (sub-type within entity_type)
         Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
         Field('parent_id', 'reference entities', ondelete='CASCADE'),
-        Field('attributes', 'json'),
+        Field('attributes', 'json'),  # Type-specific metadata
+        Field('default_metadata', 'json'),  # Default metadata template for this sub_type
         Field('tags', 'list:string'),
         Field('is_active', 'boolean', default=True),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
@@ -297,6 +365,79 @@ def define_all_tables(db):
         Field('project_id', 'reference projects', ondelete='CASCADE'),
         Field('due_date', 'date'),
         Field('closed_at', 'datetime'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Secret Providers table (depends on: organizations) - Phase 2: Secrets Management
+    db.define_table(
+        'secret_providers',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('provider', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['aws_secrets_manager', 'gcp_secret_manager', 'infisical'])),
+        Field('config_json', 'json', notnull=True),  # Provider-specific configuration
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        Field('enabled', 'boolean', default=True, notnull=True),
+        Field('last_sync_at', 'datetime'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Key Providers table (depends on: organizations) - Phase 3: Keys Management
+    db.define_table(
+        'key_providers',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('provider', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['aws_kms', 'gcp_kms', 'infisical'])),
+        Field('config_json', 'json', notnull=True),  # Provider-specific configuration
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        Field('enabled', 'boolean', default=True, notnull=True),
+        Field('last_sync_at', 'datetime'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Cloud Accounts table (depends on: organizations) - Phase 5: Cloud Auto-Discovery
+    db.define_table(
+        'cloud_accounts',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('provider', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['aws', 'gcp', 'azure', 'kubernetes'])),
+        Field('credentials_json', 'json', notnull=True),  # Encrypted credentials
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        Field('enabled', 'boolean', default=True, notnull=True),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Webhooks table (depends on: organizations) - Phase 9: Webhook & Notification System
+    db.define_table(
+        'webhooks',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('url', 'string', length=2048, notnull=True, requires=IS_URL()),
+        Field('secret', 'string', length=255),  # HMAC secret for payload signing
+        Field('events', 'list:string', notnull=True),  # List of event types to trigger on
+        Field('enabled', 'boolean', default=True, notnull=True),
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Notification Rules table (depends on: organizations) - Phase 9: Webhook & Notification System
+    db.define_table(
+        'notification_rules',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('channel', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['email', 'slack', 'teams', 'pagerduty', 'webhook'])),
+        Field('events', 'list:string', notnull=True),  # List of event types to trigger on
+        Field('config_json', 'json', notnull=True),  # Channel-specific configuration
+        Field('enabled', 'boolean', default=True, notnull=True),
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
         migrate=True,
@@ -393,5 +534,78 @@ def define_all_tables(db):
         Field('resource_id', 'integer', notnull=True),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Secrets table (depends on: secret_providers, organizations) - Phase 2: Secrets Management
+    db.define_table(
+        'secrets',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('provider_id', 'reference secret_providers', notnull=True, ondelete='CASCADE'),
+        Field('provider_path', 'string', length=512, notnull=True),  # Path/name in provider
+        Field('secret_type', 'string', length=50, notnull=True, default='generic',
+              requires=IS_IN_SET(['generic', 'api_key', 'password', 'certificate', 'ssh_key'])),
+        Field('is_kv', 'boolean', default=False, notnull=True),  # Key-Value store vs single value
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        Field('parent_id', 'reference secrets', ondelete='CASCADE'),  # For hierarchical secrets
+        Field('metadata', 'json'),  # Additional metadata about the secret
+        Field('last_synced_at', 'datetime'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Keys table (depends on: key_providers, organizations) - Phase 3: Keys Management
+    db.define_table(
+        'keys',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('provider_id', 'reference key_providers', notnull=True, ondelete='CASCADE'),
+        Field('provider_key_id', 'string', length=512, notnull=True),  # Key ID in provider
+        Field('key_hash', 'string', length=255, notnull=True),  # Hash of key for tracking
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        Field('metadata', 'json'),  # Additional metadata about the key
+        Field('last_synced_at', 'datetime'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Webhook Deliveries table (depends on: webhooks) - Phase 9: Webhook & Notification System
+    db.define_table(
+        'webhook_deliveries',
+        Field('webhook_id', 'reference webhooks', notnull=True, ondelete='CASCADE'),
+        Field('event_type', 'string', length=100, notnull=True),
+        Field('payload', 'json', notnull=True),
+        Field('response_status', 'integer'),  # HTTP status code
+        Field('response_body', 'text'),
+        Field('delivered_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc), notnull=True),
+        Field('success', 'boolean', default=False, notnull=True),
+        migrate=True,
+    )
+
+    # ==========================================
+    # LEVEL 5: Tables with Level 4 dependencies
+    # ==========================================
+
+    # Secret Access Log table (depends on: secrets, identities) - Phase 2: Secrets Management
+    db.define_table(
+        'secret_access_log',
+        Field('secret_id', 'reference secrets', notnull=True, ondelete='CASCADE'),
+        Field('identity_id', 'reference identities', notnull=True, ondelete='CASCADE'),
+        Field('action', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['view_masked', 'view_unmasked', 'create', 'update', 'delete'])),
+        Field('masked', 'boolean', default=True, notnull=True),  # Was secret masked when viewed?
+        Field('accessed_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc), notnull=True),
+        migrate=True,
+    )
+
+    # Key Access Log table (depends on: keys, identities) - Phase 3: Keys Management
+    db.define_table(
+        'key_access_log',
+        Field('key_id', 'reference keys', notnull=True, ondelete='CASCADE'),
+        Field('identity_id', 'reference identities', notnull=True, ondelete='CASCADE'),
+        Field('action', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['view', 'create', 'update', 'delete', 'encrypt', 'decrypt', 'sign'])),
+        Field('accessed_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc), notnull=True),
         migrate=True,
     )
