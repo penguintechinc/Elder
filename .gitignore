@@ -303,7 +303,12 @@ password.txt
 *.kubeconfig
 
 # Secrets and Keys
-secrets/
+# Actual secret files
+*.secret
+*.key
+*.pem
+credentials.json
+service-account.json
 *.secret
 *.token
 

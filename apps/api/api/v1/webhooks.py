@@ -1,14 +1,14 @@
 """Webhook & Notification System API endpoints for Elder v1.2.0 (Phase 9)."""
 
 from flask import Blueprint, jsonify, request
-from apps.api.auth.decorators import token_required
+from apps.api.auth.decorators import login_required
 
 bp = Blueprint('webhooks', __name__)
 
 
 # Webhooks endpoints
 @bp.route('', methods=['GET'])
-@token_required
+@login_required
 def list_webhooks(current_user):
     """
     List all webhooks.
@@ -27,7 +27,7 @@ def list_webhooks(current_user):
 
 
 @bp.route('', methods=['POST'])
-@token_required
+@login_required
 def create_webhook(current_user):
     """
     Create a new webhook.
@@ -52,7 +52,7 @@ def create_webhook(current_user):
 
 
 @bp.route('/<int:webhook_id>', methods=['GET'])
-@token_required
+@login_required
 def get_webhook(current_user, webhook_id):
     """
     Get webhook details.
@@ -68,7 +68,7 @@ def get_webhook(current_user, webhook_id):
 
 
 @bp.route('/<int:webhook_id>', methods=['PUT'])
-@token_required
+@login_required
 def update_webhook(current_user, webhook_id):
     """
     Update webhook configuration.
@@ -84,7 +84,7 @@ def update_webhook(current_user, webhook_id):
 
 
 @bp.route('/<int:webhook_id>', methods=['DELETE'])
-@token_required
+@login_required
 def delete_webhook(current_user, webhook_id):
     """
     Delete webhook.
@@ -100,7 +100,7 @@ def delete_webhook(current_user, webhook_id):
 
 
 @bp.route('/<int:webhook_id>/test', methods=['POST'])
-@token_required
+@login_required
 def test_webhook(current_user, webhook_id):
     """
     Send a test event to webhook.
@@ -117,7 +117,7 @@ def test_webhook(current_user, webhook_id):
 
 
 @bp.route('/<int:webhook_id>/deliveries', methods=['GET'])
-@token_required
+@login_required
 def get_webhook_deliveries(current_user, webhook_id):
     """
     Get webhook delivery history.
@@ -137,7 +137,7 @@ def get_webhook_deliveries(current_user, webhook_id):
 
 
 @bp.route('/<int:webhook_id>/deliveries/<int:delivery_id>/redeliver', methods=['POST'])
-@token_required
+@login_required
 def redeliver_webhook(current_user, webhook_id, delivery_id):
     """
     Retry a failed webhook delivery.
@@ -154,7 +154,7 @@ def redeliver_webhook(current_user, webhook_id, delivery_id):
 
 # Notification Rules endpoints
 @bp.route('/notification-rules', methods=['GET'])
-@token_required
+@login_required
 def list_notification_rules(current_user):
     """
     List all notification rules.
@@ -173,7 +173,7 @@ def list_notification_rules(current_user):
 
 
 @bp.route('/notification-rules', methods=['POST'])
-@token_required
+@login_required
 def create_notification_rule(current_user):
     """
     Create a new notification rule.
@@ -201,7 +201,7 @@ def create_notification_rule(current_user):
 
 
 @bp.route('/notification-rules/<int:rule_id>', methods=['GET'])
-@token_required
+@login_required
 def get_notification_rule(current_user, rule_id):
     """
     Get notification rule details.
@@ -217,7 +217,7 @@ def get_notification_rule(current_user, rule_id):
 
 
 @bp.route('/notification-rules/<int:rule_id>', methods=['PUT'])
-@token_required
+@login_required
 def update_notification_rule(current_user, rule_id):
     """
     Update notification rule.
@@ -233,7 +233,7 @@ def update_notification_rule(current_user, rule_id):
 
 
 @bp.route('/notification-rules/<int:rule_id>', methods=['DELETE'])
-@token_required
+@login_required
 def delete_notification_rule(current_user, rule_id):
     """
     Delete notification rule.
@@ -249,7 +249,7 @@ def delete_notification_rule(current_user, rule_id):
 
 
 @bp.route('/notification-rules/<int:rule_id>/test', methods=['POST'])
-@token_required
+@login_required
 def test_notification_rule(current_user, rule_id):
     """
     Test a notification rule.

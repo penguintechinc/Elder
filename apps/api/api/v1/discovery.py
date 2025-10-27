@@ -1,14 +1,14 @@
 """Cloud Auto-Discovery API endpoints for Elder v1.2.0 (Phase 5)."""
 
 from flask import Blueprint, jsonify, request
-from apps.api.auth.decorators import token_required
+from apps.api.auth.decorators import login_required
 
 bp = Blueprint('discovery', __name__)
 
 
 # Discovery Jobs endpoints
 @bp.route('/jobs', methods=['GET'])
-@token_required
+@login_required
 def list_discovery_jobs(current_user):
     """
     List all discovery jobs.
@@ -27,7 +27,7 @@ def list_discovery_jobs(current_user):
 
 
 @bp.route('/jobs', methods=['POST'])
-@token_required
+@login_required
 def create_discovery_job(current_user):
     """
     Create a new discovery job.
@@ -55,7 +55,7 @@ def create_discovery_job(current_user):
 
 
 @bp.route('/jobs/<int:job_id>', methods=['GET'])
-@token_required
+@login_required
 def get_discovery_job(current_user, job_id):
     """
     Get discovery job details.
@@ -71,7 +71,7 @@ def get_discovery_job(current_user, job_id):
 
 
 @bp.route('/jobs/<int:job_id>', methods=['PUT'])
-@token_required
+@login_required
 def update_discovery_job(current_user, job_id):
     """
     Update discovery job configuration.
@@ -87,7 +87,7 @@ def update_discovery_job(current_user, job_id):
 
 
 @bp.route('/jobs/<int:job_id>', methods=['DELETE'])
-@token_required
+@login_required
 def delete_discovery_job(current_user, job_id):
     """
     Delete discovery job.
@@ -103,7 +103,7 @@ def delete_discovery_job(current_user, job_id):
 
 
 @bp.route('/jobs/<int:job_id>/run', methods=['POST'])
-@token_required
+@login_required
 def run_discovery_job(current_user, job_id):
     """
     Manually trigger a discovery job.
@@ -119,7 +119,7 @@ def run_discovery_job(current_user, job_id):
 
 
 @bp.route('/jobs/<int:job_id>/history', methods=['GET'])
-@token_required
+@login_required
 def get_discovery_job_history(current_user, job_id):
     """
     Get discovery job execution history.
@@ -139,7 +139,7 @@ def get_discovery_job_history(current_user, job_id):
 
 # Cloud Accounts endpoints
 @bp.route('/accounts', methods=['GET'])
-@token_required
+@login_required
 def list_cloud_accounts(current_user):
     """
     List all cloud accounts.
@@ -158,7 +158,7 @@ def list_cloud_accounts(current_user):
 
 
 @bp.route('/accounts', methods=['POST'])
-@token_required
+@login_required
 def create_cloud_account(current_user):
     """
     Register a new cloud account.
@@ -186,7 +186,7 @@ def create_cloud_account(current_user):
 
 
 @bp.route('/accounts/<int:account_id>', methods=['GET'])
-@token_required
+@login_required
 def get_cloud_account(current_user, account_id):
     """
     Get cloud account details.
@@ -202,7 +202,7 @@ def get_cloud_account(current_user, account_id):
 
 
 @bp.route('/accounts/<int:account_id>', methods=['PUT'])
-@token_required
+@login_required
 def update_cloud_account(current_user, account_id):
     """
     Update cloud account configuration.
@@ -218,7 +218,7 @@ def update_cloud_account(current_user, account_id):
 
 
 @bp.route('/accounts/<int:account_id>', methods=['DELETE'])
-@token_required
+@login_required
 def delete_cloud_account(current_user, account_id):
     """
     Delete cloud account.
@@ -234,7 +234,7 @@ def delete_cloud_account(current_user, account_id):
 
 
 @bp.route('/accounts/<int:account_id>/test', methods=['POST'])
-@token_required
+@login_required
 def test_cloud_account(current_user, account_id):
     """
     Test cloud account credentials.
@@ -251,7 +251,7 @@ def test_cloud_account(current_user, account_id):
 
 
 @bp.route('/accounts/<int:account_id>/discover', methods=['POST'])
-@token_required
+@login_required
 def discover_from_account(current_user, account_id):
     """
     Trigger immediate discovery for this account.

@@ -394,6 +394,11 @@ def resource_role_required(required_role: str, resource_param: str = "id") -> Ca
     return decorator
 
 
+def admin_required(f):
+    """Decorator to require admin role for an endpoint. Alias for @role_required('admin')."""
+    return role_required('admin')(f)
+
+
 def role_required(allowed_roles):
     """
     Decorator to require specific portal roles for an endpoint.

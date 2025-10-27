@@ -557,7 +557,7 @@ def define_all_tables(db):
 
     # Keys table (depends on: key_providers, organizations) - Phase 3: Keys Management
     db.define_table(
-        'keys',
+        'crypto_keys',
         Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
         Field('provider_id', 'reference key_providers', notnull=True, ondelete='CASCADE'),
         Field('provider_key_id', 'string', length=512, notnull=True),  # Key ID in provider
@@ -602,7 +602,7 @@ def define_all_tables(db):
     # Key Access Log table (depends on: keys, identities) - Phase 3: Keys Management
     db.define_table(
         'key_access_log',
-        Field('key_id', 'reference keys', notnull=True, ondelete='CASCADE'),
+        Field('key_id', 'reference crypto_keys', notnull=True, ondelete='CASCADE'),
         Field('identity_id', 'reference identities', notnull=True, ondelete='CASCADE'),
         Field('action', 'string', length=50, notnull=True,
               requires=IS_IN_SET(['view', 'create', 'update', 'delete', 'encrypt', 'decrypt', 'sign'])),

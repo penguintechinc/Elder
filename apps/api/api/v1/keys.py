@@ -1,13 +1,13 @@
 """Keys Management API endpoints for Elder v1.2.0 (Phase 3)."""
 
 from flask import Blueprint, jsonify, request
-from apps.api.auth.decorators import token_required
+from apps.api.auth.decorators import login_required
 
 bp = Blueprint('keys', __name__)
 
 
 @bp.route('', methods=['GET'])
-@token_required
+@login_required
 def list_keys(current_user):
     """
     List all keys accessible by current user/organization.
@@ -26,7 +26,7 @@ def list_keys(current_user):
 
 
 @bp.route('/<int:key_id>', methods=['GET'])
-@token_required
+@login_required
 def get_key(current_user, key_id):
     """
     Get a specific key details.
@@ -42,7 +42,7 @@ def get_key(current_user, key_id):
 
 
 @bp.route('', methods=['POST'])
-@token_required
+@login_required
 def create_key(current_user):
     """
     Register a new key from a provider.
@@ -67,7 +67,7 @@ def create_key(current_user):
 
 
 @bp.route('/<int:key_id>', methods=['PUT'])
-@token_required
+@login_required
 def update_key(current_user, key_id):
     """
     Update key metadata.
@@ -83,7 +83,7 @@ def update_key(current_user, key_id):
 
 
 @bp.route('/<int:key_id>', methods=['DELETE'])
-@token_required
+@login_required
 def delete_key(current_user, key_id):
     """
     Remove key registration (does not delete from provider).
@@ -99,7 +99,7 @@ def delete_key(current_user, key_id):
 
 
 @bp.route('/<int:key_id>/encrypt', methods=['POST'])
-@token_required
+@login_required
 def encrypt_data(current_user, key_id):
     """
     Encrypt data using this key.
@@ -120,7 +120,7 @@ def encrypt_data(current_user, key_id):
 
 
 @bp.route('/<int:key_id>/decrypt', methods=['POST'])
-@token_required
+@login_required
 def decrypt_data(current_user, key_id):
     """
     Decrypt data using this key.
@@ -141,7 +141,7 @@ def decrypt_data(current_user, key_id):
 
 
 @bp.route('/<int:key_id>/sign', methods=['POST'])
-@token_required
+@login_required
 def sign_data(current_user, key_id):
     """
     Sign data using this key.
@@ -162,7 +162,7 @@ def sign_data(current_user, key_id):
 
 
 @bp.route('/<int:key_id>/access-log', methods=['GET'])
-@token_required
+@login_required
 def get_key_access_log(current_user, key_id):
     """
     Get access log for a key.
@@ -178,7 +178,7 @@ def get_key_access_log(current_user, key_id):
 
 
 @bp.route('/<int:key_id>/sync', methods=['POST'])
-@token_required
+@login_required
 def sync_key(current_user, key_id):
     """
     Force sync key metadata from provider.
@@ -195,7 +195,7 @@ def sync_key(current_user, key_id):
 
 # Key Provider endpoints
 @bp.route('/providers', methods=['GET'])
-@token_required
+@login_required
 def list_key_providers(current_user):
     """
     List all key providers.
@@ -210,7 +210,7 @@ def list_key_providers(current_user):
 
 
 @bp.route('/providers', methods=['POST'])
-@token_required
+@login_required
 def create_key_provider(current_user):
     """
     Register a new key provider.
@@ -238,7 +238,7 @@ def create_key_provider(current_user):
 
 
 @bp.route('/providers/<int:provider_id>', methods=['GET'])
-@token_required
+@login_required
 def get_key_provider(current_user, provider_id):
     """
     Get key provider details.
@@ -254,7 +254,7 @@ def get_key_provider(current_user, provider_id):
 
 
 @bp.route('/providers/<int:provider_id>', methods=['PUT'])
-@token_required
+@login_required
 def update_key_provider(current_user, provider_id):
     """
     Update key provider configuration.
@@ -270,7 +270,7 @@ def update_key_provider(current_user, provider_id):
 
 
 @bp.route('/providers/<int:provider_id>', methods=['DELETE'])
-@token_required
+@login_required
 def delete_key_provider(current_user, provider_id):
     """
     Delete key provider.
@@ -286,7 +286,7 @@ def delete_key_provider(current_user, provider_id):
 
 
 @bp.route('/providers/<int:provider_id>/sync', methods=['POST'])
-@token_required
+@login_required
 def sync_key_provider(current_user, provider_id):
     """
     Sync all keys from provider.

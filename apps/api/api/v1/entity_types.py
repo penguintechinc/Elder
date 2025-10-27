@@ -1,7 +1,7 @@
 """Entity types API endpoints for Elder v1.2.0."""
 
 from flask import Blueprint, jsonify, request
-from apps.api.auth.decorators import token_required
+from apps.api.auth.decorators import login_required
 from apps.api.models.entity_types import (
     get_all_entity_types,
     get_subtypes_for_type,
@@ -15,7 +15,7 @@ bp = Blueprint('entity_types', __name__)
 
 
 @bp.route('/entity-types', methods=['GET'])
-@token_required
+@login_required
 def list_entity_types(current_user):
     """
     List all entity types with their sub-types.
@@ -40,7 +40,7 @@ def list_entity_types(current_user):
 
 
 @bp.route('/entity-types/<entity_type>', methods=['GET'])
-@token_required
+@login_required
 def get_entity_type(current_user, entity_type):
     """
     Get details for a specific entity type including all sub-types.
@@ -65,7 +65,7 @@ def get_entity_type(current_user, entity_type):
 
 
 @bp.route('/entity-types/<entity_type>/subtypes', methods=['GET'])
-@token_required
+@login_required
 def list_subtypes(current_user, entity_type):
     """
     List all sub-types for a given entity type.
@@ -90,7 +90,7 @@ def list_subtypes(current_user, entity_type):
 
 
 @bp.route('/entity-types/<entity_type>/metadata', methods=['GET'])
-@token_required
+@login_required
 def get_type_metadata_templates(current_user, entity_type):
     """
     Get default metadata templates for all sub-types of an entity type.
@@ -114,7 +114,7 @@ def get_type_metadata_templates(current_user, entity_type):
 
 
 @bp.route('/entity-types/<entity_type>/<sub_type>/metadata', methods=['GET'])
-@token_required
+@login_required
 def get_subtype_metadata_template(current_user, entity_type, sub_type):
     """
     Get default metadata template for a specific sub-type.
@@ -144,7 +144,7 @@ def get_subtype_metadata_template(current_user, entity_type, sub_type):
 
 
 @bp.route('/entity-types/validate', methods=['POST'])
-@token_required
+@login_required
 def validate_entity_type(current_user):
     """
     Validate an entity type and sub-type combination.

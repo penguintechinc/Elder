@@ -1,13 +1,13 @@
 """Advanced Search API endpoints for Elder v1.2.0 (Phase 10)."""
 
 from flask import Blueprint, jsonify, request
-from apps.api.auth.decorators import token_required
+from apps.api.auth.decorators import login_required
 
 bp = Blueprint('search', __name__)
 
 
 @bp.route('', methods=['GET'])
-@token_required
+@login_required
 def search_all(current_user):
     """
     Advanced search across all resources.
@@ -30,7 +30,7 @@ def search_all(current_user):
 
 
 @bp.route('/entities', methods=['GET'])
-@token_required
+@login_required
 def search_entities(current_user):
     """
     Search entities with advanced filters.
@@ -54,7 +54,7 @@ def search_entities(current_user):
 
 
 @bp.route('/organizations', methods=['GET'])
-@token_required
+@login_required
 def search_organizations(current_user):
     """
     Search organizations.
@@ -74,7 +74,7 @@ def search_organizations(current_user):
 
 
 @bp.route('/issues', methods=['GET'])
-@token_required
+@login_required
 def search_issues(current_user):
     """
     Search issues with advanced filters.
@@ -97,7 +97,7 @@ def search_issues(current_user):
 
 
 @bp.route('/graph', methods=['POST'])
-@token_required
+@login_required
 def search_graph(current_user):
     """
     Graph-based search for entities and dependencies.
@@ -122,7 +122,7 @@ def search_graph(current_user):
 
 # Saved Searches endpoints
 @bp.route('/saved', methods=['GET'])
-@token_required
+@login_required
 def list_saved_searches(current_user):
     """
     List user's saved searches.
@@ -137,7 +137,7 @@ def list_saved_searches(current_user):
 
 
 @bp.route('/saved', methods=['POST'])
-@token_required
+@login_required
 def create_saved_search(current_user):
     """
     Save a search query.
@@ -160,7 +160,7 @@ def create_saved_search(current_user):
 
 
 @bp.route('/saved/<int:search_id>', methods=['GET'])
-@token_required
+@login_required
 def get_saved_search(current_user, search_id):
     """
     Get saved search details.
@@ -176,7 +176,7 @@ def get_saved_search(current_user, search_id):
 
 
 @bp.route('/saved/<int:search_id>/execute', methods=['GET'])
-@token_required
+@login_required
 def execute_saved_search(current_user, search_id):
     """
     Execute a saved search.
@@ -192,7 +192,7 @@ def execute_saved_search(current_user, search_id):
 
 
 @bp.route('/saved/<int:search_id>', methods=['PUT'])
-@token_required
+@login_required
 def update_saved_search(current_user, search_id):
     """
     Update saved search.
@@ -208,7 +208,7 @@ def update_saved_search(current_user, search_id):
 
 
 @bp.route('/saved/<int:search_id>', methods=['DELETE'])
-@token_required
+@login_required
 def delete_saved_search(current_user, search_id):
     """
     Delete saved search.
@@ -225,7 +225,7 @@ def delete_saved_search(current_user, search_id):
 
 # Search Analytics
 @bp.route('/analytics/popular', methods=['GET'])
-@token_required
+@login_required
 def get_popular_searches(current_user):
     """
     Get most popular/frequent searches.
@@ -240,7 +240,7 @@ def get_popular_searches(current_user):
 
 
 @bp.route('/suggest', methods=['GET'])
-@token_required
+@login_required
 def search_suggestions(current_user):
     """
     Get search suggestions/autocomplete.

@@ -1,14 +1,14 @@
 """Backup & Data Management API endpoints for Elder v1.2.0 (Phase 10)."""
 
 from flask import Blueprint, jsonify, request
-from apps.api.auth.decorators import token_required
+from apps.api.auth.decorators import login_required
 
 bp = Blueprint('backup', __name__)
 
 
 # Backup Jobs endpoints
 @bp.route('/jobs', methods=['GET'])
-@token_required
+@login_required
 def list_backup_jobs(current_user):
     """
     List all backup jobs.
@@ -26,7 +26,7 @@ def list_backup_jobs(current_user):
 
 
 @bp.route('/jobs', methods=['POST'])
-@token_required
+@login_required
 def create_backup_job(current_user):
     """
     Create a new backup job.
@@ -50,7 +50,7 @@ def create_backup_job(current_user):
 
 
 @bp.route('/jobs/<int:job_id>', methods=['GET'])
-@token_required
+@login_required
 def get_backup_job(current_user, job_id):
     """
     Get backup job details.
@@ -66,7 +66,7 @@ def get_backup_job(current_user, job_id):
 
 
 @bp.route('/jobs/<int:job_id>', methods=['PUT'])
-@token_required
+@login_required
 def update_backup_job(current_user, job_id):
     """
     Update backup job configuration.
@@ -82,7 +82,7 @@ def update_backup_job(current_user, job_id):
 
 
 @bp.route('/jobs/<int:job_id>', methods=['DELETE'])
-@token_required
+@login_required
 def delete_backup_job(current_user, job_id):
     """
     Delete backup job.
@@ -98,7 +98,7 @@ def delete_backup_job(current_user, job_id):
 
 
 @bp.route('/jobs/<int:job_id>/run', methods=['POST'])
-@token_required
+@login_required
 def run_backup_job(current_user, job_id):
     """
     Manually trigger a backup job.
@@ -115,7 +115,7 @@ def run_backup_job(current_user, job_id):
 
 # Backup Management
 @bp.route('', methods=['GET'])
-@token_required
+@login_required
 def list_backups(current_user):
     """
     List all backups.
@@ -134,7 +134,7 @@ def list_backups(current_user):
 
 
 @bp.route('/<int:backup_id>', methods=['GET'])
-@token_required
+@login_required
 def get_backup(current_user, backup_id):
     """
     Get backup details.
@@ -150,7 +150,7 @@ def get_backup(current_user, backup_id):
 
 
 @bp.route('/<int:backup_id>/download', methods=['GET'])
-@token_required
+@login_required
 def download_backup(current_user, backup_id):
     """
     Download backup file.
@@ -166,7 +166,7 @@ def download_backup(current_user, backup_id):
 
 
 @bp.route('/<int:backup_id>', methods=['DELETE'])
-@token_required
+@login_required
 def delete_backup(current_user, backup_id):
     """
     Delete backup file.
@@ -183,7 +183,7 @@ def delete_backup(current_user, backup_id):
 
 # Restore Operations
 @bp.route('/<int:backup_id>/restore', methods=['POST'])
-@token_required
+@login_required
 def restore_backup(current_user, backup_id):
     """
     Restore from backup.
@@ -206,7 +206,7 @@ def restore_backup(current_user, backup_id):
 
 
 @bp.route('/restore-status/<int:restore_id>', methods=['GET'])
-@token_required
+@login_required
 def get_restore_status(current_user, restore_id):
     """
     Get restore operation status.
@@ -223,7 +223,7 @@ def get_restore_status(current_user, restore_id):
 
 # Export Operations
 @bp.route('/export', methods=['POST'])
-@token_required
+@login_required
 def export_data(current_user):
     """
     Export data to various formats.
@@ -246,7 +246,7 @@ def export_data(current_user):
 
 
 @bp.route('/export/<int:export_id>', methods=['GET'])
-@token_required
+@login_required
 def get_export(current_user, export_id):
     """
     Get export status and download link.
@@ -262,7 +262,7 @@ def get_export(current_user, export_id):
 
 
 @bp.route('/export/<int:export_id>/download', methods=['GET'])
-@token_required
+@login_required
 def download_export(current_user, export_id):
     """
     Download exported data.
@@ -279,7 +279,7 @@ def download_export(current_user, export_id):
 
 # Import Operations
 @bp.route('/import', methods=['POST'])
-@token_required
+@login_required
 def import_data(current_user):
     """
     Import data from file.
@@ -299,7 +299,7 @@ def import_data(current_user):
 
 
 @bp.route('/import/<int:import_id>', methods=['GET'])
-@token_required
+@login_required
 def get_import_status(current_user, import_id):
     """
     Get import operation status.
@@ -316,7 +316,7 @@ def get_import_status(current_user, import_id):
 
 # Storage Statistics
 @bp.route('/stats', methods=['GET'])
-@token_required
+@login_required
 def get_backup_stats(current_user):
     """
     Get backup and storage statistics.

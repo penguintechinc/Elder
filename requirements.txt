@@ -122,6 +122,10 @@ python-ldap==3.4.4
 # License Server Integration
 # Using requests/httpx for HTTP client (already included above)
 
+# Cloud Providers - Secrets Management (Phase 2)
+boto3==1.35.90  # AWS Secrets Manager
+google-cloud-secret-manager==2.21.1  # GCP Secret Manager
+# Infisical uses requests (already included above)
+
 # Cloud Logging (optional)
-# boto3==1.35.90  # AWS CloudWatch - uncomment if using AWS
 # google-cloud-logging==3.11.4  # GCP Cloud Logging - uncomment if using GCP

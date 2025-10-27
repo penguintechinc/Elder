@@ -8,15 +8,15 @@ from flask import Blueprint, request, jsonify
 from flask_cors import cross_origin
 from datetime import datetime
 
-from apps.api.auth.decorators import token_required, admin_required
-from apps.api.models.database import get_db
+from apps.api.auth.decorators import login_required, admin_required
+from shared.database.connection import get_db
 
 bp = Blueprint("sync", __name__, url_prefix="/api/v1/sync")
 
 
 @bp.route("/configs", methods=["GET"])
 @cross_origin()
-@token_required
+@login_required
 def list_sync_configs(current_user):
     """List all sync configurations."""
     db = get_db()
@@ -61,7 +61,7 @@ def create_sync_config(current_user):
 
 @bp.route("/configs/<int:config_id>", methods=["GET"])
 @cross_origin()
-@token_required
+@login_required
 def get_sync_config(current_user, config_id):
     """Get sync configuration details."""
     db = get_db()
@@ -129,7 +129,7 @@ def delete_sync_config(current_user, config_id):
 
 @bp.route("/history", methods=["GET"])
 @cross_origin()
-@token_required
+@login_required
 def list_sync_history(current_user):
     """List sync history with pagination."""
     db = get_db()
@@ -175,7 +175,7 @@ def list_sync_history(current_user):
 
 @bp.route("/conflicts", methods=["GET"])
 @cross_origin()
-@token_required
+@login_required
 def list_sync_conflicts(current_user):
     """List unresolved sync conflicts."""
     db = get_db()
@@ -222,7 +222,7 @@ def resolve_conflict(current_user, conflict_id):
 
 @bp.route("/mappings", methods=["GET"])
 @cross_origin()
-@token_required
+@login_required
 def list_sync_mappings(current_user):
     """List sync mappings."""
     db = get_db()
@@ -246,7 +246,7 @@ def list_sync_mappings(current_user):
 
 @bp.route("/status", methods=["GET"])
 @cross_origin()
-@token_required
+@login_required
 def sync_status(current_user):
     """Get overall sync status summary."""
     db = get_db()
