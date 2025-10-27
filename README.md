@@ -44,9 +44,11 @@ Elder provides visibility into your infrastructure and organizational relationsh
 
 ### Organization Network Map
 
-![Organization Network Map](docs/screenshots/elder-organization-map.png)
+<a href="docs/screenshots/elder-organization-map.png" target="_blank">
+  <img src="docs/screenshots/elder-organization-map.png" alt="Organization Network Map" style="max-width: 100%; cursor: pointer;">
+</a>
 
-*Interactive network visualization showing organizational relationships with React Flow. Nodes represent organizations and entities, while edges show parent-child and dependency relationships.*
+*Interactive network visualization showing organizational relationships with React Flow. Nodes represent organizations and entities, while edges show parent-child and dependency relationships. **Click to view full size.***
 
 ### Dashboard & Core Features
 
@@ -54,28 +56,40 @@ Elder provides visibility into your infrastructure and organizational relationsh
 <tr>
 <td width="50%">
 
-![Organizations](docs/screenshots/elder-organizationunits.png)
-*Hierarchical organization management with types, metadata, and relationship tracking*
+<a href="docs/screenshots/elder-organizationunits.png" target="_blank">
+  <img src="docs/screenshots/elder-organizationunits.png" alt="Organizations" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Hierarchical organization management with types, metadata, and relationship tracking. **Click to enlarge.***
 
 </td>
 <td width="50%">
 
-![Entities](docs/screenshots/elder-entities.png)
-*Entity tracking for datacenters, compute, network devices, and more*
+<a href="docs/screenshots/elder-entities.png" target="_blank">
+  <img src="docs/screenshots/elder-entities.png" alt="Entities" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Entity tracking for datacenters, compute, network devices, and more. **Click to enlarge.***
 
 </td>
 </tr>
 <tr>
 <td width="50%">
 
-![Dependencies](docs/screenshots/elder-dependencies.png)
-*Dependency mapping and relationship visualization between entities*
+<a href="docs/screenshots/elder-dependencies.png" target="_blank">
+  <img src="docs/screenshots/elder-dependencies.png" alt="Dependencies" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Dependency mapping and relationship visualization between entities. **Click to enlarge.***
 
 </td>
 <td width="50%">
 
-![Identities](docs/screenshots/elder-identities.png)
-*User and group management with role-based access control*
+<a href="docs/screenshots/elder-identities.png" target="_blank">
+  <img src="docs/screenshots/elder-identities.png" alt="Identities" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*User and group management with role-based access control. **Click to enlarge.***
 
 </td>
 </tr>
@@ -87,20 +101,29 @@ Elder provides visibility into your infrastructure and organizational relationsh
 <tr>
 <td width="33%">
 
-![Projects](docs/screenshots/elder-projects.png)
-*Project tracking and organization*
+<a href="docs/screenshots/elder-projects.png" target="_blank">
+  <img src="docs/screenshots/elder-projects.png" alt="Projects" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Project tracking and organization. **Click to enlarge.***
 
 </td>
 <td width="33%">
 
-![Milestones](docs/screenshots/elder-milestones.png)
-*Milestone management for project planning*
+<a href="docs/screenshots/elder-milestones.png" target="_blank">
+  <img src="docs/screenshots/elder-milestones.png" alt="Milestones" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Milestone management for project planning. **Click to enlarge.***
 
 </td>
 <td width="33%">
 
-![Labels](docs/screenshots/elder-labels.png)
-*Customizable labels for categorization*
+<a href="docs/screenshots/elder-labels.png" target="_blank">
+  <img src="docs/screenshots/elder-labels.png" alt="Labels" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Customizable labels for categorization. **Click to enlarge.***
 
 </td>
 </tr>
