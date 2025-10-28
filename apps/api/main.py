@@ -197,6 +197,7 @@ def _register_blueprints(app: Flask) -> None:
         webhooks,  # Phase 9: Webhook & Notification System
         search,  # Phase 10: Advanced Search
         backup,  # Phase 10: Backup & Data Management
+        google_workspace,  # Phase 7: Google Workspace Integration
     )
     from apps.api.web import routes as web
 
@@ -234,6 +235,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(webhooks.bp, url_prefix=f"{api_prefix}/webhooks")  # Phase 9
     app.register_blueprint(search.bp, url_prefix=f"{api_prefix}/search")  # Phase 10
     app.register_blueprint(backup.bp, url_prefix=f"{api_prefix}/backup")  # Phase 10
+    app.register_blueprint(google_workspace.bp, url_prefix=f"{api_prefix}/google-workspace")  # Phase 7
 
     # Public lookup endpoint (no /api/v1 prefix for cleaner URLs)
     app.register_blueprint(lookup.bp, url_prefix="/lookup")
