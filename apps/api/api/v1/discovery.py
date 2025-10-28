@@ -1,12 +1,19 @@
 """Cloud Auto-Discovery API endpoints for Elder v1.2.0 (Phase 5)."""
 
-from flask import Blueprint, jsonify, request
-from apps.api.auth.decorators import login_required
+from flask import Blueprint, jsonify, request, current_app
+from apps.api.auth.decorators import login_required, admin_required
+from apps.api.services.discovery import DiscoveryService
 
 bp = Blueprint('discovery', __name__)
 
 
+def get_discovery_service():
+    """Get DiscoveryService instance with current database."""
+    return DiscoveryService(current_app.db)
+
+
 # Discovery Jobs endpoints
+
 @bp.route('/jobs', methods=['GET'])
 @login_required
 def list_discovery_jobs(current_user):
@@ -16,18 +23,40 @@ def list_discovery_jobs(current_user):
     Query params:
         - provider: Filter by cloud provider (aws, gcp, azure, kubernetes)
         - enabled: Filter by enabled status
+        - organization_id: Filter by organization
 
     Returns:
         200: List of discovery jobs
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Discovery jobs listing will be available in Phase 5'
-    }), 501
+    try:
+        service = get_discovery_service()
+
+        provider = request.args.get('provider')
+        enabled = request.args.get('enabled')
+        organization_id = request.args.get('organization_id', type=int)
+
+        # Convert enabled string to boolean
+        enabled_bool = None
+        if enabled is not None:
+            enabled_bool = enabled.lower() == 'true'
+
+        jobs = service.list_jobs(
+            provider=provider,
+            enabled=enabled_bool,
+            organization_id=organization_id
+        )
+
+        return jsonify({
+            'jobs': jobs,
+            'count': len(jobs)
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/jobs', methods=['POST'])
-@login_required
+@admin_required
 def create_discovery_job(current_user):
     """
     Create a new discovery job.
@@ -36,22 +65,46 @@ def create_discovery_job(current_user):
         {
             "name": "AWS Production Discovery",
             "provider": "aws",
-            "config_json": {
+            "config": {
                 "region": "us-east-1",
-                "account_id": "123456789",
-                "services": ["ec2", "rds", "s3", "lambda"]
+                "access_key_id": "...",
+                "secret_access_key": "...",
+                "services": ["ec2", "rds", "s3"]
             },
-            "schedule_interval": 3600
+            "organization_id": 1,
+            "schedule_interval": 3600,
+            "description": "Discover AWS production resources"
         }
 
     Returns:
         201: Job created
         400: Invalid request
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Discovery job creation will be available in Phase 5'
-    }), 501
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+
+        required = ['name', 'provider', 'config', 'organization_id']
+        missing = [f for f in required if f not in data]
+        if missing:
+            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+
+        service = get_discovery_service()
+        job = service.create_job(
+            name=data['name'],
+            provider=data['provider'],
+            config=data['config'],
+            organization_id=data['organization_id'],
+            schedule_interval=data.get('schedule_interval'),
+            description=data.get('description')
+        )
+
+        return jsonify(job), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 
 @bp.route('/jobs/<int:job_id>', methods=['GET'])
@@ -64,46 +117,104 @@ def get_discovery_job(current_user, job_id):
         200: Job details
         404: Job not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Discovery job retrieval will be available in Phase 5'
-    }), 501
+    try:
+        service = get_discovery_service()
+        job = service.get_job(job_id)
+        return jsonify(job), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/jobs/<int:job_id>', methods=['PUT'])
-@login_required
+@admin_required
 def update_discovery_job(current_user, job_id):
     """
     Update discovery job configuration.
+
+    Request body (all optional):
+        {
+            "name": "Updated Name",
+            "config": {...},
+            "schedule_interval": 7200,
+            "description": "Updated description",
+            "enabled": false
+        }
 
     Returns:
         200: Job updated
         404: Job not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Discovery job updating will be available in Phase 5'
-    }), 501
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+
+        service = get_discovery_service()
+        job = service.update_job(
+            job_id=job_id,
+            name=data.get('name'),
+            config=data.get('config'),
+            schedule_interval=data.get('schedule_interval'),
+            description=data.get('description'),
+            enabled=data.get('enabled')
+        )
+
+        return jsonify(job), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 400
 
 
 @bp.route('/jobs/<int:job_id>', methods=['DELETE'])
-@login_required
+@admin_required
 def delete_discovery_job(current_user, job_id):
     """
     Delete discovery job.
 
     Returns:
-        204: Job deleted
+        200: Job deleted
         404: Job not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Discovery job deletion will be available in Phase 5'
-    }), 501
+    try:
+        service = get_discovery_service()
+        result = service.delete_job(job_id)
+        return jsonify(result), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/jobs/<int:job_id>/test', methods=['POST'])
+@login_required
+def test_discovery_job(current_user, job_id):
+    """
+    Test discovery job connectivity.
+
+    Returns:
+        200: Test result
+        404: Job not found
+    """
+    try:
+        service = get_discovery_service()
+        result = service.test_job(job_id)
+        return jsonify(result), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/jobs/<int:job_id>/run', methods=['POST'])
-@login_required
+@admin_required
 def run_discovery_job(current_user, job_id):
     """
     Manually trigger a discovery job.
@@ -112,10 +223,17 @@ def run_discovery_job(current_user, job_id):
         202: Job started
         404: Job not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Discovery job execution will be available in Phase 5'
-    }), 501
+    try:
+        service = get_discovery_service()
+        result = service.run_discovery(job_id)
+
+        status_code = 202 if result.get('success') else 500
+        return jsonify(result), status_code
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/jobs/<int:job_id>/history', methods=['GET'])
@@ -129,138 +247,46 @@ def get_discovery_job_history(current_user, job_id):
 
     Returns:
         200: Job history
-        404: Job not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Discovery job history will be available in Phase 5'
-    }), 501
+    try:
+        service = get_discovery_service()
+
+        limit = request.args.get('limit', 50, type=int)
+
+        history = service.get_discovery_history(job_id=job_id, limit=limit)
+
+        return jsonify({
+            'history': history,
+            'count': len(history)
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-# Cloud Accounts endpoints
-@bp.route('/accounts', methods=['GET'])
+@bp.route('/history', methods=['GET'])
 @login_required
-def list_cloud_accounts(current_user):
+def get_all_discovery_history(current_user):
     """
-    List all cloud accounts.
+    Get all discovery execution history.
 
     Query params:
-        - provider: Filter by provider
-        - organization_id: Filter by organization
+        - limit: Number of history entries (default: 50)
 
     Returns:
-        200: List of cloud accounts
+        200: Discovery history
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Cloud accounts listing will be available in Phase 5'
-    }), 501
+    try:
+        service = get_discovery_service()
 
+        limit = request.args.get('limit', 50, type=int)
 
-@bp.route('/accounts', methods=['POST'])
-@login_required
-def create_cloud_account(current_user):
-    """
-    Register a new cloud account.
+        history = service.get_discovery_history(limit=limit)
 
-    Request body:
-        {
-            "name": "AWS Production Account",
-            "provider": "aws",
-            "organization_id": 1,
-            "credentials_json": {
-                "access_key_id": "...",
-                "secret_access_key": "...",
-                "region": "us-east-1"
-            }
-        }
+        return jsonify({
+            'history': history,
+            'count': len(history)
+        }), 200
 
-    Returns:
-        201: Account created
-        400: Invalid request
-    """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Cloud account creation will be available in Phase 5'
-    }), 501
-
-
-@bp.route('/accounts/<int:account_id>', methods=['GET'])
-@login_required
-def get_cloud_account(current_user, account_id):
-    """
-    Get cloud account details.
-
-    Returns:
-        200: Account details
-        404: Account not found
-    """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Cloud account retrieval will be available in Phase 5'
-    }), 501
-
-
-@bp.route('/accounts/<int:account_id>', methods=['PUT'])
-@login_required
-def update_cloud_account(current_user, account_id):
-    """
-    Update cloud account configuration.
-
-    Returns:
-        200: Account updated
-        404: Account not found
-    """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Cloud account updating will be available in Phase 5'
-    }), 501
-
-
-@bp.route('/accounts/<int:account_id>', methods=['DELETE'])
-@login_required
-def delete_cloud_account(current_user, account_id):
-    """
-    Delete cloud account.
-
-    Returns:
-        204: Account deleted
-        404: Account not found
-    """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Cloud account deletion will be available in Phase 5'
-    }), 501
-
-
-@bp.route('/accounts/<int:account_id>/test', methods=['POST'])
-@login_required
-def test_cloud_account(current_user, account_id):
-    """
-    Test cloud account credentials.
-
-    Returns:
-        200: Connection successful
-        400: Connection failed
-        404: Account not found
-    """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Cloud account testing will be available in Phase 5'
-    }), 501
-
-
-@bp.route('/accounts/<int:account_id>/discover', methods=['POST'])
-@login_required
-def discover_from_account(current_user, account_id):
-    """
-    Trigger immediate discovery for this account.
-
-    Returns:
-        202: Discovery started
-        404: Account not found
-    """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Account discovery will be available in Phase 5'
-    }), 501
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
