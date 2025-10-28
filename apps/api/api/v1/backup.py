@@ -1,14 +1,26 @@
 """Backup & Data Management API endpoints for Elder v1.2.0 (Phase 10)."""
 
-from flask import Blueprint, jsonify, request
-from apps.api.auth.decorators import login_required
+from flask import Blueprint, jsonify, request, send_file, current_app
+from apps.api.auth.decorators import login_required, admin_required
+from apps.api.services.backup import BackupService
+from werkzeug.utils import secure_filename
+import os
+import tempfile
 
 bp = Blueprint('backup', __name__)
 
 
-# Backup Jobs endpoints
+def get_backup_service():
+    """Get BackupService instance with current database."""
+    return BackupService(current_app.db)
+
+
+# ===========================
+# Backup Job Endpoints
+# ===========================
+
 @bp.route('/jobs', methods=['GET'])
-@login_required
+@admin_required
 def list_backup_jobs(current_user):
     """
     List all backup jobs.
@@ -19,14 +31,29 @@ def list_backup_jobs(current_user):
     Returns:
         200: List of backup jobs
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Backup jobs listing will be available in Phase 10'
-    }), 501
+    try:
+        service = get_backup_service()
+
+        enabled = request.args.get('enabled')
+
+        # Convert enabled string to boolean
+        enabled_bool = None
+        if enabled is not None:
+            enabled_bool = enabled.lower() == 'true'
+
+        jobs = service.list_backup_jobs(enabled=enabled_bool)
+
+        return jsonify({
+            'jobs': jobs,
+            'count': len(jobs)
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/jobs', methods=['POST'])
-@login_required
+@admin_required
 def create_backup_job(current_user):
     """
     Create a new backup job.
@@ -36,21 +63,45 @@ def create_backup_job(current_user):
             "name": "Daily Full Backup",
             "schedule": "0 2 * * *",
             "retention_days": 30,
-            "enabled": true
+            "enabled": true,
+            "description": "Daily backup at 2 AM",
+            "include_tables": ["entities", "organizations"],
+            "exclude_tables": ["audit_logs"]
         }
 
     Returns:
         201: Job created
         400: Invalid request
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Backup job creation will be available in Phase 10'
-    }), 501
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+
+        if 'name' not in data:
+            return jsonify({'error': 'name is required'}), 400
+
+        service = get_backup_service()
+
+        job = service.create_backup_job(
+            name=data['name'],
+            schedule=data.get('schedule'),
+            retention_days=data.get('retention_days', 30),
+            enabled=data.get('enabled', True),
+            description=data.get('description'),
+            include_tables=data.get('include_tables'),
+            exclude_tables=data.get('exclude_tables')
+        )
+
+        return jsonify(job), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 
 @bp.route('/jobs/<int:job_id>', methods=['GET'])
-@login_required
+@admin_required
 def get_backup_job(current_user, job_id):
     """
     Get backup job details.
@@ -59,46 +110,84 @@ def get_backup_job(current_user, job_id):
         200: Job details
         404: Job not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Backup job retrieval will be available in Phase 10'
-    }), 501
+    try:
+        service = get_backup_service()
+        job = service.get_backup_job(job_id)
+        return jsonify(job), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/jobs/<int:job_id>', methods=['PUT'])
-@login_required
+@admin_required
 def update_backup_job(current_user, job_id):
     """
     Update backup job configuration.
+
+    Request body (all optional):
+        {
+            "name": "Updated name",
+            "schedule": "0 3 * * *",
+            "retention_days": 60,
+            "enabled": false,
+            "description": "Updated description"
+        }
 
     Returns:
         200: Job updated
         404: Job not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Backup job updating will be available in Phase 10'
-    }), 501
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+
+        service = get_backup_service()
+
+        job = service.update_backup_job(
+            job_id=job_id,
+            name=data.get('name'),
+            schedule=data.get('schedule'),
+            retention_days=data.get('retention_days'),
+            enabled=data.get('enabled'),
+            description=data.get('description')
+        )
+
+        return jsonify(job), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 400
 
 
 @bp.route('/jobs/<int:job_id>', methods=['DELETE'])
-@login_required
+@admin_required
 def delete_backup_job(current_user, job_id):
     """
     Delete backup job.
 
     Returns:
-        204: Job deleted
+        200: Job deleted
         404: Job not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Backup job deletion will be available in Phase 10'
-    }), 501
+    try:
+        service = get_backup_service()
+        result = service.delete_backup_job(job_id)
+        return jsonify(result), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/jobs/<int:job_id>/run', methods=['POST'])
-@login_required
+@admin_required
 def run_backup_job(current_user, job_id):
     """
     Manually trigger a backup job.
@@ -107,15 +196,25 @@ def run_backup_job(current_user, job_id):
         202: Backup started
         404: Job not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Backup job execution will be available in Phase 10'
-    }), 501
+    try:
+        service = get_backup_service()
+        result = service.run_backup_job(job_id)
+
+        status_code = 202 if result.get('success') else 500
+        return jsonify(result), status_code
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
-# Backup Management
+# ===========================
+# Backup Management Endpoints
+# ===========================
+
 @bp.route('', methods=['GET'])
-@login_required
+@admin_required
 def list_backups(current_user):
     """
     List all backups.
@@ -127,14 +226,25 @@ def list_backups(current_user):
     Returns:
         200: List of backups
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Backups listing will be available in Phase 10'
-    }), 501
+    try:
+        service = get_backup_service()
+
+        job_id = request.args.get('job_id', type=int)
+        limit = request.args.get('limit', 50, type=int)
+
+        backups = service.list_backups(job_id=job_id, limit=limit)
+
+        return jsonify({
+            'backups': backups,
+            'count': len(backups)
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/<int:backup_id>', methods=['GET'])
-@login_required
+@admin_required
 def get_backup(current_user, backup_id):
     """
     Get backup details.
@@ -143,14 +253,19 @@ def get_backup(current_user, backup_id):
         200: Backup details
         404: Backup not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Backup retrieval will be available in Phase 10'
-    }), 501
+    try:
+        service = get_backup_service()
+        backup = service.get_backup(backup_id)
+        return jsonify(backup), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/<int:backup_id>/download', methods=['GET'])
-@login_required
+@admin_required
 def download_backup(current_user, backup_id):
     """
     Download backup file.
@@ -159,31 +274,49 @@ def download_backup(current_user, backup_id):
         200: Backup file
         404: Backup not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Backup download will be available in Phase 10'
-    }), 501
+    try:
+        service = get_backup_service()
+        filepath = service.get_backup_file_path(backup_id)
+
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=os.path.basename(filepath)
+        )
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/<int:backup_id>', methods=['DELETE'])
-@login_required
+@admin_required
 def delete_backup(current_user, backup_id):
     """
     Delete backup file.
 
     Returns:
-        204: Backup deleted
+        200: Backup deleted
         404: Backup not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Backup deletion will be available in Phase 10'
-    }), 501
+    try:
+        service = get_backup_service()
+        result = service.delete_backup(backup_id)
+        return jsonify(result), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
-# Restore Operations
+# ===========================
+# Restore Operation Endpoints
+# ===========================
+
 @bp.route('/<int:backup_id>/restore', methods=['POST'])
-@login_required
+@admin_required
 def restore_backup(current_user, backup_id):
     """
     Restore from backup.
@@ -191,7 +324,11 @@ def restore_backup(current_user, backup_id):
     Request body:
         {
             "dry_run": false,
-            "restore_options": {...}
+            "restore_options": {
+                "tables": ["entities", "organizations"],
+                "clear_existing": false,
+                "regenerate_ids": true
+            }
         }
 
     Returns:
@@ -199,38 +336,38 @@ def restore_backup(current_user, backup_id):
         400: Invalid request
         404: Backup not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Backup restore will be available in Phase 10'
-    }), 501
+    try:
+        data = request.get_json() or {}
+
+        service = get_backup_service()
+
+        result = service.restore_backup(
+            backup_id=backup_id,
+            dry_run=data.get('dry_run', False),
+            restore_options=data.get('restore_options')
+        )
+
+        return jsonify(result), 202
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 400
 
 
-@bp.route('/restore-status/<int:restore_id>', methods=['GET'])
-@login_required
-def get_restore_status(current_user, restore_id):
-    """
-    Get restore operation status.
+# ===========================
+# Export Operation Endpoints
+# ===========================
 
-    Returns:
-        200: Restore status
-        404: Restore operation not found
-    """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Restore status will be available in Phase 10'
-    }), 501
-
-
-# Export Operations
 @bp.route('/export', methods=['POST'])
-@login_required
+@admin_required
 def export_data(current_user):
     """
     Export data to various formats.
 
     Request body:
         {
-            "format": "json|csv|xml",
+            "format": "json",
             "resource_types": ["entity", "organization", "issue"],
             "filters": {...}
         }
@@ -239,31 +376,34 @@ def export_data(current_user):
         202: Export started
         400: Invalid request
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Data export will be available in Phase 10'
-    }), 501
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+
+        required = ['format', 'resource_types']
+        missing = [f for f in required if f not in data]
+        if missing:
+            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+
+        service = get_backup_service()
+
+        result = service.export_data(
+            format=data['format'],
+            resource_types=data['resource_types'],
+            filters=data.get('filters')
+        )
+
+        return jsonify(result), 202
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 
-@bp.route('/export/<int:export_id>', methods=['GET'])
-@login_required
-def get_export(current_user, export_id):
-    """
-    Get export status and download link.
-
-    Returns:
-        200: Export details
-        404: Export not found
-    """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Export retrieval will be available in Phase 10'
-    }), 501
-
-
-@bp.route('/export/<int:export_id>/download', methods=['GET'])
-@login_required
-def download_export(current_user, export_id):
+@bp.route('/export/<path:filename>/download', methods=['GET'])
+@admin_required
+def download_export(current_user, filename):
     """
     Download exported data.
 
@@ -271,52 +411,84 @@ def download_export(current_user, export_id):
         200: Export file
         404: Export not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Export download will be available in Phase 10'
-    }), 501
+    try:
+        # Secure the filename
+        filename = secure_filename(filename)
+        filepath = os.path.join(tempfile.gettempdir(), filename)
+
+        if not os.path.exists(filepath):
+            return jsonify({'error': 'Export file not found'}), 404
+
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
-# Import Operations
+# ===========================
+# Import Operation Endpoints
+# ===========================
+
 @bp.route('/import', methods=['POST'])
-@login_required
+@admin_required
 def import_data(current_user):
     """
     Import data from file.
 
     Request: multipart/form-data with file upload
-        - file: Data file (json, csv, xml)
-        - dry_run: Test import without committing
+        - file: Data file (json, json.gz)
+        - dry_run: Test import without committing (optional, default: false)
 
     Returns:
         202: Import started
         400: Invalid file or format
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Data import will be available in Phase 10'
-    }), 501
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+
+        file = request.files['file']
+
+        if file.filename == '':
+            return jsonify({'error': 'Empty filename'}), 400
+
+        # Secure the filename
+        filename = secure_filename(file.filename)
+
+        # Save to temporary location
+        temp_path = os.path.join(tempfile.gettempdir(), filename)
+        file.save(temp_path)
+
+        # Get dry_run parameter
+        dry_run = request.form.get('dry_run', 'false').lower() == 'true'
+
+        service = get_backup_service()
+
+        result = service.import_data(
+            filepath=temp_path,
+            dry_run=dry_run
+        )
+
+        # Clean up temp file if not dry run
+        if not dry_run and os.path.exists(temp_path):
+            os.remove(temp_path)
+
+        return jsonify(result), 202
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 
-@bp.route('/import/<int:import_id>', methods=['GET'])
-@login_required
-def get_import_status(current_user, import_id):
-    """
-    Get import operation status.
+# ===========================
+# Storage Statistics Endpoints
+# ===========================
 
-    Returns:
-        200: Import status
-        404: Import operation not found
-    """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Import status will be available in Phase 10'
-    }), 501
-
-
-# Storage Statistics
 @bp.route('/stats', methods=['GET'])
-@login_required
+@admin_required
 def get_backup_stats(current_user):
     """
     Get backup and storage statistics.
@@ -324,7 +496,10 @@ def get_backup_stats(current_user):
     Returns:
         200: Storage statistics
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Backup statistics will be available in Phase 10'
-    }), 501
+    try:
+        service = get_backup_service()
+        stats = service.get_backup_stats()
+        return jsonify(stats), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

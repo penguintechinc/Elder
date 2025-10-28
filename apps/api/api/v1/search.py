@@ -1,10 +1,21 @@
 """Advanced Search API endpoints for Elder v1.2.0 (Phase 10)."""
 
-from flask import Blueprint, jsonify, request
+import json
+from flask import Blueprint, jsonify, request, current_app
 from apps.api.auth.decorators import login_required
+from apps.api.services.search import SearchService
 
 bp = Blueprint('search', __name__)
 
+
+def get_search_service():
+    """Get SearchService instance with current database."""
+    return SearchService(current_app.db)
+
+
+# ===========================
+# Universal Search Endpoints
+# ===========================
 
 @bp.route('', methods=['GET'])
 @login_required
@@ -14,7 +25,7 @@ def search_all(current_user):
 
     Query params:
         - q: Search query
-        - type: Resource types to search (comma-separated: entity,organization,issue)
+        - types: Resource types to search (comma-separated: entity,organization,issue)
         - filters: JSON-encoded filter object
         - limit: Results per page (default: 50)
         - offset: Pagination offset
@@ -23,11 +34,42 @@ def search_all(current_user):
         200: Search results
         400: Invalid query
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Advanced search will be available in Phase 10'
-    }), 501
+    try:
+        service = get_search_service()
 
+        query = request.args.get('q', '')
+        types_str = request.args.get('types', 'entity,organization,issue')
+        filters_str = request.args.get('filters')
+        limit = request.args.get('limit', 50, type=int)
+        offset = request.args.get('offset', 0, type=int)
+
+        # Parse types
+        resource_types = [t.strip() for t in types_str.split(',') if t.strip()]
+
+        # Parse filters
+        filters = None
+        if filters_str:
+            filters = json.loads(filters_str)
+
+        results = service.search_all(
+            query=query,
+            resource_types=resource_types,
+            filters=filters,
+            limit=limit,
+            offset=offset
+        )
+
+        return jsonify(results), 200
+
+    except json.JSONDecodeError:
+        return jsonify({'error': 'Invalid filters JSON'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ===========================
+# Entity Search Endpoints
+# ===========================
 
 @bp.route('/entities', methods=['GET'])
 @login_required
@@ -41,17 +83,57 @@ def search_entities(current_user):
         - sub_type: Filter by entity sub-type
         - organization_id: Filter by organization
         - tags: Filter by tags (comma-separated)
-        - attributes: JSON filter for entity attributes
+        - filters: JSON filter for entity attributes
         - limit: Results per page (default: 50)
+        - offset: Pagination offset
 
     Returns:
         200: Entity search results
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Entity search will be available in Phase 10'
-    }), 501
+    try:
+        service = get_search_service()
 
+        query = request.args.get('q')
+        entity_type = request.args.get('entity_type')
+        sub_type = request.args.get('sub_type')
+        organization_id = request.args.get('organization_id', type=int)
+        tags_str = request.args.get('tags')
+        filters_str = request.args.get('filters')
+        limit = request.args.get('limit', 50, type=int)
+        offset = request.args.get('offset', 0, type=int)
+
+        # Parse tags
+        tags = None
+        if tags_str:
+            tags = [t.strip() for t in tags_str.split(',') if t.strip()]
+
+        # Parse filters
+        filters = None
+        if filters_str:
+            filters = json.loads(filters_str)
+
+        results = service.search_entities(
+            query=query,
+            entity_type=entity_type,
+            sub_type=sub_type,
+            organization_id=organization_id,
+            tags=tags,
+            filters=filters,
+            limit=limit,
+            offset=offset
+        )
+
+        return jsonify(results), 200
+
+    except json.JSONDecodeError:
+        return jsonify({'error': 'Invalid filters JSON'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ===========================
+# Organization Search Endpoints
+# ===========================
 
 @bp.route('/organizations', methods=['GET'])
 @login_required
@@ -63,15 +145,38 @@ def search_organizations(current_user):
         - q: Search query
         - organization_type: Filter by type
         - parent_id: Filter by parent organization
+        - limit: Results per page (default: 50)
+        - offset: Pagination offset
 
     Returns:
         200: Organization search results
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Organization search will be available in Phase 10'
-    }), 501
+    try:
+        service = get_search_service()
 
+        query = request.args.get('q')
+        organization_type = request.args.get('organization_type')
+        parent_id = request.args.get('parent_id', type=int)
+        limit = request.args.get('limit', 50, type=int)
+        offset = request.args.get('offset', 0, type=int)
+
+        results = service.search_organizations(
+            query=query,
+            organization_type=organization_type,
+            parent_id=parent_id,
+            limit=limit,
+            offset=offset
+        )
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ===========================
+# Issue Search Endpoints
+# ===========================
 
 @bp.route('/issues', methods=['GET'])
 @login_required
@@ -86,15 +191,49 @@ def search_issues(current_user):
         - assignee_id: Filter by assignee
         - organization_id: Filter by organization
         - labels: Filter by labels (comma-separated)
+        - limit: Results per page (default: 50)
+        - offset: Pagination offset
 
     Returns:
         200: Issue search results
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Issue search will be available in Phase 10'
-    }), 501
+    try:
+        service = get_search_service()
 
+        query = request.args.get('q')
+        status = request.args.get('status')
+        priority = request.args.get('priority')
+        assignee_id = request.args.get('assignee_id', type=int)
+        organization_id = request.args.get('organization_id', type=int)
+        labels_str = request.args.get('labels')
+        limit = request.args.get('limit', 50, type=int)
+        offset = request.args.get('offset', 0, type=int)
+
+        # Parse labels
+        labels = None
+        if labels_str:
+            labels = [l.strip() for l in labels_str.split(',') if l.strip()]
+
+        results = service.search_issues(
+            query=query,
+            status=status,
+            priority=priority,
+            assignee_id=assignee_id,
+            organization_id=organization_id,
+            labels=labels,
+            limit=limit,
+            offset=offset
+        )
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ===========================
+# Graph Search Endpoints
+# ===========================
 
 @bp.route('/graph', methods=['POST'])
 @login_required
@@ -114,26 +253,62 @@ def search_graph(current_user):
         200: Graph search results
         400: Invalid request
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Graph search will be available in Phase 10'
-    }), 501
+    try:
+        data = request.get_json()
+
+        if not data or 'start_entity_id' not in data:
+            return jsonify({'error': 'start_entity_id is required'}), 400
+
+        service = get_search_service()
+
+        results = service.search_graph(
+            start_entity_id=data['start_entity_id'],
+            max_depth=data.get('max_depth', 3),
+            dependency_types=data.get('dependency_types'),
+            entity_filters=data.get('entity_filters')
+        )
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
-# Saved Searches endpoints
+# ===========================
+# Saved Search Endpoints
+# ===========================
+
 @bp.route('/saved', methods=['GET'])
 @login_required
 def list_saved_searches(current_user):
     """
     List user's saved searches.
 
+    Query params:
+        - limit: Maximum results (default: 50)
+
     Returns:
         200: List of saved searches
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Saved searches listing will be available in Phase 10'
-    }), 501
+    try:
+        service = get_search_service()
+
+        limit = request.args.get('limit', 50, type=int)
+
+        searches = service.list_saved_searches(
+            user_id=current_user.id,
+            limit=limit
+        )
+
+        return jsonify({
+            'searches': searches,
+            'count': len(searches)
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/saved', methods=['POST'])
@@ -146,17 +321,41 @@ def create_saved_search(current_user):
         {
             "name": "Critical entities in production",
             "query": "entity_type:compute AND tags:production",
-            "filters": {...}
+            "resource_type": "entity",
+            "filters": {...},
+            "description": "Find all critical compute entities"
         }
 
     Returns:
         201: Saved search created
         400: Invalid request
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Saved search creation will be available in Phase 10'
-    }), 501
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+
+        required = ['name', 'query', 'resource_type']
+        missing = [f for f in required if f not in data]
+        if missing:
+            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+
+        service = get_search_service()
+
+        search = service.create_saved_search(
+            user_id=current_user.id,
+            name=data['name'],
+            query=data['query'],
+            resource_type=data['resource_type'],
+            filters=data.get('filters'),
+            description=data.get('description')
+        )
+
+        return jsonify(search), 201
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 
 @bp.route('/saved/<int:search_id>', methods=['GET'])
@@ -169,10 +368,20 @@ def get_saved_search(current_user, search_id):
         200: Saved search details
         404: Search not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Saved search retrieval will be available in Phase 10'
-    }), 501
+    try:
+        service = get_search_service()
+
+        search = service.get_saved_search(
+            search_id=search_id,
+            user_id=current_user.id
+        )
+
+        return jsonify(search), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower() or 'not owned' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/saved/<int:search_id>/execute', methods=['GET'])
@@ -181,14 +390,33 @@ def execute_saved_search(current_user, search_id):
     """
     Execute a saved search.
 
+    Query params:
+        - limit: Maximum results (default: 50)
+        - offset: Pagination offset
+
     Returns:
         200: Search results
         404: Search not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Saved search execution will be available in Phase 10'
-    }), 501
+    try:
+        service = get_search_service()
+
+        limit = request.args.get('limit', 50, type=int)
+        offset = request.args.get('offset', 0, type=int)
+
+        results = service.execute_saved_search(
+            search_id=search_id,
+            user_id=current_user.id,
+            limit=limit,
+            offset=offset
+        )
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower() or 'not owned' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/saved/<int:search_id>', methods=['PUT'])
@@ -197,14 +425,41 @@ def update_saved_search(current_user, search_id):
     """
     Update saved search.
 
+    Request body (all optional):
+        {
+            "name": "Updated name",
+            "query": "new query",
+            "filters": {...},
+            "description": "Updated description"
+        }
+
     Returns:
         200: Search updated
         404: Search not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Saved search updating will be available in Phase 10'
-    }), 501
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'Request body required'}), 400
+
+        service = get_search_service()
+
+        search = service.update_saved_search(
+            search_id=search_id,
+            user_id=current_user.id,
+            name=data.get('name'),
+            query=data.get('query'),
+            filters=data.get('filters'),
+            description=data.get('description')
+        )
+
+        return jsonify(search), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower() or 'not owned' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 400
 
 
 @bp.route('/saved/<int:search_id>', methods=['DELETE'])
@@ -214,29 +469,55 @@ def delete_saved_search(current_user, search_id):
     Delete saved search.
 
     Returns:
-        204: Search deleted
+        200: Search deleted
         404: Search not found
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Saved search deletion will be available in Phase 10'
-    }), 501
+    try:
+        service = get_search_service()
+
+        result = service.delete_saved_search(
+            search_id=search_id,
+            user_id=current_user.id
+        )
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        if 'not found' in str(e).lower() or 'not owned' in str(e).lower():
+            return jsonify({'error': str(e)}), 404
+        return jsonify({'error': str(e)}), 500
 
 
-# Search Analytics
+# ===========================
+# Search Analytics Endpoints
+# ===========================
+
 @bp.route('/analytics/popular', methods=['GET'])
 @login_required
 def get_popular_searches(current_user):
     """
     Get most popular/frequent searches.
 
+    Query params:
+        - limit: Maximum results (default: 10)
+
     Returns:
         200: Popular search terms and patterns
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Search analytics will be available in Phase 10'
-    }), 501
+    try:
+        service = get_search_service()
+
+        limit = request.args.get('limit', 10, type=int)
+
+        popular = service.get_popular_searches(limit=limit)
+
+        return jsonify({
+            'popular_searches': popular,
+            'count': len(popular)
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @bp.route('/suggest', methods=['GET'])
@@ -248,11 +529,28 @@ def search_suggestions(current_user):
     Query params:
         - q: Partial query string
         - type: Resource type for suggestions
+        - limit: Maximum suggestions (default: 10)
 
     Returns:
         200: Search suggestions
     """
-    return jsonify({
-        'error': 'Not implemented yet',
-        'message': 'Search suggestions will be available in Phase 10'
-    }), 501
+    try:
+        service = get_search_service()
+
+        query = request.args.get('q', '')
+        resource_type = request.args.get('type')
+        limit = request.args.get('limit', 10, type=int)
+
+        suggestions = service.get_search_suggestions(
+            partial_query=query,
+            resource_type=resource_type,
+            limit=limit
+        )
+
+        return jsonify({
+            'suggestions': suggestions,
+            'count': len(suggestions)
+        }), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
