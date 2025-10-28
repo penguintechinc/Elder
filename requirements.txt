@@ -127,5 +127,10 @@ boto3==1.35.90  # AWS Secrets Manager
 google-cloud-secret-manager==2.21.1  # GCP Secret Manager
 # Infisical uses requests (already included above)
 
+# Cloud Providers - Keys Management (Phase 3)
+# boto3 already included above for AWS KMS
+google-cloud-kms==2.25.0  # GCP Cloud KMS
+# Infisical uses requests + cryptography (already included above)
+
 # Cloud Logging (optional)
 # google-cloud-logging==3.11.4  # GCP Cloud Logging - uncomment if using GCP
