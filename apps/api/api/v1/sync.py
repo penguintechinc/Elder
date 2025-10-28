@@ -4,12 +4,11 @@ Provides API endpoints for managing two-way synchronization with external
 project management platforms (GitHub, GitLab, Jira, Trello, OpenProject).
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_cors import cross_origin
 from datetime import datetime
 
 from apps.api.auth.decorators import login_required, admin_required
-from shared.database.connection import get_db
 
 bp = Blueprint("sync", __name__, url_prefix="/api/v1/sync")
 
@@ -19,7 +18,7 @@ bp = Blueprint("sync", __name__, url_prefix="/api/v1/sync")
 @login_required
 def list_sync_configs(current_user):
     """List all sync configurations."""
-    db = get_db()
+    db = current_app.db
 
     configs = db(db.sync_configs).select().as_list()
 
@@ -31,7 +30,7 @@ def list_sync_configs(current_user):
 @admin_required
 def create_sync_config(current_user):
     """Create a new sync configuration."""
-    db = get_db()
+    db = current_app.db
     data = request.json
 
     # Validate required fields
@@ -64,7 +63,7 @@ def create_sync_config(current_user):
 @login_required
 def get_sync_config(current_user, config_id):
     """Get sync configuration details."""
-    db = get_db()
+    db = current_app.db
 
     config = db.sync_configs[config_id]
 
@@ -79,7 +78,7 @@ def get_sync_config(current_user, config_id):
 @admin_required
 def update_sync_config(current_user, config_id):
     """Update sync configuration."""
-    db = get_db()
+    db = current_app.db
     data = request.json
 
     config = db.sync_configs[config_id]
@@ -114,7 +113,7 @@ def update_sync_config(current_user, config_id):
 @admin_required
 def delete_sync_config(current_user, config_id):
     """Delete sync configuration."""
-    db = get_db()
+    db = current_app.db
 
     config = db.sync_configs[config_id]
 
@@ -132,7 +131,7 @@ def delete_sync_config(current_user, config_id):
 @login_required
 def list_sync_history(current_user):
     """List sync history with pagination."""
-    db = get_db()
+    db = current_app.db
 
     # Pagination
     page = request.args.get("page", 1, type=int)
@@ -178,7 +177,7 @@ def list_sync_history(current_user):
 @login_required
 def list_sync_conflicts(current_user):
     """List unresolved sync conflicts."""
-    db = get_db()
+    db = current_app.db
 
     # Filters
     resolved = request.args.get("resolved", "false").lower() == "true"
@@ -197,7 +196,7 @@ def list_sync_conflicts(current_user):
 @admin_required
 def resolve_conflict(current_user, conflict_id):
     """Resolve a sync conflict manually."""
-    db = get_db()
+    db = current_app.db
     data = request.json
 
     conflict = db.sync_conflicts[conflict_id]
@@ -225,7 +224,7 @@ def resolve_conflict(current_user, conflict_id):
 @login_required
 def list_sync_mappings(current_user):
     """List sync mappings."""
-    db = get_db()
+    db = current_app.db
 
     # Filters
     config_id = request.args.get("config_id", type=int)
@@ -249,7 +248,7 @@ def list_sync_mappings(current_user):
 @login_required
 def sync_status(current_user):
     """Get overall sync status summary."""
-    db = get_db()
+    db = current_app.db
 
     # Count configs
     total_configs = db(db.sync_configs).count()

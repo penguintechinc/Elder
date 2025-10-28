@@ -55,7 +55,12 @@
       "Bash(/tmp/test_identity.sh)",
       "Bash(bash:*)",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInVzZXJuYW1lIjoiYWRtaW4iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzYxNDE4NjA4LCJleHAiOjE3NjE0MjIyMDh9.PMYweQ6dY5Ky93Nd0USetBkEc_cuWyljuNEgoqndFWM\" curl:*)",
-      "Read(//home/penguin/Pictures/Screenshots/**)"
+      "Read(//home/penguin/Pictures/Screenshots/**)",
+      "Read(//home/penguin/code/killkrill/**)",
+      "Bash(for file in /home/penguin/code/Elder/apps/api/api/v1/backup.py /home/penguin/code/Elder/apps/api/api/v1/discovery.py /home/penguin/code/Elder/apps/api/api/v1/entity_types.py /home/penguin/code/Elder/apps/api/api/v1/keys.py /home/penguin/code/Elder/apps/api/api/v1/search.py /home/penguin/code/Elder/apps/api/api/v1/sync.py /home/penguin/code/Elder/apps/api/api/v1/webhooks.py)",
+      "Bash(do sed -i 's/token_required/login_required/g' \"$file\")",
+      "Bash(done)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhZG1pbiIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjE2MDc0NDUsImV4cCI6MTc2MTYyMTg0NX0.AkTm2gQUFCG7THxKAvqp33Hub-CAte14tfc3FEVevNo\")"
     ],
     "deny": [],
     "ask": []
