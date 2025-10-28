@@ -191,6 +191,7 @@ def _register_blueprints(app: Flask) -> None:
         sync,
         secrets,  # Phase 2: Secrets Management
         keys,  # Phase 3: Keys Management
+        iam,  # Phase 4: IAM Integration
         discovery,  # Phase 5: Cloud Auto-Discovery
         webhooks,  # Phase 9: Webhook & Notification System
         search,  # Phase 10: Advanced Search
@@ -226,6 +227,7 @@ def _register_blueprints(app: Flask) -> None:
     # v1.2.0 Feature blueprints (stub implementations)
     app.register_blueprint(secrets.bp, url_prefix=f"{api_prefix}/secrets")  # Phase 2
     app.register_blueprint(keys.bp, url_prefix=f"{api_prefix}/keys")  # Phase 3
+    app.register_blueprint(iam.bp, url_prefix=f"{api_prefix}/iam")  # Phase 4
     app.register_blueprint(discovery.bp, url_prefix=f"{api_prefix}/discovery")  # Phase 5
     app.register_blueprint(webhooks.bp, url_prefix=f"{api_prefix}/webhooks")  # Phase 9
     app.register_blueprint(search.bp, url_prefix=f"{api_prefix}/search")  # Phase 10
