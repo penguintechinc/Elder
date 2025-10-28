@@ -132,5 +132,11 @@ google-cloud-secret-manager==2.21.1  # GCP Secret Manager
 google-cloud-kms==2.25.0  # GCP Cloud KMS
 # Infisical uses requests + cryptography (already included above)
 
+# Cloud Providers - IAM Integration (Phase 4)
+# boto3 already included above for AWS IAM
+google-cloud-iam==2.16.0  # GCP IAM Admin
+google-cloud-resource-manager==1.13.1  # GCP Resource Manager for IAM policies
+kubernetes==31.0.0  # Kubernetes Python client for RBAC
+
 # Cloud Logging (optional)
 # google-cloud-logging==3.11.4  # GCP Cloud Logging - uncomment if using GCP
