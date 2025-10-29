@@ -142,30 +142,23 @@ function CreateEntityModal({ initialOrganizationId, onClose, onSuccess }: any) {
     queryFn: () => api.getOrganizations(),
   })
 
-  // Group entity types by category
-  const categorizedTypes: Record<string, any[]> = {}
-  if (entityTypesData?.items) {
-    entityTypesData.items.forEach((type: any) => {
-      if (!categorizedTypes[type.category]) {
-        categorizedTypes[type.category] = []
-      }
-      categorizedTypes[type.category].push(type)
-    })
-  }
+  // Debug: Log the entity types data
+  console.log('Entity Types Data:', entityTypesData)
 
-  // Get category options
-  const categoryOptions = Object.keys(categorizedTypes).map(cat => ({
-    value: cat,
-    label: cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ')
-  }))
+  // Get category options from entity_types array
+  const categoryOptions = entityTypesData?.entity_types?.map((et: any) => ({
+    value: et.type,
+    label: et.type.charAt(0).toUpperCase() + et.type.slice(1).replace('_', ' ')
+  })) || []
+
+  console.log('Category Options:', categoryOptions)
 
   // Get sub-type options for selected category
-  const subTypeOptions = entityCategory && categorizedTypes[entityCategory]
-    ? categorizedTypes[entityCategory].map(type => ({
-        value: type.sub_type || type.name,
-        label: (type.sub_type || type.name).replace('_', ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-      }))
-    : []
+  const selectedCategoryData = entityTypesData?.entity_types?.find((et: any) => et.type === entityCategory)
+  const subTypeOptions = selectedCategoryData?.subtypes?.map((subtype: string) => ({
+    value: subtype,
+    label: subtype.replace('_', ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  })) || []
 
   const createMutation = useMutation({
     mutationFn: (data: any) => api.createEntity(data),

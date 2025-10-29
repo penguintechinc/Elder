@@ -9,6 +9,11 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from pydal import DAL
+import boto3
+from botocore.exceptions import ClientError
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class BackupService:
@@ -26,6 +31,183 @@ class BackupService:
 
         # Ensure backup directory exists
         os.makedirs(self.backup_dir, exist_ok=True)
+
+        # S3-compatible storage configuration
+        self.s3_enabled = os.getenv("BACKUP_S3_ENABLED", "false").lower() == "true"
+        self.s3_endpoint = os.getenv("BACKUP_S3_ENDPOINT")  # e.g., https://s3.amazonaws.com or https://minio.example.com
+        self.s3_bucket = os.getenv("BACKUP_S3_BUCKET")
+        self.s3_region = os.getenv("BACKUP_S3_REGION", "us-east-1")
+        self.s3_access_key = os.getenv("BACKUP_S3_ACCESS_KEY")
+        self.s3_secret_key = os.getenv("BACKUP_S3_SECRET_KEY")
+        self.s3_prefix = os.getenv("BACKUP_S3_PREFIX", "elder/backups/")  # Prefix for all backup objects
+
+        # Initialize S3 client if enabled
+        self.s3_client = None
+        if self.s3_enabled:
+            self._init_s3_client()
+
+    # ===========================
+    # S3 Storage Backend
+    # ===========================
+
+    def _init_s3_client(self) -> None:
+        """Initialize S3 client for S3-compatible storage."""
+        try:
+            if not self.s3_bucket:
+                logger.warning("BACKUP_S3_BUCKET not configured, disabling S3 backups")
+                self.s3_enabled = False
+                return
+
+            # Create S3 client with custom endpoint support (for MinIO, Wasabi, etc.)
+            client_config = {
+                'region_name': self.s3_region,
+            }
+
+            if self.s3_access_key and self.s3_secret_key:
+                client_config['aws_access_key_id'] = self.s3_access_key
+                client_config['aws_secret_access_key'] = self.s3_secret_key
+
+            if self.s3_endpoint:
+                # Custom endpoint for S3-compatible services
+                client_config['endpoint_url'] = self.s3_endpoint
+
+            self.s3_client = boto3.client('s3', **client_config)
+
+            # Test connection and bucket access
+            try:
+                self.s3_client.head_bucket(Bucket=self.s3_bucket)
+                logger.info(f"S3 backup enabled: bucket={self.s3_bucket}, endpoint={self.s3_endpoint or 'AWS'}")
+            except ClientError as e:
+                if e.response['Error']['Code'] == '404':
+                    # Bucket doesn't exist, try to create it
+                    logger.info(f"Creating S3 bucket: {self.s3_bucket}")
+                    self.s3_client.create_bucket(Bucket=self.s3_bucket)
+                else:
+                    raise
+
+        except Exception as e:
+            logger.error(f"Failed to initialize S3 client: {e}")
+            self.s3_enabled = False
+            self.s3_client = None
+
+    def _upload_to_s3(self, filepath: str, filename: str) -> Dict[str, Any]:
+        """
+        Upload backup file to S3-compatible storage.
+
+        Args:
+            filepath: Local file path
+            filename: Backup filename
+
+        Returns:
+            Upload result with S3 URL and metadata
+
+        Raises:
+            Exception: If upload fails
+        """
+        if not self.s3_enabled or not self.s3_client:
+            raise Exception("S3 storage not enabled or configured")
+
+        try:
+            s3_key = f"{self.s3_prefix}{filename}"
+
+            # Upload file with metadata
+            with open(filepath, 'rb') as f:
+                self.s3_client.upload_fileobj(
+                    f,
+                    self.s3_bucket,
+                    s3_key,
+                    ExtraArgs={
+                        'Metadata': {
+                            'elder-version': '1.2.0',
+                            'upload-timestamp': datetime.utcnow().isoformat()
+                        }
+                    }
+                )
+
+            # Generate S3 URL
+            if self.s3_endpoint:
+                # Custom endpoint URL
+                s3_url = f"{self.s3_endpoint}/{self.s3_bucket}/{s3_key}"
+            else:
+                # AWS S3 URL
+                s3_url = f"https://{self.s3_bucket}.s3.{self.s3_region}.amazonaws.com/{s3_key}"
+
+            logger.info(f"Backup uploaded to S3: {s3_url}")
+
+            return {
+                'success': True,
+                's3_url': s3_url,
+                's3_bucket': self.s3_bucket,
+                's3_key': s3_key,
+                's3_region': self.s3_region
+            }
+
+        except ClientError as e:
+            logger.error(f"S3 upload failed: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def _download_from_s3(self, s3_key: str, local_filepath: str) -> bool:
+        """
+        Download backup file from S3-compatible storage.
+
+        Args:
+            s3_key: S3 object key
+            local_filepath: Local destination path
+
+        Returns:
+            True if successful
+
+        Raises:
+            Exception: If download fails
+        """
+        if not self.s3_enabled or not self.s3_client:
+            raise Exception("S3 storage not enabled or configured")
+
+        try:
+            self.s3_client.download_file(
+                self.s3_bucket,
+                s3_key,
+                local_filepath
+            )
+
+            logger.info(f"Backup downloaded from S3: {s3_key}")
+            return True
+
+        except ClientError as e:
+            logger.error(f"S3 download failed: {e}")
+            raise Exception(f"Failed to download from S3: {e}")
+
+    def _delete_from_s3(self, s3_key: str) -> bool:
+        """
+        Delete backup file from S3-compatible storage.
+
+        Args:
+            s3_key: S3 object key
+
+        Returns:
+            True if successful
+
+        Raises:
+            Exception: If deletion fails
+        """
+        if not self.s3_enabled or not self.s3_client:
+            raise Exception("S3 storage not enabled or configured")
+
+        try:
+            self.s3_client.delete_object(
+                Bucket=self.s3_bucket,
+                Key=s3_key
+            )
+
+            logger.info(f"Backup deleted from S3: {s3_key}")
+            return True
+
+        except ClientError as e:
+            logger.error(f"S3 deletion failed: {e}")
+            raise Exception(f"Failed to delete from S3: {e}")
 
     # ===========================
     # Backup Job Management
@@ -302,6 +484,19 @@ class BackupService:
             end_time = datetime.utcnow()
             duration_seconds = (end_time - start_time).total_seconds()
 
+            # Upload to S3 if enabled
+            s3_url = None
+            s3_key = None
+            if self.s3_enabled:
+                try:
+                    upload_result = self._upload_to_s3(filepath, filename)
+                    if upload_result.get('success'):
+                        s3_url = upload_result.get('s3_url')
+                        s3_key = upload_result.get('s3_key')
+                        logger.info(f"Backup uploaded to S3: {s3_url}")
+                except Exception as e:
+                    logger.error(f"S3 upload failed, continuing with local backup: {e}")
+
             # Create backup record
             backup_id = self.db.backups.insert(
                 job_id=job.id,
@@ -312,7 +507,9 @@ class BackupService:
                 status='completed',
                 started_at=start_time,
                 completed_at=end_time,
-                duration_seconds=duration_seconds
+                duration_seconds=duration_seconds,
+                s3_url=s3_url,
+                s3_key=s3_key
             )
 
             self.db.commit()
@@ -320,7 +517,7 @@ class BackupService:
             # Clean up old backups based on retention policy
             self._cleanup_old_backups(job.id, job.retention_days)
 
-            return {
+            result = {
                 'success': True,
                 'backup_id': backup_id,
                 'filename': filename,
@@ -328,6 +525,13 @@ class BackupService:
                 'record_count': total_records,
                 'duration_seconds': duration_seconds
             }
+
+            # Add S3 info if uploaded
+            if s3_url:
+                result['s3_url'] = s3_url
+                result['s3_uploaded'] = True
+
+            return result
 
         except Exception as e:
             # Record failed backup
@@ -362,12 +566,19 @@ class BackupService:
         ).select()
 
         for backup in old_backups:
-            # Delete file
+            # Delete from S3 if exists
+            if self.s3_enabled and backup.s3_key:
+                try:
+                    self._delete_from_s3(backup.s3_key)
+                except Exception as e:
+                    logger.error(f"Failed to delete backup from S3: {e}")
+
+            # Delete local file
             if backup.file_path and os.path.exists(backup.file_path):
                 try:
                     os.remove(backup.file_path)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.error(f"Failed to delete local backup file: {e}")
 
             # Delete record
             self.db(self.db.backups.id == backup.id).delete()
@@ -443,7 +654,14 @@ class BackupService:
         if not backup:
             raise Exception(f"Backup {backup_id} not found")
 
-        # Delete file
+        # Delete from S3 if exists
+        if self.s3_enabled and backup.s3_key:
+            try:
+                self._delete_from_s3(backup.s3_key)
+            except Exception as e:
+                logger.error(f"Failed to delete backup from S3: {e}")
+
+        # Delete local file
         if backup.file_path and os.path.exists(backup.file_path):
             os.remove(backup.file_path)
 
@@ -471,10 +689,26 @@ class BackupService:
         if not backup:
             raise Exception(f"Backup {backup_id} not found")
 
-        if not backup.file_path or not os.path.exists(backup.file_path):
-            raise Exception(f"Backup file not found")
+        # Check if local file exists
+        if backup.file_path and os.path.exists(backup.file_path):
+            return backup.file_path
 
-        return backup.file_path
+        # Try to download from S3 if local file missing
+        if self.s3_enabled and backup.s3_key:
+            logger.info(f"Local backup file not found, downloading from S3: {backup.s3_key}")
+            try:
+                # Download to original path or temp location
+                download_path = backup.file_path or os.path.join(
+                    tempfile.gettempdir(),
+                    backup.filename
+                )
+                self._download_from_s3(backup.s3_key, download_path)
+                return download_path
+            except Exception as e:
+                logger.error(f"Failed to download backup from S3: {e}")
+                raise Exception(f"Backup file not found locally or in S3")
+
+        raise Exception(f"Backup file not found")
 
     # ===========================
     # Restore Operations

@@ -4,7 +4,7 @@
 [![Test Coverage](https://codecov.io/gh/penguintechinc/elder/branch/main/graph/badge.svg)](https://codecov.io/gh/penguintechinc/elder)
 [![Python Version](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/penguintechinc/elder/releases)
+[![Version](https://img.shields.io/badge/version-1.2.0-green.svg)](https://github.com/penguintechinc/elder/releases)
 
 ```
 ███████╗██╗     ██████╗ ███████╗██████╗
@@ -129,6 +129,71 @@ Elder provides visibility into your infrastructure and organizational relationsh
 </tr>
 </table>
 
+### Enterprise & Integration Features
+
+<table>
+<tr>
+<td width="50%">
+
+<a href="docs/screenshots/Elder-IAM.png" target="_blank">
+  <img src="docs/screenshots/Elder-IAM.png" alt="IAM Integration" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*AWS IAM integration for identity and access management. **Click to enlarge.***
+
+</td>
+<td width="50%">
+
+<a href="docs/screenshots/Elder-Secrets.png" target="_blank">
+  <img src="docs/screenshots/Elder-Secrets.png" alt="Secrets Management" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Secrets management with AWS Secrets Manager integration. **Click to enlarge.***
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+<a href="docs/screenshots/Elder-GoogleWorkspaces.png" target="_blank">
+  <img src="docs/screenshots/Elder-GoogleWorkspaces.png" alt="Google Workspace" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Google Workspace integration for user and group synchronization. **Click to enlarge.***
+
+</td>
+<td width="50%">
+
+<a href="docs/screenshots/Elder-AlertWebhooks.png" target="_blank">
+  <img src="docs/screenshots/Elder-AlertWebhooks.png" alt="Webhooks" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Webhook integration for real-time event notifications. **Click to enlarge.***
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+<a href="docs/screenshots/Elder-Discovery.png" target="_blank">
+  <img src="docs/screenshots/Elder-Discovery.png" alt="Discovery" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Automated infrastructure discovery and entity creation. **Click to enlarge.***
+
+</td>
+<td width="50%">
+
+<a href="docs/screenshots/Elder-Updated-Org.png" target="_blank">
+  <img src="docs/screenshots/Elder-Updated-Org.png" alt="Organization Detail" style="max-width: 100%; cursor: pointer;">
+</a>
+
+*Enhanced organization detail view with comprehensive metadata. **Click to enlarge.***
+
+</td>
+</tr>
+</table>
+
 ## Features
 
 ### Core Capabilities
@@ -144,16 +209,22 @@ Elder provides visibility into your infrastructure and organizational relationsh
 - ✅ **Real-time Updates**: WebSocket support for live graph updates
 - ✅ **Import/Export**: JSON, YAML, and CSV data exchange
 
-### Entity Types
+### Entity Types & Sub-Types (New in v1.2.0!)
 
-| Type | Description | Examples |
-|------|-------------|----------|
-| **Datacenter/VPC** | Physical or virtual datacenter infrastructure | AWS VPC, Azure VNet, On-prem DC |
-| **Subnet** | Network subnets and segments | 10.0.1.0/24, DMZ, Private Subnet |
-| **Compute** | Servers, VMs, and compute resources | EC2 instances, bare metal servers, containers |
-| **Network** | Network devices and services | Load balancers, VPNs, firewalls, proxies |
-| **User** | Human and service accounts | Employees, service accounts, API keys |
-| **Security Issue** | Vulnerabilities and security concerns | CVEs, misconfigurations, compliance gaps |
+Elder now supports **categorized entity types with sub-types** for more granular infrastructure tracking:
+
+| Category | Sub-Types | Examples |
+|----------|-----------|----------|
+| **Network** | Router, Switch, Firewall, Load Balancer, VPN Gateway, DNS Server, Proxy | Cisco Router, F5 Load Balancer, pfSense Firewall |
+| **Compute** | Physical Server, Virtual Machine, Container, Kubernetes Pod | EC2 instance, Docker container, bare metal server |
+| **Storage** | SAN, NAS, Object Storage, Block Storage, File Share | AWS S3, NetApp NAS, iSCSI SAN |
+| **Datacenter** | Physical Datacenter, Cloud Region, Availability Zone, VPC, On-Premises | us-east-1, Azure East US, Corporate HQ |
+| **Security** | Firewall, IDS/IPS, WAF, Antivirus, DLP, SIEM | Palo Alto FW, Snort IDS, Cloudflare WAF |
+| **Application** | Web Server, App Server, Database, Message Queue, Cache | Nginx, Tomcat, PostgreSQL, Redis, RabbitMQ |
+| **Service** | API Gateway, CDN, Email Service, Monitoring, Backup | CloudFront CDN, SendGrid, Prometheus, Veeam |
+| **Identity** | User, Service Account, Group, Role | Employee account, Jenkins SA, Security admins |
+
+**Default Metadata Support**: Each entity type can have pre-configured metadata fields that appear automatically during entity creation.
 
 ### License Tiers
 
@@ -324,6 +395,28 @@ DELETE /api/v1/entities/{id}
 GET    /api/v1/dependencies
 POST   /api/v1/dependencies
 DELETE /api/v1/dependencies/{id}
+
+# Entity Types (New in v1.2.0)
+GET    /api/v1/entity-types/
+GET    /api/v1/entity-types/{type}
+GET    /api/v1/entity-types/{type}/subtypes
+GET    /api/v1/entity-types/{type}/metadata
+GET    /api/v1/entity-types/{type}/{sub_type}/metadata
+
+# Issue Types (New in v1.2.0)
+GET    /api/v1/issue-types
+POST   /api/v1/issue-types
+GET    /api/v1/issue-types/{id}
+PATCH  /api/v1/issue-types/{id}
+DELETE /api/v1/issue-types/{id}
+
+# Webhooks (New in v1.2.0)
+GET    /api/v1/webhooks
+POST   /api/v1/webhooks
+GET    /api/v1/webhooks/{id}
+PATCH  /api/v1/webhooks/{id}
+DELETE /api/v1/webhooks/{id}
+GET    /api/v1/webhooks/{id}/deliveries
 
 # Graph Visualization
 GET    /api/v1/graph
@@ -554,9 +647,9 @@ Elder is licensed under the Limited AGPL v3 with Fair Use Preamble. See [LICENSE
 
 ## Project Status
 
-**Current Version:** 1.0.0 - Production Ready 🎉
+**Current Version:** 1.2.0 - Enhanced Entity Management 🚀
 
-Elder v1.0.0 represents the first production-ready release with comprehensive UI/UX improvements, enhanced issue management, and complete branding integration.
+Elder v1.2.0 introduces comprehensive entity type categorization with sub-types, issue type management, webhook integration, and project-based views for improved infrastructure tracking and workflow automation.
 
 **Completed Phases:**
 - ✅ Phase 1: Foundation & Core Models
@@ -569,8 +662,18 @@ Elder v1.0.0 represents the first production-ready release with comprehensive UI
 - ✅ Phase 9: Websites & Documentation
 - ✅ Phase 10: Testing & Polish
 - ✅ v1.0.0: Production UI/UX, Enhanced Issue Management, Branding Integration
+- ✅ v1.2.0: Entity Type Categories, Issue Types, Webhook Integration, Project Views
 
-**Recent v1.0.0 Highlights:**
+**New in v1.2.0:**
+- **Entity Type Categories with Sub-Types**: 8 main categories (Network, Compute, Storage, Datacenter, Security, Application, Service, Identity) with 30+ sub-types
+- **Default Metadata Templates**: Pre-configured metadata fields for each entity type that appear automatically during creation
+- **Issue Type Management**: Customizable issue types (Bug, Feature Request, Task, Documentation, etc.) with descriptions
+- **Webhook Integration**: HTTP webhook support for real-time event notifications on entity changes, issue updates, and more
+- **Project-Based Views**: Filter and view issues within the context of specific projects
+- **Enhanced Entity Creation**: Category-based entity creation with dynamic sub-type selection and metadata fields
+- **REST API Enhancements**: New endpoints for entity types, issue types, and webhook management
+
+**v1.0.0 Highlights:**
 - Enhanced issue creation with organization/entity assignment and labels
 - Modal-first UI pattern for improved workflow efficiency
 - Clickable dashboard navigation and anchor link scrolling
@@ -582,6 +685,8 @@ Elder v1.0.0 represents the first production-ready release with comprehensive UI
 **Optional Future Enhancements:**
 - Phase 6a: Advanced Features (LDAP sync, WebSocket updates, bulk operations)
 - Phase 7: License Integration Refinement
+- Advanced webhook retry logic and delivery tracking
+- Custom entity type definitions
 
 See [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) for detailed release history.
 
