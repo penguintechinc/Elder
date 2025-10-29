@@ -91,7 +91,14 @@ def create_backup_job():
             enabled=data.get('enabled', True),
             description=data.get('description'),
             include_tables=data.get('include_tables'),
-            exclude_tables=data.get('exclude_tables')
+            exclude_tables=data.get('exclude_tables'),
+            s3_enabled=data.get('s3_enabled', False),
+            s3_endpoint=data.get('s3_endpoint'),
+            s3_bucket=data.get('s3_bucket'),
+            s3_region=data.get('s3_region'),
+            s3_access_key=data.get('s3_access_key'),
+            s3_secret_key=data.get('s3_secret_key'),
+            s3_prefix=data.get('s3_prefix')
         )
 
         return jsonify(job), 201

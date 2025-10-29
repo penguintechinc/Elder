@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Database, Play, Trash2, RotateCcw, Calendar } from 'lucide-react'
+import { Plus, Database, Play, Trash2, RotateCcw, Calendar, Cloud } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
@@ -180,6 +180,13 @@ function CreateJobModal({ onClose, onSuccess }: any) {
   const [schedule, setSchedule] = useState('0 2 * * *')
   const [retentionDays, setRetentionDays] = useState('30')
   const [orgId, setOrgId] = useState('')
+  const [s3Enabled, setS3Enabled] = useState(false)
+  const [s3Endpoint, setS3Endpoint] = useState('')
+  const [s3Bucket, setS3Bucket] = useState('')
+  const [s3Region, setS3Region] = useState('us-east-1')
+  const [s3AccessKey, setS3AccessKey] = useState('')
+  const [s3SecretKey, setS3SecretKey] = useState('')
+  const [s3Prefix, setS3Prefix] = useState('elder/backups/')
 
   const { data: orgs } = useQuery({
     queryKey: ['organizations'],
@@ -202,6 +209,13 @@ function CreateJobModal({ onClose, onSuccess }: any) {
       retention_days: parseInt(retentionDays),
       organization_id: orgId ? parseInt(orgId) : undefined,
       enabled: true,
+      s3_enabled: s3Enabled,
+      s3_endpoint: s3Enabled ? s3Endpoint : undefined,
+      s3_bucket: s3Enabled ? s3Bucket : undefined,
+      s3_region: s3Enabled ? s3Region : undefined,
+      s3_access_key: s3Enabled ? s3AccessKey : undefined,
+      s3_secret_key: s3Enabled ? s3SecretKey : undefined,
+      s3_prefix: s3Enabled ? s3Prefix : undefined,
     })
   }
 
@@ -243,6 +257,75 @@ function CreateJobModal({ onClose, onSuccess }: any) {
                 ...(orgs?.items || []).map((o: any) => ({ value: o.id, label: o.name })),
               ]}
             />
+
+            {/* S3 Configuration Section */}
+            <div className="border-t border-slate-700 pt-4 mt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Cloud className="w-5 h-5 text-primary-400" />
+                <h3 className="text-lg font-medium text-white">S3 Storage (Optional)</h3>
+              </div>
+
+              <div className="flex items-center gap-2 mb-4">
+                <input
+                  type="checkbox"
+                  id="s3-enabled"
+                  checked={s3Enabled}
+                  onChange={(e) => setS3Enabled(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-primary-500 focus:ring-primary-500"
+                />
+                <label htmlFor="s3-enabled" className="text-sm text-slate-300">
+                  Enable S3-compatible storage for this backup job
+                </label>
+              </div>
+
+              {s3Enabled && (
+                <div className="space-y-4 pl-6 border-l-2 border-primary-500/30">
+                  <Input
+                    label="S3 Endpoint"
+                    value={s3Endpoint}
+                    onChange={(e) => setS3Endpoint(e.target.value)}
+                    placeholder="s3.amazonaws.com (or minio.example.com)"
+                    helperText="Leave empty for AWS S3, or specify custom endpoint for MinIO, Wasabi, etc."
+                  />
+                  <Input
+                    label="Bucket Name"
+                    required={s3Enabled}
+                    value={s3Bucket}
+                    onChange={(e) => setS3Bucket(e.target.value)}
+                    placeholder="my-backup-bucket"
+                  />
+                  <Input
+                    label="Region"
+                    value={s3Region}
+                    onChange={(e) => setS3Region(e.target.value)}
+                    placeholder="us-east-1"
+                  />
+                  <Input
+                    label="Access Key ID"
+                    required={s3Enabled}
+                    value={s3AccessKey}
+                    onChange={(e) => setS3AccessKey(e.target.value)}
+                    placeholder="AKIAIOSFODNN7EXAMPLE"
+                  />
+                  <Input
+                    label="Secret Access Key"
+                    type="password"
+                    required={s3Enabled}
+                    value={s3SecretKey}
+                    onChange={(e) => setS3SecretKey(e.target.value)}
+                    placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+                  />
+                  <Input
+                    label="Key Prefix"
+                    value={s3Prefix}
+                    onChange={(e) => setS3Prefix(e.target.value)}
+                    placeholder="elder/backups/"
+                    helperText="Prefix for backup files in the bucket"
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="flex justify-end gap-3 mt-6">
               <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
               <Button type="submit" isLoading={createMutation.isPending}>Create</Button>

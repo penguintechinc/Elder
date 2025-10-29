@@ -263,7 +263,14 @@ class BackupService:
         enabled: bool = True,
         description: Optional[str] = None,
         include_tables: Optional[List[str]] = None,
-        exclude_tables: Optional[List[str]] = None
+        exclude_tables: Optional[List[str]] = None,
+        s3_enabled: bool = False,
+        s3_endpoint: Optional[str] = None,
+        s3_bucket: Optional[str] = None,
+        s3_region: Optional[str] = None,
+        s3_access_key: Optional[str] = None,
+        s3_secret_key: Optional[str] = None,
+        s3_prefix: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Create a new backup job.
@@ -276,6 +283,13 @@ class BackupService:
             description: Optional description
             include_tables: Tables to include (None = all)
             exclude_tables: Tables to exclude
+            s3_enabled: Enable S3 storage for this job
+            s3_endpoint: S3 endpoint URL (optional, for custom S3-compatible services)
+            s3_bucket: S3 bucket name
+            s3_region: S3 region
+            s3_access_key: S3 access key ID
+            s3_secret_key: S3 secret access key
+            s3_prefix: S3 key prefix
 
         Returns:
             Created backup job dictionary
@@ -293,6 +307,13 @@ class BackupService:
             enabled=enabled,
             description=description,
             config_json=json.dumps(config) if config else None,
+            s3_enabled=s3_enabled,
+            s3_endpoint=s3_endpoint,
+            s3_bucket=s3_bucket,
+            s3_region=s3_region,
+            s3_access_key=s3_access_key,
+            s3_secret_key=s3_secret_key,
+            s3_prefix=s3_prefix,
             created_at=datetime.utcnow()
         )
 
@@ -484,16 +505,51 @@ class BackupService:
             end_time = datetime.utcnow()
             duration_seconds = (end_time - start_time).total_seconds()
 
-            # Upload to S3 if enabled
+            # Upload to S3 if enabled (check per-job config first, then global)
             s3_url = None
             s3_key = None
-            if self.s3_enabled:
+            use_s3 = job.s3_enabled if hasattr(job, 's3_enabled') else self.s3_enabled
+
+            if use_s3:
                 try:
+                    # Use per-job S3 config if available, otherwise use global config
+                    if hasattr(job, 's3_enabled') and job.s3_enabled:
+                        # Temporarily override S3 settings with job-specific config
+                        original_s3_config = {
+                            'endpoint': self.s3_endpoint,
+                            'bucket': self.s3_bucket,
+                            'region': self.s3_region,
+                            'access_key': self.s3_access_key,
+                            'secret_key': self.s3_secret_key,
+                            'prefix': self.s3_prefix
+                        }
+
+                        self.s3_endpoint = job.s3_endpoint or self.s3_endpoint
+                        self.s3_bucket = job.s3_bucket or self.s3_bucket
+                        self.s3_region = job.s3_region or self.s3_region
+                        self.s3_access_key = job.s3_access_key or self.s3_access_key
+                        self.s3_secret_key = job.s3_secret_key or self.s3_secret_key
+                        self.s3_prefix = job.s3_prefix or self.s3_prefix
+
+                        # Re-initialize S3 client with job-specific config
+                        self._init_s3_client()
+
                     upload_result = self._upload_to_s3(filepath, filename)
                     if upload_result.get('success'):
                         s3_url = upload_result.get('s3_url')
                         s3_key = upload_result.get('s3_key')
                         logger.info(f"Backup uploaded to S3: {s3_url}")
+
+                    # Restore original S3 config if we overrode it
+                    if hasattr(job, 's3_enabled') and job.s3_enabled:
+                        self.s3_endpoint = original_s3_config['endpoint']
+                        self.s3_bucket = original_s3_config['bucket']
+                        self.s3_region = original_s3_config['region']
+                        self.s3_access_key = original_s3_config['access_key']
+                        self.s3_secret_key = original_s3_config['secret_key']
+                        self.s3_prefix = original_s3_config['prefix']
+                        self._init_s3_client()
+
                 except Exception as e:
                     logger.error(f"S3 upload failed, continuing with local backup: {e}")
 

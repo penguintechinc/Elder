@@ -118,6 +118,14 @@ def define_all_tables(db):
         Field('retention_days', 'integer', default=30, notnull=True),
         Field('enabled', 'boolean', default=True, notnull=True),
         Field('last_run_at', 'datetime'),
+        # S3 Configuration (optional, per-job override of global S3 settings)
+        Field('s3_enabled', 'boolean', default=False, notnull=True),
+        Field('s3_endpoint', 'string', length=255),  # S3 endpoint URL (e.g., s3.amazonaws.com, minio.example.com)
+        Field('s3_bucket', 'string', length=255),  # S3 bucket name
+        Field('s3_region', 'string', length=50),  # S3 region (e.g., us-east-1)
+        Field('s3_access_key', 'string', length=255),  # S3 access key ID
+        Field('s3_secret_key', 'string', length=255),  # S3 secret access key (should be encrypted)
+        Field('s3_prefix', 'string', length=255),  # S3 key prefix (e.g., elder/backups/)
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
         migrate=True,
