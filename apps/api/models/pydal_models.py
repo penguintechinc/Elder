@@ -138,6 +138,26 @@ def define_all_tables(db):
     # LEVEL 2: Tables with Level 1 dependencies
     # ==========================================
 
+    # Backups table (depends on: backup_jobs) - Phase 10: Advanced Search & Data Management
+    db.define_table(
+        'backups',
+        Field('job_id', 'reference backup_jobs', notnull=True, ondelete='CASCADE'),
+        Field('filename', 'string', length=255, notnull=True),
+        Field('file_path', 'string', length=512),
+        Field('file_size', 'bigint'),  # Size in bytes
+        Field('record_count', 'integer', default=0),
+        Field('status', 'string', length=50, notnull=True, default='pending',
+              requires=IS_IN_SET(['pending', 'running', 'completed', 'failed'])),
+        Field('error_message', 'text'),
+        Field('started_at', 'datetime'),
+        Field('completed_at', 'datetime'),
+        Field('duration_seconds', 'integer'),
+        Field('s3_url', 'string', length=1024),  # Full S3 URL if uploaded to S3
+        Field('s3_key', 'string', length=512),  # S3 object key for deletion/download
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
     # Identity Group Memberships table (depends on: identities, identity_groups)
     db.define_table(
         'identity_group_memberships',
