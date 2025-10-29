@@ -337,6 +337,8 @@ def define_all_tables(db):
         Field('default_metadata', 'json'),  # Default metadata template for this sub_type
         Field('tags', 'list:string'),
         Field('is_active', 'boolean', default=True),
+        # v1.2.1: Status tracking for sync operations (Running, Stopped, Deleted, Creating, Error)
+        Field('status_metadata', 'json'),  # {status: "Running|Stopped|Deleted|Creating|Error", timestamp: epoch64}
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
         migrate=True,

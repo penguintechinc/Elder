@@ -27,6 +27,7 @@ class NetworkSubType:
     VRRF = "vrrf"
     VXLAN = "vxlan"
     VLAN = "vlan"
+    NAMESPACE = "namespace"  # v1.2.1: Kubernetes/container namespaces
     OTHER = "other"
 
 
@@ -95,6 +96,7 @@ ENTITY_SUBTYPES: Dict[str, List[str]] = {
         NetworkSubType.VRRF,
         NetworkSubType.VXLAN,
         NetworkSubType.VLAN,
+        NetworkSubType.NAMESPACE,  # v1.2.1
         NetworkSubType.OTHER,
     ],
     EntityType.COMPUTE: [
@@ -159,6 +161,12 @@ DEFAULT_METADATA_TEMPLATES: Dict[str, Dict[str, Dict]] = {
             "cidr_block": {"type": "string", "description": "CIDR notation (e.g., 10.0.1.0/24)"},
             "gateway": {"type": "string", "description": "Gateway IP address"},
             "available_ips": {"type": "integer", "description": "Available IP addresses"},
+        },
+        NetworkSubType.NAMESPACE: {
+            "cluster": {"type": "string", "description": "Kubernetes cluster name"},
+            "resource_quota": {"type": "object", "description": "Resource quotas and limits"},
+            "labels": {"type": "object", "description": "Namespace labels"},
+            "annotations": {"type": "object", "description": "Namespace annotations"},
         },
     },
     EntityType.COMPUTE: {
