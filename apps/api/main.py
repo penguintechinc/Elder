@@ -108,6 +108,8 @@ def _init_extensions(app: Flask) -> None:
         origins=app.config["CORS_ORIGINS"],
         methods=app.config["CORS_METHODS"],
         allow_headers=app.config["CORS_ALLOW_HEADERS"],
+        supports_credentials=app.config.get("CORS_SUPPORTS_CREDENTIALS", True),
+        expose_headers=app.config.get("CORS_EXPOSE_HEADERS", []),
     )
 
     # CSRF Protection - Exempt API routes (they use JWT, not cookies)

@@ -13,6 +13,12 @@ import {
   Settings,
   User,
   LogOut,
+  Key,
+  Shield,
+  Compass,
+  Cloud,
+  Webhook,
+  Database,
 } from 'lucide-react'
 
 const navigation = [
@@ -26,6 +32,13 @@ const navigation = [
   { name: 'Projects', href: '/projects', icon: FolderKanban },
   { name: 'Milestones', href: '/milestones', icon: Flag },
   { name: 'Labels', href: '/labels', icon: Tag },
+  { name: 'Secrets', href: '/secrets', icon: Key },
+  { name: 'Keys', href: '/keys', icon: Key },
+  { name: 'IAM', href: '/iam', icon: Shield },
+  { name: 'Discovery', href: '/discovery', icon: Compass },
+  { name: 'Google Workspace', href: '/google-workspace', icon: Cloud },
+  { name: 'Webhooks', href: '/webhooks', icon: Webhook },
+  { name: 'Backups', href: '/backups', icon: Database },
 ]
 
 export default function Layout() {

@@ -9,21 +9,6 @@ import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
 
-const ENTITY_TYPES = [
-  { value: 'application', label: 'Application' },
-  { value: 'service', label: 'Service' },
-  { value: 'repository', label: 'Repository' },
-  { value: 'datacenter', label: 'Datacenter' },
-  { value: 'vpc', label: 'VPC' },
-  { value: 'subnet', label: 'Subnet' },
-  { value: 'compute', label: 'Compute' },
-  { value: 'network', label: 'Network' },
-  { value: 'storage', label: 'Storage' },
-  { value: 'database', label: 'Database' },
-  { value: 'user', label: 'User' },
-  { value: 'security_issue', label: 'Security Issue' },
-]
-
 export default function Entities() {
   const [search, setSearch] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -93,9 +78,16 @@ export default function Entities() {
             >
               <CardContent>
                 <h3 className="text-lg font-semibold text-white mb-2">{entity.name}</h3>
-                <span className="inline-block px-2 py-1 text-xs font-medium bg-primary-500/20 text-primary-400 rounded">
-                  {entity.entity_type.replace('_', ' ').toUpperCase()}
-                </span>
+                <div className="flex gap-2 flex-wrap mb-3">
+                  <span className="inline-block px-2 py-1 text-xs font-medium bg-primary-500/20 text-primary-400 rounded">
+                    {entity.entity_type.replace('_', ' ').toUpperCase()}
+                  </span>
+                  {entity.entity_sub_type && (
+                    <span className="inline-block px-2 py-1 text-xs font-medium bg-purple-500/20 text-purple-400 rounded">
+                      {entity.entity_sub_type.replace('_', ' ').toUpperCase()}
+                    </span>
+                  )}
+                </div>
                 {entity.description && (
                   <p className="text-sm text-slate-400 mt-3">{entity.description}</p>
                 )}
@@ -135,13 +127,45 @@ export default function Entities() {
 function CreateEntityModal({ initialOrganizationId, onClose, onSuccess }: any) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [entityType, setEntityType] = useState('compute')
+  const [entityCategory, setEntityCategory] = useState('')
+  const [entitySubType, setEntitySubType] = useState('')
   const [orgId, setOrgId] = useState(initialOrganizationId || '')
+
+  // Fetch entity types from API
+  const { data: entityTypesData } = useQuery({
+    queryKey: ['entityTypes'],
+    queryFn: () => api.getEntityTypes(),
+  })
 
   const { data: orgs } = useQuery({
     queryKey: ['organizations'],
     queryFn: () => api.getOrganizations(),
   })
+
+  // Group entity types by category
+  const categorizedTypes: Record<string, any[]> = {}
+  if (entityTypesData?.items) {
+    entityTypesData.items.forEach((type: any) => {
+      if (!categorizedTypes[type.category]) {
+        categorizedTypes[type.category] = []
+      }
+      categorizedTypes[type.category].push(type)
+    })
+  }
+
+  // Get category options
+  const categoryOptions = Object.keys(categorizedTypes).map(cat => ({
+    value: cat,
+    label: cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ')
+  }))
+
+  // Get sub-type options for selected category
+  const subTypeOptions = entityCategory && categorizedTypes[entityCategory]
+    ? categorizedTypes[entityCategory].map(type => ({
+        value: type.sub_type || type.name,
+        label: (type.sub_type || type.name).replace('_', ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+      }))
+    : []
 
   const createMutation = useMutation({
     mutationFn: (data: any) => api.createEntity(data),
@@ -159,7 +183,8 @@ function CreateEntityModal({ initialOrganizationId, onClose, onSuccess }: any) {
     createMutation.mutate({
       name,
       description: description || undefined,
-      entity_type: entityType,
+      entity_type: entityCategory,
+      entity_sub_type: entitySubType || undefined,
       organization_id: parseInt(orgId),
     })
   }
@@ -179,12 +204,29 @@ function CreateEntityModal({ initialOrganizationId, onClose, onSuccess }: any) {
               onChange={(e) => setName(e.target.value)}
             />
             <Select
-              label="Type"
+              label="Category"
               required
-              value={entityType}
-              onChange={(e) => setEntityType(e.target.value)}
-              options={ENTITY_TYPES}
+              value={entityCategory}
+              onChange={(e) => {
+                setEntityCategory(e.target.value)
+                setEntitySubType('') // Reset sub-type when category changes
+              }}
+              options={[
+                { value: '', label: 'Select category' },
+                ...categoryOptions
+              ]}
             />
+            {entityCategory && subTypeOptions.length > 0 && (
+              <Select
+                label="Sub-Type"
+                value={entitySubType}
+                onChange={(e) => setEntitySubType(e.target.value)}
+                options={[
+                  { value: '', label: 'None' },
+                  ...subTypeOptions
+                ]}
+              />
+            )}
             <Select
               label="Organization"
               required

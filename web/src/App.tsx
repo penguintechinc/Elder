@@ -18,6 +18,14 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import RelationshipGraph from './pages/RelationshipGraph'
 import Profile from './pages/Profile'
+// v1.2.0 Pages
+import Secrets from './pages/Secrets'
+import Keys from './pages/Keys'
+import IAM from './pages/IAM'
+import Discovery from './pages/Discovery'
+import GoogleWorkspace from './pages/GoogleWorkspace'
+import Webhooks from './pages/Webhooks'
+import Backups from './pages/Backups'
 
 // Protected route wrapper component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -52,6 +60,13 @@ export default function App() {
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="milestones" element={<Milestones />} />
         <Route path="labels" element={<Labels />} />
+        <Route path="secrets" element={<Secrets />} />
+        <Route path="keys" element={<Keys />} />
+        <Route path="iam" element={<IAM />} />
+        <Route path="discovery" element={<Discovery />} />
+        <Route path="google-workspace" element={<GoogleWorkspace />} />
+        <Route path="webhooks" element={<Webhooks />} />
+        <Route path="backups" element={<Backups />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

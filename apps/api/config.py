@@ -50,9 +50,19 @@ class Config:
     JWT_ALGORITHM = "HS256"
 
     # CORS
-    CORS_ORIGINS = config("CORS_ORIGINS", default="*")
+    CORS_ORIGINS = config("CORS_ORIGINS", default="http://localhost:3000")
     CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-    CORS_ALLOW_HEADERS = ["Content-Type", "Authorization"]
+    CORS_ALLOW_HEADERS = [
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers"
+    ]
+    CORS_SUPPORTS_CREDENTIALS = True
+    CORS_EXPOSE_HEADERS = ["Content-Type", "Authorization"]
 
     # Rate Limiting
     RATELIMIT_ENABLED = config("RATELIMIT_ENABLED", default=True, cast=bool)
