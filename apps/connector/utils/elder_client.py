@@ -33,9 +33,11 @@ class Entity:
     entity_type: str
     organization_id: int
     description: Optional[str] = None
+    sub_type: Optional[str] = None  # v1.2.1: Entity sub-type
     parent_id: Optional[int] = None
     owner_identity_id: Optional[int] = None
     attributes: Optional[Dict[str, Any]] = None
+    status_metadata: Optional[Dict[str, Any]] = None  # v1.2.1: Status tracking
     tags: Optional[List[str]] = None
     is_active: bool = True
 
