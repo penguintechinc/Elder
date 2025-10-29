@@ -20,7 +20,7 @@ bp = Blueprint("organizations", __name__)
 
 @bp.route("", methods=["GET"])
 @login_required
-async def list_organizations():
+async def list_organizations(current_user):
     """
     List all Organization Units (OUs) with pagination and filtering.
 

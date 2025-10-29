@@ -61,11 +61,13 @@ class EntityDTO:
     name: str
     description: Optional[str]
     entity_type: str
+    sub_type: Optional[str]
     organization_id: int
     parent_id: Optional[int]
     attributes: Optional[dict]
     tags: Optional[list[str]]
     is_active: bool
+    default_metadata: Optional[dict]
     created_at: datetime
     updated_at: datetime
 
@@ -77,9 +79,11 @@ class CreateEntityRequest:
     entity_type: str
     organization_id: int
     description: Optional[str] = None
+    sub_type: Optional[str] = None
     parent_id: Optional[int] = None
     attributes: Optional[dict] = None
     tags: Optional[list[str]] = field(default_factory=list)
+    default_metadata: Optional[dict] = None
     is_active: bool = True
 
 
@@ -89,9 +93,11 @@ class UpdateEntityRequest:
     name: Optional[str] = None
     description: Optional[str] = None
     entity_type: Optional[str] = None
+    sub_type: Optional[str] = None
     parent_id: Optional[int] = None
     attributes: Optional[dict] = None
     tags: Optional[list[str]] = None
+    default_metadata: Optional[dict] = None
     is_active: Optional[bool] = None
 
 

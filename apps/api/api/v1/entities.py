@@ -21,7 +21,7 @@ bp = Blueprint("entities", __name__)
 
 @bp.route("", methods=["GET"])
 @login_required
-async def list_entities():
+async def list_entities(current_user):
     """
     List all entities with pagination and filtering.
 
@@ -149,7 +149,7 @@ async def create_entity():
 
 @bp.route("/<int:id>", methods=["GET"])
 @login_required
-async def get_entity(id: int):
+async def get_entity(current_user, id: int):
     """
     Get a single entity by ID.
 
@@ -274,7 +274,7 @@ async def delete_entity(id: int):
 
 @bp.route("/<int:id>/dependencies", methods=["GET"])
 @login_required
-async def get_entity_dependencies(id: int):
+async def get_entity_dependencies(current_user, id: int):
     """
     Get all dependencies for an entity.
 

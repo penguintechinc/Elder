@@ -179,7 +179,7 @@ class ApiClient {
 
   // Entity Types
   async getEntityTypes(params?: { category?: string }) {
-    const response = await this.client.get('/entity-types', { params })
+    const response = await this.client.get('/entity-types/', { params })
     return response.data
   }
 

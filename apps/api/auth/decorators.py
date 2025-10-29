@@ -15,12 +15,13 @@ def login_required(f: Callable) -> Callable:
     Decorator to require authentication for an endpoint.
 
     Supports both sync and async functions.
+    Passes current_user as the first argument to the wrapped function.
 
     Usage:
         @bp.route('/protected')
         @login_required
-        async def protected_route():
-            return jsonify({"user": g.current_user.username})
+        async def protected_route(current_user):
+            return jsonify({"user": current_user.username})
     """
 
     @wraps(f)
@@ -32,11 +33,11 @@ def login_required(f: Callable) -> Callable:
 
         g.current_user = user
 
-        # Call the wrapped function (it's async)
+        # Pass user as first argument to the wrapped function
         if inspect.iscoroutinefunction(f):
-            return await f(*args, **kwargs)
+            return await f(user, *args, **kwargs)
         else:
-            return f(*args, **kwargs)
+            return f(user, *args, **kwargs)
 
     return decorated_function
 

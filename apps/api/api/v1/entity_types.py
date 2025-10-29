@@ -14,7 +14,7 @@ from apps.api.models.entity_types import (
 bp = Blueprint('entity_types', __name__)
 
 
-@bp.route('/entity-types', methods=['GET'])
+@bp.route('/', methods=['GET'])
 @login_required
 def list_entity_types(current_user):
     """
@@ -39,7 +39,7 @@ def list_entity_types(current_user):
     }), 200
 
 
-@bp.route('/entity-types/<entity_type>', methods=['GET'])
+@bp.route('/<entity_type>', methods=['GET'])
 @login_required
 def get_entity_type(current_user, entity_type):
     """
@@ -64,7 +64,7 @@ def get_entity_type(current_user, entity_type):
     }), 200
 
 
-@bp.route('/entity-types/<entity_type>/subtypes', methods=['GET'])
+@bp.route('/<entity_type>/subtypes', methods=['GET'])
 @login_required
 def list_subtypes(current_user, entity_type):
     """
@@ -89,7 +89,7 @@ def list_subtypes(current_user, entity_type):
     }), 200
 
 
-@bp.route('/entity-types/<entity_type>/metadata', methods=['GET'])
+@bp.route('/<entity_type>/metadata', methods=['GET'])
 @login_required
 def get_type_metadata_templates(current_user, entity_type):
     """
@@ -113,7 +113,7 @@ def get_type_metadata_templates(current_user, entity_type):
     }), 200
 
 
-@bp.route('/entity-types/<entity_type>/<sub_type>/metadata', methods=['GET'])
+@bp.route('/<entity_type>/<sub_type>/metadata', methods=['GET'])
 @login_required
 def get_subtype_metadata_template(current_user, entity_type, sub_type):
     """
@@ -143,7 +143,7 @@ def get_subtype_metadata_template(current_user, entity_type, sub_type):
     }), 200
 
 
-@bp.route('/entity-types/validate', methods=['POST'])
+@bp.route('/validate', methods=['POST'])
 @login_required
 def validate_entity_type(current_user):
     """
