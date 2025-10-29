@@ -7,6 +7,219 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2025-10-29
+
+### 🚀 Cloud Infrastructure Expansion Release
+
+Major expansion of Elder's cloud infrastructure discovery capabilities with support for additional AWS services, Kubernetes/container orchestration, and comprehensive status tracking for operational visibility.
+
+### ✨ New Features
+
+#### Database Schema Enhancements
+- **Status Metadata Tracking**: Added `status_metadata` JSON field to entities table
+  - Captures operational status (Running, Stopped, Deleted, Creating, Error)
+  - Includes epoch64 timestamp for status updates
+  - Enables real-time operational monitoring and historical tracking
+- **Namespace Sub-Entity Type**: Added `namespace` as network entity sub-type for Kubernetes support
+  - Metadata template includes cluster, resource_quota, labels, annotations
+
+#### AWS Connector Extensions
+- **RDS/Aurora Database Discovery**:
+  - Automatic Aurora detection (engine starts with "aurora")
+  - Comprehensive database metadata (engine, version, instance class, storage)
+  - Multi-AZ and encryption status tracking
+  - Database endpoints and VPC associations
+  - Status tracking: Available, Creating, Deleting, Failed, etc.
+- **ElastiCache Cluster Discovery**:
+  - Redis and Memcached cluster support
+  - Node type, count, and endpoint information
+  - Availability zone and VPC integration
+  - Status tracking for cache lifecycle management
+- **SQS Queue Discovery**:
+  - Standard and FIFO queue detection
+  - Queue configuration (retention, visibility timeout, delays)
+  - Approximate message count monitoring
+  - Queue ARN and URL tracking
+- **Enhanced Status Tracking**: All AWS resources (EC2, VPCs, RDS, ElastiCache, SQS) now use status_metadata field
+
+#### Kubernetes Connector (NEW)
+- **Multi-Cluster Support**: Automatic cluster detection (in-cluster or kubeconfig)
+- **Namespace Discovery**:
+  - Resource quota tracking (CPU, memory, pods)
+  - Labels, annotations, and UID tracking
+  - Active/Terminating status monitoring
+- **Secret Discovery** (Security-Focused):
+  - Metadata-only approach - NEVER exposes secret values
+  - Tracks secret names, types, and key counts
+  - Security entity type classification
+  - Helps identify secret sprawl without compromising security
+- **Pod/Container Discovery**:
+  - Running container inventory
+  - Container images and port mappings
+  - Node assignment and IP addresses
+  - Pod lifecycle tracking (Running, Pending, Failed, etc.)
+- **Persistent Volume Claim Discovery**:
+  - Storage provisioning monitoring
+  - Capacity vs requested storage tracking
+  - Access modes and storage classes
+  - Bound/Pending status tracking
+- **Compatible with All K8S Distributions**: EKS, GKE, AKS, OpenShift, Rancher, K3s, Vanilla K8S
+
+#### Backup System Enhancements
+- **Per-Job S3 Configuration**:
+  - Configure different S3 buckets per backup job
+  - Job-specific S3 credentials and endpoints
+  - Support for MinIO, Wasabi, Backblaze B2, DigitalOcean Spaces
+  - Fallback to global S3 configuration
+- **Web UI S3 Configuration**:
+  - Expandable S3 configuration section in backup job creation
+  - 6 input fields: endpoint, bucket, region, access key, secret key, prefix
+  - Toggle checkbox to enable/disable S3 per job
+  - Inline validation and helper text
+
+### 🔧 Technical Improvements
+
+#### Data Models
+- **Entity Model Updates** (pydal_models.py):
+  - Added `status_metadata` JSON field for operational status tracking
+  - Field automatically migrated to existing entities (nullable)
+- **Entity Types** (entity_types.py):
+  - Added `NAMESPACE` constant to NetworkSubType
+  - Created namespace metadata template with K8S-specific fields
+  - Updated ENTITY_SUBTYPES mapping
+- **Connector Client** (elder_client.py):
+  - Extended Entity dataclass with `sub_type` and `status_metadata` fields
+  - Support for v1.2.1 entity classification system
+
+#### AWS Connector Architecture
+- **Three New Sync Methods**:
+  - `_sync_rds_instances()` - RDS and Aurora databases
+  - `_sync_elasticache_clusters()` - Redis/Memcached caches
+  - `_sync_sqs_queues()` - Message queues
+- **Status Integration**: All sync methods capture real-time status with timestamps
+- **Proper Entity Classification**:
+  - RDS → storage/database
+  - ElastiCache → storage/caching
+  - SQS → storage/queue_system
+
+#### Kubernetes Connector Architecture
+- **Four Resource Sync Methods**:
+  - `_sync_namespaces()` - Network namespace entities
+  - `_sync_secrets()` - Security/config entities (metadata only)
+  - `_sync_pods()` - Compute/kubernetes_node entities
+  - `_sync_pvcs()` - Storage/virtual_disk entities
+- **Security Best Practices**: Secret discovery NEVER exposes values
+- **Cluster-Level Organization**: Hierarchical organization structure per cluster
+
+#### Backup Service Architecture
+- **Per-Job S3 Override Pattern**:
+  - Temporary configuration override during backup execution
+  - Job-specific S3 settings with fallback to global
+  - Original configuration restoration after upload
+- **Database Schema**: 7 new S3 fields in backup_jobs table
+- **API Integration**: Extended create_backup_job endpoint with S3 parameters
+
+### 📊 API Enhancements
+
+- **Backup API**:
+  - Enhanced `POST /api/v1/backup/jobs` to accept 7 S3 configuration parameters
+  - Per-job S3 override support
+- **Entity Types API**: Namespace now available as valid network sub-type
+
+### 🎯 Integration Benefits
+
+#### Operational Visibility
+- **Real-Time Status Monitoring**: Track resource states during discovery syncs
+- **Historical Tracking**: Timestamp-based status history
+- **Lifecycle Management**: Identify stuck, failed, or transitioning resources
+
+#### Comprehensive Cloud Coverage
+Elder now discovers and tracks:
+- **AWS**: EC2, VPCs, S3, RDS, Aurora, ElastiCache, SQS
+- **Kubernetes**: Namespaces, Secrets, Pods, Containers, PVCs
+- **All major K8S distributions**: EKS, GKE, AKS, OpenShift, Rancher
+
+#### Enhanced Classification
+- **Entity Sub-Types**: Proper classification (database, caching, queue_system, namespace, kubernetes_node)
+- **Entity Types**: Correct categorization (storage, network, compute, security)
+- **Status Metadata**: Uniform status tracking across all cloud resources
+
+#### Flexible Backup Strategy
+- **Multi-Destination Backups**: Different backup jobs → different S3 buckets
+- **Provider Flexibility**: Mix AWS S3, MinIO, Wasabi, Backblaze B2 per job
+- **Global + Local Configuration**: Per-job overrides with global defaults
+
+### 📝 Files Modified
+
+**Models & Schema**:
+- `apps/api/models/pydal_models.py` - Added status_metadata field to entities
+- `apps/api/models/entity_types.py` - Added namespace sub-type and metadata
+
+**Connectors**:
+- `apps/connector/connectors/aws_connector.py` - Added RDS, ElastiCache, SQS sync methods
+- `apps/connector/connectors/k8s_connector.py` - NEW: Complete Kubernetes connector (518 lines)
+- `apps/connector/utils/elder_client.py` - Extended Entity dataclass
+
+**Backup System**:
+- `apps/api/api/v1/backup.py` - Enhanced create_backup_job endpoint
+- `apps/api/services/backup/service.py` - Per-job S3 configuration support
+- `web/src/pages/Backups.tsx` - S3 configuration UI
+
+**Documentation**:
+- `docs/README.md` - Added Backup & Data Management section
+- `docs/RELEASE_NOTES.md` - This file
+
+### 🔍 Breaking Changes
+
+None. All changes are backward compatible:
+- Existing entities work without status_metadata (nullable field)
+- Global S3 configuration still works for backup jobs
+- Existing AWS connector resources continue to sync normally
+
+### 📦 Dependencies
+
+**New Requirements**:
+- `kubernetes` - Python Kubernetes client library (for K8S connector)
+
+**Existing Dependencies** (already present):
+- `boto3` - AWS SDK (extended usage for RDS, ElastiCache, SQS)
+- `botocore` - AWS core library
+
+### 🎓 Migration Notes
+
+#### Database Migration
+PyDAL automatically migrates the schema (migrate=True):
+- `status_metadata` field added to entities table
+- No manual migration required
+- Existing entities remain unchanged (null status_metadata)
+
+#### Backup Jobs
+Existing backup jobs without S3 configuration:
+- Continue using global S3 settings (if configured)
+- Can be updated to use per-job S3 settings via API or UI
+
+#### Kubernetes Integration
+To enable K8S discovery:
+1. Install kubernetes library: `pip install kubernetes`
+2. Configure kubeconfig or run connector in-cluster
+3. Set appropriate RBAC permissions for resource discovery
+4. Run connector with K8S support enabled
+
+### 🔐 Security Notes
+
+#### Kubernetes Secrets
+- Secret values are NEVER retrieved from K8S API
+- Only metadata and key names are stored
+- Provides inventory visibility without compromising security
+- Helps identify secret sprawl and unused secrets
+
+#### S3 Credentials
+- Per-job S3 credentials stored in database
+- Consider using Secret Manager integration (future enhancement)
+- Credentials encrypted at rest (database-level encryption recommended)
+
+---
+
 ## [1.0.0] - 2025-10-25
 
 ### 🎉 Production Release - v1.0.0
