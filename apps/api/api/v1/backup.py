@@ -21,7 +21,7 @@ def get_backup_service():
 
 @bp.route('/jobs', methods=['GET'])
 @admin_required
-def list_backup_jobs(current_user):
+def list_backup_jobs():
     """
     List all backup jobs.
 
@@ -54,7 +54,7 @@ def list_backup_jobs(current_user):
 
 @bp.route('/jobs', methods=['POST'])
 @admin_required
-def create_backup_job(current_user):
+def create_backup_job():
     """
     Create a new backup job.
 
@@ -102,7 +102,7 @@ def create_backup_job(current_user):
 
 @bp.route('/jobs/<int:job_id>', methods=['GET'])
 @admin_required
-def get_backup_job(current_user, job_id):
+def get_backup_job(job_id):
     """
     Get backup job details.
 
@@ -123,7 +123,7 @@ def get_backup_job(current_user, job_id):
 
 @bp.route('/jobs/<int:job_id>', methods=['PUT'])
 @admin_required
-def update_backup_job(current_user, job_id):
+def update_backup_job(job_id):
     """
     Update backup job configuration.
 
@@ -167,7 +167,7 @@ def update_backup_job(current_user, job_id):
 
 @bp.route('/jobs/<int:job_id>', methods=['DELETE'])
 @admin_required
-def delete_backup_job(current_user, job_id):
+def delete_backup_job(job_id):
     """
     Delete backup job.
 
@@ -188,7 +188,7 @@ def delete_backup_job(current_user, job_id):
 
 @bp.route('/jobs/<int:job_id>/run', methods=['POST'])
 @admin_required
-def run_backup_job(current_user, job_id):
+def run_backup_job(job_id):
     """
     Manually trigger a backup job.
 
@@ -215,7 +215,7 @@ def run_backup_job(current_user, job_id):
 
 @bp.route('', methods=['GET'])
 @admin_required
-def list_backups(current_user):
+def list_backups():
     """
     List all backups.
 
@@ -245,7 +245,7 @@ def list_backups(current_user):
 
 @bp.route('/<int:backup_id>', methods=['GET'])
 @admin_required
-def get_backup(current_user, backup_id):
+def get_backup(backup_id):
     """
     Get backup details.
 
@@ -266,7 +266,7 @@ def get_backup(current_user, backup_id):
 
 @bp.route('/<int:backup_id>/download', methods=['GET'])
 @admin_required
-def download_backup(current_user, backup_id):
+def download_backup(backup_id):
     """
     Download backup file.
 
@@ -292,7 +292,7 @@ def download_backup(current_user, backup_id):
 
 @bp.route('/<int:backup_id>', methods=['DELETE'])
 @admin_required
-def delete_backup(current_user, backup_id):
+def delete_backup(backup_id):
     """
     Delete backup file.
 
@@ -317,7 +317,7 @@ def delete_backup(current_user, backup_id):
 
 @bp.route('/<int:backup_id>/restore', methods=['POST'])
 @admin_required
-def restore_backup(current_user, backup_id):
+def restore_backup(backup_id):
     """
     Restore from backup.
 
@@ -361,7 +361,7 @@ def restore_backup(current_user, backup_id):
 
 @bp.route('/export', methods=['POST'])
 @admin_required
-def export_data(current_user):
+def export_data():
     """
     Export data to various formats.
 
@@ -403,7 +403,7 @@ def export_data(current_user):
 
 @bp.route('/export/<path:filename>/download', methods=['GET'])
 @admin_required
-def download_export(current_user, filename):
+def download_export(filename):
     """
     Download exported data.
 
@@ -435,7 +435,7 @@ def download_export(current_user, filename):
 
 @bp.route('/import', methods=['POST'])
 @admin_required
-def import_data(current_user):
+def import_data():
     """
     Import data from file.
 
@@ -489,7 +489,7 @@ def import_data(current_user):
 
 @bp.route('/stats', methods=['GET'])
 @admin_required
-def get_backup_stats(current_user):
+def get_backup_stats():
     """
     Get backup and storage statistics.
 
