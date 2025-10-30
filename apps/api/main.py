@@ -200,6 +200,8 @@ def _register_blueprints(app: Flask) -> None:
         search,  # Phase 10: Advanced Search
         backup,  # Phase 10: Backup & Data Management
         google_workspace,  # Phase 7: Google Workspace Integration
+        networking,  # v2.0.0: Networking Resources & Topology
+        builtin_secrets,  # v2.0.0: Built-in Secrets Storage
     )
     from apps.api.web import routes as web
 
@@ -238,6 +240,10 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(search.bp, url_prefix=f"{api_prefix}/search")  # Phase 10
     app.register_blueprint(backup.bp, url_prefix=f"{api_prefix}/backup")  # Phase 10
     app.register_blueprint(google_workspace.bp, url_prefix=f"{api_prefix}/google-workspace")  # Phase 7
+
+    # v2.0.0 Feature blueprints
+    app.register_blueprint(networking.bp)  # Networking already has /api/v1/networking prefix
+    app.register_blueprint(builtin_secrets.bp)  # Built-in secrets already has /api/v1/builtin-secrets prefix
 
     # Public lookup endpoint (no /api/v1 prefix for cleaner URLs)
     app.register_blueprint(lookup.bp, url_prefix="/lookup")
