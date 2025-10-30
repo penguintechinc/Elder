@@ -164,12 +164,12 @@ Implementing v2.0.0 major architectural changes: Unified IAM model, dedicated ne
 
 ## ✅ COMPLETED: Phases 10-12 - Frontend Implementation
 
-### Phase 10: IAM Unified Page (Commit: TBD)
+### Phase 10: IAM Unified Page (Commit: 2aad227)
 - ✅ **Enhanced IAM.tsx**: Added Azure AD (Microsoft Entra ID) provider support
 - ✅ **Unified Provider View**: Single interface for AWS IAM, GCP IAM, Kubernetes RBAC, and Azure AD
 - Files Modified: 1 (IAM.tsx)
 
-### Phase 11: Networking Topology Visualization (Commit: TBD)
+### Phase 11: Networking Topology Visualization (Commit: 2aad227)
 - ✅ **Networking.tsx**: Full networking resources management page
   - Networks CRUD with 13 network types (subnet, firewall, proxy, router, etc.)
   - Topology visualization modal with interactive graph
@@ -183,7 +183,7 @@ Implementing v2.0.0 major architectural changes: Unified IAM model, dedicated ne
 - Files Added: 2 (Networking.tsx, NetworkTopologyGraph.tsx)
 - Files Modified: 2 (api.ts, App.tsx)
 
-### Phase 12: Discovery Credential Integration UI (Commit: TBD)
+### Phase 12: Discovery Credential Integration UI (Commit: 2aad227)
 - ✅ **Enhanced Discovery.tsx**: v2.0.0 credential integration
   - Credential type selection (static, secret, key, builtin_secret)
   - Dynamic credential dropdown based on type
