@@ -18,7 +18,9 @@ def define_all_tables(db):
     # Identities table - must be first (referenced by many tables)
     db.define_table(
         'identities',
-        Field('identity_type', 'string', length=50, notnull=True),
+        # v2.0.0: Identity type validation for IAM unification
+        Field('identity_type', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['employee', 'vendor', 'bot', 'serviceAccount', 'integration', 'otherHuman', 'other'])),
         Field('username', 'string', length=255, notnull=True, unique=True, requires=IS_NOT_EMPTY()),
         Field('email', 'string', length=255, requires=IS_EMAIL()),
         Field('full_name', 'string', length=255),
@@ -103,6 +105,11 @@ def define_all_tables(db):
         Field('config_json', 'json', notnull=True),  # Provider-specific configuration
         Field('schedule_interval', 'integer', default=3600, notnull=True),  # seconds
         Field('enabled', 'boolean', default=True, notnull=True),
+        # v2.0.0: Credential integration for discovery jobs
+        Field('credential_type', 'string', length=50,
+              requires=IS_IN_SET(['secret', 'key', 'builtin_secret', 'static', 'none'])),  # Type of credential
+        Field('credential_id', 'integer'),  # ID of the credential (secret_id, key_id, or builtin_secret_id)
+        Field('credential_mapping', 'json'),  # Maps credential keys to discovery config fields
         Field('last_run_at', 'datetime'),
         Field('next_run_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
@@ -324,6 +331,31 @@ def define_all_tables(db):
     # LEVEL 3: Tables with Level 2 dependencies
     # ==========================================
 
+    # Networking Resources table (depends on: organizations) - v2.0.0: Dedicated Networking Model
+    db.define_table(
+        'networking_resources',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('description', 'text'),
+        Field('network_type', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['subnet', 'firewall', 'proxy', 'router', 'switch', 'hub',
+                                 'tunnel', 'route_table', 'vrrf', 'vxlan', 'vlan', 'namespace', 'other'])),
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        Field('parent_id', 'reference networking_resources', ondelete='CASCADE'),  # Hierarchical networks
+        # v2.0.0: New fields for network resources
+        Field('region', 'string', length=100),  # Geographic region (e.g., us-east-1, europe-west1)
+        Field('location', 'string', length=255),  # Physical location or datacenter
+        Field('poc', 'string', length=255),  # Point of contact (email, name, team)
+        Field('organizational_unit', 'string', length=255),  # OU or department ownership
+        # Standard metadata fields
+        Field('attributes', 'json'),  # Type-specific metadata
+        Field('status_metadata', 'json'),  # Operational status {status: "Running|Stopped|Error", timestamp: epoch64}
+        Field('tags', 'list:string'),
+        Field('is_active', 'boolean', default=True),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
     # Entities table (depends on: organizations)
     db.define_table(
         'entities',
@@ -404,8 +436,9 @@ def define_all_tables(db):
     db.define_table(
         'secret_providers',
         Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        # v2.0.0: Added hashicorp_vault support
         Field('provider', 'string', length=50, notnull=True,
-              requires=IS_IN_SET(['aws_secrets_manager', 'gcp_secret_manager', 'infisical'])),
+              requires=IS_IN_SET(['aws_secrets_manager', 'gcp_secret_manager', 'infisical', 'hashicorp_vault'])),
         Field('config_json', 'json', notnull=True),  # Provider-specific configuration
         Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
         Field('enabled', 'boolean', default=True, notnull=True),
@@ -419,9 +452,40 @@ def define_all_tables(db):
     db.define_table(
         'key_providers',
         Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        # v2.0.0: Added hashicorp_vault support
         Field('provider', 'string', length=50, notnull=True,
-              requires=IS_IN_SET(['aws_kms', 'gcp_kms', 'infisical'])),
+              requires=IS_IN_SET(['aws_kms', 'gcp_kms', 'infisical', 'hashicorp_vault'])),
         Field('config_json', 'json', notnull=True),  # Provider-specific configuration
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        Field('enabled', 'boolean', default=True, notnull=True),
+        Field('last_sync_at', 'datetime'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # IAM Providers table (depends on: organizations) - v2.0.0: Unified IAM Model
+    db.define_table(
+        'iam_providers',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('provider_type', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['aws_iam', 'gcp_iam', 'kubernetes', 'azure_ad'])),
+        Field('config_json', 'json', notnull=True),  # Provider-specific configuration
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        Field('enabled', 'boolean', default=True, notnull=True),
+        Field('last_sync_at', 'datetime'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Google Workspace Providers table (depends on: organizations) - v2.0.0: Unified IAM Model
+    db.define_table(
+        'google_workspace_providers',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('domain', 'string', length=255, notnull=True),  # Google Workspace domain
+        Field('admin_email', 'string', length=255, notnull=True, requires=IS_EMAIL()),  # Admin for delegation
+        Field('credentials_json', 'json', notnull=True),  # Service account credentials
         Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
         Field('enabled', 'boolean', default=True, notnull=True),
         Field('last_sync_at', 'datetime'),
@@ -476,6 +540,54 @@ def define_all_tables(db):
     # ==========================================
     # LEVEL 4: Tables with Level 3 dependencies
     # ==========================================
+
+    # Network Entity Mappings table (depends on: networking_resources, entities) - v2.0.0
+    db.define_table(
+        'network_entity_mappings',
+        Field('network_id', 'reference networking_resources', notnull=True, ondelete='CASCADE'),
+        Field('entity_id', 'reference entities', notnull=True, ondelete='CASCADE'),
+        Field('relationship_type', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['attached', 'routed_through', 'connected_to', 'secured_by', 'other'])),
+        Field('metadata', 'json'),  # Additional relationship metadata
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Network Topology table (depends on: networking_resources) - v2.0.0
+    db.define_table(
+        'network_topology',
+        Field('source_network_id', 'reference networking_resources', notnull=True, ondelete='CASCADE'),
+        Field('target_network_id', 'reference networking_resources', notnull=True, ondelete='CASCADE'),
+        Field('connection_type', 'string', length=50, notnull=True,
+              requires=IS_IN_SET(['peering', 'transit', 'vpn', 'direct_connect', 'routing', 'switching', 'other'])),
+        Field('bandwidth', 'string', length=50),  # e.g., "1Gbps", "10Gbps"
+        Field('latency', 'string', length=50),  # e.g., "5ms", "100ms"
+        Field('metadata', 'json'),  # Additional connection metadata
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
+
+    # Built-in Secrets table (depends on: organizations) - v2.0.0: In-app secret storage with encryption
+    db.define_table(
+        'builtin_secrets',
+        Field('name', 'string', length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field('description', 'text'),
+        Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
+        # PyDAL password field automatically encrypts/hashes the value
+        Field('secret_value', 'password'),  # For simple string secrets (encrypted)
+        # JSON field for structured secrets (needs manual encryption if sensitive)
+        Field('secret_json', 'json'),  # For complex JSON credentials
+        Field('secret_type', 'string', length=50, notnull=True, default='password',
+              requires=IS_IN_SET(['api_key', 'password', 'certificate', 'ssh_key', 'json_credential', 'other'])),
+        Field('tags', 'list:string'),
+        Field('is_active', 'boolean', default=True, notnull=True),
+        Field('expires_at', 'datetime'),
+        Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
+        migrate=True,
+    )
 
     # Dependencies table (depends on: entities)
     db.define_table(
