@@ -12,6 +12,7 @@ const PROVIDER_TYPES = [
   { value: 'aws_iam', label: 'AWS IAM' },
   { value: 'gcp_iam', label: 'GCP IAM' },
   { value: 'kubernetes', label: 'Kubernetes RBAC' },
+  { value: 'azure_ad', label: 'Azure AD (Microsoft Entra ID)' },
 ]
 
 const TABS = ['Providers', 'Users', 'Roles', 'Policies'] as const

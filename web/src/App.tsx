@@ -26,6 +26,8 @@ import Discovery from './pages/Discovery'
 import GoogleWorkspace from './pages/GoogleWorkspace'
 import Webhooks from './pages/Webhooks'
 import Backups from './pages/Backups'
+// v2.0.0 Pages
+import Networking from './pages/Networking'
 
 // Protected route wrapper component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -67,6 +69,7 @@ export default function App() {
         <Route path="google-workspace" element={<GoogleWorkspace />} />
         <Route path="webhooks" element={<Webhooks />} />
         <Route path="backups" element={<Backups />} />
+        <Route path="networking" element={<Networking />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

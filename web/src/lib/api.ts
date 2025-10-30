@@ -907,6 +907,152 @@ class ApiClient {
     const response = await this.client.post(`/backup/backups/${id}/restore`, data)
     return response.data
   }
+
+  // v2.0.0 Networking Resources & Topology
+  async listNetworks(params?: { organization_id?: number; network_type?: string; region?: string }) {
+    const response = await this.client.get('/networking/networks', { params })
+    return response.data
+  }
+
+  async getNetwork(id: number) {
+    const response = await this.client.get(`/networking/networks/${id}`)
+    return response.data
+  }
+
+  async createNetwork(data: {
+    name: string
+    network_type: string
+    organization_id: number
+    description?: string
+    region?: string
+    location?: string
+    parent_id?: number
+    poc?: string
+    organizational_unit?: string
+    attributes?: any
+    tags?: string[]
+  }) {
+    const response = await this.client.post('/networking/networks', data)
+    return response.data
+  }
+
+  async updateNetwork(id: number, data: Partial<{
+    name: string
+    description: string
+    region: string
+    location: string
+    attributes: any
+    tags: string[]
+  }>) {
+    const response = await this.client.put(`/networking/networks/${id}`, data)
+    return response.data
+  }
+
+  async deleteNetwork(id: number, hard?: boolean) {
+    const response = await this.client.delete(`/networking/networks/${id}`, { params: { hard } })
+    return response.data
+  }
+
+  async listTopologyConnections(params?: { network_id?: number; connection_type?: string }) {
+    const response = await this.client.get('/networking/topology/connections', { params })
+    return response.data
+  }
+
+  async getTopologyConnection(id: number) {
+    const response = await this.client.get(`/networking/topology/connections/${id}`)
+    return response.data
+  }
+
+  async createTopologyConnection(data: {
+    source_network_id: number
+    target_network_id: number
+    connection_type: string
+    bandwidth?: string
+    latency?: number
+    metadata?: any
+  }) {
+    const response = await this.client.post('/networking/topology/connections', data)
+    return response.data
+  }
+
+  async deleteTopologyConnection(id: number) {
+    const response = await this.client.delete(`/networking/topology/connections/${id}`)
+    return response.data
+  }
+
+  async listEntityMappings(params?: { network_id?: number; entity_id?: number }) {
+    const response = await this.client.get('/networking/mappings', { params })
+    return response.data
+  }
+
+  async createEntityMapping(data: {
+    network_id: number
+    entity_id: number
+    relationship_type: string
+    metadata?: any
+  }) {
+    const response = await this.client.post('/networking/mappings', data)
+    return response.data
+  }
+
+  async deleteEntityMapping(id: number) {
+    const response = await this.client.delete(`/networking/mappings/${id}`)
+    return response.data
+  }
+
+  async getNetworkTopologyGraph(organizationId: number, includeEntities: boolean = false) {
+    const response = await this.client.get('/networking/topology/graph', {
+      params: { organization_id: organizationId, include_entities: includeEntities }
+    })
+    return response.data
+  }
+
+  // v2.0.0 Built-in Secrets
+  async listBuiltinSecrets(params: { organization_id: number; prefix?: string }) {
+    const response = await this.client.get('/builtin-secrets', { params })
+    return response.data
+  }
+
+  async getBuiltinSecret(path: string, organizationId: number) {
+    const response = await this.client.get(`/builtin-secrets/${path}`, {
+      params: { organization_id: organizationId }
+    })
+    return response.data
+  }
+
+  async createBuiltinSecret(data: {
+    name: string
+    value: string
+    organization_id: number
+    description?: string
+    secret_type?: string
+    tags?: string[]
+    expires_at?: string
+  }) {
+    const response = await this.client.post('/builtin-secrets', data)
+    return response.data
+  }
+
+  async updateBuiltinSecret(path: string, organizationId: number, data: { value: string }) {
+    const response = await this.client.put(`/builtin-secrets/${path}`, data, {
+      params: { organization_id: organizationId }
+    })
+    return response.data
+  }
+
+  async deleteBuiltinSecret(path: string, organizationId: number) {
+    const response = await this.client.delete(`/builtin-secrets/${path}`, {
+      params: { organization_id: organizationId }
+    })
+    return response.data
+  }
+
+  async testBuiltinSecretsConnection(organizationId: number) {
+    const response = await this.client.post('/builtin-secrets/test-connection', {
+      organization_id: organizationId
+    })
+    return response.data
+  }
 }
 
 export const api = new ApiClient()

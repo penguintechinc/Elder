@@ -232,10 +232,31 @@ function CreateJobModal({ onClose, onSuccess }: any) {
   const [schedule, setSchedule] = useState('')
   const [config, setConfig] = useState('{}')
   const [orgId, setOrgId] = useState('')
+  // v2.0.0: Credential integration
+  const [credentialType, setCredentialType] = useState('static')
+  const [credentialId, setCredentialId] = useState('')
 
   const { data: orgs } = useQuery({
     queryKey: ['organizations'],
     queryFn: () => api.getOrganizations(),
+  })
+
+  const { data: secrets } = useQuery({
+    queryKey: ['secrets', orgId],
+    queryFn: () => api.getSecrets({ organization_id: parseInt(orgId) }),
+    enabled: credentialType === 'secret' && !!orgId,
+  })
+
+  const { data: keys } = useQuery({
+    queryKey: ['keys', orgId],
+    queryFn: () => api.getKeys({ organization_id: parseInt(orgId) }),
+    enabled: credentialType === 'key' && !!orgId,
+  })
+
+  const { data: builtinSecrets } = useQuery({
+    queryKey: ['builtinSecrets', orgId],
+    queryFn: () => api.listBuiltinSecrets({ organization_id: parseInt(orgId) }),
+    enabled: credentialType === 'builtin_secret' && !!orgId,
   })
 
   const createMutation = useMutation({
@@ -253,14 +274,22 @@ function CreateJobModal({ onClose, onSuccess }: any) {
     e.preventDefault()
     try {
       const configObj = JSON.parse(config)
-      createMutation.mutate({
+      const data: any = {
         name,
-        discovery_type: discoveryType,
+        provider_type: discoveryType,
         organization_id: parseInt(orgId),
         config: configObj,
         schedule: schedule || undefined,
         enabled: true,
-      })
+      }
+
+      // v2.0.0: Add credential information
+      if (credentialType !== 'static') {
+        data.credential_type = credentialType
+        data.credential_id = parseInt(credentialId)
+      }
+
+      createMutation.mutate(data)
     } catch (err) {
       toast.error('Invalid JSON configuration')
     }
@@ -307,6 +336,68 @@ function CreateJobModal({ onClose, onSuccess }: any) {
               onChange={(e) => setSchedule(e.target.value)}
               placeholder="0 2 * * *"
             />
+
+            {/* v2.0.0: Credential Selection */}
+            <div className="pt-4 border-t border-slate-700">
+              <h3 className="text-sm font-semibold text-white mb-3">Credentials (v2.0.0)</h3>
+              <Select
+                label="Credential Type"
+                value={credentialType}
+                onChange={(e) => {
+                  setCredentialType(e.target.value)
+                  setCredentialId('')
+                }}
+                options={[
+                  { value: 'static', label: 'Static (in config JSON)' },
+                  { value: 'secret', label: 'Secret Provider' },
+                  { value: 'key', label: 'Key Provider' },
+                  { value: 'builtin_secret', label: 'Built-in Secret' },
+                ]}
+              />
+
+              {credentialType === 'secret' && (
+                <Select
+                  label="Select Secret"
+                  value={credentialId}
+                  onChange={(e) => setCredentialId(e.target.value)}
+                  options={[
+                    { value: '', label: 'Select a secret' },
+                    ...(secrets?.secrets || []).map((s: any) => ({ value: s.id, label: s.name })),
+                  ]}
+                />
+              )}
+
+              {credentialType === 'key' && (
+                <Select
+                  label="Select Key"
+                  value={credentialId}
+                  onChange={(e) => setCredentialId(e.target.value)}
+                  options={[
+                    { value: '', label: 'Select a key' },
+                    ...(keys?.keys || []).map((k: any) => ({ value: k.id, label: k.name })),
+                  ]}
+                />
+              )}
+
+              {credentialType === 'builtin_secret' && (
+                <Select
+                  label="Select Built-in Secret"
+                  value={credentialId}
+                  onChange={(e) => setCredentialId(e.target.value)}
+                  options={[
+                    { value: '', label: 'Select a built-in secret' },
+                    ...(builtinSecrets?.secrets || []).map((s: any) => ({ value: s.id, label: s.name })),
+                  ]}
+                />
+              )}
+
+              {credentialType === 'static' && (
+                <p className="text-sm text-slate-400 mt-2">
+                  Credentials will be stored directly in the configuration JSON below
+                </p>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Configuration (JSON)
