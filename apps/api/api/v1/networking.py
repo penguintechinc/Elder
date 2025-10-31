@@ -1,7 +1,7 @@
 """REST API endpoints for networking resources and topology."""
 
 from flask import Blueprint, request, jsonify
-from apps.api.decorators.auth import login_required
+from apps.api.auth.decorators import login_required
 from apps.api.services.networking import NetworkingService
 import logging
 

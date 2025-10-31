@@ -1,7 +1,7 @@
 """REST API endpoints for built-in secrets management."""
 
 from flask import Blueprint, request, jsonify
-from apps.api.decorators.auth import login_required
+from apps.api.auth.decorators import login_required
 from apps.api.services.secrets import BuiltinSecretsClient
 import logging
 
