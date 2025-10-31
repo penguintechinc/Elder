@@ -31,7 +31,7 @@ const navigation = [
   { name: 'Labels', href: '/labels', icon: Tag },
   { name: 'Secrets', href: '/secrets', icon: Key },
   { name: 'Keys', href: '/keys', icon: Key },
-  { name: 'IAM', href: '/iam', icon: Shield },
+  { name: 'Identity Center', href: '/iam', icon: Shield },
   { name: 'Networking', href: '/networking', icon: Network },
   { name: 'Discovery', href: '/discovery', icon: Compass },
   { name: 'Webhooks', href: '/webhooks', icon: Webhook },
