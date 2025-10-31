@@ -77,7 +77,7 @@ export default function IAM() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white">IAM Integration</h1>
-          <p className="mt-2 text-slate-400">Manage cloud IAM users, roles, and policies</p>
+          <p className="mt-2 text-slate-400">Manage IAM users, roles, and policies across all identity providers</p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="w-4 h-4 mr-2" />
