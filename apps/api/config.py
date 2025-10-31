@@ -50,7 +50,7 @@ class Config:
     JWT_ALGORITHM = "HS256"
 
     # CORS
-    CORS_ORIGINS = config("CORS_ORIGINS", default="http://localhost:3000")
+    CORS_ORIGINS = config("CORS_ORIGINS", default="http://localhost:3000,http://localhost:3001").split(",")
     CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     CORS_ALLOW_HEADERS = [
         "Content-Type",
