@@ -45,6 +45,11 @@ This is a comprehensive project template incorporating best practices and patter
 - **HTTP3/QUIC**: Utilize UDP with TLS for high-performance connections where possible
 - **Authentication**: JWT and MFA (standard), mTLS where applicable
 - **SSO**: SAML/OAuth2 SSO as enterprise-only features
+- **Guest Login**: Optional read-only guest access (disabled by default)
+  - Controlled by `ENABLE_GUEST_LOGIN` environment variable
+  - Provides viewer role with read-only permissions
+  - Configurable username and password via environment variables
+  - Creates guest user automatically on database initialization when enabled
 - **Secrets**: Environment variable management
 - **Scanning**: Trivy vulnerability scanning, CodeQL analysis
 
@@ -694,15 +699,43 @@ docker-compose down -v
 - Container builds ensure environment consistency across development and production
 
 ### Docker Build Standards
+
+**CRITICAL: ALWAYS use `--no-cache` flag for production rebuilds**
+
+All docker-compose builds MUST use the `--no-cache` flag to prevent stale build artifacts and ensure reproducible builds:
+
+```bash
+# CORRECT: Always rebuild with --no-cache
+docker-compose build --no-cache api
+docker-compose build --no-cache web
+docker-compose build --no-cache grpc-server
+
+# WRONG: Never use cached builds for production changes
+docker-compose build api  # ❌ BAD - May use stale cached layers
+docker-compose build web  # ❌ BAD - May serve old frontend code
+
+# Complete rebuild and restart workflow
+docker-compose build --no-cache api && docker-compose restart api
+docker-compose build --no-cache web && docker-compose restart web
+```
+
+**Why `--no-cache` is mandatory:**
+- Prevents serving stale frontend builds with old navigation/components
+- Ensures Python dependency changes are properly applied
+- Avoids cached intermediate layers with outdated code
+- Guarantees reproducible builds across environments
+- Eliminates "works on my machine" issues from layer caching
+
+**Standard build commands:**
 ```bash
 # Go builds within containers (using debian-slim)
 docker run --rm -v $(pwd):/app -w /app golang:1.23-slim go build -o bin/app
-docker build -t app:latest .
+docker build --no-cache -t app:latest .
 
 # Python builds within containers (using debian-slim)
 # Use Python 3.13+ for Flask applications
 docker run --rm -v $(pwd):/app -w /app python:3.13-slim pip install -r requirements.txt
-docker build -t web:latest .
+docker build --no-cache -t web:latest .
 
 # Use multi-stage builds with debian-slim for optimized production images
 FROM golang:1.23-slim AS builder
@@ -877,6 +910,11 @@ jobs:
   - **Progressive disclosure** - reveal complexity only when needed
   - **Contextual actions** - actions should be available where they're needed
   - **Consistent patterns** - use the same UI patterns throughout the application
+  - **Clickable cards** - cards displaying objects (identities, entities, organizations, issues, etc.) should be clickable to view details
+    - Clicking anywhere on the card (outside of action buttons) should open the detail view modal
+    - Add hover effects (e.g., `hover:border-primary-500/50`) and cursor pointer to indicate interactivity
+    - Action buttons (View, Edit, Delete) should stop event propagation to prevent double-triggering
+    - This pattern applies to ALL pages displaying object cards in Elder
   - **Use modals for**:
     - Create operations (creating sub-organizations, entities, issues, etc.)
     - Edit operations (updating metadata, editing properties)

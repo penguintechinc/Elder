@@ -11,7 +11,7 @@ bp = Blueprint('audit', __name__)
 
 @bp.route('/retention-policies', methods=['GET'])
 @login_required
-def list_retention_policies(current_user):
+def list_retention_policies():
     """
     List all audit retention policies.
 
@@ -35,7 +35,7 @@ def list_retention_policies(current_user):
 
 @bp.route('/retention-policies/<int:policy_id>', methods=['GET'])
 @login_required
-def get_retention_policy(current_user, policy_id):
+def get_retention_policy(policy_id):
     """
     Get retention policy details.
 
@@ -58,7 +58,7 @@ def get_retention_policy(current_user, policy_id):
 
 @bp.route('/retention-policies', methods=['POST'])
 @admin_required
-def create_retention_policy(current_user):
+def create_retention_policy():
     """
     Create audit retention policy.
 
@@ -107,7 +107,7 @@ def create_retention_policy(current_user):
 
 @bp.route('/retention-policies/<int:policy_id>', methods=['PUT'])
 @admin_required
-def update_retention_policy(current_user, policy_id):
+def update_retention_policy(policy_id):
     """
     Update retention policy.
 
@@ -152,7 +152,7 @@ def update_retention_policy(current_user, policy_id):
 
 @bp.route('/retention-policies/<int:policy_id>', methods=['DELETE'])
 @admin_required
-def delete_retention_policy(current_user, policy_id):
+def delete_retention_policy(policy_id):
     """
     Delete retention policy.
 
@@ -180,7 +180,7 @@ def delete_retention_policy(current_user, policy_id):
 
 @bp.route('/cleanup', methods=['POST'])
 @admin_required
-def cleanup_audit_logs(current_user):
+def cleanup_audit_logs():
     """
     Clean up old audit logs based on retention policies.
 

@@ -18,7 +18,7 @@ def get_webhook_service():
 
 @bp.route('', methods=['GET'])
 @login_required
-def list_webhooks(current_user):
+def list_webhooks():
     """
     List all webhooks.
 
@@ -56,7 +56,7 @@ def list_webhooks(current_user):
 
 @bp.route('', methods=['POST'])
 @admin_required
-def create_webhook(current_user):
+def create_webhook():
     """
     Create a new webhook.
 
@@ -105,7 +105,7 @@ def create_webhook(current_user):
 
 @bp.route('/<int:webhook_id>', methods=['GET'])
 @login_required
-def get_webhook(current_user, webhook_id):
+def get_webhook(webhook_id):
     """
     Get webhook details.
 
@@ -126,7 +126,7 @@ def get_webhook(current_user, webhook_id):
 
 @bp.route('/<int:webhook_id>', methods=['PUT'])
 @admin_required
-def update_webhook(current_user, webhook_id):
+def update_webhook(webhook_id):
     """
     Update webhook configuration.
 
@@ -173,7 +173,7 @@ def update_webhook(current_user, webhook_id):
 
 @bp.route('/<int:webhook_id>', methods=['DELETE'])
 @admin_required
-def delete_webhook(current_user, webhook_id):
+def delete_webhook(webhook_id):
     """
     Delete webhook.
 
@@ -194,7 +194,7 @@ def delete_webhook(current_user, webhook_id):
 
 @bp.route('/<int:webhook_id>/test', methods=['POST'])
 @login_required
-def test_webhook(current_user, webhook_id):
+def test_webhook(webhook_id):
     """
     Send a test event to webhook.
 
@@ -218,7 +218,7 @@ def test_webhook(current_user, webhook_id):
 
 @bp.route('/<int:webhook_id>/deliveries', methods=['GET'])
 @login_required
-def get_webhook_deliveries(current_user, webhook_id):
+def get_webhook_deliveries(webhook_id):
     """
     Get webhook delivery history.
 
@@ -258,7 +258,7 @@ def get_webhook_deliveries(current_user, webhook_id):
 
 @bp.route('/<int:webhook_id>/deliveries/<int:delivery_id>/redeliver', methods=['POST'])
 @admin_required
-def redeliver_webhook(current_user, webhook_id, delivery_id):
+def redeliver_webhook(webhook_id, delivery_id):
     """
     Retry a failed webhook delivery.
 
@@ -285,7 +285,7 @@ def redeliver_webhook(current_user, webhook_id, delivery_id):
 
 @bp.route('/notification-rules', methods=['GET'])
 @login_required
-def list_notification_rules(current_user):
+def list_notification_rules():
     """
     List all notification rules.
 
@@ -318,7 +318,7 @@ def list_notification_rules(current_user):
 
 @bp.route('/notification-rules', methods=['POST'])
 @admin_required
-def create_notification_rule(current_user):
+def create_notification_rule():
     """
     Create a new notification rule.
 
@@ -368,7 +368,7 @@ def create_notification_rule(current_user):
 
 @bp.route('/notification-rules/<int:rule_id>', methods=['GET'])
 @login_required
-def get_notification_rule(current_user, rule_id):
+def get_notification_rule(rule_id):
     """
     Get notification rule details.
 
@@ -389,7 +389,7 @@ def get_notification_rule(current_user, rule_id):
 
 @bp.route('/notification-rules/<int:rule_id>', methods=['PUT'])
 @admin_required
-def update_notification_rule(current_user, rule_id):
+def update_notification_rule(rule_id):
     """
     Update notification rule.
 
@@ -432,7 +432,7 @@ def update_notification_rule(current_user, rule_id):
 
 @bp.route('/notification-rules/<int:rule_id>', methods=['DELETE'])
 @admin_required
-def delete_notification_rule(current_user, rule_id):
+def delete_notification_rule(rule_id):
     """
     Delete notification rule.
 
@@ -453,7 +453,7 @@ def delete_notification_rule(current_user, rule_id):
 
 @bp.route('/notification-rules/<int:rule_id>/test', methods=['POST'])
 @login_required
-def test_notification_rule(current_user, rule_id):
+def test_notification_rule(rule_id):
     """
     Test a notification rule.
 
@@ -481,7 +481,7 @@ def test_notification_rule(current_user, rule_id):
 
 @bp.route('/broadcast', methods=['POST'])
 @admin_required
-def broadcast_event(current_user):
+def broadcast_event():
     """
     Broadcast an event to all applicable webhooks and notification rules.
 

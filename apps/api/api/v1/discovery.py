@@ -16,7 +16,7 @@ def get_discovery_service():
 
 @bp.route('/jobs', methods=['GET'])
 @login_required
-def list_discovery_jobs(current_user):
+def list_discovery_jobs():
     """
     List all discovery jobs.
 
@@ -57,7 +57,7 @@ def list_discovery_jobs(current_user):
 
 @bp.route('/jobs', methods=['POST'])
 @admin_required
-def create_discovery_job(current_user):
+def create_discovery_job():
     """
     Create a new discovery job.
 
@@ -109,7 +109,7 @@ def create_discovery_job(current_user):
 
 @bp.route('/jobs/<int:job_id>', methods=['GET'])
 @login_required
-def get_discovery_job(current_user, job_id):
+def get_discovery_job(job_id):
     """
     Get discovery job details.
 
@@ -130,7 +130,7 @@ def get_discovery_job(current_user, job_id):
 
 @bp.route('/jobs/<int:job_id>', methods=['PUT'])
 @admin_required
-def update_discovery_job(current_user, job_id):
+def update_discovery_job(job_id):
     """
     Update discovery job configuration.
 
@@ -173,7 +173,7 @@ def update_discovery_job(current_user, job_id):
 
 @bp.route('/jobs/<int:job_id>', methods=['DELETE'])
 @admin_required
-def delete_discovery_job(current_user, job_id):
+def delete_discovery_job(job_id):
     """
     Delete discovery job.
 
@@ -194,7 +194,7 @@ def delete_discovery_job(current_user, job_id):
 
 @bp.route('/jobs/<int:job_id>/test', methods=['POST'])
 @login_required
-def test_discovery_job(current_user, job_id):
+def test_discovery_job(job_id):
     """
     Test discovery job connectivity.
 
@@ -215,7 +215,7 @@ def test_discovery_job(current_user, job_id):
 
 @bp.route('/jobs/<int:job_id>/run', methods=['POST'])
 @admin_required
-def run_discovery_job(current_user, job_id):
+def run_discovery_job(job_id):
     """
     Manually trigger a discovery job.
 
@@ -238,7 +238,7 @@ def run_discovery_job(current_user, job_id):
 
 @bp.route('/jobs/<int:job_id>/history', methods=['GET'])
 @login_required
-def get_discovery_job_history(current_user, job_id):
+def get_discovery_job_history(job_id):
     """
     Get discovery job execution history.
 
@@ -266,7 +266,7 @@ def get_discovery_job_history(current_user, job_id):
 
 @bp.route('/history', methods=['GET'])
 @login_required
-def get_all_discovery_history(current_user):
+def get_all_discovery_history():
     """
     Get all discovery execution history.
 

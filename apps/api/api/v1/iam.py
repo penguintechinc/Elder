@@ -16,7 +16,7 @@ def get_iam_service():
 
 @bp.route('/providers', methods=['GET'])
 @login_required
-def list_providers(current_user):
+def list_providers():
     """
     List all IAM providers.
 
@@ -43,7 +43,7 @@ def list_providers(current_user):
 
 @bp.route('/providers/<int:provider_id>', methods=['GET'])
 @login_required
-def get_provider(current_user, provider_id):
+def get_provider(provider_id):
     """
     Get a specific provider details.
 
@@ -64,7 +64,7 @@ def get_provider(current_user, provider_id):
 
 @bp.route('/providers', methods=['POST'])
 @admin_required
-def create_provider(current_user):
+def create_provider():
     """
     Create a new IAM provider.
 
@@ -111,7 +111,7 @@ def create_provider(current_user):
 
 @bp.route('/providers/<int:provider_id>', methods=['PUT'])
 @admin_required
-def update_provider(current_user, provider_id):
+def update_provider(provider_id):
     """
     Update provider configuration.
 
@@ -152,7 +152,7 @@ def update_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>', methods=['DELETE'])
 @admin_required
-def delete_provider(current_user, provider_id):
+def delete_provider(provider_id):
     """
     Delete an IAM provider.
 
@@ -177,7 +177,7 @@ def delete_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/test', methods=['POST'])
 @login_required
-def test_provider(current_user, provider_id):
+def test_provider(provider_id):
     """
     Test provider connectivity.
 
@@ -198,7 +198,7 @@ def test_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/sync', methods=['POST'])
 @admin_required
-def sync_provider(current_user, provider_id):
+def sync_provider(provider_id):
     """
     Sync resources from provider to database.
 
@@ -221,7 +221,7 @@ def sync_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/users', methods=['GET'])
 @login_required
-def list_users(current_user, provider_id):
+def list_users(provider_id):
     """
     List users from provider.
 
@@ -253,7 +253,7 @@ def list_users(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/users/<user_id>', methods=['GET'])
 @login_required
-def get_user(current_user, provider_id, user_id):
+def get_user(provider_id, user_id):
     """
     Get user details.
 
@@ -274,7 +274,7 @@ def get_user(current_user, provider_id, user_id):
 
 @bp.route('/providers/<int:provider_id>/users', methods=['POST'])
 @admin_required
-def create_user(current_user, provider_id):
+def create_user(provider_id):
     """
     Create a new user.
 
@@ -312,7 +312,7 @@ def create_user(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/users/<user_id>', methods=['PUT'])
 @admin_required
-def update_user(current_user, provider_id, user_id):
+def update_user(provider_id, user_id):
     """
     Update user.
 
@@ -345,7 +345,7 @@ def update_user(current_user, provider_id, user_id):
 
 @bp.route('/providers/<int:provider_id>/users/<user_id>', methods=['DELETE'])
 @admin_required
-def delete_user(current_user, provider_id, user_id):
+def delete_user(provider_id, user_id):
     """
     Delete user.
 
@@ -368,7 +368,7 @@ def delete_user(current_user, provider_id, user_id):
 
 @bp.route('/providers/<int:provider_id>/roles', methods=['GET'])
 @login_required
-def list_roles(current_user, provider_id):
+def list_roles(provider_id):
     """
     List roles from provider.
 
@@ -400,7 +400,7 @@ def list_roles(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/roles/<role_id>', methods=['GET'])
 @login_required
-def get_role(current_user, provider_id, role_id):
+def get_role(provider_id, role_id):
     """
     Get role details.
 
@@ -421,7 +421,7 @@ def get_role(current_user, provider_id, role_id):
 
 @bp.route('/providers/<int:provider_id>/roles', methods=['POST'])
 @admin_required
-def create_role(current_user, provider_id):
+def create_role(provider_id):
     """
     Create a new role.
 
@@ -460,7 +460,7 @@ def create_role(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/roles/<role_id>', methods=['PUT'])
 @admin_required
-def update_role(current_user, provider_id, role_id):
+def update_role(provider_id, role_id):
     """
     Update role.
 
@@ -493,7 +493,7 @@ def update_role(current_user, provider_id, role_id):
 
 @bp.route('/providers/<int:provider_id>/roles/<role_id>', methods=['DELETE'])
 @admin_required
-def delete_role(current_user, provider_id, role_id):
+def delete_role(provider_id, role_id):
     """
     Delete role.
 
@@ -516,7 +516,7 @@ def delete_role(current_user, provider_id, role_id):
 
 @bp.route('/providers/<int:provider_id>/policies', methods=['GET'])
 @login_required
-def list_policies(current_user, provider_id):
+def list_policies(provider_id):
     """
     List policies from provider.
 
@@ -548,7 +548,7 @@ def list_policies(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/policies/<policy_id>', methods=['GET'])
 @login_required
-def get_policy(current_user, provider_id, policy_id):
+def get_policy(provider_id, policy_id):
     """
     Get policy details.
 
@@ -569,7 +569,7 @@ def get_policy(current_user, provider_id, policy_id):
 
 @bp.route('/providers/<int:provider_id>/policies', methods=['POST'])
 @admin_required
-def create_policy(current_user, provider_id):
+def create_policy(provider_id):
     """
     Create a new policy.
 
@@ -610,7 +610,7 @@ def create_policy(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/policies/<policy_id>', methods=['DELETE'])
 @admin_required
-def delete_policy(current_user, provider_id, policy_id):
+def delete_policy(provider_id, policy_id):
     """
     Delete policy.
 
@@ -633,7 +633,7 @@ def delete_policy(current_user, provider_id, policy_id):
 
 @bp.route('/providers/<int:provider_id>/users/<user_id>/policies/<policy_id>', methods=['POST'])
 @admin_required
-def attach_policy_to_user(current_user, provider_id, user_id, policy_id):
+def attach_policy_to_user(provider_id, user_id, policy_id):
     """
     Attach policy to user.
 
@@ -654,7 +654,7 @@ def attach_policy_to_user(current_user, provider_id, user_id, policy_id):
 
 @bp.route('/providers/<int:provider_id>/users/<user_id>/policies/<policy_id>', methods=['DELETE'])
 @admin_required
-def detach_policy_from_user(current_user, provider_id, user_id, policy_id):
+def detach_policy_from_user(provider_id, user_id, policy_id):
     """
     Detach policy from user.
 
@@ -675,7 +675,7 @@ def detach_policy_from_user(current_user, provider_id, user_id, policy_id):
 
 @bp.route('/providers/<int:provider_id>/roles/<role_id>/policies/<policy_id>', methods=['POST'])
 @admin_required
-def attach_policy_to_role(current_user, provider_id, role_id, policy_id):
+def attach_policy_to_role(provider_id, role_id, policy_id):
     """
     Attach policy to role.
 
@@ -696,7 +696,7 @@ def attach_policy_to_role(current_user, provider_id, role_id, policy_id):
 
 @bp.route('/providers/<int:provider_id>/roles/<role_id>/policies/<policy_id>', methods=['DELETE'])
 @admin_required
-def detach_policy_from_role(current_user, provider_id, role_id, policy_id):
+def detach_policy_from_role(provider_id, role_id, policy_id):
     """
     Detach policy from role.
 
@@ -717,7 +717,7 @@ def detach_policy_from_role(current_user, provider_id, role_id, policy_id):
 
 @bp.route('/providers/<int:provider_id>/users/<user_id>/policies', methods=['GET'])
 @login_required
-def list_user_policies(current_user, provider_id, user_id):
+def list_user_policies(provider_id, user_id):
     """
     List policies attached to user.
 
@@ -738,7 +738,7 @@ def list_user_policies(current_user, provider_id, user_id):
 
 @bp.route('/providers/<int:provider_id>/roles/<role_id>/policies', methods=['GET'])
 @login_required
-def list_role_policies(current_user, provider_id, role_id):
+def list_role_policies(provider_id, role_id):
     """
     List policies attached to role.
 
@@ -761,7 +761,7 @@ def list_role_policies(current_user, provider_id, role_id):
 
 @bp.route('/providers/<int:provider_id>/users/<user_id>/access-keys', methods=['POST'])
 @admin_required
-def create_access_key(current_user, provider_id, user_id):
+def create_access_key(provider_id, user_id):
     """
     Create access key for user.
 
@@ -782,7 +782,7 @@ def create_access_key(current_user, provider_id, user_id):
 
 @bp.route('/providers/<int:provider_id>/users/<user_id>/access-keys', methods=['GET'])
 @login_required
-def list_access_keys(current_user, provider_id, user_id):
+def list_access_keys(provider_id, user_id):
     """
     List access keys for user.
 
@@ -803,7 +803,7 @@ def list_access_keys(current_user, provider_id, user_id):
 
 @bp.route('/providers/<int:provider_id>/users/<user_id>/access-keys/<key_id>', methods=['DELETE'])
 @admin_required
-def delete_access_key(current_user, provider_id, user_id, key_id):
+def delete_access_key(provider_id, user_id, key_id):
     """
     Delete access key.
 
@@ -826,7 +826,7 @@ def delete_access_key(current_user, provider_id, user_id, key_id):
 
 @bp.route('/providers/<int:provider_id>/groups', methods=['GET'])
 @login_required
-def list_groups(current_user, provider_id):
+def list_groups(provider_id):
     """
     List groups from provider.
 
@@ -858,7 +858,7 @@ def list_groups(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/groups', methods=['POST'])
 @admin_required
-def create_group(current_user, provider_id):
+def create_group(provider_id):
     """
     Create a new group.
 
@@ -895,7 +895,7 @@ def create_group(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/groups/<group_id>', methods=['DELETE'])
 @admin_required
-def delete_group(current_user, provider_id, group_id):
+def delete_group(provider_id, group_id):
     """
     Delete group.
 
@@ -916,7 +916,7 @@ def delete_group(current_user, provider_id, group_id):
 
 @bp.route('/providers/<int:provider_id>/groups/<group_id>/users/<user_id>', methods=['POST'])
 @admin_required
-def add_user_to_group(current_user, provider_id, group_id, user_id):
+def add_user_to_group(provider_id, group_id, user_id):
     """
     Add user to group.
 
@@ -937,7 +937,7 @@ def add_user_to_group(current_user, provider_id, group_id, user_id):
 
 @bp.route('/providers/<int:provider_id>/groups/<group_id>/users/<user_id>', methods=['DELETE'])
 @admin_required
-def remove_user_from_group(current_user, provider_id, group_id, user_id):
+def remove_user_from_group(provider_id, group_id, user_id):
     """
     Remove user from group.
 

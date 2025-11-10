@@ -369,6 +369,37 @@ def _init_default_data(db: DAL) -> None:
                     scope="global",
                 )
 
+    # Create guest user if enabled (idempotent)
+    enable_guest_login = os.getenv("ENABLE_GUEST_LOGIN", "false").lower() == "true"
+    guest_username = os.getenv("GUEST_USERNAME", "guest")
+    guest_password = os.getenv("GUEST_PASSWORD", "guest")
+
+    if enable_guest_login and root_org_id:
+        # Check if guest user already exists
+        existing_guest = db(db.identities.username == guest_username).select().first()
+
+        if not existing_guest:
+            # Create guest user
+            guest_id = db.identities.insert(
+                username=guest_username,
+                email=f"{guest_username}@localhost",
+                full_name="Guest User (Read-Only)",
+                identity_type="human",
+                auth_provider="local",
+                password_hash=generate_password_hash(guest_password),
+                is_active=True,
+                is_superuser=False,
+                organization_id=root_org_id,  # Link guest to root OU
+            )
+
+            # Assign viewer role (read-only)
+            if "viewer" in roles:
+                db.user_roles.insert(
+                    identity_id=guest_id,
+                    role_id=roles["viewer"],
+                    scope="global",
+                )
+
     db.commit()
 
 

@@ -16,7 +16,7 @@ bp = Blueprint("sync", __name__, url_prefix="/api/v1/sync")
 @bp.route("/configs", methods=["GET"])
 @cross_origin()
 @login_required
-def list_sync_configs(current_user):
+def list_sync_configs():
     """List all sync configurations."""
     db = current_app.db
 
@@ -28,7 +28,7 @@ def list_sync_configs(current_user):
 @bp.route("/configs", methods=["POST"])
 @cross_origin()
 @admin_required
-def create_sync_config(current_user):
+def create_sync_config():
     """Create a new sync configuration."""
     db = current_app.db
     data = request.json
@@ -61,7 +61,7 @@ def create_sync_config(current_user):
 @bp.route("/configs/<int:config_id>", methods=["GET"])
 @cross_origin()
 @login_required
-def get_sync_config(current_user, config_id):
+def get_sync_config(config_id):
     """Get sync configuration details."""
     db = current_app.db
 
@@ -76,7 +76,7 @@ def get_sync_config(current_user, config_id):
 @bp.route("/configs/<int:config_id>", methods=["PATCH"])
 @cross_origin()
 @admin_required
-def update_sync_config(current_user, config_id):
+def update_sync_config(config_id):
     """Update sync configuration."""
     db = current_app.db
     data = request.json
@@ -111,7 +111,7 @@ def update_sync_config(current_user, config_id):
 @bp.route("/configs/<int:config_id>", methods=["DELETE"])
 @cross_origin()
 @admin_required
-def delete_sync_config(current_user, config_id):
+def delete_sync_config(config_id):
     """Delete sync configuration."""
     db = current_app.db
 
@@ -129,7 +129,7 @@ def delete_sync_config(current_user, config_id):
 @bp.route("/history", methods=["GET"])
 @cross_origin()
 @login_required
-def list_sync_history(current_user):
+def list_sync_history():
     """List sync history with pagination."""
     db = current_app.db
 
@@ -175,7 +175,7 @@ def list_sync_history(current_user):
 @bp.route("/conflicts", methods=["GET"])
 @cross_origin()
 @login_required
-def list_sync_conflicts(current_user):
+def list_sync_conflicts():
     """List unresolved sync conflicts."""
     db = current_app.db
 
@@ -194,7 +194,7 @@ def list_sync_conflicts(current_user):
 @bp.route("/conflicts/<int:conflict_id>/resolve", methods=["POST"])
 @cross_origin()
 @admin_required
-def resolve_conflict(current_user, conflict_id):
+def resolve_conflict(conflict_id):
     """Resolve a sync conflict manually."""
     db = current_app.db
     data = request.json
@@ -222,7 +222,7 @@ def resolve_conflict(current_user, conflict_id):
 @bp.route("/mappings", methods=["GET"])
 @cross_origin()
 @login_required
-def list_sync_mappings(current_user):
+def list_sync_mappings():
     """List sync mappings."""
     db = current_app.db
 
@@ -246,7 +246,7 @@ def list_sync_mappings(current_user):
 @bp.route("/status", methods=["GET"])
 @cross_origin()
 @login_required
-def sync_status(current_user):
+def sync_status():
     """Get overall sync status summary."""
     db = current_app.db
 

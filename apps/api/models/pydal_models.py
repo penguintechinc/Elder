@@ -37,7 +37,7 @@ def define_all_tables(db):
         Field('last_login_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Identity Groups table - must be before organizations
@@ -50,7 +50,7 @@ def define_all_tables(db):
         Field('is_active', 'boolean', default=True, notnull=True),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Roles table - no dependencies
@@ -60,7 +60,7 @@ def define_all_tables(db):
         Field('description', 'string', length=512),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Permissions table - no dependencies
@@ -72,7 +72,7 @@ def define_all_tables(db):
         Field('description', 'string', length=512),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Sync Configs table - no dependencies
@@ -93,7 +93,7 @@ def define_all_tables(db):
         Field('config_json', 'json'),  # Platform-specific configuration (API tokens, URLs, etc.)
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Discovery Jobs table - no dependencies (Phase 5: Cloud Auto-Discovery)
@@ -114,7 +114,7 @@ def define_all_tables(db):
         Field('next_run_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Backup Jobs table - no dependencies (Phase 10: Advanced Search & Data Management)
@@ -135,7 +135,7 @@ def define_all_tables(db):
         Field('s3_prefix', 'string', length=255),  # S3 key prefix (e.g., elder/backups/)
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Audit Retention Policies table - no dependencies (Phase 8: Audit System Enhancement)
@@ -146,7 +146,7 @@ def define_all_tables(db):
         Field('enabled', 'boolean', default=True, notnull=True),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # ==========================================
@@ -170,7 +170,7 @@ def define_all_tables(db):
         Field('s3_url', 'string', length=1024),  # Full S3 URL if uploaded to S3
         Field('s3_key', 'string', length=512),  # S3 object key for deletion/download
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Identity Group Memberships table (depends on: identities, identity_groups)
@@ -179,7 +179,7 @@ def define_all_tables(db):
         Field('identity_id', 'reference identities', notnull=True, ondelete='CASCADE'),
         Field('group_id', 'reference identity_groups', notnull=True, ondelete='CASCADE'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Role Permissions table (depends on: roles, permissions)
@@ -188,7 +188,7 @@ def define_all_tables(db):
         Field('role_id', 'reference roles', notnull=True, ondelete='CASCADE'),
         Field('permission_id', 'reference permissions', notnull=True, ondelete='CASCADE'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # User Roles table (depends on: identities, roles)
@@ -199,7 +199,7 @@ def define_all_tables(db):
         Field('scope', 'string', length=50, notnull=True),
         Field('scope_id', 'integer'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # API Keys table (depends on: identities)
@@ -214,7 +214,7 @@ def define_all_tables(db):
         Field('is_active', 'boolean', default=True, notnull=True),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Sync Mappings table (depends on: sync_configs)
@@ -236,7 +236,7 @@ def define_all_tables(db):
         Field('external_updated_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Sync History table (depends on: sync_configs, identities)
@@ -253,7 +253,7 @@ def define_all_tables(db):
         Field('success', 'boolean', default=True, notnull=True),
         Field('error_message', 'text'),
         Field('sync_metadata', 'json'),  # Additional sync details, platform-specific data
-        migrate=True,
+        migrate=False,
     )
 
     # Discovery History table (depends on: discovery_jobs) - Phase 5: Cloud Auto-Discovery
@@ -268,7 +268,7 @@ def define_all_tables(db):
         Field('entities_created', 'integer', default=0, notnull=True),
         Field('entities_updated', 'integer', default=0, notnull=True),
         Field('error_message', 'text'),
-        migrate=True,
+        migrate=False,
     )
 
     # Saved Searches table (depends on: identities) - Phase 10: Advanced Search & Data Management
@@ -279,7 +279,7 @@ def define_all_tables(db):
         Field('filters', 'json'),
         Field('identity_id', 'reference identities', notnull=True, ondelete='CASCADE'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Organizations table (depends on: identities, identity_groups)
@@ -296,7 +296,7 @@ def define_all_tables(db):
         Field('owner_group_id', 'reference identity_groups', ondelete='SET NULL'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Resource Roles table (depends on: identities, identity_groups)
@@ -309,7 +309,7 @@ def define_all_tables(db):
         Field('resource_id', 'integer'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Audit Logs table (depends on: identities)
@@ -324,7 +324,7 @@ def define_all_tables(db):
         Field('ip_address', 'string', length=45),
         Field('user_agent', 'string', length=512),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # ==========================================
@@ -353,7 +353,7 @@ def define_all_tables(db):
         Field('is_active', 'boolean', default=True),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Entities table (depends on: organizations)
@@ -373,7 +373,7 @@ def define_all_tables(db):
         Field('status_metadata', 'json'),  # {status: "Running|Stopped|Deleted|Creating|Error", timestamp: epoch64}
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Issues table (depends on: identities, organizations)
@@ -390,7 +390,7 @@ def define_all_tables(db):
         Field('closed_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Issue Labels table - no dependencies
@@ -400,7 +400,7 @@ def define_all_tables(db):
         Field('color', 'string', length=7, default='#cccccc'),
         Field('description', 'string', length=512),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Projects table (depends on: organizations)
@@ -414,7 +414,7 @@ def define_all_tables(db):
         Field('end_date', 'date'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Milestones table (depends on: organizations, projects)
@@ -429,7 +429,7 @@ def define_all_tables(db):
         Field('closed_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Secret Providers table (depends on: organizations) - Phase 2: Secrets Management
@@ -445,7 +445,7 @@ def define_all_tables(db):
         Field('last_sync_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Key Providers table (depends on: organizations) - Phase 3: Keys Management
@@ -461,7 +461,7 @@ def define_all_tables(db):
         Field('last_sync_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # IAM Providers table (depends on: organizations) - v2.0.0: Unified IAM Model
@@ -476,7 +476,7 @@ def define_all_tables(db):
         Field('last_sync_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Google Workspace Providers table (depends on: organizations) - v2.0.0: Unified IAM Model
@@ -491,7 +491,7 @@ def define_all_tables(db):
         Field('last_sync_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Cloud Accounts table (depends on: organizations) - Phase 5: Cloud Auto-Discovery
@@ -505,7 +505,7 @@ def define_all_tables(db):
         Field('enabled', 'boolean', default=True, notnull=True),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Webhooks table (depends on: organizations) - Phase 9: Webhook & Notification System
@@ -519,7 +519,7 @@ def define_all_tables(db):
         Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Notification Rules table (depends on: organizations) - Phase 9: Webhook & Notification System
@@ -534,7 +534,7 @@ def define_all_tables(db):
         Field('organization_id', 'reference organizations', notnull=True, ondelete='CASCADE'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # ==========================================
@@ -551,7 +551,7 @@ def define_all_tables(db):
         Field('metadata', 'json'),  # Additional relationship metadata
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Network Topology table (depends on: networking_resources) - v2.0.0
@@ -566,7 +566,7 @@ def define_all_tables(db):
         Field('metadata', 'json'),  # Additional connection metadata
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Built-in Secrets table (depends on: organizations) - v2.0.0: In-app secret storage with encryption
@@ -586,7 +586,7 @@ def define_all_tables(db):
         Field('expires_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Dependencies table (depends on: entities)
@@ -598,7 +598,7 @@ def define_all_tables(db):
         Field('metadata', 'json'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Issue Comments table (depends on: issues, identities)
@@ -609,7 +609,7 @@ def define_all_tables(db):
         Field('content', 'text', notnull=True, requires=IS_NOT_EMPTY()),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Issue Label Assignments table (depends on: issues, issue_labels)
@@ -618,7 +618,7 @@ def define_all_tables(db):
         Field('issue_id', 'reference issues', notnull=True, ondelete='CASCADE'),
         Field('label_id', 'reference issue_labels', notnull=True, ondelete='CASCADE'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Issue Entity Links table (depends on: issues, entities)
@@ -627,7 +627,7 @@ def define_all_tables(db):
         Field('issue_id', 'reference issues', notnull=True, ondelete='CASCADE'),
         Field('entity_id', 'reference entities', notnull=True, ondelete='CASCADE'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Issue Milestone Links table (depends on: issues, milestones)
@@ -636,7 +636,7 @@ def define_all_tables(db):
         Field('issue_id', 'reference issues', notnull=True, ondelete='CASCADE'),
         Field('milestone_id', 'reference milestones', notnull=True, ondelete='CASCADE'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Issue Project Links table (depends on: issues, projects)
@@ -645,7 +645,7 @@ def define_all_tables(db):
         Field('issue_id', 'reference issues', notnull=True, ondelete='CASCADE'),
         Field('project_id', 'reference projects', notnull=True, ondelete='CASCADE'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Sync Conflicts table (depends on: sync_mappings, identities)
@@ -662,7 +662,7 @@ def define_all_tables(db):
         Field('resolved_at', 'datetime'),
         Field('resolved_by_id', 'reference identities', ondelete='SET NULL'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Metadata Fields table - uses generic resource_type/resource_id pattern
@@ -676,7 +676,7 @@ def define_all_tables(db):
         Field('resource_id', 'integer', notnull=True),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Secrets table (depends on: secret_providers, organizations) - Phase 2: Secrets Management
@@ -694,7 +694,7 @@ def define_all_tables(db):
         Field('last_synced_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Keys table (depends on: key_providers, organizations) - Phase 3: Keys Management
@@ -709,7 +709,7 @@ def define_all_tables(db):
         Field('last_synced_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),
-        migrate=True,
+        migrate=False,
     )
 
     # Webhook Deliveries table (depends on: webhooks) - Phase 9: Webhook & Notification System
@@ -722,7 +722,7 @@ def define_all_tables(db):
         Field('response_body', 'text'),
         Field('delivered_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc), notnull=True),
         Field('success', 'boolean', default=False, notnull=True),
-        migrate=True,
+        migrate=False,
     )
 
     # ==========================================
@@ -738,7 +738,7 @@ def define_all_tables(db):
               requires=IS_IN_SET(['view_masked', 'view_unmasked', 'create', 'update', 'delete'])),
         Field('masked', 'boolean', default=True, notnull=True),  # Was secret masked when viewed?
         Field('accessed_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc), notnull=True),
-        migrate=True,
+        migrate=False,
     )
 
     # Key Access Log table (depends on: keys, identities) - Phase 3: Keys Management
@@ -749,5 +749,5 @@ def define_all_tables(db):
         Field('action', 'string', length=50, notnull=True,
               requires=IS_IN_SET(['view', 'create', 'update', 'delete', 'encrypt', 'decrypt', 'sign'])),
         Field('accessed_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc), notnull=True),
-        migrate=True,
+        migrate=False,
     )

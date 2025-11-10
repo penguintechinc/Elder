@@ -45,8 +45,8 @@ class Config:
 
     # JWT
     JWT_SECRET_KEY = config("JWT_SECRET_KEY", default=None)
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=4)  # Extended to 4 hours for development
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=config("JWT_ACCESS_TOKEN_HOURS", default=4, cast=int))
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=config("JWT_REFRESH_TOKEN_DAYS", default=30, cast=int))
     JWT_ALGORITHM = "HS256"
 
     # CORS

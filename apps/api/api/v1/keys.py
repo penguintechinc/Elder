@@ -16,7 +16,7 @@ def get_keys_service():
 
 @bp.route('', methods=['GET'])
 @login_required
-def list_keys(current_user):
+def list_keys():
     """
     List all keys accessible by current user/organization.
 
@@ -52,7 +52,7 @@ def list_keys(current_user):
 
 @bp.route('/<int:key_id>', methods=['GET'])
 @login_required
-def get_key(current_user, key_id):
+def get_key(key_id):
     """
     Get a specific key details.
 
@@ -73,7 +73,7 @@ def get_key(current_user, key_id):
 
 @bp.route('', methods=['POST'])
 @login_required
-def create_key(current_user):
+def create_key():
     """
     Create a new encryption key.
 
@@ -124,7 +124,7 @@ def create_key(current_user):
 
 @bp.route('/<int:key_id>/enable', methods=['POST'])
 @login_required
-def enable_key(current_user, key_id):
+def enable_key(key_id):
     """
     Enable a disabled key.
 
@@ -145,7 +145,7 @@ def enable_key(current_user, key_id):
 
 @bp.route('/<int:key_id>/disable', methods=['POST'])
 @login_required
-def disable_key(current_user, key_id):
+def disable_key(key_id):
     """
     Disable a key.
 
@@ -166,7 +166,7 @@ def disable_key(current_user, key_id):
 
 @bp.route('/<int:key_id>/rotate', methods=['POST'])
 @login_required
-def rotate_key(current_user, key_id):
+def rotate_key(key_id):
     """
     Rotate a key (enable automatic rotation or rotate immediately).
 
@@ -187,7 +187,7 @@ def rotate_key(current_user, key_id):
 
 @bp.route('/<int:key_id>', methods=['DELETE'])
 @login_required
-def delete_key(current_user, key_id):
+def delete_key(key_id):
     """
     Schedule key deletion.
 
@@ -215,7 +215,7 @@ def delete_key(current_user, key_id):
 
 @bp.route('/<int:key_id>/encrypt', methods=['POST'])
 @login_required
-def encrypt_data(current_user, key_id):
+def encrypt_data(key_id):
     """
     Encrypt data using this key.
 
@@ -252,7 +252,7 @@ def encrypt_data(current_user, key_id):
 
 @bp.route('/<int:key_id>/decrypt', methods=['POST'])
 @login_required
-def decrypt_data(current_user, key_id):
+def decrypt_data(key_id):
     """
     Decrypt data using this key.
 
@@ -289,7 +289,7 @@ def decrypt_data(current_user, key_id):
 
 @bp.route('/<int:key_id>/generate-data-key', methods=['POST'])
 @login_required
-def generate_data_key(current_user, key_id):
+def generate_data_key(key_id):
     """
     Generate a data encryption key.
 
@@ -323,7 +323,7 @@ def generate_data_key(current_user, key_id):
 
 @bp.route('/<int:key_id>/sign', methods=['POST'])
 @login_required
-def sign_data(current_user, key_id):
+def sign_data(key_id):
     """
     Sign data using this key (asymmetric keys only).
 
@@ -363,7 +363,7 @@ def sign_data(current_user, key_id):
 
 @bp.route('/<int:key_id>/verify', methods=['POST'])
 @login_required
-def verify_signature(current_user, key_id):
+def verify_signature(key_id):
     """
     Verify a message signature (asymmetric keys only).
 
@@ -410,7 +410,7 @@ def verify_signature(current_user, key_id):
 
 @bp.route('/<int:key_id>/access-log', methods=['GET'])
 @login_required
-def get_key_access_log(current_user, key_id):
+def get_key_access_log(key_id):
     """
     Get access log for a key.
 
@@ -447,7 +447,7 @@ def get_key_access_log(current_user, key_id):
 
 @bp.route('/providers', methods=['GET'])
 @login_required
-def list_key_providers(current_user):
+def list_key_providers():
     """
     List all key providers.
 
@@ -474,7 +474,7 @@ def list_key_providers(current_user):
 
 @bp.route('/providers', methods=['POST'])
 @login_required
-def create_key_provider(current_user):
+def create_key_provider():
     """
     Register a new key provider.
 
@@ -522,7 +522,7 @@ def create_key_provider(current_user):
 
 @bp.route('/providers/<int:provider_id>', methods=['GET'])
 @login_required
-def get_key_provider(current_user, provider_id):
+def get_key_provider(provider_id):
     """
     Get key provider details.
 
@@ -543,7 +543,7 @@ def get_key_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>', methods=['PUT'])
 @login_required
-def update_key_provider(current_user, provider_id):
+def update_key_provider(provider_id):
     """
     Update key provider configuration.
 
@@ -585,7 +585,7 @@ def update_key_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>', methods=['DELETE'])
 @login_required
-def delete_key_provider(current_user, provider_id):
+def delete_key_provider(provider_id):
     """
     Delete key provider.
 
@@ -609,7 +609,7 @@ def delete_key_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/test', methods=['POST'])
 @login_required
-def test_key_provider(current_user, provider_id):
+def test_key_provider(provider_id):
     """
     Test provider connectivity.
 

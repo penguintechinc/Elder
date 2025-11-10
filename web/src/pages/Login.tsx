@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
@@ -11,6 +11,16 @@ export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const navigate = useNavigate()
+
+  // Check if guest login is enabled
+  const { data: guestConfig } = useQuery({
+    queryKey: ['guest-enabled'],
+    queryFn: async () => {
+      const response = await api.client.get('/auth/guest-enabled')
+      return response.data
+    },
+    staleTime: 60000, // Cache for 1 minute
+  })
 
   const loginMutation = useMutation({
     mutationFn: ({ username, password }: { username: string; password: string }) =>
@@ -29,9 +39,14 @@ export default function Login() {
     loginMutation.mutate({ username, password })
   }
 
-  const handleSkip = () => {
-    // Allow browsing without login (read-only mode)
-    navigate('/')
+  const handleGuestLogin = () => {
+    // Login as guest user
+    if (guestConfig?.username) {
+      loginMutation.mutate({
+        username: guestConfig.username,
+        password: guestConfig.username, // Guest password defaults to same as username
+      })
+    }
   }
 
   return (
@@ -74,14 +89,17 @@ export default function Login() {
                 >
                   Sign In
                 </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={handleSkip}
-                >
-                  Continue as Guest (Read-Only)
-                </Button>
+                {guestConfig?.enabled && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={handleGuestLogin}
+                    disabled={loginMutation.isPending}
+                  >
+                    Continue as Guest (Read-Only)
+                  </Button>
+                )}
               </div>
             </form>
 

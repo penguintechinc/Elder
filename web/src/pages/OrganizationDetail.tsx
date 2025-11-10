@@ -828,7 +828,14 @@ export default function OrganizationDetail() {
           onClose={() => setShowCreateOrgModal(false)}
           onSuccess={() => {
             setShowCreateOrgModal(false)
+            // Invalidate child organizations list
             queryClient.invalidateQueries({ queryKey: ['organizations', { parent_id: id }] })
+            // Invalidate parent organization to update counts
+            queryClient.invalidateQueries({ queryKey: ['organization', id] })
+            // Invalidate tree stats
+            queryClient.invalidateQueries({ queryKey: ['organization-tree-stats', id] })
+            // Invalidate global organizations list
+            queryClient.invalidateQueries({ queryKey: ['organizations'] })
           }}
         />
       )}
@@ -840,7 +847,14 @@ export default function OrganizationDetail() {
           onClose={() => setShowCreateEntityModal(false)}
           onSuccess={() => {
             setShowCreateEntityModal(false)
+            // Invalidate organization's entities list
             queryClient.invalidateQueries({ queryKey: ['entities', { organization_id: id }] })
+            // Invalidate parent organization to update counts
+            queryClient.invalidateQueries({ queryKey: ['organization', id] })
+            // Invalidate tree stats
+            queryClient.invalidateQueries({ queryKey: ['organization-tree-stats', id] })
+            // Invalidate global entities list
+            queryClient.invalidateQueries({ queryKey: ['entities'] })
           }}
         />
       )}

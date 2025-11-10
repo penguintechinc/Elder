@@ -61,6 +61,9 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+      args:
+        JWT_ACCESS_TOKEN_HOURS: ${JWT_ACCESS_TOKEN_HOURS:-4}
+        JWT_REFRESH_TOKEN_DAYS: ${JWT_REFRESH_TOKEN_DAYS:-30}
     container_name: elder-api
     environment:
       # Flask
@@ -69,6 +72,10 @@ services:
       - FLASK_HOST=0.0.0.0
       - FLASK_PORT=5000
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+
+      # JWT Token Expiration
+      - JWT_ACCESS_TOKEN_HOURS=${JWT_ACCESS_TOKEN_HOURS:-4}
+      - JWT_REFRESH_TOKEN_DAYS=${JWT_REFRESH_TOKEN_DAYS:-30}
 
       # Database - Use individual components for flexibility
       - DB_TYPE=postgres
@@ -100,6 +107,11 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@localhost}
+
+      # Guest user (read-only access, disabled by default)
+      - ENABLE_GUEST_LOGIN=${ENABLE_GUEST_LOGIN:-false}
+      - GUEST_USERNAME=${GUEST_USERNAME:-guest}
+      - GUEST_PASSWORD=${GUEST_PASSWORD:-guest}
 
       # Logging
       - LOG_LEVEL=${LOG_LEVEL:-INFO}

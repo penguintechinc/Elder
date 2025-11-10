@@ -19,7 +19,7 @@ def get_search_service():
 
 @bp.route('', methods=['GET'])
 @login_required
-def search_all(current_user):
+def search_all():
     """
     Advanced search across all resources.
 
@@ -73,7 +73,7 @@ def search_all(current_user):
 
 @bp.route('/entities', methods=['GET'])
 @login_required
-def search_entities(current_user):
+def search_entities():
     """
     Search entities with advanced filters.
 
@@ -137,7 +137,7 @@ def search_entities(current_user):
 
 @bp.route('/organizations', methods=['GET'])
 @login_required
-def search_organizations(current_user):
+def search_organizations():
     """
     Search organizations.
 
@@ -180,7 +180,7 @@ def search_organizations(current_user):
 
 @bp.route('/issues', methods=['GET'])
 @login_required
-def search_issues(current_user):
+def search_issues():
     """
     Search issues with advanced filters.
 
@@ -237,7 +237,7 @@ def search_issues(current_user):
 
 @bp.route('/graph', methods=['POST'])
 @login_required
-def search_graph(current_user):
+def search_graph():
     """
     Graph-based search for entities and dependencies.
 
@@ -282,7 +282,7 @@ def search_graph(current_user):
 
 @bp.route('/saved', methods=['GET'])
 @login_required
-def list_saved_searches(current_user):
+def list_saved_searches():
     """
     List user's saved searches.
 
@@ -313,7 +313,7 @@ def list_saved_searches(current_user):
 
 @bp.route('/saved', methods=['POST'])
 @login_required
-def create_saved_search(current_user):
+def create_saved_search():
     """
     Save a search query.
 
@@ -360,7 +360,7 @@ def create_saved_search(current_user):
 
 @bp.route('/saved/<int:search_id>', methods=['GET'])
 @login_required
-def get_saved_search(current_user, search_id):
+def get_saved_search(search_id):
     """
     Get saved search details.
 
@@ -386,7 +386,7 @@ def get_saved_search(current_user, search_id):
 
 @bp.route('/saved/<int:search_id>/execute', methods=['GET'])
 @login_required
-def execute_saved_search(current_user, search_id):
+def execute_saved_search(search_id):
     """
     Execute a saved search.
 
@@ -421,7 +421,7 @@ def execute_saved_search(current_user, search_id):
 
 @bp.route('/saved/<int:search_id>', methods=['PUT'])
 @login_required
-def update_saved_search(current_user, search_id):
+def update_saved_search(search_id):
     """
     Update saved search.
 
@@ -464,7 +464,7 @@ def update_saved_search(current_user, search_id):
 
 @bp.route('/saved/<int:search_id>', methods=['DELETE'])
 @login_required
-def delete_saved_search(current_user, search_id):
+def delete_saved_search(search_id):
     """
     Delete saved search.
 
@@ -494,7 +494,7 @@ def delete_saved_search(current_user, search_id):
 
 @bp.route('/analytics/popular', methods=['GET'])
 @login_required
-def get_popular_searches(current_user):
+def get_popular_searches():
     """
     Get most popular/frequent searches.
 
@@ -522,7 +522,7 @@ def get_popular_searches(current_user):
 
 @bp.route('/suggest', methods=['GET'])
 @login_required
-def search_suggestions(current_user):
+def search_suggestions():
     """
     Get search suggestions/autocomplete.
 

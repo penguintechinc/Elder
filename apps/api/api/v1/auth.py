@@ -1,6 +1,7 @@
 """Authentication API endpoints using PyDAL with async/await."""
 
 import asyncio
+import os
 from flask import Blueprint, request, jsonify, current_app, g
 from werkzeug.security import generate_password_hash
 from datetime import datetime, timezone
@@ -112,6 +113,28 @@ async def register():
             "email": identity.email,
         },
     }), 201
+
+
+@bp.route("/guest-enabled", methods=["GET"])
+async def guest_enabled():
+    """
+    Check if guest login is enabled.
+
+    Returns:
+        200: Guest login status
+        {
+            "enabled": boolean,
+            "username": "string" (only if enabled)
+        }
+    """
+    enable_guest = os.getenv("ENABLE_GUEST_LOGIN", "false").lower() == "true"
+
+    response = {"enabled": enable_guest}
+
+    if enable_guest:
+        response["username"] = os.getenv("GUEST_USERNAME", "guest")
+
+    return jsonify(response), 200
 
 
 @bp.route("/login", methods=["POST"])

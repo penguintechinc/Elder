@@ -18,7 +18,7 @@ def get_google_workspace_service():
 
 @bp.route('/providers', methods=['GET'])
 @login_required
-def list_providers(current_user):
+def list_providers():
     """
     List Google Workspace providers.
 
@@ -46,7 +46,7 @@ def list_providers(current_user):
 
 @bp.route('/providers', methods=['POST'])
 @admin_required
-def create_provider(current_user):
+def create_provider():
     """
     Create Google Workspace provider.
 
@@ -94,7 +94,7 @@ def create_provider(current_user):
 
 @bp.route('/providers/<int:provider_id>', methods=['GET'])
 @login_required
-def get_provider(current_user, provider_id):
+def get_provider(provider_id):
     """
     Get provider details.
 
@@ -115,7 +115,7 @@ def get_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>', methods=['PUT'])
 @admin_required
-def update_provider(current_user, provider_id):
+def update_provider(provider_id):
     """
     Update provider configuration.
 
@@ -161,7 +161,7 @@ def update_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>', methods=['DELETE'])
 @admin_required
-def delete_provider(current_user, provider_id):
+def delete_provider(provider_id):
     """
     Delete provider.
 
@@ -182,7 +182,7 @@ def delete_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/test', methods=['POST'])
 @login_required
-def test_provider(current_user, provider_id):
+def test_provider(provider_id):
     """
     Test provider connectivity.
 
@@ -209,7 +209,7 @@ def test_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/users', methods=['GET'])
 @login_required
-def list_users(current_user, provider_id):
+def list_users(provider_id):
     """
     List Google Workspace users.
 
@@ -243,7 +243,7 @@ def list_users(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/users/<path:user_key>', methods=['GET'])
 @login_required
-def get_user(current_user, provider_id, user_key):
+def get_user(provider_id, user_key):
     """
     Get user details.
 
@@ -264,7 +264,7 @@ def get_user(current_user, provider_id, user_key):
 
 @bp.route('/providers/<int:provider_id>/users', methods=['POST'])
 @admin_required
-def create_user(current_user, provider_id):
+def create_user(provider_id):
     """
     Create Google Workspace user.
 
@@ -314,7 +314,7 @@ def create_user(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/users/<path:user_key>', methods=['PUT'])
 @admin_required
-def update_user(current_user, provider_id, user_key):
+def update_user(provider_id, user_key):
     """
     Update user details.
 
@@ -357,7 +357,7 @@ def update_user(current_user, provider_id, user_key):
 
 @bp.route('/providers/<int:provider_id>/users/<path:user_key>', methods=['DELETE'])
 @admin_required
-def delete_user(current_user, provider_id, user_key):
+def delete_user(provider_id, user_key):
     """
     Delete Google Workspace user.
 
@@ -382,7 +382,7 @@ def delete_user(current_user, provider_id, user_key):
 
 @bp.route('/providers/<int:provider_id>/groups', methods=['GET'])
 @login_required
-def list_groups(current_user, provider_id):
+def list_groups(provider_id):
     """
     List Google Workspace groups.
 
@@ -416,7 +416,7 @@ def list_groups(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/groups/<path:group_key>', methods=['GET'])
 @login_required
-def get_group(current_user, provider_id, group_key):
+def get_group(provider_id, group_key):
     """
     Get group details.
 
@@ -437,7 +437,7 @@ def get_group(current_user, provider_id, group_key):
 
 @bp.route('/providers/<int:provider_id>/groups', methods=['POST'])
 @admin_required
-def create_group(current_user, provider_id):
+def create_group(provider_id):
     """
     Create Google Workspace group.
 
@@ -483,7 +483,7 @@ def create_group(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/groups/<path:group_key>', methods=['DELETE'])
 @admin_required
-def delete_group(current_user, provider_id, group_key):
+def delete_group(provider_id, group_key):
     """
     Delete Google Workspace group.
 
@@ -504,7 +504,7 @@ def delete_group(current_user, provider_id, group_key):
 
 @bp.route('/providers/<int:provider_id>/groups/<path:group_key>/members', methods=['GET'])
 @login_required
-def list_group_members(current_user, provider_id, group_key):
+def list_group_members(provider_id, group_key):
     """
     List group members.
 
@@ -536,7 +536,7 @@ def list_group_members(current_user, provider_id, group_key):
 
 @bp.route('/providers/<int:provider_id>/groups/<path:group_key>/members', methods=['POST'])
 @admin_required
-def add_group_member(current_user, provider_id, group_key):
+def add_group_member(provider_id, group_key):
     """
     Add member to group.
 
@@ -576,7 +576,7 @@ def add_group_member(current_user, provider_id, group_key):
 
 @bp.route('/providers/<int:provider_id>/groups/<path:group_key>/members/<path:member_email>', methods=['DELETE'])
 @admin_required
-def remove_group_member(current_user, provider_id, group_key, member_email):
+def remove_group_member(provider_id, group_key, member_email):
     """
     Remove member from group.
 

@@ -21,7 +21,7 @@ def get_secrets_service():
 
 @bp.route('', methods=['GET'])
 @login_required
-def list_secrets(current_user):
+def list_secrets():
     """
     List all secrets accessible by current user/organization.
 
@@ -58,7 +58,7 @@ def list_secrets(current_user):
 
 @bp.route('/<int:secret_id>', methods=['GET'])
 @login_required
-def get_secret(current_user, secret_id):
+def get_secret(secret_id):
     """
     Get a specific secret (masked by default).
 
@@ -71,6 +71,7 @@ def get_secret(current_user, secret_id):
         404: Secret not found
     """
     try:
+        from flask import g
         service = get_secrets_service()
         unmask = request.args.get('unmask', 'false').lower() == 'true'
 
@@ -80,7 +81,7 @@ def get_secret(current_user, secret_id):
         secret = service.get_secret(
             secret_id=secret_id,
             unmask=unmask,
-            identity_id=current_user.id
+            identity_id=g.current_user.id
         )
 
         return jsonify({'secret': secret}), 200
@@ -98,7 +99,7 @@ def get_secret(current_user, secret_id):
 
 @bp.route('/<int:secret_id>/unmask', methods=['POST'])
 @login_required
-def unmask_secret(current_user, secret_id):
+def unmask_secret(secret_id):
     """
     Unmask a secret and retrieve its actual value.
 
@@ -110,6 +111,7 @@ def unmask_secret(current_user, secret_id):
         404: Secret not found
     """
     try:
+        from flask import g
         service = get_secrets_service()
 
         # TODO: Add permission check for unmask_secret
@@ -118,7 +120,7 @@ def unmask_secret(current_user, secret_id):
         secret = service.get_secret(
             secret_id=secret_id,
             unmask=True,
-            identity_id=current_user.id
+            identity_id=g.current_user.id
         )
 
         return jsonify({'secret': secret}), 200
@@ -136,7 +138,7 @@ def unmask_secret(current_user, secret_id):
 
 @bp.route('', methods=['POST'])
 @login_required
-def create_secret(current_user):
+def create_secret():
     """
     Register a new secret from a provider.
 
@@ -173,6 +175,7 @@ def create_secret(current_user):
 
         service = get_secrets_service()
 
+        from flask import g
         secret = service.create_secret(
             name=data['name'],
             provider_id=data['provider_id'],
@@ -181,7 +184,7 @@ def create_secret(current_user):
             organization_id=data['organization_id'],
             is_kv=data.get('is_kv', False),
             metadata=data.get('metadata'),
-            identity_id=current_user.id
+            identity_id=g.current_user.id
         )
 
         return jsonify({'secret': secret}), 201
@@ -197,7 +200,7 @@ def create_secret(current_user):
 
 @bp.route('/<int:secret_id>', methods=['PUT'])
 @login_required
-def update_secret(current_user, secret_id):
+def update_secret(secret_id):
     """
     Update secret metadata (not the actual value in provider).
 
@@ -213,6 +216,7 @@ def update_secret(current_user, secret_id):
         404: Secret not found
     """
     try:
+        from flask import g
         data = request.get_json()
 
         if not data:
@@ -225,7 +229,7 @@ def update_secret(current_user, secret_id):
             name=data.get('name'),
             secret_type=data.get('secret_type'),
             metadata=data.get('metadata'),
-            identity_id=current_user.id
+            identity_id=g.current_user.id
         )
 
         return jsonify({'secret': secret}), 200
@@ -239,7 +243,7 @@ def update_secret(current_user, secret_id):
 
 @bp.route('/<int:secret_id>', methods=['DELETE'])
 @login_required
-def delete_secret(current_user, secret_id):
+def delete_secret(secret_id):
     """
     Remove secret registration (does not delete from provider).
 
@@ -248,11 +252,12 @@ def delete_secret(current_user, secret_id):
         404: Secret not found
     """
     try:
+        from flask import g
         service = get_secrets_service()
 
         service.delete_secret(
             secret_id=secret_id,
-            identity_id=current_user.id
+            identity_id=g.current_user.id
         )
 
         return '', 204
@@ -266,7 +271,7 @@ def delete_secret(current_user, secret_id):
 
 @bp.route('/<int:secret_id>/sync', methods=['POST'])
 @login_required
-def sync_secret(current_user, secret_id):
+def sync_secret(secret_id):
     """
     Force sync secret metadata from provider.
 
@@ -275,11 +280,12 @@ def sync_secret(current_user, secret_id):
         404: Secret not found
     """
     try:
+        from flask import g
         service = get_secrets_service()
 
         secret = service.sync_secret(
             secret_id=secret_id,
-            identity_id=current_user.id
+            identity_id=g.current_user.id
         )
 
         return jsonify({'secret': secret}), 200
@@ -297,7 +303,7 @@ def sync_secret(current_user, secret_id):
 
 @bp.route('/<int:secret_id>/access-log', methods=['GET'])
 @login_required
-def get_secret_access_log(current_user, secret_id):
+def get_secret_access_log(secret_id):
     """
     Get access log for a secret.
 
@@ -328,7 +334,7 @@ def get_secret_access_log(current_user, secret_id):
 # Secret Provider endpoints
 @bp.route('/providers', methods=['GET'])
 @login_required
-def list_secret_providers(current_user):
+def list_secret_providers():
     """
     List all secret providers.
 
@@ -362,7 +368,7 @@ def list_secret_providers(current_user):
 
 @bp.route('/providers', methods=['POST'])
 @login_required
-def create_secret_provider(current_user):
+def create_secret_provider():
     """
     Register a new secret provider.
 
@@ -417,7 +423,7 @@ def create_secret_provider(current_user):
 
 @bp.route('/providers/<int:provider_id>', methods=['GET'])
 @login_required
-def get_secret_provider(current_user, provider_id):
+def get_secret_provider(provider_id):
     """
     Get secret provider details.
 
@@ -441,7 +447,7 @@ def get_secret_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>', methods=['PUT'])
 @login_required
-def update_secret_provider(current_user, provider_id):
+def update_secret_provider(provider_id):
     """
     Update secret provider configuration.
 
@@ -482,7 +488,7 @@ def update_secret_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>', methods=['DELETE'])
 @login_required
-def delete_secret_provider(current_user, provider_id):
+def delete_secret_provider(provider_id):
     """
     Delete secret provider.
 
@@ -510,7 +516,7 @@ def delete_secret_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/sync', methods=['POST'])
 @login_required
-def sync_secret_provider(current_user, provider_id):
+def sync_secret_provider(provider_id):
     """
     Sync all secrets from provider.
 
@@ -536,7 +542,7 @@ def sync_secret_provider(current_user, provider_id):
 
 @bp.route('/providers/<int:provider_id>/test', methods=['POST'])
 @login_required
-def test_secret_provider(current_user, provider_id):
+def test_secret_provider(provider_id):
     """
     Test provider connection.
 

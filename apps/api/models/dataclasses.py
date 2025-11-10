@@ -126,7 +126,7 @@ class CreateDependencyRequest:
 
 # ==================== Identities ====================
 
-@dataclass(slots=True, frozen=True)
+@dataclass(slots=True)
 class IdentityDTO:
     """Immutable Identity data transfer object."""
     id: int
@@ -144,6 +144,8 @@ class IdentityDTO:
     last_login_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
+    password_hash: Optional[str] = None  # Stored password hash (never expose to client)
+    mfa_secret: Optional[str] = None  # MFA secret (never expose to client)
 
 
 @dataclass(slots=True)

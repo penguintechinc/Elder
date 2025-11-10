@@ -61,7 +61,11 @@
       "Bash(do sed -i 's/token_required/login_required/g' \"$file\")",
       "Bash(done)",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidXNlcm5hbWUiOiJhZG1pbiIsInR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjE2MDc0NDUsImV4cCI6MTc2MTYyMTg0NX0.AkTm2gQUFCG7THxKAvqp33Hub-CAte14tfc3FEVevNo\")",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(docker inspect:*)",
+      "Bash(docker cp:*)",
+      "Bash(for file in Issues.tsx Projects.tsx Entities.tsx)",
+      "Bash(do echo \"=== Checking $file ===\")"
     ],
     "deny": [],
     "ask": []
