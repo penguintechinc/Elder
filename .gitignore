@@ -443,3 +443,4 @@ vagrant/.TODO
 .TODO
 
 settings.local.json
+.claude/
