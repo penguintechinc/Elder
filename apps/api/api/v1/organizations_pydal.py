@@ -47,9 +47,11 @@ async def list_organizations():
         parent_id = request.args.get("parent_id", type=int)
         query &= (db.organizations.parent_id == parent_id)
 
-    if request.args.get("name"):
-        name = request.args.get("name")
-        query &= (db.organizations.name.contains(name))
+    # Support both 'name' and 'search' parameters for name filtering
+    search_term = request.args.get("name") or request.args.get("search")
+    if search_term:
+        # Case-insensitive search using PostgreSQL ILIKE
+        query &= (db.organizations.name.ilike(f'%{search_term}%'))
 
     # Calculate pagination
     offset = (page - 1) * per_page
