@@ -52,8 +52,8 @@ async def list_labels():
             search = request.args.get("search")
             search_pattern = f'%{search}%'
             query &= (
-                (db.issue_labels.name.like(search_pattern, case_sensitive=False)) |
-                (db.issue_labels.description.like(search_pattern, case_sensitive=False))
+                (db.issue_labels.name.ilike(search_pattern)) |
+                (db.issue_labels.description.ilike(search_pattern))
             )
 
         # Calculate pagination

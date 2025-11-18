@@ -52,9 +52,9 @@ async def list_identities():
     if search:
         search_pattern = f'%{search}%'
         query &= (
-            (db.identities.username.like(search_pattern, case_sensitive=False)) |
-            (db.identities.email.like(search_pattern, case_sensitive=False)) |
-            (db.identities.full_name.like(search_pattern, case_sensitive=False))
+            (db.identities.username.ilike(search_pattern)) |
+            (db.identities.email.ilike(search_pattern)) |
+            (db.identities.full_name.ilike(search_pattern))
         )
 
     identity_type = request.args.get("identity_type")

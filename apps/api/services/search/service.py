@@ -124,8 +124,8 @@ class SearchService:
         if query:
             search_pattern = f'%{query}%'
             db_query &= (
-                self.db.entities.name.like(search_pattern, case_sensitive=False) |
-                self.db.entities.description.like(search_pattern, case_sensitive=False)
+                self.db.entities.name.ilike(search_pattern) |
+                self.db.entities.description.ilike(search_pattern)
             )
 
         # Entity type filter
@@ -192,8 +192,8 @@ class SearchService:
         if query:
             search_pattern = f'%{query}%'
             db_query &= (
-                self.db.organizations.name.like(search_pattern, case_sensitive=False) |
-                self.db.organizations.description.like(search_pattern, case_sensitive=False)
+                self.db.organizations.name.ilike(search_pattern) |
+                self.db.organizations.description.ilike(search_pattern)
             )
 
         # Type filter
@@ -259,8 +259,8 @@ class SearchService:
         if query:
             search_pattern = f'%{query}%'
             db_query &= (
-                self.db.issues.title.like(search_pattern, case_sensitive=False) |
-                self.db.issues.description.like(search_pattern, case_sensitive=False)
+                self.db.issues.title.ilike(search_pattern) |
+                self.db.issues.description.ilike(search_pattern)
             )
 
         # Status filter

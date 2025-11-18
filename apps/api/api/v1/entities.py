@@ -56,7 +56,7 @@ async def list_entities():
 
     if request.args.get("name"):
         name = request.args.get("name")
-        query &= (db.entities.name.like(f'%{name}%', case_sensitive=False))
+        query &= (db.entities.name.ilike(f'%{name}%'))
 
     if request.args.get("is_active") is not None:
         is_active = request.args.get("is_active", "true").lower() == "true"

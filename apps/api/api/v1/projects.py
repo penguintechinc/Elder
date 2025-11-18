@@ -61,8 +61,8 @@ async def list_projects():
             search = request.args.get("search")
             search_pattern = f'%{search}%'
             query &= (
-                (db.projects.name.like(search_pattern, case_sensitive=False)) |
-                (db.projects.description.like(search_pattern, case_sensitive=False))
+                (db.projects.name.ilike(search_pattern)) |
+                (db.projects.description.ilike(search_pattern))
             )
 
         # Calculate pagination

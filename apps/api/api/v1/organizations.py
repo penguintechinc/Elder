@@ -47,8 +47,8 @@ def list_organizations():
     # Support both 'name' and 'search' parameters for name filtering
     search_term = request.args.get("name") or request.args.get("search")
     if search_term:
-        # Case-insensitive search using like with wildcards
-        query &= (db.organizations.name.like(f'%{search_term}%', case_sensitive=False))
+        # Case-insensitive search using PostgreSQL ILIKE
+        query &= (db.organizations.name.ilike(f'%{search_term}%'))
 
     # Get total count
     total = db(query).count()
