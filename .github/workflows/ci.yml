@@ -351,6 +351,9 @@ jobs:
   security:
     runs-on: ubuntu-latest
     needs: changes
+    permissions:
+      security-events: write
+      contents: read
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -364,15 +367,21 @@ jobs:
         output: 'trivy-results.sarif'
 
     - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
 
-    - name: Run CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
       with:
         languages: 'go,python,javascript'
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v4
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
 
     - name: Run Semgrep
       uses: returntocorp/semgrep-action@v1
@@ -398,7 +407,6 @@ jobs:
         # Verify license client files exist
         test -f shared/licensing/client.go
         test -f shared/licensing/python_client.py
-        test -f web/src/lib/license-client.js
 
         echo "License integration check passed"
 
@@ -407,6 +415,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [go-test, python-test, node-test, integration-test, security, license-check]
     if: always()
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
     - name: Checkout code

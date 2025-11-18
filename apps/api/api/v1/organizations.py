@@ -1,6 +1,5 @@
 """Organization API endpoints."""
 
-import logging
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
 
@@ -14,8 +13,6 @@ from shared.api_utils import (
     make_error_response,
     handle_validation_error,
 )
-
-logger = logging.getLogger(__name__)
 
 bp = Blueprint("organizations", __name__)
 
@@ -49,12 +46,9 @@ def list_organizations():
 
     # Support both 'name' and 'search' parameters for name filtering
     search_term = request.args.get("name") or request.args.get("search")
-    logger.error(f"DEBUG: search_term = '{search_term}'")
     if search_term:
         # Case-insensitive search using PostgreSQL ILIKE
-        logger.error(f"DEBUG: Applying ilike filter with pattern: %{search_term}%")
         query &= (db.organizations.name.ilike(f'%{search_term}%'))
-        logger.error(f"DEBUG: Query SQL: {db._lastsql if hasattr(db, '_lastsql') else 'N/A'}")
 
     # Get total count
     total = db(query).count()
