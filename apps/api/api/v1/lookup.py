@@ -4,13 +4,11 @@ NOTE: Original unique_id (64-bit) functionality not yet migrated to PyDAL schema
 Currently uses regular entity ID. TODO: Add unique_id field to entities table.
 """
 
-from flask import Blueprint, request, jsonify, current_app
 from dataclasses import asdict
 
-from apps.api.models.dataclasses import (
-    EntityDTO,
-    from_pydal_row,
-)
+from flask import Blueprint, current_app, jsonify, request
+
+from apps.api.models.dataclasses import EntityDTO, from_pydal_row
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("lookup", __name__)
@@ -56,9 +54,7 @@ async def lookup_entity(entity_id: int):
     entity = await run_in_threadpool(lambda: db.entities[entity_id])
 
     if not entity:
-        return jsonify({
-            "error": f"Entity with id {entity_id} not found"
-        }), 404
+        return jsonify({"error": f"Entity with id {entity_id} not found"}), 404
 
     # Convert to DTO
     entity_dto = from_pydal_row(entity, EntityDTO)
@@ -132,17 +128,21 @@ async def lookup_entities_batch():
         for eid in entity_ids:
             if eid in entity_map:
                 entity_dto = from_pydal_row(entity_map[eid], EntityDTO)
-                results.append({
-                    "id": eid,
-                    "found": True,
-                    "entity": asdict(entity_dto),
-                })
+                results.append(
+                    {
+                        "id": eid,
+                        "found": True,
+                        "entity": asdict(entity_dto),
+                    }
+                )
             else:
-                results.append({
-                    "id": eid,
-                    "found": False,
-                    "entity": None,
-                })
+                results.append(
+                    {
+                        "id": eid,
+                        "found": False,
+                        "entity": None,
+                    }
+                )
 
         return results
 

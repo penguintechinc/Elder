@@ -2,19 +2,14 @@
 
 import json
 import logging
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from flask import current_app
-from .base import (
-    SecretProviderClient,
-    SecretValue,
-    SecretMetadata,
-    SecretNotFoundException,
-    SecretAlreadyExistsException,
-    SecretProviderException,
-    InvalidSecretConfigException,
-)
+
+from .base import (InvalidSecretConfigException, SecretAlreadyExistsException,
+                   SecretMetadata, SecretNotFoundException,
+                   SecretProviderClient, SecretProviderException, SecretValue)
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +30,12 @@ class BuiltinSecretsClient(SecretProviderClient):
         super().__init__(config)
         # Get db from Flask app context
         self.db = current_app.db
-        self.organization_id = config.get('organization_id')
-        self.user_id = config.get('user_id')
+        self.organization_id = config.get("organization_id")
+        self.user_id = config.get("user_id")
 
     def _validate_config(self) -> None:
         """Validate configuration."""
-        if 'organization_id' not in self.config:
+        if "organization_id" not in self.config:
             raise InvalidSecretConfigException(
                 "Missing required config field: organization_id"
             )
@@ -58,11 +53,15 @@ class BuiltinSecretsClient(SecretProviderClient):
 
     def _get_secret_row(self, path: str):
         """Helper to get secret row by path (name)."""
-        return self.db(
-            (self.db.builtin_secrets.name == path) &
-            (self.db.builtin_secrets.organization_id == self.organization_id) &
-            (self.db.builtin_secrets.is_active == True)
-        ).select().first()
+        return (
+            self.db(
+                (self.db.builtin_secrets.name == path)
+                & (self.db.builtin_secrets.organization_id == self.organization_id)
+                & (self.db.builtin_secrets.is_active == True)
+            )
+            .select()
+            .first()
+        )
 
     def get_secret(self, path: str, version: Optional[str] = None) -> SecretValue:
         """
@@ -82,7 +81,11 @@ class BuiltinSecretsClient(SecretProviderClient):
             if is_kv:
                 # Parse JSON secret
                 try:
-                    kv_pairs = json.loads(row.secret_json) if isinstance(row.secret_json, str) else row.secret_json
+                    kv_pairs = (
+                        json.loads(row.secret_json)
+                        if isinstance(row.secret_json, str)
+                        else row.secret_json
+                    )
                 except json.JSONDecodeError:
                     logger.error(f"Failed to parse JSON for secret '{path}'")
                     kv_pairs = {}
@@ -93,34 +96,38 @@ class BuiltinSecretsClient(SecretProviderClient):
                     is_masked=True,
                     is_kv=True,
                     kv_pairs=kv_pairs,
-                    version='1',  # Built-in secrets don't support versioning
+                    version="1",  # Built-in secrets don't support versioning
                     created_at=row.created_at,
                     updated_at=row.updated_at,
                     metadata={
-                        'secret_type': row.secret_type,
-                        'description': row.description,
-                        'tags': row.tags,
-                        'expires_at': row.expires_at.isoformat() if row.expires_at else None
-                    }
+                        "secret_type": row.secret_type,
+                        "description": row.description,
+                        "tags": row.tags,
+                        "expires_at": (
+                            row.expires_at.isoformat() if row.expires_at else None
+                        ),
+                    },
                 )
             else:
                 # Simple string secret (password field is encrypted by PyDAL)
                 # Note: We can't retrieve the actual password value, it's hashed
                 return SecretValue(
                     name=row.name,
-                    value='***ENCRYPTED***',  # PyDAL password fields are one-way hashed
+                    value="***ENCRYPTED***",  # PyDAL password fields are one-way hashed
                     is_masked=True,
                     is_kv=False,
                     kv_pairs=None,
-                    version='1',
+                    version="1",
                     created_at=row.created_at,
                     updated_at=row.updated_at,
                     metadata={
-                        'secret_type': row.secret_type,
-                        'description': row.description,
-                        'tags': row.tags,
-                        'expires_at': row.expires_at.isoformat() if row.expires_at else None
-                    }
+                        "secret_type": row.secret_type,
+                        "description": row.description,
+                        "tags": row.tags,
+                        "expires_at": (
+                            row.expires_at.isoformat() if row.expires_at else None
+                        ),
+                    },
                 )
 
         except SecretNotFoundException:
@@ -133,12 +140,11 @@ class BuiltinSecretsClient(SecretProviderClient):
         """List secrets in built-in storage."""
         try:
             query = (
-                (self.db.builtin_secrets.organization_id == self.organization_id) &
-                (self.db.builtin_secrets.is_active == True)
-            )
+                self.db.builtin_secrets.organization_id == self.organization_id
+            ) & (self.db.builtin_secrets.is_active == True)
 
             if prefix:
-                query &= (self.db.builtin_secrets.name.like(f'{prefix}%'))
+                query &= self.db.builtin_secrets.name.like(f"{prefix}%")
 
             rows = self.db(query).select(
                 self.db.builtin_secrets.name,
@@ -149,25 +155,29 @@ class BuiltinSecretsClient(SecretProviderClient):
                 self.db.builtin_secrets.updated_at,
                 self.db.builtin_secrets.tags,
                 self.db.builtin_secrets.expires_at,
-                orderby=self.db.builtin_secrets.name
+                orderby=self.db.builtin_secrets.name,
             )
 
             secrets = []
             for row in rows:
-                secrets.append(SecretMetadata(
-                    name=row.name,
-                    path=row.name,
-                    is_kv=row.secret_json is not None,
-                    version='1',
-                    created_at=row.created_at,
-                    updated_at=row.updated_at,
-                    metadata={
-                        'secret_type': row.secret_type,
-                        'description': row.description,
-                        'tags': row.tags,
-                        'expires_at': row.expires_at.isoformat() if row.expires_at else None
-                    }
-                ))
+                secrets.append(
+                    SecretMetadata(
+                        name=row.name,
+                        path=row.name,
+                        is_kv=row.secret_json is not None,
+                        version="1",
+                        created_at=row.created_at,
+                        updated_at=row.updated_at,
+                        metadata={
+                            "secret_type": row.secret_type,
+                            "description": row.description,
+                            "tags": row.tags,
+                            "expires_at": (
+                                row.expires_at.isoformat() if row.expires_at else None
+                            ),
+                        },
+                    )
+                )
 
             logger.info(f"Listed {len(secrets)} secrets with prefix '{prefix or ''}'")
             return secrets
@@ -176,7 +186,9 @@ class BuiltinSecretsClient(SecretProviderClient):
             logger.error(f"Failed to list secrets: {str(e)}")
             raise SecretProviderException(f"Failed to list secrets: {str(e)}")
 
-    def create_secret(self, path: str, value: str, metadata: Optional[Dict[str, Any]] = None) -> SecretMetadata:
+    def create_secret(
+        self, path: str, value: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> SecretMetadata:
         """Create a new secret in built-in storage."""
         try:
             # Check if secret already exists
@@ -204,14 +216,14 @@ class BuiltinSecretsClient(SecretProviderClient):
             # Create secret
             secret_id = self.db.builtin_secrets.insert(
                 name=path,
-                description=metadata.get('description', ''),
+                description=metadata.get("description", ""),
                 organization_id=self.organization_id,
                 secret_value=string_value,
                 secret_json=json_value,
-                secret_type=metadata.get('secret_type', 'password'),
-                tags=metadata.get('tags', []),
-                expires_at=metadata.get('expires_at'),
-                is_active=True
+                secret_type=metadata.get("secret_type", "password"),
+                tags=metadata.get("tags", []),
+                expires_at=metadata.get("expires_at"),
+                is_active=True,
             )
 
             self.db.commit()
@@ -225,15 +237,17 @@ class BuiltinSecretsClient(SecretProviderClient):
                 name=row.name,
                 path=row.name,
                 is_kv=is_json,
-                version='1',
+                version="1",
                 created_at=row.created_at,
                 updated_at=row.updated_at,
                 metadata={
-                    'secret_type': row.secret_type,
-                    'description': row.description,
-                    'tags': row.tags,
-                    'expires_at': row.expires_at.isoformat() if row.expires_at else None
-                }
+                    "secret_type": row.secret_type,
+                    "description": row.description,
+                    "tags": row.tags,
+                    "expires_at": (
+                        row.expires_at.isoformat() if row.expires_at else None
+                    ),
+                },
             )
 
         except SecretAlreadyExistsException:
@@ -269,7 +283,7 @@ class BuiltinSecretsClient(SecretProviderClient):
             row.update_record(
                 secret_value=string_value,
                 secret_json=json_value,
-                updated_at=datetime.now()
+                updated_at=datetime.now(),
             )
 
             self.db.commit()
@@ -280,15 +294,17 @@ class BuiltinSecretsClient(SecretProviderClient):
                 name=row.name,
                 path=row.name,
                 is_kv=is_json,
-                version='1',
+                version="1",
                 created_at=row.created_at,
                 updated_at=row.updated_at,
                 metadata={
-                    'secret_type': row.secret_type,
-                    'description': row.description,
-                    'tags': row.tags,
-                    'expires_at': row.expires_at.isoformat() if row.expires_at else None
-                }
+                    "secret_type": row.secret_type,
+                    "description": row.description,
+                    "tags": row.tags,
+                    "expires_at": (
+                        row.expires_at.isoformat() if row.expires_at else None
+                    ),
+                },
             )
 
         except SecretNotFoundException:
@@ -333,4 +349,4 @@ class BuiltinSecretsClient(SecretProviderClient):
         if not row:
             raise SecretNotFoundException(f"Secret '{path}' not found")
 
-        return ['1']  # Built-in secrets don't support versioning
+        return ["1"]  # Built-in secrets don't support versioning

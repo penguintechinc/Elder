@@ -1,10 +1,11 @@
 """IAM Management API endpoints for Elder v1.2.0 (Phase 4)."""
 
-from flask import Blueprint, jsonify, request, current_app
-from apps.api.auth.decorators import login_required, admin_required
+from flask import Blueprint, current_app, jsonify, request
+
+from apps.api.auth.decorators import admin_required, login_required
 from apps.api.services.iam import IAMService
 
-bp = Blueprint('iam', __name__)
+bp = Blueprint("iam", __name__)
 
 
 def get_iam_service():
@@ -14,7 +15,8 @@ def get_iam_service():
 
 # Provider Management Endpoints
 
-@bp.route('/providers', methods=['GET'])
+
+@bp.route("/providers", methods=["GET"])
 @login_required
 def list_providers():
     """
@@ -28,20 +30,17 @@ def list_providers():
     """
     try:
         service = get_iam_service()
-        enabled_only = request.args.get('enabled_only', 'false').lower() == 'true'
+        enabled_only = request.args.get("enabled_only", "false").lower() == "true"
 
         providers = service.list_providers(enabled_only=enabled_only)
 
-        return jsonify({
-            'providers': providers,
-            'count': len(providers)
-        }), 200
+        return jsonify({"providers": providers, "count": len(providers)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>', methods=['GET'])
+@bp.route("/providers/<int:provider_id>", methods=["GET"])
 @login_required
 def get_provider(provider_id):
     """
@@ -57,12 +56,12 @@ def get_provider(provider_id):
         return jsonify(provider), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers', methods=['POST'])
+@bp.route("/providers", methods=["POST"])
 @admin_required
 def create_provider():
     """
@@ -88,28 +87,31 @@ def create_provider():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['name', 'provider_type', 'config']
+        required = ["name", "provider_type", "config"]
         missing = [f for f in required if f not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_iam_service()
         provider = service.create_provider(
-            name=data['name'],
-            provider_type=data['provider_type'],
-            config=data['config'],
-            description=data.get('description')
+            name=data["name"],
+            provider_type=data["provider_type"],
+            config=data["config"],
+            description=data.get("description"),
         )
 
         return jsonify(provider), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>', methods=['PUT'])
+@bp.route("/providers/<int:provider_id>", methods=["PUT"])
 @admin_required
 def update_provider(provider_id):
     """
@@ -131,26 +133,26 @@ def update_provider(provider_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_iam_service()
         provider = service.update_provider(
             provider_id=provider_id,
-            name=data.get('name'),
-            config=data.get('config'),
-            description=data.get('description'),
-            enabled=data.get('enabled')
+            name=data.get("name"),
+            config=data.get("config"),
+            description=data.get("description"),
+            enabled=data.get("enabled"),
         )
 
         return jsonify(provider), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>', methods=['DELETE'])
+@bp.route("/providers/<int:provider_id>", methods=["DELETE"])
 @admin_required
 def delete_provider(provider_id):
     """
@@ -168,14 +170,14 @@ def delete_provider(provider_id):
 
     except Exception as e:
         error_msg = str(e).lower()
-        if 'not found' in error_msg:
-            return jsonify({'error': str(e)}), 404
-        if 'cannot delete' in error_msg:
-            return jsonify({'error': str(e)}), 409
-        return jsonify({'error': str(e)}), 500
+        if "not found" in error_msg:
+            return jsonify({"error": str(e)}), 404
+        if "cannot delete" in error_msg:
+            return jsonify({"error": str(e)}), 409
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/test', methods=['POST'])
+@bp.route("/providers/<int:provider_id>/test", methods=["POST"])
 @login_required
 def test_provider(provider_id):
     """
@@ -191,12 +193,12 @@ def test_provider(provider_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/sync', methods=['POST'])
+@bp.route("/providers/<int:provider_id>/sync", methods=["POST"])
 @admin_required
 def sync_provider(provider_id):
     """
@@ -212,14 +214,15 @@ def sync_provider(provider_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # User Management Endpoints
 
-@bp.route('/providers/<int:provider_id>/users', methods=['GET'])
+
+@bp.route("/providers/<int:provider_id>/users", methods=["GET"])
 @login_required
 def list_users(provider_id):
     """
@@ -237,21 +240,21 @@ def list_users(provider_id):
         service = get_iam_service()
 
         kwargs = {}
-        if request.args.get('limit'):
-            kwargs['limit'] = int(request.args.get('limit'))
-        if request.args.get('next_token'):
-            kwargs['next_token'] = request.args.get('next_token')
+        if request.args.get("limit"):
+            kwargs["limit"] = int(request.args.get("limit"))
+        if request.args.get("next_token"):
+            kwargs["next_token"] = request.args.get("next_token")
 
         users = service.list_users(provider_id, **kwargs)
         return jsonify(users), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/users/<user_id>', methods=['GET'])
+@bp.route("/providers/<int:provider_id>/users/<user_id>", methods=["GET"])
 @login_required
 def get_user(provider_id, user_id):
     """
@@ -267,12 +270,12 @@ def get_user(provider_id, user_id):
         return jsonify(user), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/users', methods=['POST'])
+@bp.route("/providers/<int:provider_id>/users", methods=["POST"])
 @admin_required
 def create_user(provider_id):
     """
@@ -294,10 +297,10 @@ def create_user(provider_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        if 'username' not in data:
-            return jsonify({'error': 'Missing required field: username'}), 400
+        if "username" not in data:
+            return jsonify({"error": "Missing required field: username"}), 400
 
         service = get_iam_service()
         user = service.create_user(provider_id, **data)
@@ -305,12 +308,12 @@ def create_user(provider_id):
         return jsonify(user), 201
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/users/<user_id>', methods=['PUT'])
+@bp.route("/providers/<int:provider_id>/users/<user_id>", methods=["PUT"])
 @admin_required
 def update_user(provider_id, user_id):
     """
@@ -330,7 +333,7 @@ def update_user(provider_id, user_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_iam_service()
         user = service.update_user(provider_id, user_id, **data)
@@ -338,12 +341,12 @@ def update_user(provider_id, user_id):
         return jsonify(user), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/users/<user_id>', methods=['DELETE'])
+@bp.route("/providers/<int:provider_id>/users/<user_id>", methods=["DELETE"])
 @admin_required
 def delete_user(provider_id, user_id):
     """
@@ -359,14 +362,15 @@ def delete_user(provider_id, user_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # Role Management Endpoints
 
-@bp.route('/providers/<int:provider_id>/roles', methods=['GET'])
+
+@bp.route("/providers/<int:provider_id>/roles", methods=["GET"])
 @login_required
 def list_roles(provider_id):
     """
@@ -384,21 +388,21 @@ def list_roles(provider_id):
         service = get_iam_service()
 
         kwargs = {}
-        if request.args.get('limit'):
-            kwargs['limit'] = int(request.args.get('limit'))
-        if request.args.get('next_token'):
-            kwargs['next_token'] = request.args.get('next_token')
+        if request.args.get("limit"):
+            kwargs["limit"] = int(request.args.get("limit"))
+        if request.args.get("next_token"):
+            kwargs["next_token"] = request.args.get("next_token")
 
         roles = service.list_roles(provider_id, **kwargs)
         return jsonify(roles), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/roles/<role_id>', methods=['GET'])
+@bp.route("/providers/<int:provider_id>/roles/<role_id>", methods=["GET"])
 @login_required
 def get_role(provider_id, role_id):
     """
@@ -414,12 +418,12 @@ def get_role(provider_id, role_id):
         return jsonify(role), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/roles', methods=['POST'])
+@bp.route("/providers/<int:provider_id>/roles", methods=["POST"])
 @admin_required
 def create_role(provider_id):
     """
@@ -442,10 +446,10 @@ def create_role(provider_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        if 'role_name' not in data:
-            return jsonify({'error': 'Missing required field: role_name'}), 400
+        if "role_name" not in data:
+            return jsonify({"error": "Missing required field: role_name"}), 400
 
         service = get_iam_service()
         role = service.create_role(provider_id, **data)
@@ -453,12 +457,12 @@ def create_role(provider_id):
         return jsonify(role), 201
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/roles/<role_id>', methods=['PUT'])
+@bp.route("/providers/<int:provider_id>/roles/<role_id>", methods=["PUT"])
 @admin_required
 def update_role(provider_id, role_id):
     """
@@ -478,7 +482,7 @@ def update_role(provider_id, role_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_iam_service()
         role = service.update_role(provider_id, role_id, **data)
@@ -486,12 +490,12 @@ def update_role(provider_id, role_id):
         return jsonify(role), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/roles/<role_id>', methods=['DELETE'])
+@bp.route("/providers/<int:provider_id>/roles/<role_id>", methods=["DELETE"])
 @admin_required
 def delete_role(provider_id, role_id):
     """
@@ -507,14 +511,15 @@ def delete_role(provider_id, role_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # Policy Management Endpoints
 
-@bp.route('/providers/<int:provider_id>/policies', methods=['GET'])
+
+@bp.route("/providers/<int:provider_id>/policies", methods=["GET"])
 @login_required
 def list_policies(provider_id):
     """
@@ -532,21 +537,21 @@ def list_policies(provider_id):
         service = get_iam_service()
 
         kwargs = {}
-        if request.args.get('limit'):
-            kwargs['limit'] = int(request.args.get('limit'))
-        if request.args.get('next_token'):
-            kwargs['next_token'] = request.args.get('next_token')
+        if request.args.get("limit"):
+            kwargs["limit"] = int(request.args.get("limit"))
+        if request.args.get("next_token"):
+            kwargs["next_token"] = request.args.get("next_token")
 
         policies = service.list_policies(provider_id, **kwargs)
         return jsonify(policies), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/policies/<policy_id>', methods=['GET'])
+@bp.route("/providers/<int:provider_id>/policies/<policy_id>", methods=["GET"])
 @login_required
 def get_policy(provider_id, policy_id):
     """
@@ -562,12 +567,12 @@ def get_policy(provider_id, policy_id):
         return jsonify(policy), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/policies', methods=['POST'])
+@bp.route("/providers/<int:provider_id>/policies", methods=["POST"])
 @admin_required
 def create_policy(provider_id):
     """
@@ -590,12 +595,15 @@ def create_policy(provider_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['policy_name', 'policy_document']
+        required = ["policy_name", "policy_document"]
         missing = [f for f in required if f not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_iam_service()
         policy = service.create_policy(provider_id, **data)
@@ -603,12 +611,12 @@ def create_policy(provider_id):
         return jsonify(policy), 201
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/policies/<policy_id>', methods=['DELETE'])
+@bp.route("/providers/<int:provider_id>/policies/<policy_id>", methods=["DELETE"])
 @admin_required
 def delete_policy(provider_id, policy_id):
     """
@@ -624,14 +632,18 @@ def delete_policy(provider_id, policy_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # Policy Attachment Endpoints
 
-@bp.route('/providers/<int:provider_id>/users/<user_id>/policies/<policy_id>', methods=['POST'])
+
+@bp.route(
+    "/providers/<int:provider_id>/users/<user_id>/policies/<policy_id>",
+    methods=["POST"],
+)
 @admin_required
 def attach_policy_to_user(provider_id, user_id, policy_id):
     """
@@ -647,12 +659,15 @@ def attach_policy_to_user(provider_id, user_id, policy_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/users/<user_id>/policies/<policy_id>', methods=['DELETE'])
+@bp.route(
+    "/providers/<int:provider_id>/users/<user_id>/policies/<policy_id>",
+    methods=["DELETE"],
+)
 @admin_required
 def detach_policy_from_user(provider_id, user_id, policy_id):
     """
@@ -668,12 +683,15 @@ def detach_policy_from_user(provider_id, user_id, policy_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/roles/<role_id>/policies/<policy_id>', methods=['POST'])
+@bp.route(
+    "/providers/<int:provider_id>/roles/<role_id>/policies/<policy_id>",
+    methods=["POST"],
+)
 @admin_required
 def attach_policy_to_role(provider_id, role_id, policy_id):
     """
@@ -689,12 +707,15 @@ def attach_policy_to_role(provider_id, role_id, policy_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/roles/<role_id>/policies/<policy_id>', methods=['DELETE'])
+@bp.route(
+    "/providers/<int:provider_id>/roles/<role_id>/policies/<policy_id>",
+    methods=["DELETE"],
+)
 @admin_required
 def detach_policy_from_role(provider_id, role_id, policy_id):
     """
@@ -710,12 +731,12 @@ def detach_policy_from_role(provider_id, role_id, policy_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/users/<user_id>/policies', methods=['GET'])
+@bp.route("/providers/<int:provider_id>/users/<user_id>/policies", methods=["GET"])
 @login_required
 def list_user_policies(provider_id, user_id):
     """
@@ -731,12 +752,12 @@ def list_user_policies(provider_id, user_id):
         return jsonify(policies), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/roles/<role_id>/policies', methods=['GET'])
+@bp.route("/providers/<int:provider_id>/roles/<role_id>/policies", methods=["GET"])
 @login_required
 def list_role_policies(provider_id, role_id):
     """
@@ -752,14 +773,15 @@ def list_role_policies(provider_id, role_id):
         return jsonify(policies), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # Access Key Management Endpoints
 
-@bp.route('/providers/<int:provider_id>/users/<user_id>/access-keys', methods=['POST'])
+
+@bp.route("/providers/<int:provider_id>/users/<user_id>/access-keys", methods=["POST"])
 @admin_required
 def create_access_key(provider_id, user_id):
     """
@@ -775,12 +797,12 @@ def create_access_key(provider_id, user_id):
         return jsonify(key), 201
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/users/<user_id>/access-keys', methods=['GET'])
+@bp.route("/providers/<int:provider_id>/users/<user_id>/access-keys", methods=["GET"])
 @login_required
 def list_access_keys(provider_id, user_id):
     """
@@ -796,12 +818,15 @@ def list_access_keys(provider_id, user_id):
         return jsonify(keys), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/users/<user_id>/access-keys/<key_id>', methods=['DELETE'])
+@bp.route(
+    "/providers/<int:provider_id>/users/<user_id>/access-keys/<key_id>",
+    methods=["DELETE"],
+)
 @admin_required
 def delete_access_key(provider_id, user_id, key_id):
     """
@@ -817,14 +842,15 @@ def delete_access_key(provider_id, user_id, key_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # Group Management Endpoints
 
-@bp.route('/providers/<int:provider_id>/groups', methods=['GET'])
+
+@bp.route("/providers/<int:provider_id>/groups", methods=["GET"])
 @login_required
 def list_groups(provider_id):
     """
@@ -842,21 +868,21 @@ def list_groups(provider_id):
         service = get_iam_service()
 
         kwargs = {}
-        if request.args.get('limit'):
-            kwargs['limit'] = int(request.args.get('limit'))
-        if request.args.get('next_token'):
-            kwargs['next_token'] = request.args.get('next_token')
+        if request.args.get("limit"):
+            kwargs["limit"] = int(request.args.get("limit"))
+        if request.args.get("next_token"):
+            kwargs["next_token"] = request.args.get("next_token")
 
         groups = service.list_groups(provider_id, **kwargs)
         return jsonify(groups), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/groups', methods=['POST'])
+@bp.route("/providers/<int:provider_id>/groups", methods=["POST"])
 @admin_required
 def create_group(provider_id):
     """
@@ -877,10 +903,10 @@ def create_group(provider_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        if 'group_name' not in data:
-            return jsonify({'error': 'Missing required field: group_name'}), 400
+        if "group_name" not in data:
+            return jsonify({"error": "Missing required field: group_name"}), 400
 
         service = get_iam_service()
         group = service.create_group(provider_id, **data)
@@ -888,12 +914,12 @@ def create_group(provider_id):
         return jsonify(group), 201
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/groups/<group_id>', methods=['DELETE'])
+@bp.route("/providers/<int:provider_id>/groups/<group_id>", methods=["DELETE"])
 @admin_required
 def delete_group(provider_id, group_id):
     """
@@ -909,12 +935,14 @@ def delete_group(provider_id, group_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/groups/<group_id>/users/<user_id>', methods=['POST'])
+@bp.route(
+    "/providers/<int:provider_id>/groups/<group_id>/users/<user_id>", methods=["POST"]
+)
 @admin_required
 def add_user_to_group(provider_id, group_id, user_id):
     """
@@ -930,12 +958,14 @@ def add_user_to_group(provider_id, group_id, user_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/groups/<group_id>/users/<user_id>', methods=['DELETE'])
+@bp.route(
+    "/providers/<int:provider_id>/groups/<group_id>/users/<user_id>", methods=["DELETE"]
+)
 @admin_required
 def remove_user_from_group(provider_id, group_id, user_id):
     """
@@ -951,6 +981,6 @@ def remove_user_from_group(provider_id, group_id, user_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400

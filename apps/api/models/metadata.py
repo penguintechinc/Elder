@@ -5,8 +5,9 @@ import json
 from datetime import datetime
 from typing import Any, Optional
 
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Text, Boolean, UniqueConstraint
-from sqlalchemy.orm import relationship, Mapped, validates
+from sqlalchemy import (Boolean, Column, Enum, ForeignKey, Integer, String,
+                        Text, UniqueConstraint)
+from sqlalchemy.orm import Mapped, relationship, validates
 
 from apps.api.models.base import Base, IDMixin, TimestampMixin
 
@@ -142,7 +143,9 @@ class MetadataField(Base, IDMixin, TimestampMixin):
         elif self.field_type == MetadataFieldType.NUMBER:
             if decoded is None:
                 return None
-            return float(decoded) if isinstance(decoded, (int, float)) else float(decoded)
+            return (
+                float(decoded) if isinstance(decoded, (int, float)) else float(decoded)
+            )
 
         elif self.field_type == MetadataFieldType.DATE:
             if decoded is None:
@@ -204,7 +207,9 @@ class MetadataField(Base, IDMixin, TimestampMixin):
                 else:
                     raise ValueError(f"Cannot coerce {type(value).__name__} to date")
             except (ValueError, TypeError) as e:
-                raise ValueError(f"Invalid date value (must be ISO8601): {value}") from e
+                raise ValueError(
+                    f"Invalid date value (must be ISO8601): {value}"
+                ) from e
 
         elif self.field_type == MetadataFieldType.BOOLEAN:
             # Coerce to boolean
@@ -251,7 +256,13 @@ class MetadataField(Base, IDMixin, TimestampMixin):
 
     @classmethod
     def set_metadata(
-        cls, resource_type: str, resource_id: int, field_key: str, field_type: MetadataFieldType, value: Any, created_by_id: int
+        cls,
+        resource_type: str,
+        resource_id: int,
+        field_key: str,
+        field_type: MetadataFieldType,
+        value: Any,
+        created_by_id: int,
     ) -> "MetadataField":
         """
         Set or update a metadata field.
@@ -272,7 +283,11 @@ class MetadataField(Base, IDMixin, TimestampMixin):
         # Check if field exists
         field = (
             db.session.query(cls)
-            .filter_by(resource_type=resource_type, resource_id=resource_id, field_key=field_key)
+            .filter_by(
+                resource_type=resource_type,
+                resource_id=resource_id,
+                field_key=field_key,
+            )
             .first()
         )
 

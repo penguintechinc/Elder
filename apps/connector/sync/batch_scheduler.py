@@ -9,20 +9,16 @@ monitors webhook health to automatically trigger fallback syncs when needed.
 """
 
 import asyncio
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-
 from pydal import DAL
 
-from apps.connector.sync.base import (
-    BaseSyncClient,
-    ResourceType,
-)
 from apps.connector.config.settings import settings
+from apps.connector.sync.base import BaseSyncClient, ResourceType
 
 
 @dataclass
@@ -39,6 +35,7 @@ class BatchSyncJob:
         last_run: Last run timestamp
         next_run: Next scheduled run timestamp
     """
+
     job_id: str
     platform: str
     sync_config_id: int
@@ -203,9 +200,11 @@ class BatchSyncScheduler:
         for resource_type in job.resource_types:
             try:
                 # Get last sync time for incremental sync
-                config_row = self.db(
-                    self.db.sync_configs.id == job.sync_config_id
-                ).select().first()
+                config_row = (
+                    self.db(self.db.sync_configs.id == job.sync_config_id)
+                    .select()
+                    .first()
+                )
                 since = config_row.last_sync_at if config_row else None
 
                 # Perform batch sync
@@ -354,7 +353,9 @@ class BatchSyncScheduler:
             "enabled": job.enabled,
             "interval_seconds": job.interval_seconds,
             "last_run": job.last_run.isoformat() if job.last_run else None,
-            "next_run": scheduler_job.next_run_time.isoformat() if scheduler_job else None,
+            "next_run": (
+                scheduler_job.next_run_time.isoformat() if scheduler_job else None
+            ),
         }
 
     def list_jobs(self) -> List[Dict[str, Any]]:

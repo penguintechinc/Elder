@@ -4,8 +4,9 @@ import enum
 import secrets
 from typing import List, Optional
 
-from sqlalchemy import Column, Enum, ForeignKey, Integer, JSON, String, Text, BigInteger
-from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy import (JSON, BigInteger, Column, Enum, ForeignKey, Integer,
+                        String, Text)
+from sqlalchemy.orm import Mapped, relationship
 
 from apps.api.models.base import Base, IDMixin, TimestampMixin
 

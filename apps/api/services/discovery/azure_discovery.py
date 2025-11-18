@@ -1,13 +1,13 @@
 """Azure cloud discovery client for Elder - IaaS focus."""
 
-from typing import Dict, Any, List
 from datetime import datetime
+from typing import Any, Dict, List
 
 try:
     from azure.identity import ClientSecretCredential, DefaultAzureCredential
     from azure.mgmt.compute import ComputeManagementClient
-    from azure.mgmt.storage import StorageManagementClient
     from azure.mgmt.network import NetworkManagementClient
+    from azure.mgmt.storage import StorageManagementClient
 except ImportError:
     ClientSecretCredential = DefaultAzureCredential = None
     ComputeManagementClient = StorageManagementClient = NetworkManagementClient = None
@@ -23,26 +23,38 @@ class AzureDiscoveryClient(BaseDiscoveryProvider):
         super().__init__(config)
 
         if not ComputeManagementClient:
-            raise ImportError("azure-mgmt SDKs required. Install: pip install azure-mgmt-compute azure-mgmt-storage azure-mgmt-network")
+            raise ImportError(
+                "azure-mgmt SDKs required. Install: pip install azure-mgmt-compute azure-mgmt-storage azure-mgmt-network"
+            )
 
         self.subscription_id = config.get("subscription_id")
         if not self.subscription_id:
             raise ValueError("subscription_id is required for Azure discovery")
 
         # Initialize credentials
-        if config.get("tenant_id") and config.get("client_id") and config.get("client_secret"):
+        if (
+            config.get("tenant_id")
+            and config.get("client_id")
+            and config.get("client_secret")
+        ):
             self.credential = ClientSecretCredential(
                 tenant_id=config["tenant_id"],
                 client_id=config["client_id"],
-                client_secret=config["client_secret"]
+                client_secret=config["client_secret"],
             )
         else:
             self.credential = DefaultAzureCredential()
 
         # Initialize clients
-        self.compute_client = ComputeManagementClient(self.credential, self.subscription_id)
-        self.storage_client = StorageManagementClient(self.credential, self.subscription_id)
-        self.network_client = NetworkManagementClient(self.credential, self.subscription_id)
+        self.compute_client = ComputeManagementClient(
+            self.credential, self.subscription_id
+        )
+        self.storage_client = StorageManagementClient(
+            self.credential, self.subscription_id
+        )
+        self.network_client = NetworkManagementClient(
+            self.credential, self.subscription_id
+        )
 
     def test_connection(self) -> bool:
         """Test Azure connectivity."""
@@ -87,8 +99,14 @@ class AzureDiscoveryClient(BaseDiscoveryProvider):
                     resource_type="azure_vm",
                     name=vm.name,
                     metadata={
-                        "vm_size": vm.hardware_profile.vm_size if vm.hardware_profile else None,
-                        "os_type": vm.storage_profile.os_disk.os_type if vm.storage_profile and vm.storage_profile.os_disk else None,
+                        "vm_size": (
+                            vm.hardware_profile.vm_size if vm.hardware_profile else None
+                        ),
+                        "os_type": (
+                            vm.storage_profile.os_disk.os_type
+                            if vm.storage_profile and vm.storage_profile.os_disk
+                            else None
+                        ),
                         "location": vm.location,
                         "provisioning_state": vm.provisioning_state,
                     },
@@ -113,7 +131,11 @@ class AzureDiscoveryClient(BaseDiscoveryProvider):
                         "kind": account.kind.value if account.kind else None,
                         "sku_name": account.sku.name.value if account.sku else None,
                         "location": account.location,
-                        "provisioning_state": account.provisioning_state.value if account.provisioning_state else None,
+                        "provisioning_state": (
+                            account.provisioning_state.value
+                            if account.provisioning_state
+                            else None
+                        ),
                     },
                     region=account.location,
                     tags=account.tags or {},
@@ -133,7 +155,11 @@ class AzureDiscoveryClient(BaseDiscoveryProvider):
                     resource_type="azure_vnet",
                     name=vnet.name,
                     metadata={
-                        "address_space": vnet.address_space.address_prefixes if vnet.address_space else [],
+                        "address_space": (
+                            vnet.address_space.address_prefixes
+                            if vnet.address_space
+                            else []
+                        ),
                         "location": vnet.location,
                         "provisioning_state": vnet.provisioning_state,
                         "subnets_count": len(vnet.subnets) if vnet.subnets else 0,

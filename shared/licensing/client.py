@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
+
 import requests
 import structlog
 
@@ -64,7 +65,9 @@ class LicenseClient:
         """
         self.license_key = license_key or os.getenv("LICENSE_KEY", "")
         self.product = product
-        self.base_url = base_url or os.getenv("LICENSE_SERVER_URL", "https://license.penguintech.io")
+        self.base_url = base_url or os.getenv(
+            "LICENSE_SERVER_URL", "https://license.penguintech.io"
+        )
         self.server_id: Optional[str] = None
 
         # Cache validation results (5 minute TTL)
@@ -73,10 +76,12 @@ class LicenseClient:
 
         # Session for connection pooling
         self.session = requests.Session()
-        self.session.headers.update({
-            "Content-Type": "application/json",
-            "User-Agent": f"Elder/{os.getenv('APP_VERSION', '0.1.0')}",
-        })
+        self.session.headers.update(
+            {
+                "Content-Type": "application/json",
+                "User-Agent": f"Elder/{os.getenv('APP_VERSION', '0.1.0')}",
+            }
+        )
 
         if self.license_key:
             self.session.headers["Authorization"] = f"Bearer {self.license_key}"
@@ -125,8 +130,12 @@ class LicenseClient:
                 ]
 
                 # Parse timestamps
-                expires_at = datetime.fromisoformat(data["expires_at"].replace("Z", "+00:00"))
-                issued_at = datetime.fromisoformat(data["issued_at"].replace("Z", "+00:00"))
+                expires_at = datetime.fromisoformat(
+                    data["expires_at"].replace("Z", "+00:00")
+                )
+                issued_at = datetime.fromisoformat(
+                    data["issued_at"].replace("Z", "+00:00")
+                )
 
                 license_info = LicenseInfo(
                     valid=True,
@@ -271,7 +280,10 @@ class LicenseClient:
                     status_code=response.status_code,
                     response=response.text,
                 )
-                return {"success": False, "message": f"Keepalive failed: {response.status_code}"}
+                return {
+                    "success": False,
+                    "message": f"Keepalive failed: {response.status_code}",
+                }
 
         except Exception as e:
             logger.error("keepalive_exception", error=str(e))

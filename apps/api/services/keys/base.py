@@ -1,7 +1,7 @@
 """Base abstract class for key management providers."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 
 class BaseKeyProvider(ABC):
@@ -277,6 +277,5 @@ class BaseKeyProvider(ABC):
             or raw_metadata.get("CreationDate"),
             "description": raw_metadata.get("description")
             or raw_metadata.get("Description"),
-            "enabled": raw_metadata.get("enabled")
-            or raw_metadata.get("Enabled", True),
+            "enabled": raw_metadata.get("enabled") or raw_metadata.get("Enabled", True),
         }

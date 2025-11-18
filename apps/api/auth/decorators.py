@@ -1,10 +1,11 @@
 """Authentication and authorization decorators using PyDAL."""
 
-from functools import wraps
-from flask import jsonify, g, request, current_app
-from typing import Callable, List
-from pydal.objects import Row
 import inspect
+from functools import wraps
+from typing import Callable, List
+
+from flask import current_app, g, jsonify, request
+from pydal.objects import Row
 
 from apps.api.auth.jwt_handler import get_current_user
 
@@ -100,7 +101,9 @@ def permission_required(permission_name: str) -> Callable:
     return decorator
 
 
-def permissions_required(permission_names: List[str], require_all: bool = True) -> Callable:
+def permissions_required(
+    permission_names: List[str], require_all: bool = True
+) -> Callable:
     """
     Decorator to require multiple permissions.
 
@@ -335,7 +338,14 @@ def resource_role_required(required_role: str, resource_param: str = "id") -> Ca
                     resource_id = data["organization_id"]
                     resource_type = "organization"
                 else:
-                    return jsonify({"error": "Resource ID required (entity_id or organization_id)"}), 400
+                    return (
+                        jsonify(
+                            {
+                                "error": "Resource ID required (entity_id or organization_id)"
+                            }
+                        ),
+                        400,
+                    )
             elif resource_id:
                 # Determine resource type from route context
                 # Check if we're in an entity or organization route
@@ -357,9 +367,9 @@ def resource_role_required(required_role: str, resource_param: str = "id") -> Ca
             # Check if user has required role on this resource using PyDAL
             db = current_app.db
             user_roles = db(
-                (db.resource_roles.identity_id == user.id) &
-                (db.resource_roles.resource_type == resource_type) &
-                (db.resource_roles.resource_id == resource_id)
+                (db.resource_roles.identity_id == user.id)
+                & (db.resource_roles.resource_type == resource_type)
+                & (db.resource_roles.resource_id == resource_id)
             ).select()
 
             has_role = False
@@ -397,7 +407,7 @@ def resource_role_required(required_role: str, resource_param: str = "id") -> Ca
 
 def admin_required(f):
     """Decorator to require admin role for an endpoint. Alias for @role_required('admin')."""
-    return role_required('admin')(f)
+    return role_required("admin")(f)
 
 
 def role_required(allowed_roles):
@@ -441,14 +451,16 @@ def role_required(allowed_roles):
                     return f(*args, **kwargs)
 
             # Check portal role
-            user_role = user.get('portal_role', 'observer')
+            user_role = user.get("portal_role", "observer")
             if user_role not in allowed_roles:
                 return (
-                    jsonify({
-                        "error": "Insufficient permissions",
-                        "required_roles": allowed_roles,
-                        "your_role": user_role
-                    }),
+                    jsonify(
+                        {
+                            "error": "Insufficient permissions",
+                            "required_roles": allowed_roles,
+                            "your_role": user_role,
+                        }
+                    ),
                     403,
                 )
 

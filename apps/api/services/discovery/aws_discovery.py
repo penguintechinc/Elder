@@ -1,11 +1,11 @@
 """AWS cloud discovery client for Elder."""
 
-from typing import Dict, Any, List
 from datetime import datetime
+from typing import Any, Dict, List
 
 try:
     import boto3
-    from botocore.exceptions import ClientError, BotoCoreError
+    from botocore.exceptions import BotoCoreError, ClientError
 except ImportError:
     boto3 = None
 
@@ -32,7 +32,9 @@ class AWSDiscoveryClient(BaseDiscoveryProvider):
         super().__init__(config)
 
         if boto3 is None:
-            raise ImportError("boto3 is required for AWS discovery. Install with: pip install boto3")
+            raise ImportError(
+                "boto3 is required for AWS discovery. Install with: pip install boto3"
+            )
 
         self.region = config.get("region", "us-east-1")
         self.services = config.get("services", [])  # Empty = discover all
@@ -126,7 +128,11 @@ class AWSDiscoveryClient(BaseDiscoveryProvider):
                             "public_ip": instance.get("PublicIpAddress"),
                             "vpc_id": instance.get("VpcId"),
                             "subnet_id": instance.get("SubnetId"),
-                            "launch_time": instance.get("LaunchTime").isoformat() if instance.get("LaunchTime") else None,
+                            "launch_time": (
+                                instance.get("LaunchTime").isoformat()
+                                if instance.get("LaunchTime")
+                                else None
+                            ),
                         },
                         region=self.region,
                         tags=self._normalize_tags(instance.get("Tags", [])),
@@ -155,7 +161,9 @@ class AWSDiscoveryClient(BaseDiscoveryProvider):
                     # Get bucket location
                     try:
                         location = s3.get_bucket_location(Bucket=bucket_name)
-                        bucket_region = location.get("LocationConstraint") or "us-east-1"
+                        bucket_region = (
+                            location.get("LocationConstraint") or "us-east-1"
+                        )
                     except:
                         bucket_region = "unknown"
 
@@ -171,7 +179,11 @@ class AWSDiscoveryClient(BaseDiscoveryProvider):
                         resource_type="s3_bucket",
                         name=bucket_name,
                         metadata={
-                            "creation_date": bucket.get("CreationDate").isoformat() if bucket.get("CreationDate") else None,
+                            "creation_date": (
+                                bucket.get("CreationDate").isoformat()
+                                if bucket.get("CreationDate")
+                                else None
+                            ),
                         },
                         region=bucket_region,
                         tags=tags,
@@ -246,7 +258,9 @@ class AWSDiscoveryClient(BaseDiscoveryProvider):
                             "vpc_id": subnet.get("VpcId"),
                             "cidr_block": subnet.get("CidrBlock"),
                             "availability_zone": subnet.get("AvailabilityZone"),
-                            "available_ip_addresses": subnet.get("AvailableIpAddressCount"),
+                            "available_ip_addresses": subnet.get(
+                                "AvailableIpAddressCount"
+                            ),
                         },
                         region=self.region,
                         tags=self._normalize_tags(subnet.get("Tags", [])),
@@ -265,8 +279,12 @@ class AWSDiscoveryClient(BaseDiscoveryProvider):
                 for lb in response.get("LoadBalancers", []):
                     # Get tags for load balancer
                     try:
-                        tags_response = elbv2.describe_tags(ResourceArns=[lb["LoadBalancerArn"]])
-                        tags_list = tags_response.get("TagDescriptions", [{}])[0].get("Tags", [])
+                        tags_response = elbv2.describe_tags(
+                            ResourceArns=[lb["LoadBalancerArn"]]
+                        )
+                        tags_list = tags_response.get("TagDescriptions", [{}])[0].get(
+                            "Tags", []
+                        )
                         tags = self._normalize_tags(tags_list)
                     except:
                         tags = {}

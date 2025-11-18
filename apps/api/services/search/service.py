@@ -2,7 +2,8 @@
 
 import json
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from pydal import DAL
 
 
@@ -28,7 +29,7 @@ class SearchService:
         resource_types: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> Dict[str, Any]:
         """
         Search across all resource types.
@@ -44,46 +45,38 @@ class SearchService:
             Combined search results from all types
         """
         if resource_types is None:
-            resource_types = ['entity', 'organization', 'issue']
+            resource_types = ["entity", "organization", "issue"]
 
         results = {}
         total_count = 0
 
-        if 'entity' in resource_types:
+        if "entity" in resource_types:
             entity_results = self.search_entities(
-                query=query,
-                filters=filters,
-                limit=limit,
-                offset=offset
+                query=query, filters=filters, limit=limit, offset=offset
             )
-            results['entities'] = entity_results['entities']
-            results['entities_count'] = entity_results['total_count']
-            total_count += entity_results['total_count']
+            results["entities"] = entity_results["entities"]
+            results["entities_count"] = entity_results["total_count"]
+            total_count += entity_results["total_count"]
 
-        if 'organization' in resource_types:
+        if "organization" in resource_types:
             org_results = self.search_organizations(
-                query=query,
-                limit=limit,
-                offset=offset
+                query=query, limit=limit, offset=offset
             )
-            results['organizations'] = org_results['organizations']
-            results['organizations_count'] = org_results['total_count']
-            total_count += org_results['total_count']
+            results["organizations"] = org_results["organizations"]
+            results["organizations_count"] = org_results["total_count"]
+            total_count += org_results["total_count"]
 
-        if 'issue' in resource_types:
+        if "issue" in resource_types:
             issue_results = self.search_issues(
-                query=query,
-                filters=filters,
-                limit=limit,
-                offset=offset
+                query=query, filters=filters, limit=limit, offset=offset
             )
-            results['issues'] = issue_results['issues']
-            results['issues_count'] = issue_results['total_count']
-            total_count += issue_results['total_count']
+            results["issues"] = issue_results["issues"]
+            results["issues_count"] = issue_results["total_count"]
+            total_count += issue_results["total_count"]
 
-        results['total_count'] = total_count
-        results['query'] = query
-        results['resource_types'] = resource_types
+        results["total_count"] = total_count
+        results["query"] = query
+        results["resource_types"] = resource_types
 
         return results
 
@@ -100,7 +93,7 @@ class SearchService:
         tags: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> Dict[str, Any]:
         """
         Search entities with advanced filters.
@@ -122,11 +115,10 @@ class SearchService:
 
         # Text search on name and description (case-insensitive)
         if query:
-            search_pattern = f'%{query}%'
-            db_query &= (
-                self.db.entities.name.ilike(search_pattern) |
-                self.db.entities.description.ilike(search_pattern)
-            )
+            search_pattern = f"%{query}%"
+            db_query &= self.db.entities.name.ilike(
+                search_pattern
+            ) | self.db.entities.description.ilike(search_pattern)
 
         # Entity type filter
         if entity_type:
@@ -150,15 +142,14 @@ class SearchService:
 
         # Execute query with pagination
         entities = self.db(db_query).select(
-            orderby=~self.db.entities.updated_at,
-            limitby=(offset, offset + limit)
+            orderby=~self.db.entities.updated_at, limitby=(offset, offset + limit)
         )
 
         return {
-            'entities': [e.as_dict() for e in entities],
-            'total_count': total_count,
-            'limit': limit,
-            'offset': offset
+            "entities": [e.as_dict() for e in entities],
+            "total_count": total_count,
+            "limit": limit,
+            "offset": offset,
         }
 
     # ===========================
@@ -171,7 +162,7 @@ class SearchService:
         organization_type: Optional[str] = None,
         parent_id: Optional[int] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> Dict[str, Any]:
         """
         Search organizations.
@@ -190,11 +181,10 @@ class SearchService:
 
         # Text search (case-insensitive)
         if query:
-            search_pattern = f'%{query}%'
-            db_query &= (
-                self.db.organizations.name.ilike(search_pattern) |
-                self.db.organizations.description.ilike(search_pattern)
-            )
+            search_pattern = f"%{query}%"
+            db_query &= self.db.organizations.name.ilike(
+                search_pattern
+            ) | self.db.organizations.description.ilike(search_pattern)
 
         # Type filter
         if organization_type:
@@ -209,15 +199,14 @@ class SearchService:
 
         # Execute query
         organizations = self.db(db_query).select(
-            orderby=~self.db.organizations.updated_at,
-            limitby=(offset, offset + limit)
+            orderby=~self.db.organizations.updated_at, limitby=(offset, offset + limit)
         )
 
         return {
-            'organizations': [o.as_dict() for o in organizations],
-            'total_count': total_count,
-            'limit': limit,
-            'offset': offset
+            "organizations": [o.as_dict() for o in organizations],
+            "total_count": total_count,
+            "limit": limit,
+            "offset": offset,
         }
 
     # ===========================
@@ -234,7 +223,7 @@ class SearchService:
         labels: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> Dict[str, Any]:
         """
         Search issues with advanced filters.
@@ -257,11 +246,10 @@ class SearchService:
 
         # Text search (case-insensitive)
         if query:
-            search_pattern = f'%{query}%'
-            db_query &= (
-                self.db.issues.title.ilike(search_pattern) |
-                self.db.issues.description.ilike(search_pattern)
-            )
+            search_pattern = f"%{query}%"
+            db_query &= self.db.issues.title.ilike(
+                search_pattern
+            ) | self.db.issues.description.ilike(search_pattern)
 
         # Status filter
         if status:
@@ -284,15 +272,14 @@ class SearchService:
 
         # Execute query
         issues = self.db(db_query).select(
-            orderby=~self.db.issues.updated_at,
-            limitby=(offset, offset + limit)
+            orderby=~self.db.issues.updated_at, limitby=(offset, offset + limit)
         )
 
         return {
-            'issues': [i.as_dict() for i in issues],
-            'total_count': total_count,
-            'limit': limit,
-            'offset': offset
+            "issues": [i.as_dict() for i in issues],
+            "total_count": total_count,
+            "limit": limit,
+            "offset": offset,
         }
 
     # ===========================
@@ -304,7 +291,7 @@ class SearchService:
         start_entity_id: int,
         max_depth: int = 3,
         dependency_types: Optional[List[str]] = None,
-        entity_filters: Optional[Dict[str, Any]] = None
+        entity_filters: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Graph-based search for entities and dependencies.
@@ -342,13 +329,15 @@ class SearchService:
             # Add entity as node
             entity = self.db.entities[entity_id]
             if entity:
-                nodes.append({
-                    'id': entity.id,
-                    'name': entity.name,
-                    'entity_type': entity.entity_type,
-                    'sub_type': entity.sub_type,
-                    'depth': depth
-                })
+                nodes.append(
+                    {
+                        "id": entity.id,
+                        "name": entity.name,
+                        "entity_type": entity.entity_type,
+                        "sub_type": entity.sub_type,
+                        "depth": depth,
+                    }
+                )
 
                 # Find dependencies where this entity is source
                 deps_out = self.db(
@@ -361,12 +350,14 @@ class SearchService:
 
                     if dep.id not in visited_dependencies:
                         visited_dependencies.add(dep.id)
-                        edges.append({
-                            'source': dep.source_entity_id,
-                            'target': dep.target_entity_id,
-                            'type': dep.dependency_type,
-                            'metadata': dep.metadata
-                        })
+                        edges.append(
+                            {
+                                "source": dep.source_entity_id,
+                                "target": dep.target_entity_id,
+                                "type": dep.dependency_type,
+                                "metadata": dep.metadata,
+                            }
+                        )
 
                         # Add target to queue
                         if dep.target_entity_id not in visited_entities:
@@ -383,24 +374,26 @@ class SearchService:
 
                     if dep.id not in visited_dependencies:
                         visited_dependencies.add(dep.id)
-                        edges.append({
-                            'source': dep.source_entity_id,
-                            'target': dep.target_entity_id,
-                            'type': dep.dependency_type,
-                            'metadata': dep.metadata
-                        })
+                        edges.append(
+                            {
+                                "source": dep.source_entity_id,
+                                "target": dep.target_entity_id,
+                                "type": dep.dependency_type,
+                                "metadata": dep.metadata,
+                            }
+                        )
 
                         # Add source to queue
                         if dep.source_entity_id not in visited_entities:
                             queue.append((dep.source_entity_id, depth + 1))
 
         return {
-            'start_entity_id': start_entity_id,
-            'max_depth': max_depth,
-            'nodes': nodes,
-            'edges': edges,
-            'node_count': len(nodes),
-            'edge_count': len(edges)
+            "start_entity_id": start_entity_id,
+            "max_depth": max_depth,
+            "nodes": nodes,
+            "edges": edges,
+            "node_count": len(nodes),
+            "edge_count": len(edges),
         }
 
     # ===========================
@@ -408,9 +401,7 @@ class SearchService:
     # ===========================
 
     def list_saved_searches(
-        self,
-        user_id: int,
-        limit: int = 50
+        self, user_id: int, limit: int = 50
     ) -> List[Dict[str, Any]]:
         """
         List user's saved searches.
@@ -422,20 +413,13 @@ class SearchService:
         Returns:
             List of saved searches
         """
-        searches = self.db(
-            self.db.saved_searches.user_id == user_id
-        ).select(
-            orderby=~self.db.saved_searches.last_used_at,
-            limitby=(0, limit)
+        searches = self.db(self.db.saved_searches.user_id == user_id).select(
+            orderby=~self.db.saved_searches.last_used_at, limitby=(0, limit)
         )
 
         return [s.as_dict() for s in searches]
 
-    def get_saved_search(
-        self,
-        search_id: int,
-        user_id: int
-    ) -> Dict[str, Any]:
+    def get_saved_search(self, search_id: int, user_id: int) -> Dict[str, Any]:
         """
         Get saved search details.
 
@@ -466,7 +450,7 @@ class SearchService:
         query: str,
         resource_type: str,
         filters: Optional[Dict[str, Any]] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Save a search query.
@@ -491,7 +475,7 @@ class SearchService:
             description=description,
             use_count=0,
             created_at=datetime.utcnow(),
-            last_used_at=datetime.utcnow()
+            last_used_at=datetime.utcnow(),
         )
 
         self.db.commit()
@@ -506,7 +490,7 @@ class SearchService:
         name: Optional[str] = None,
         query: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Update saved search.
@@ -533,19 +517,19 @@ class SearchService:
         if search.user_id != user_id:
             raise Exception(f"Saved search {search_id} not owned by user {user_id}")
 
-        update_data = {'updated_at': datetime.utcnow()}
+        update_data = {"updated_at": datetime.utcnow()}
 
         if name is not None:
-            update_data['name'] = name
+            update_data["name"] = name
 
         if query is not None:
-            update_data['query'] = query
+            update_data["query"] = query
 
         if filters is not None:
-            update_data['filters_json'] = json.dumps(filters)
+            update_data["filters_json"] = json.dumps(filters)
 
         if description is not None:
-            update_data['description'] = description
+            update_data["description"] = description
 
         self.db(self.db.saved_searches.id == search_id).update(**update_data)
         self.db.commit()
@@ -553,11 +537,7 @@ class SearchService:
         search = self.db.saved_searches[search_id]
         return search.as_dict()
 
-    def delete_saved_search(
-        self,
-        search_id: int,
-        user_id: int
-    ) -> Dict[str, str]:
+    def delete_saved_search(self, search_id: int, user_id: int) -> Dict[str, str]:
         """
         Delete saved search.
 
@@ -582,14 +562,10 @@ class SearchService:
         self.db(self.db.saved_searches.id == search_id).delete()
         self.db.commit()
 
-        return {'message': 'Saved search deleted successfully'}
+        return {"message": "Saved search deleted successfully"}
 
     def execute_saved_search(
-        self,
-        search_id: int,
-        user_id: int,
-        limit: int = 50,
-        offset: int = 0
+        self, search_id: int, user_id: int, limit: int = 50, offset: int = 0
     ) -> Dict[str, Any]:
         """
         Execute a saved search.
@@ -617,7 +593,7 @@ class SearchService:
         # Update usage stats
         self.db(self.db.saved_searches.id == search_id).update(
             use_count=self.db.saved_searches.use_count + 1,
-            last_used_at=datetime.utcnow()
+            last_used_at=datetime.utcnow(),
         )
         self.db.commit()
 
@@ -627,32 +603,21 @@ class SearchService:
             filters = json.loads(search.filters_json)
 
         # Execute search based on resource type
-        if search.resource_type == 'entity':
+        if search.resource_type == "entity":
             return self.search_entities(
-                query=search.query,
-                filters=filters,
-                limit=limit,
-                offset=offset
+                query=search.query, filters=filters, limit=limit, offset=offset
             )
-        elif search.resource_type == 'organization':
+        elif search.resource_type == "organization":
             return self.search_organizations(
-                query=search.query,
-                limit=limit,
-                offset=offset
+                query=search.query, limit=limit, offset=offset
             )
-        elif search.resource_type == 'issue':
+        elif search.resource_type == "issue":
             return self.search_issues(
-                query=search.query,
-                filters=filters,
-                limit=limit,
-                offset=offset
+                query=search.query, filters=filters, limit=limit, offset=offset
             )
-        elif search.resource_type == 'all':
+        elif search.resource_type == "all":
             return self.search_all(
-                query=search.query,
-                filters=filters,
-                limit=limit,
-                offset=offset
+                query=search.query, filters=filters, limit=limit, offset=offset
             )
         else:
             raise Exception(f"Unknown resource type: {search.resource_type}")
@@ -661,10 +626,7 @@ class SearchService:
     # Search Analytics Methods
     # ===========================
 
-    def get_popular_searches(
-        self,
-        limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    def get_popular_searches(self, limit: int = 10) -> List[Dict[str, Any]]:
         """
         Get most popular/frequent searches.
 
@@ -674,27 +636,24 @@ class SearchService:
         Returns:
             List of popular searches
         """
-        searches = self.db(
-            self.db.saved_searches.id > 0
-        ).select(
-            orderby=~self.db.saved_searches.use_count,
-            limitby=(0, limit)
+        searches = self.db(self.db.saved_searches.id > 0).select(
+            orderby=~self.db.saved_searches.use_count, limitby=(0, limit)
         )
 
-        return [{
-            'id': s.id,
-            'name': s.name,
-            'query': s.query,
-            'resource_type': s.resource_type,
-            'use_count': s.use_count,
-            'last_used_at': s.last_used_at
-        } for s in searches]
+        return [
+            {
+                "id": s.id,
+                "name": s.name,
+                "query": s.query,
+                "resource_type": s.resource_type,
+                "use_count": s.use_count,
+                "last_used_at": s.last_used_at,
+            }
+            for s in searches
+        ]
 
     def get_search_suggestions(
-        self,
-        partial_query: str,
-        resource_type: Optional[str] = None,
-        limit: int = 10
+        self, partial_query: str, resource_type: Optional[str] = None, limit: int = 10
     ) -> List[Dict[str, Any]]:
         """
         Get search suggestions/autocomplete.
@@ -710,49 +669,40 @@ class SearchService:
         suggestions = []
 
         # Entity name suggestions
-        if not resource_type or resource_type == 'entity':
-            entities = self.db(
-                self.db.entities.name.contains(partial_query)
-            ).select(
-                self.db.entities.name,
-                distinct=True,
-                limitby=(0, limit)
+        if not resource_type or resource_type == "entity":
+            entities = self.db(self.db.entities.name.contains(partial_query)).select(
+                self.db.entities.name, distinct=True, limitby=(0, limit)
             )
-            suggestions.extend([{
-                'text': e.name,
-                'type': 'entity',
-                'category': 'name'
-            } for e in entities])
+            suggestions.extend(
+                [
+                    {"text": e.name, "type": "entity", "category": "name"}
+                    for e in entities
+                ]
+            )
 
         # Organization name suggestions
-        if not resource_type or resource_type == 'organization':
-            orgs = self.db(
-                self.db.organizations.name.contains(partial_query)
-            ).select(
-                self.db.organizations.name,
-                distinct=True,
-                limitby=(0, limit)
+        if not resource_type or resource_type == "organization":
+            orgs = self.db(self.db.organizations.name.contains(partial_query)).select(
+                self.db.organizations.name, distinct=True, limitby=(0, limit)
             )
-            suggestions.extend([{
-                'text': o.name,
-                'type': 'organization',
-                'category': 'name'
-            } for o in orgs])
+            suggestions.extend(
+                [
+                    {"text": o.name, "type": "organization", "category": "name"}
+                    for o in orgs
+                ]
+            )
 
         # Issue title suggestions
-        if not resource_type or resource_type == 'issue':
-            issues = self.db(
-                self.db.issues.title.contains(partial_query)
-            ).select(
-                self.db.issues.title,
-                distinct=True,
-                limitby=(0, limit)
+        if not resource_type or resource_type == "issue":
+            issues = self.db(self.db.issues.title.contains(partial_query)).select(
+                self.db.issues.title, distinct=True, limitby=(0, limit)
             )
-            suggestions.extend([{
-                'text': i.title,
-                'type': 'issue',
-                'category': 'title'
-            } for i in issues])
+            suggestions.extend(
+                [
+                    {"text": i.title, "type": "issue", "category": "title"}
+                    for i in issues
+                ]
+            )
 
         # Limit total suggestions
         return suggestions[:limit]

@@ -1,13 +1,15 @@
 """Backup & Data Management API endpoints for Elder v1.2.0 (Phase 10)."""
 
-from flask import Blueprint, jsonify, request, send_file, current_app
-from apps.api.auth.decorators import admin_required
-from apps.api.services.backup import BackupService
-from werkzeug.utils import secure_filename
 import os
 import tempfile
 
-bp = Blueprint('backup', __name__)
+from flask import Blueprint, current_app, jsonify, request, send_file
+from werkzeug.utils import secure_filename
+
+from apps.api.auth.decorators import admin_required
+from apps.api.services.backup import BackupService
+
+bp = Blueprint("backup", __name__)
 
 
 def get_backup_service():
@@ -19,7 +21,8 @@ def get_backup_service():
 # Backup Job Endpoints
 # ===========================
 
-@bp.route('/jobs', methods=['GET'])
+
+@bp.route("/jobs", methods=["GET"])
 @admin_required
 def list_backup_jobs():
     """
@@ -34,25 +37,22 @@ def list_backup_jobs():
     try:
         service = get_backup_service()
 
-        enabled = request.args.get('enabled')
+        enabled = request.args.get("enabled")
 
         # Convert enabled string to boolean
         enabled_bool = None
         if enabled is not None:
-            enabled_bool = enabled.lower() == 'true'
+            enabled_bool = enabled.lower() == "true"
 
         jobs = service.list_backup_jobs(enabled=enabled_bool)
 
-        return jsonify({
-            'jobs': jobs,
-            'count': len(jobs)
-        }), 200
+        return jsonify({"jobs": jobs, "count": len(jobs)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/jobs', methods=['POST'])
+@bp.route("/jobs", methods=["POST"])
 @admin_required
 def create_backup_job():
     """
@@ -77,37 +77,37 @@ def create_backup_job():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        if 'name' not in data:
-            return jsonify({'error': 'name is required'}), 400
+        if "name" not in data:
+            return jsonify({"error": "name is required"}), 400
 
         service = get_backup_service()
 
         job = service.create_backup_job(
-            name=data['name'],
-            schedule=data.get('schedule'),
-            retention_days=data.get('retention_days', 30),
-            enabled=data.get('enabled', True),
-            description=data.get('description'),
-            include_tables=data.get('include_tables'),
-            exclude_tables=data.get('exclude_tables'),
-            s3_enabled=data.get('s3_enabled', False),
-            s3_endpoint=data.get('s3_endpoint'),
-            s3_bucket=data.get('s3_bucket'),
-            s3_region=data.get('s3_region'),
-            s3_access_key=data.get('s3_access_key'),
-            s3_secret_key=data.get('s3_secret_key'),
-            s3_prefix=data.get('s3_prefix')
+            name=data["name"],
+            schedule=data.get("schedule"),
+            retention_days=data.get("retention_days", 30),
+            enabled=data.get("enabled", True),
+            description=data.get("description"),
+            include_tables=data.get("include_tables"),
+            exclude_tables=data.get("exclude_tables"),
+            s3_enabled=data.get("s3_enabled", False),
+            s3_endpoint=data.get("s3_endpoint"),
+            s3_bucket=data.get("s3_bucket"),
+            s3_region=data.get("s3_region"),
+            s3_access_key=data.get("s3_access_key"),
+            s3_secret_key=data.get("s3_secret_key"),
+            s3_prefix=data.get("s3_prefix"),
         )
 
         return jsonify(job), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/jobs/<int:job_id>', methods=['GET'])
+@bp.route("/jobs/<int:job_id>", methods=["GET"])
 @admin_required
 def get_backup_job(job_id):
     """
@@ -123,12 +123,12 @@ def get_backup_job(job_id):
         return jsonify(job), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/jobs/<int:job_id>', methods=['PUT'])
+@bp.route("/jobs/<int:job_id>", methods=["PUT"])
 @admin_required
 def update_backup_job(job_id):
     """
@@ -151,28 +151,28 @@ def update_backup_job(job_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_backup_service()
 
         job = service.update_backup_job(
             job_id=job_id,
-            name=data.get('name'),
-            schedule=data.get('schedule'),
-            retention_days=data.get('retention_days'),
-            enabled=data.get('enabled'),
-            description=data.get('description')
+            name=data.get("name"),
+            schedule=data.get("schedule"),
+            retention_days=data.get("retention_days"),
+            enabled=data.get("enabled"),
+            description=data.get("description"),
         )
 
         return jsonify(job), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/jobs/<int:job_id>', methods=['DELETE'])
+@bp.route("/jobs/<int:job_id>", methods=["DELETE"])
 @admin_required
 def delete_backup_job(job_id):
     """
@@ -188,12 +188,12 @@ def delete_backup_job(job_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/jobs/<int:job_id>/run', methods=['POST'])
+@bp.route("/jobs/<int:job_id>/run", methods=["POST"])
 @admin_required
 def run_backup_job(job_id):
     """
@@ -207,20 +207,21 @@ def run_backup_job(job_id):
         service = get_backup_service()
         result = service.run_backup_job(job_id)
 
-        status_code = 202 if result.get('success') else 500
+        status_code = 202 if result.get("success") else 500
         return jsonify(result), status_code
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # Backup Management Endpoints
 # ===========================
 
-@bp.route('', methods=['GET'])
+
+@bp.route("", methods=["GET"])
 @admin_required
 def list_backups():
     """
@@ -236,21 +237,18 @@ def list_backups():
     try:
         service = get_backup_service()
 
-        job_id = request.args.get('job_id', type=int)
-        limit = request.args.get('limit', 50, type=int)
+        job_id = request.args.get("job_id", type=int)
+        limit = request.args.get("limit", 50, type=int)
 
         backups = service.list_backups(job_id=job_id, limit=limit)
 
-        return jsonify({
-            'backups': backups,
-            'count': len(backups)
-        }), 200
+        return jsonify({"backups": backups, "count": len(backups)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:backup_id>', methods=['GET'])
+@bp.route("/<int:backup_id>", methods=["GET"])
 @admin_required
 def get_backup(backup_id):
     """
@@ -266,12 +264,12 @@ def get_backup(backup_id):
         return jsonify(backup), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:backup_id>/download', methods=['GET'])
+@bp.route("/<int:backup_id>/download", methods=["GET"])
 @admin_required
 def download_backup(backup_id):
     """
@@ -286,18 +284,16 @@ def download_backup(backup_id):
         filepath = service.get_backup_file_path(backup_id)
 
         return send_file(
-            filepath,
-            as_attachment=True,
-            download_name=os.path.basename(filepath)
+            filepath, as_attachment=True, download_name=os.path.basename(filepath)
         )
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:backup_id>', methods=['DELETE'])
+@bp.route("/<int:backup_id>", methods=["DELETE"])
 @admin_required
 def delete_backup(backup_id):
     """
@@ -313,16 +309,17 @@ def delete_backup(backup_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # Restore Operation Endpoints
 # ===========================
 
-@bp.route('/<int:backup_id>/restore', methods=['POST'])
+
+@bp.route("/<int:backup_id>/restore", methods=["POST"])
 @admin_required
 def restore_backup(backup_id):
     """
@@ -350,23 +347,24 @@ def restore_backup(backup_id):
 
         result = service.restore_backup(
             backup_id=backup_id,
-            dry_run=data.get('dry_run', False),
-            restore_options=data.get('restore_options')
+            dry_run=data.get("dry_run", False),
+            restore_options=data.get("restore_options"),
         )
 
         return jsonify(result), 202
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
 # ===========================
 # Export Operation Endpoints
 # ===========================
 
-@bp.route('/export', methods=['POST'])
+
+@bp.route("/export", methods=["POST"])
 @admin_required
 def export_data():
     """
@@ -387,28 +385,31 @@ def export_data():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['format', 'resource_types']
+        required = ["format", "resource_types"]
         missing = [f for f in required if f not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_backup_service()
 
         result = service.export_data(
-            format=data['format'],
-            resource_types=data['resource_types'],
-            filters=data.get('filters')
+            format=data["format"],
+            resource_types=data["resource_types"],
+            filters=data.get("filters"),
         )
 
         return jsonify(result), 202
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/export/<path:filename>/download', methods=['GET'])
+@bp.route("/export/<path:filename>/download", methods=["GET"])
 @admin_required
 def download_export(filename):
     """
@@ -424,23 +425,20 @@ def download_export(filename):
         filepath = os.path.join(tempfile.gettempdir(), filename)
 
         if not os.path.exists(filepath):
-            return jsonify({'error': 'Export file not found'}), 404
+            return jsonify({"error": "Export file not found"}), 404
 
-        return send_file(
-            filepath,
-            as_attachment=True,
-            download_name=filename
-        )
+        return send_file(filepath, as_attachment=True, download_name=filename)
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # Import Operation Endpoints
 # ===========================
 
-@bp.route('/import', methods=['POST'])
+
+@bp.route("/import", methods=["POST"])
 @admin_required
 def import_data():
     """
@@ -455,13 +453,13 @@ def import_data():
         400: Invalid file or format
     """
     try:
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file provided'}), 400
+        if "file" not in request.files:
+            return jsonify({"error": "No file provided"}), 400
 
-        file = request.files['file']
+        file = request.files["file"]
 
-        if file.filename == '':
-            return jsonify({'error': 'Empty filename'}), 400
+        if file.filename == "":
+            return jsonify({"error": "Empty filename"}), 400
 
         # Secure the filename
         filename = secure_filename(file.filename)
@@ -471,14 +469,11 @@ def import_data():
         file.save(temp_path)
 
         # Get dry_run parameter
-        dry_run = request.form.get('dry_run', 'false').lower() == 'true'
+        dry_run = request.form.get("dry_run", "false").lower() == "true"
 
         service = get_backup_service()
 
-        result = service.import_data(
-            filepath=temp_path,
-            dry_run=dry_run
-        )
+        result = service.import_data(filepath=temp_path, dry_run=dry_run)
 
         # Clean up temp file if not dry run
         if not dry_run and os.path.exists(temp_path):
@@ -487,14 +482,15 @@ def import_data():
         return jsonify(result), 202
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
 # ===========================
 # Storage Statistics Endpoints
 # ===========================
 
-@bp.route('/stats', methods=['GET'])
+
+@bp.route("/stats", methods=["GET"])
 @admin_required
 def get_backup_stats():
     """
@@ -509,4 +505,4 @@ def get_backup_stats():
         return jsonify(stats), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500

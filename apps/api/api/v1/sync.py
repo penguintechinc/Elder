@@ -4,11 +4,12 @@ Provides API endpoints for managing two-way synchronization with external
 project management platforms (GitHub, GitLab, Jira, Trello, OpenProject).
 """
 
-from flask import Blueprint, request, jsonify, current_app
-from flask_cors import cross_origin
 from datetime import datetime
 
-from apps.api.auth.decorators import login_required, admin_required
+from flask import Blueprint, current_app, jsonify, request
+from flask_cors import cross_origin
+
+from apps.api.auth.decorators import admin_required, login_required
 
 bp = Blueprint("sync", __name__, url_prefix="/api/v1/sync")
 
@@ -154,22 +155,24 @@ def list_sync_history():
     total = query.count()
 
     # Get paginated results
-    history = (
-        query.select(orderby=~db.sync_history.started_at, limitby=(offset, offset + per_page))
-        .as_list()
-    )
+    history = query.select(
+        orderby=~db.sync_history.started_at, limitby=(offset, offset + per_page)
+    ).as_list()
 
-    return jsonify(
-        {
-            "history": history,
-            "pagination": {
-                "page": page,
-                "per_page": per_page,
-                "total": total,
-                "pages": (total + per_page - 1) // per_page,
-            },
-        }
-    ), 200
+    return (
+        jsonify(
+            {
+                "history": history,
+                "pagination": {
+                    "page": page,
+                    "per_page": per_page,
+                    "total": total,
+                    "pages": (total + per_page - 1) // per_page,
+                },
+            }
+        ),
+        200,
+    )
 
 
 @bp.route("/conflicts", methods=["GET"])
@@ -256,6 +259,7 @@ def sync_status():
 
     # Count recent syncs (last 24 hours)
     from datetime import timedelta
+
     cutoff = datetime.now() - timedelta(hours=24)
 
     recent_syncs = db(db.sync_history.started_at > cutoff).count()
@@ -269,21 +273,24 @@ def sync_status():
     # Count mappings
     total_mappings = db(db.sync_mappings).count()
 
-    return jsonify(
-        {
-            "configs": {
-                "total": total_configs,
-                "enabled": enabled_configs,
-            },
-            "recent_activity": {
-                "syncs_24h": recent_syncs,
-                "failures_24h": recent_failures,
-            },
-            "conflicts": {
-                "unresolved": unresolved_conflicts,
-            },
-            "mappings": {
-                "total": total_mappings,
-            },
-        }
-    ), 200
+    return (
+        jsonify(
+            {
+                "configs": {
+                    "total": total_configs,
+                    "enabled": enabled_configs,
+                },
+                "recent_activity": {
+                    "syncs_24h": recent_syncs,
+                    "failures_24h": recent_failures,
+                },
+                "conflicts": {
+                    "unresolved": unresolved_conflicts,
+                },
+                "mappings": {
+                    "total": total_mappings,
+                },
+            }
+        ),
+        200,
+    )

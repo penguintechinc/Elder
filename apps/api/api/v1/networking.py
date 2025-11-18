@@ -1,9 +1,11 @@
 """REST API endpoints for networking resources and topology."""
 
-from flask import Blueprint, request, jsonify
+import logging
+
+from flask import Blueprint, jsonify, request
+
 from apps.api.auth.decorators import login_required
 from apps.api.services.networking import NetworkingService
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +13,7 @@ bp = Blueprint("networking", __name__, url_prefix="/api/v1/networking")
 
 
 # Networking Resources Endpoints
+
 
 @bp.route("/networks", methods=["GET"])
 @login_required
@@ -73,7 +76,10 @@ def create_network():
         required_fields = ["name", "network_type", "organization_id"]
         missing = [f for f in required_fields if f not in data]
         if missing:
-            return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+            return (
+                jsonify({"error": f"Missing required fields: {', '.join(missing)}"}),
+                400,
+            )
 
         service = NetworkingService()
 
@@ -154,6 +160,7 @@ def delete_network(network_id):
 
 # Network Topology Endpoints
 
+
 @bp.route("/topology/connections", methods=["GET"])
 @login_required
 def list_topology_connections():
@@ -205,7 +212,10 @@ def create_topology_connection():
         required_fields = ["source_network_id", "target_network_id", "connection_type"]
         missing = [f for f in required_fields if f not in data]
         if missing:
-            return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+            return (
+                jsonify({"error": f"Missing required fields: {', '.join(missing)}"}),
+                400,
+            )
 
         service = NetworkingService()
 
@@ -244,6 +254,7 @@ def delete_topology_connection(connection_id):
 
 
 # Entity-Network Mapping Endpoints
+
 
 @bp.route("/mappings", methods=["GET"])
 @login_required
@@ -298,7 +309,10 @@ def create_entity_mapping():
         required_fields = ["network_id", "entity_id", "relationship_type"]
         missing = [f for f in required_fields if f not in data]
         if missing:
-            return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+            return (
+                jsonify({"error": f"Missing required fields: {', '.join(missing)}"}),
+                400,
+            )
 
         service = NetworkingService()
 
@@ -336,13 +350,16 @@ def delete_entity_mapping(mapping_id):
 
 # Topology Visualization Endpoint
 
+
 @bp.route("/topology/graph", methods=["GET"])
 @login_required
 def get_topology_graph():
     """Get network topology as a graph for visualization."""
     try:
         organization_id = request.args.get("organization_id", type=int)
-        include_entities = request.args.get("include_entities", "false").lower() == "true"
+        include_entities = (
+            request.args.get("include_entities", "false").lower() == "true"
+        )
 
         if not organization_id:
             return jsonify({"error": "organization_id parameter required"}), 400

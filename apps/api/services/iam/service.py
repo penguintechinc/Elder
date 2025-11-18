@@ -1,10 +1,10 @@
 """IAM management service - business logic layer for IAM operations."""
 
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from apps.api.services.iam.base import BaseIAMProvider
 from apps.api.services.iam.aws_client import AWSIAMClient
+from apps.api.services.iam.base import BaseIAMProvider
 from apps.api.services.iam.gcp_client import GCPIAMClient
 from apps.api.services.iam.k8s_client import KubernetesRBACClient
 
@@ -314,12 +314,16 @@ class IAMService:
         client = self._get_provider_client(provider_id)
         return client.detach_policy_from_role(role_id, policy_id)
 
-    def list_user_policies(self, provider_id: int, user_id: str) -> List[Dict[str, Any]]:
+    def list_user_policies(
+        self, provider_id: int, user_id: str
+    ) -> List[Dict[str, Any]]:
         """List policies attached to user."""
         client = self._get_provider_client(provider_id)
         return client.list_user_policies(user_id)
 
-    def list_role_policies(self, provider_id: int, role_id: str) -> List[Dict[str, Any]]:
+    def list_role_policies(
+        self, provider_id: int, role_id: str
+    ) -> List[Dict[str, Any]]:
         """List policies attached to role."""
         client = self._get_provider_client(provider_id)
         return client.list_role_policies(role_id)

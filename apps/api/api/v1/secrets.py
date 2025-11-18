@@ -1,17 +1,17 @@
 """Secrets Management API endpoints for Elder v1.2.0 (Phase 2) - FULL IMPLEMENTATION."""
 
 import logging
+
 from flask import Blueprint, jsonify, request
+
 from apps.api.auth.decorators import login_required
 from apps.api.services.secrets import SecretsService
-from apps.api.services.secrets.base import (
-    SecretProviderException,
-    SecretNotFoundException,
-    SecretAccessDeniedException,
-)
+from apps.api.services.secrets.base import (SecretAccessDeniedException,
+                                            SecretNotFoundException,
+                                            SecretProviderException)
 
 logger = logging.getLogger(__name__)
-bp = Blueprint('secrets', __name__)
+bp = Blueprint("secrets", __name__)
 
 
 def get_secrets_service():
@@ -19,7 +19,7 @@ def get_secrets_service():
     return SecretsService()
 
 
-@bp.route('', methods=['GET'])
+@bp.route("", methods=["GET"])
 @login_required
 def list_secrets():
     """
@@ -36,27 +36,24 @@ def list_secrets():
     try:
         service = get_secrets_service()
 
-        organization_id = request.args.get('organization_id', type=int)
-        provider_id = request.args.get('provider_id', type=int)
-        secret_type = request.args.get('secret_type')
+        organization_id = request.args.get("organization_id", type=int)
+        provider_id = request.args.get("provider_id", type=int)
+        secret_type = request.args.get("secret_type")
 
         secrets = service.list_secrets(
             organization_id=organization_id,
             provider_id=provider_id,
-            secret_type=secret_type
+            secret_type=secret_type,
         )
 
-        return jsonify({
-            'secrets': secrets,
-            'total': len(secrets)
-        }), 200
+        return jsonify({"secrets": secrets, "total": len(secrets)}), 200
 
     except Exception as e:
         logger.error(f"Error listing secrets: {str(e)}")
-        return jsonify({'error': 'Failed to list secrets', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to list secrets", "message": str(e)}), 500
 
 
-@bp.route('/<int:secret_id>', methods=['GET'])
+@bp.route("/<int:secret_id>", methods=["GET"])
 @login_required
 def get_secret(secret_id):
     """
@@ -72,32 +69,34 @@ def get_secret(secret_id):
     """
     try:
         from flask import g
+
         service = get_secrets_service()
-        unmask = request.args.get('unmask', 'false').lower() == 'true'
+        unmask = request.args.get("unmask", "false").lower() == "true"
 
         # TODO: Add permission check for unmask
         # For now, allow unmask for authenticated users
 
         secret = service.get_secret(
-            secret_id=secret_id,
-            unmask=unmask,
-            identity_id=g.current_user.id
+            secret_id=secret_id, unmask=unmask, identity_id=g.current_user.id
         )
 
-        return jsonify({'secret': secret}), 200
+        return jsonify({"secret": secret}), 200
 
     except ValueError as e:
-        return jsonify({'error': 'Secret not found', 'message': str(e)}), 404
+        return jsonify({"error": "Secret not found", "message": str(e)}), 404
     except SecretNotFoundException as e:
-        return jsonify({'error': 'Secret not found in provider', 'message': str(e)}), 404
+        return (
+            jsonify({"error": "Secret not found in provider", "message": str(e)}),
+            404,
+        )
     except SecretAccessDeniedException as e:
-        return jsonify({'error': 'Access denied', 'message': str(e)}), 403
+        return jsonify({"error": "Access denied", "message": str(e)}), 403
     except Exception as e:
         logger.error(f"Error retrieving secret {secret_id}: {str(e)}")
-        return jsonify({'error': 'Failed to retrieve secret', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to retrieve secret", "message": str(e)}), 500
 
 
-@bp.route('/<int:secret_id>/unmask', methods=['POST'])
+@bp.route("/<int:secret_id>/unmask", methods=["POST"])
 @login_required
 def unmask_secret(secret_id):
     """
@@ -112,31 +111,33 @@ def unmask_secret(secret_id):
     """
     try:
         from flask import g
+
         service = get_secrets_service()
 
         # TODO: Add permission check for unmask_secret
         # For now, allow unmask for authenticated users
 
         secret = service.get_secret(
-            secret_id=secret_id,
-            unmask=True,
-            identity_id=g.current_user.id
+            secret_id=secret_id, unmask=True, identity_id=g.current_user.id
         )
 
-        return jsonify({'secret': secret}), 200
+        return jsonify({"secret": secret}), 200
 
     except ValueError as e:
-        return jsonify({'error': 'Secret not found', 'message': str(e)}), 404
+        return jsonify({"error": "Secret not found", "message": str(e)}), 404
     except SecretNotFoundException as e:
-        return jsonify({'error': 'Secret not found in provider', 'message': str(e)}), 404
+        return (
+            jsonify({"error": "Secret not found in provider", "message": str(e)}),
+            404,
+        )
     except SecretAccessDeniedException as e:
-        return jsonify({'error': 'Access denied', 'message': str(e)}), 403
+        return jsonify({"error": "Access denied", "message": str(e)}), 403
     except Exception as e:
         logger.error(f"Error unmasking secret {secret_id}: {str(e)}")
-        return jsonify({'error': 'Failed to unmask secret', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to unmask secret", "message": str(e)}), 500
 
 
-@bp.route('', methods=['POST'])
+@bp.route("", methods=["POST"])
 @login_required
 def create_secret():
     """
@@ -162,43 +163,58 @@ def create_secret():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required_fields = ['name', 'provider_id', 'provider_path', 'secret_type', 'organization_id']
+        required_fields = [
+            "name",
+            "provider_id",
+            "provider_path",
+            "secret_type",
+            "organization_id",
+        ]
         missing_fields = [field for field in required_fields if field not in data]
 
         if missing_fields:
-            return jsonify({
-                'error': 'Missing required fields',
-                'missing_fields': missing_fields
-            }), 400
+            return (
+                jsonify(
+                    {
+                        "error": "Missing required fields",
+                        "missing_fields": missing_fields,
+                    }
+                ),
+                400,
+            )
 
         service = get_secrets_service()
 
         from flask import g
+
         secret = service.create_secret(
-            name=data['name'],
-            provider_id=data['provider_id'],
-            provider_path=data['provider_path'],
-            secret_type=data['secret_type'],
-            organization_id=data['organization_id'],
-            is_kv=data.get('is_kv', False),
-            metadata=data.get('metadata'),
-            identity_id=g.current_user.id
+            name=data["name"],
+            provider_id=data["provider_id"],
+            provider_path=data["provider_path"],
+            secret_type=data["secret_type"],
+            organization_id=data["organization_id"],
+            is_kv=data.get("is_kv", False),
+            metadata=data.get("metadata"),
+            identity_id=g.current_user.id,
         )
 
-        return jsonify({'secret': secret}), 201
+        return jsonify({"secret": secret}), 201
 
     except ValueError as e:
-        return jsonify({'error': 'Invalid request', 'message': str(e)}), 400
+        return jsonify({"error": "Invalid request", "message": str(e)}), 400
     except SecretNotFoundException as e:
-        return jsonify({'error': 'Secret not found in provider', 'message': str(e)}), 404
+        return (
+            jsonify({"error": "Secret not found in provider", "message": str(e)}),
+            404,
+        )
     except Exception as e:
         logger.error(f"Error creating secret: {str(e)}")
-        return jsonify({'error': 'Failed to create secret', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to create secret", "message": str(e)}), 500
 
 
-@bp.route('/<int:secret_id>', methods=['PUT'])
+@bp.route("/<int:secret_id>", methods=["PUT"])
 @login_required
 def update_secret(secret_id):
     """
@@ -217,31 +233,32 @@ def update_secret(secret_id):
     """
     try:
         from flask import g
+
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_secrets_service()
 
         secret = service.update_secret_metadata(
             secret_id=secret_id,
-            name=data.get('name'),
-            secret_type=data.get('secret_type'),
-            metadata=data.get('metadata'),
-            identity_id=g.current_user.id
+            name=data.get("name"),
+            secret_type=data.get("secret_type"),
+            metadata=data.get("metadata"),
+            identity_id=g.current_user.id,
         )
 
-        return jsonify({'secret': secret}), 200
+        return jsonify({"secret": secret}), 200
 
     except ValueError as e:
-        return jsonify({'error': 'Secret not found', 'message': str(e)}), 404
+        return jsonify({"error": "Secret not found", "message": str(e)}), 404
     except Exception as e:
         logger.error(f"Error updating secret {secret_id}: {str(e)}")
-        return jsonify({'error': 'Failed to update secret', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to update secret", "message": str(e)}), 500
 
 
-@bp.route('/<int:secret_id>', methods=['DELETE'])
+@bp.route("/<int:secret_id>", methods=["DELETE"])
 @login_required
 def delete_secret(secret_id):
     """
@@ -253,23 +270,21 @@ def delete_secret(secret_id):
     """
     try:
         from flask import g
+
         service = get_secrets_service()
 
-        service.delete_secret(
-            secret_id=secret_id,
-            identity_id=g.current_user.id
-        )
+        service.delete_secret(secret_id=secret_id, identity_id=g.current_user.id)
 
-        return '', 204
+        return "", 204
 
     except ValueError as e:
-        return jsonify({'error': 'Secret not found', 'message': str(e)}), 404
+        return jsonify({"error": "Secret not found", "message": str(e)}), 404
     except Exception as e:
         logger.error(f"Error deleting secret {secret_id}: {str(e)}")
-        return jsonify({'error': 'Failed to delete secret', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to delete secret", "message": str(e)}), 500
 
 
-@bp.route('/<int:secret_id>/sync', methods=['POST'])
+@bp.route("/<int:secret_id>/sync", methods=["POST"])
 @login_required
 def sync_secret(secret_id):
     """
@@ -281,27 +296,28 @@ def sync_secret(secret_id):
     """
     try:
         from flask import g
+
         service = get_secrets_service()
 
-        secret = service.sync_secret(
-            secret_id=secret_id,
-            identity_id=g.current_user.id
-        )
+        secret = service.sync_secret(secret_id=secret_id, identity_id=g.current_user.id)
 
-        return jsonify({'secret': secret}), 200
+        return jsonify({"secret": secret}), 200
 
     except ValueError as e:
-        return jsonify({'error': 'Secret not found', 'message': str(e)}), 404
+        return jsonify({"error": "Secret not found", "message": str(e)}), 404
     except SecretNotFoundException as e:
-        return jsonify({'error': 'Secret not found in provider', 'message': str(e)}), 404
+        return (
+            jsonify({"error": "Secret not found in provider", "message": str(e)}),
+            404,
+        )
     except SecretAccessDeniedException as e:
-        return jsonify({'error': 'Access denied', 'message': str(e)}), 403
+        return jsonify({"error": "Access denied", "message": str(e)}), 403
     except Exception as e:
         logger.error(f"Error syncing secret {secret_id}: {str(e)}")
-        return jsonify({'error': 'Failed to sync secret', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to sync secret", "message": str(e)}), 500
 
 
-@bp.route('/<int:secret_id>/access-log', methods=['GET'])
+@bp.route("/<int:secret_id>/access-log", methods=["GET"])
 @login_required
 def get_secret_access_log(secret_id):
     """
@@ -316,23 +332,31 @@ def get_secret_access_log(secret_id):
     """
     try:
         service = get_secrets_service()
-        limit = request.args.get('limit', 100, type=int)
+        limit = request.args.get("limit", 100, type=int)
 
         access_log = service.get_secret_access_log(secret_id=secret_id, limit=limit)
 
-        return jsonify({
-            'secret_id': secret_id,
-            'access_log': access_log,
-            'total': len(access_log)
-        }), 200
+        return (
+            jsonify(
+                {
+                    "secret_id": secret_id,
+                    "access_log": access_log,
+                    "total": len(access_log),
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"Error retrieving access log for secret {secret_id}: {str(e)}")
-        return jsonify({'error': 'Failed to retrieve access log', 'message': str(e)}), 500
+        return (
+            jsonify({"error": "Failed to retrieve access log", "message": str(e)}),
+            500,
+        )
 
 
 # Secret Provider endpoints
-@bp.route('/providers', methods=['GET'])
+@bp.route("/providers", methods=["GET"])
 @login_required
 def list_secret_providers():
     """
@@ -348,25 +372,21 @@ def list_secret_providers():
     try:
         service = get_secrets_service()
 
-        organization_id = request.args.get('organization_id', type=int)
-        provider_type = request.args.get('provider_type')
+        organization_id = request.args.get("organization_id", type=int)
+        provider_type = request.args.get("provider_type")
 
         providers = service.list_providers(
-            organization_id=organization_id,
-            provider_type=provider_type
+            organization_id=organization_id, provider_type=provider_type
         )
 
-        return jsonify({
-            'providers': providers,
-            'total': len(providers)
-        }), 200
+        return jsonify({"providers": providers, "total": len(providers)}), 200
 
     except Exception as e:
         logger.error(f"Error listing providers: {str(e)}")
-        return jsonify({'error': 'Failed to list providers', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to list providers", "message": str(e)}), 500
 
 
-@bp.route('/providers', methods=['POST'])
+@bp.route("/providers", methods=["POST"])
 @login_required
 def create_secret_provider():
     """
@@ -392,36 +412,41 @@ def create_secret_provider():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required_fields = ['name', 'provider', 'organization_id', 'config_json']
+        required_fields = ["name", "provider", "organization_id", "config_json"]
         missing_fields = [field for field in required_fields if field not in data]
 
         if missing_fields:
-            return jsonify({
-                'error': 'Missing required fields',
-                'missing_fields': missing_fields
-            }), 400
+            return (
+                jsonify(
+                    {
+                        "error": "Missing required fields",
+                        "missing_fields": missing_fields,
+                    }
+                ),
+                400,
+            )
 
         service = get_secrets_service()
 
         provider = service.create_provider(
-            name=data['name'],
-            provider_type=data['provider'],
-            config_json=data['config_json'],
-            organization_id=data['organization_id']
+            name=data["name"],
+            provider_type=data["provider"],
+            config_json=data["config_json"],
+            organization_id=data["organization_id"],
         )
 
-        return jsonify({'provider': provider}), 201
+        return jsonify({"provider": provider}), 201
 
     except ValueError as e:
-        return jsonify({'error': 'Invalid request', 'message': str(e)}), 400
+        return jsonify({"error": "Invalid request", "message": str(e)}), 400
     except Exception as e:
         logger.error(f"Error creating provider: {str(e)}")
-        return jsonify({'error': 'Failed to create provider', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to create provider", "message": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>', methods=['GET'])
+@bp.route("/providers/<int:provider_id>", methods=["GET"])
 @login_required
 def get_secret_provider(provider_id):
     """
@@ -436,16 +461,16 @@ def get_secret_provider(provider_id):
 
         provider = service.get_provider(provider_id)
 
-        return jsonify({'provider': provider}), 200
+        return jsonify({"provider": provider}), 200
 
     except ValueError as e:
-        return jsonify({'error': 'Provider not found', 'message': str(e)}), 404
+        return jsonify({"error": "Provider not found", "message": str(e)}), 404
     except Exception as e:
         logger.error(f"Error retrieving provider {provider_id}: {str(e)}")
-        return jsonify({'error': 'Failed to retrieve provider', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to retrieve provider", "message": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>', methods=['PUT'])
+@bp.route("/providers/<int:provider_id>", methods=["PUT"])
 @login_required
 def update_secret_provider(provider_id):
     """
@@ -466,27 +491,27 @@ def update_secret_provider(provider_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_secrets_service()
 
         provider = service.update_provider(
             provider_id=provider_id,
-            name=data.get('name'),
-            config_json=data.get('config_json'),
-            enabled=data.get('enabled')
+            name=data.get("name"),
+            config_json=data.get("config_json"),
+            enabled=data.get("enabled"),
         )
 
-        return jsonify({'provider': provider}), 200
+        return jsonify({"provider": provider}), 200
 
     except ValueError as e:
-        return jsonify({'error': 'Invalid request', 'message': str(e)}), 400
+        return jsonify({"error": "Invalid request", "message": str(e)}), 400
     except Exception as e:
         logger.error(f"Error updating provider {provider_id}: {str(e)}")
-        return jsonify({'error': 'Failed to update provider', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to update provider", "message": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>', methods=['DELETE'])
+@bp.route("/providers/<int:provider_id>", methods=["DELETE"])
 @login_required
 def delete_secret_provider(provider_id):
     """
@@ -502,19 +527,19 @@ def delete_secret_provider(provider_id):
 
         service.delete_provider(provider_id)
 
-        return '', 204
+        return "", 204
 
     except ValueError as e:
         error_message = str(e)
-        if 'Cannot delete provider' in error_message:
-            return jsonify({'error': 'Provider in use', 'message': error_message}), 400
-        return jsonify({'error': 'Provider not found', 'message': error_message}), 404
+        if "Cannot delete provider" in error_message:
+            return jsonify({"error": "Provider in use", "message": error_message}), 400
+        return jsonify({"error": "Provider not found", "message": error_message}), 404
     except Exception as e:
         logger.error(f"Error deleting provider {provider_id}: {str(e)}")
-        return jsonify({'error': 'Failed to delete provider', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to delete provider", "message": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/sync', methods=['POST'])
+@bp.route("/providers/<int:provider_id>/sync", methods=["POST"])
 @login_required
 def sync_secret_provider(provider_id):
     """
@@ -532,15 +557,15 @@ def sync_secret_provider(provider_id):
         return jsonify(result), 200
 
     except ValueError as e:
-        return jsonify({'error': 'Provider not found', 'message': str(e)}), 404
+        return jsonify({"error": "Provider not found", "message": str(e)}), 404
     except SecretProviderException as e:
-        return jsonify({'error': 'Provider error', 'message': str(e)}), 500
+        return jsonify({"error": "Provider error", "message": str(e)}), 500
     except Exception as e:
         logger.error(f"Error syncing provider {provider_id}: {str(e)}")
-        return jsonify({'error': 'Failed to sync provider', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to sync provider", "message": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/test', methods=['POST'])
+@bp.route("/providers/<int:provider_id>/test", methods=["POST"])
 @login_required
 def test_secret_provider(provider_id):
     """
@@ -557,18 +582,18 @@ def test_secret_provider(provider_id):
         success = service.test_provider_connection(provider_id)
 
         if success:
-            return jsonify({
-                'success': True,
-                'message': 'Provider connection successful'
-            }), 200
+            return (
+                jsonify({"success": True, "message": "Provider connection successful"}),
+                200,
+            )
         else:
-            return jsonify({
-                'success': False,
-                'message': 'Provider connection failed'
-            }), 400
+            return (
+                jsonify({"success": False, "message": "Provider connection failed"}),
+                400,
+            )
 
     except ValueError as e:
-        return jsonify({'error': 'Provider not found', 'message': str(e)}), 404
+        return jsonify({"error": "Provider not found", "message": str(e)}), 404
     except Exception as e:
         logger.error(f"Error testing provider {provider_id}: {str(e)}")
-        return jsonify({'error': 'Failed to test provider', 'message': str(e)}), 500
+        return jsonify({"error": "Failed to test provider", "message": str(e)}), 500

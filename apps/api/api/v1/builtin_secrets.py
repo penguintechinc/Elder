@@ -1,9 +1,11 @@
 """REST API endpoints for built-in secrets management."""
 
-from flask import Blueprint, request, jsonify
+import logging
+
+from flask import Blueprint, jsonify, request
+
 from apps.api.auth.decorators import login_required
 from apps.api.services.secrets import BuiltinSecretsClient
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +73,10 @@ def create_secret():
         required_fields = ["name", "value", "organization_id"]
         missing = [f for f in required_fields if f not in data]
         if missing:
-            return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+            return (
+                jsonify({"error": f"Missing required fields: {', '.join(missing)}"}),
+                400,
+            )
 
         config = {"organization_id": data["organization_id"]}
         client = BuiltinSecretsClient(config)

@@ -1,9 +1,10 @@
 """Structured logging configuration for the connector service."""
 
-import sys
 import logging
-import structlog
+import sys
 from typing import Any
+
+import structlog
 
 from apps.connector.config.settings import settings
 

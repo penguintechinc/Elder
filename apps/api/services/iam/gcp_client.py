@@ -1,13 +1,12 @@
 """GCP IAM client for identity and access management operations."""
 
 import json
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 
 try:
-    from google.cloud import iam_admin_v1
-    from google.cloud import resourcemanager_v3
-    from google.oauth2 import service_account
     from google.api_core import exceptions as google_exceptions
+    from google.cloud import iam_admin_v1, resourcemanager_v3
+    from google.oauth2 import service_account
 except ImportError:
     iam_admin_v1 = None
     resourcemanager_v3 = None
@@ -118,7 +117,7 @@ class GCPIAMClient(BaseIAMProvider):
         username: str,
         display_name: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Create a new service account."""
         try:
@@ -160,7 +159,9 @@ class GCPIAMClient(BaseIAMProvider):
             request = iam_admin_v1.DeleteServiceAccountRequest(name=user_identifier)
             self.iam_client.delete_service_account(request=request)
 
-            return {"message": f"Service account {user_identifier} deleted successfully"}
+            return {
+                "message": f"Service account {user_identifier} deleted successfully"
+            }
 
         except google_exceptions.GoogleAPIError as e:
             raise Exception(f"GCP IAM delete user error: {str(e)}")
@@ -172,7 +173,7 @@ class GCPIAMClient(BaseIAMProvider):
         user_identifier: str,
         display_name: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Update service account metadata."""
         try:
@@ -193,9 +194,7 @@ class GCPIAMClient(BaseIAMProvider):
                 sa.description = kwargs["description"]
 
             # Update service account
-            update_request = iam_admin_v1.PatchServiceAccountRequest(
-                service_account=sa
-            )
+            update_request = iam_admin_v1.PatchServiceAccountRequest(service_account=sa)
             updated_sa = self.iam_client.patch_service_account(request=update_request)
 
             return self._normalize_user(self._sa_to_dict(updated_sa))
@@ -240,9 +239,9 @@ class GCPIAMClient(BaseIAMProvider):
         """Get role details."""
         try:
             # Ensure full resource name
-            if not role_identifier.startswith("projects/") and not role_identifier.startswith(
-                "organizations/"
-            ):
+            if not role_identifier.startswith(
+                "projects/"
+            ) and not role_identifier.startswith("organizations/"):
                 role_identifier = f"projects/{self.project_id}/roles/{role_identifier}"
 
             request = iam_admin_v1.GetRoleRequest(name=role_identifier)
@@ -261,7 +260,7 @@ class GCPIAMClient(BaseIAMProvider):
         description: Optional[str] = None,
         trust_policy: Optional[Dict[str, Any]] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Create a new custom role."""
         try:
@@ -315,7 +314,7 @@ class GCPIAMClient(BaseIAMProvider):
         role_identifier: str,
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Update custom role metadata."""
         try:
@@ -382,9 +381,9 @@ class GCPIAMClient(BaseIAMProvider):
                         "name": binding.role,
                         "role": binding.role,
                         "members": list(binding.members),
-                        "condition": binding.condition.expression
-                        if binding.condition
-                        else None,
+                        "condition": (
+                            binding.condition.expression if binding.condition else None
+                        ),
                     }
                 )
 
@@ -418,9 +417,9 @@ class GCPIAMClient(BaseIAMProvider):
                         "name": binding.role,
                         "role": binding.role,
                         "members": list(binding.members),
-                        "condition": binding.condition.expression
-                        if binding.condition
-                        else None,
+                        "condition": (
+                            binding.condition.expression if binding.condition else None
+                        ),
                     }
 
             raise Exception(f"Policy binding for role {policy_identifier} not found")
@@ -436,7 +435,7 @@ class GCPIAMClient(BaseIAMProvider):
         policy_document: Dict[str, Any],
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Create IAM policy binding (attach role to members).
@@ -497,7 +496,9 @@ class GCPIAMClient(BaseIAMProvider):
             policy = self.resource_manager.get_iam_policy(request=get_request)
 
             # Remove binding
-            policy.bindings = [b for b in policy.bindings if b.role != policy_identifier]
+            policy.bindings = [
+                b for b in policy.bindings if b.role != policy_identifier
+            ]
 
             # Set updated policy
             set_request = resourcemanager_v3.SetIamPolicyRequest(
@@ -505,7 +506,9 @@ class GCPIAMClient(BaseIAMProvider):
             )
             self.resource_manager.set_iam_policy(request=set_request)
 
-            return {"message": f"Policy binding {policy_identifier} deleted successfully"}
+            return {
+                "message": f"Policy binding {policy_identifier} deleted successfully"
+            }
 
         except google_exceptions.GoogleAPIError as e:
             raise Exception(f"GCP IAM delete policy error: {str(e)}")
@@ -562,9 +565,7 @@ class GCPIAMClient(BaseIAMProvider):
             }
 
         except google_exceptions.GoogleAPIError as e:
-            raise Exception(
-                f"GCP IAM attach policy to user error: {str(e)}"
-            )
+            raise Exception(f"GCP IAM attach policy to user error: {str(e)}")
         except Exception as e:
             raise Exception(f"GCP IAM attach policy to user error: {str(e)}")
 
@@ -608,9 +609,7 @@ class GCPIAMClient(BaseIAMProvider):
             }
 
         except google_exceptions.GoogleAPIError as e:
-            raise Exception(
-                f"GCP IAM detach policy from user error: {str(e)}"
-            )
+            raise Exception(f"GCP IAM detach policy from user error: {str(e)}")
         except Exception as e:
             raise Exception(f"GCP IAM detach policy from user error: {str(e)}")
 
@@ -651,15 +650,17 @@ class GCPIAMClient(BaseIAMProvider):
             for binding in policy.bindings:
                 if user_identifier in binding.members:
                     policies.append(
-                        {"name": binding.role, "role": binding.role, "arn": binding.role}
+                        {
+                            "name": binding.role,
+                            "role": binding.role,
+                            "arn": binding.role,
+                        }
                     )
 
             return policies
 
         except google_exceptions.GoogleAPIError as e:
-            raise Exception(
-                f"GCP IAM list user policies error: {str(e)}"
-            )
+            raise Exception(f"GCP IAM list user policies error: {str(e)}")
         except Exception as e:
             raise Exception(f"GCP IAM list user policies error: {str(e)}")
 
@@ -720,12 +721,16 @@ class GCPIAMClient(BaseIAMProvider):
                         "key_id": key.name.split("/")[-1],
                         "type": key.key_type.name,
                         "algorithm": key.key_algorithm.name,
-                        "valid_after": key.valid_after_time.isoformat()
-                        if key.valid_after_time
-                        else None,
-                        "valid_before": key.valid_before_time.isoformat()
-                        if key.valid_before_time
-                        else None,
+                        "valid_after": (
+                            key.valid_after_time.isoformat()
+                            if key.valid_after_time
+                            else None
+                        ),
+                        "valid_before": (
+                            key.valid_before_time.isoformat()
+                            if key.valid_before_time
+                            else None
+                        ),
                     }
                 )
 

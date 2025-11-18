@@ -8,17 +8,17 @@ This module provides a unified logging interface that can simultaneously send lo
 All logs include correlation IDs for distributed tracing across sync operations.
 """
 
-import sys
 import json
 import logging
 import socket
+import sys
 import uuid
 from datetime import datetime
-from typing import Optional, Any
 from logging.handlers import SysLogHandler
+from typing import Any, Optional
 
-import structlog
 import httpx
+import structlog
 
 from apps.connector.config.settings import settings
 
@@ -64,7 +64,7 @@ class KillKrillHandler(logging.Handler):
             headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {api_key}" if api_key else "",
-            }
+            },
         )
 
     def emit(self, record: logging.LogRecord) -> None:
@@ -178,13 +178,15 @@ def configure_multi_destination_logging() -> None:
     if settings.log_format == "json":
         # JSON formatter for structured logging
         console_formatter = logging.Formatter(
-            json.dumps({
-                "timestamp": "%(asctime)s",
-                "level": "%(levelname)s",
-                "logger": "%(name)s",
-                "message": "%(message)s",
-                "correlation_id": "%(correlation_id)s",
-            })
+            json.dumps(
+                {
+                    "timestamp": "%(asctime)s",
+                    "level": "%(levelname)s",
+                    "logger": "%(name)s",
+                    "message": "%(message)s",
+                    "correlation_id": "%(correlation_id)s",
+                }
+            )
         )
     else:
         # Human-readable console format

@@ -7,27 +7,24 @@ Jira-specific features:
 - Custom fields support
 """
 
-import httpx
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
+import httpx
 from pydal import DAL
 
-from apps.connector.sync.base import (
-    BaseSyncClient,
-    SyncOperation,
-    SyncResult,
-    SyncStatus,
-    ResourceType,
-    SyncDirection,
-)
+from apps.connector.sync.base import (BaseSyncClient, ResourceType,
+                                      SyncDirection, SyncOperation, SyncResult,
+                                      SyncStatus)
 from apps.connector.sync.conflict_resolver import ConflictResolver
 
 
 class JiraSyncClient(BaseSyncClient):
     """Jira Cloud sync client implementation."""
 
-    def __init__(self, config: Dict[str, Any], db: DAL, sync_config_id: int, logger: Any):
+    def __init__(
+        self, config: Dict[str, Any], db: DAL, sync_config_id: int, logger: Any
+    ):
         super().__init__("jira", config, db, sync_config_id, logger)
 
         self.api_token = config.get("api_token")
@@ -53,7 +50,9 @@ class JiraSyncClient(BaseSyncClient):
         }
 
     def validate_config(self) -> bool:
-        return bool(self.api_token and self.email and self.jira_url and self.project_key)
+        return bool(
+            self.api_token and self.email and self.jira_url and self.project_key
+        )
 
     def test_connection(self) -> bool:
         try:
@@ -66,7 +65,9 @@ class JiraSyncClient(BaseSyncClient):
     def sync_issue(self, operation: SyncOperation) -> SyncResult:
         """Sync issue with Jira."""
         self.logger.info(f"Jira issue sync: {operation.operation_type}")
-        return SyncResult(status=SyncStatus.SUCCESS, operation=operation, items_synced=1)
+        return SyncResult(
+            status=SyncStatus.SUCCESS, operation=operation, items_synced=1
+        )
 
     def sync_project(self, operation: SyncOperation) -> SyncResult:
         """Sync project with Jira."""
@@ -80,7 +81,9 @@ class JiraSyncClient(BaseSyncClient):
         """Sync label with Jira (Components)."""
         return SyncResult(status=SyncStatus.SUCCESS, operation=operation)
 
-    def batch_sync(self, resource_type: ResourceType, since: Optional[datetime] = None) -> SyncResult:
+    def batch_sync(
+        self, resource_type: ResourceType, since: Optional[datetime] = None
+    ) -> SyncResult:
         """Batch sync Jira resources."""
         self.logger.info(f"Jira batch sync for {resource_type.value}")
         return SyncResult(

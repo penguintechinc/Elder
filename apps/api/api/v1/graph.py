@@ -1,8 +1,9 @@
 """Graph visualization API endpoints using PyDAL with async/await."""
 
-from flask import Blueprint, request, jsonify, current_app
 from typing import Dict
+
 import networkx as nx
+from flask import Blueprint, current_app, jsonify, request
 
 from shared.async_utils import run_in_threadpool
 
@@ -42,10 +43,10 @@ async def get_graph():
         query = db.entities.id > 0
 
         if org_id:
-            query &= (db.entities.organization_id == org_id)
+            query &= db.entities.organization_id == org_id
 
         if entity_type:
-            query &= (db.entities.entity_type == entity_type)
+            query &= db.entities.entity_type == entity_type
 
         # If entity_id specified, get subgraph centered on that entity
         if entity_id:
@@ -63,8 +64,8 @@ async def get_graph():
 
         # Get dependencies between these entities
         dependencies = db(
-            db.dependencies.source_entity_id.belongs(entity_ids) &
-            db.dependencies.target_entity_id.belongs(entity_ids)
+            db.dependencies.source_entity_id.belongs(entity_ids)
+            & db.dependencies.target_entity_id.belongs(entity_ids)
         ).select()
 
         # Build vis.js compatible graph data
@@ -100,14 +101,18 @@ async def get_graph():
 
             edges.append(edge)
 
-        return {
-            "nodes": nodes,
-            "edges": edges,
-            "stats": {
-                "entity_count": len(entities),
-                "dependency_count": len(dependencies),
-            }
-        }, None, 200
+        return (
+            {
+                "nodes": nodes,
+                "edges": edges,
+                "stats": {
+                    "entity_count": len(entities),
+                    "dependency_count": len(dependencies),
+                },
+            },
+            None,
+            200,
+        )
 
     result, error, status = await run_in_threadpool(get_graph_data)
 
@@ -136,24 +141,27 @@ async def analyze_graph():
         # Build query
         query = db.entities.id > 0
         if org_id:
-            query &= (db.entities.organization_id == org_id)
+            query &= db.entities.organization_id == org_id
 
         entities = db(query).select()
         entity_ids = [e.id for e in entities]
 
         dependencies = db(
-            db.dependencies.source_entity_id.belongs(entity_ids) &
-            db.dependencies.target_entity_id.belongs(entity_ids)
+            db.dependencies.source_entity_id.belongs(entity_ids)
+            & db.dependencies.target_entity_id.belongs(entity_ids)
         ).select()
 
         # Build NetworkX graph for analysis
         G = nx.DiGraph()
 
         for entity in entities:
-            G.add_node(entity.id, **{
-                "name": entity.name,
-                "type": entity.entity_type,
-            })
+            G.add_node(
+                entity.id,
+                **{
+                    "name": entity.name,
+                    "type": entity.entity_type,
+                },
+            )
 
         for dep in dependencies:
             G.add_edge(dep.source_entity_id, dep.target_entity_id)
@@ -179,17 +187,23 @@ async def analyze_graph():
             out_degree = dict(G.out_degree())
 
             # Top 10 most depended upon (high in-degree)
-            most_depended = sorted(in_degree.items(), key=lambda x: x[1], reverse=True)[:10]
+            most_depended = sorted(in_degree.items(), key=lambda x: x[1], reverse=True)[
+                :10
+            ]
             analysis["centrality"]["most_depended_upon"] = [
                 {"entity_id": eid, "name": G.nodes[eid]["name"], "in_degree": deg}
-                for eid, deg in most_depended if deg > 0
+                for eid, deg in most_depended
+                if deg > 0
             ]
 
             # Top 10 with most dependencies (high out-degree)
-            most_dependent = sorted(out_degree.items(), key=lambda x: x[1], reverse=True)[:10]
+            most_dependent = sorted(
+                out_degree.items(), key=lambda x: x[1], reverse=True
+            )[:10]
             analysis["centrality"]["most_dependent"] = [
                 {"entity_id": eid, "name": G.nodes[eid]["name"], "out_degree": deg}
-                for eid, deg in most_dependent if deg > 0
+                for eid, deg in most_dependent
+                if deg > 0
             ]
 
         # Detect cycles (circular dependencies)
@@ -260,21 +274,33 @@ async def find_path():
             entity_map = {e.id: e for e in entities_in_path}
 
             path_details = [
-                {"id": eid, "name": entity_map[eid].name, "type": entity_map[eid].entity_type}
+                {
+                    "id": eid,
+                    "name": entity_map[eid].name,
+                    "type": entity_map[eid].entity_type,
+                }
                 for eid in path
             ]
 
-            return {
-                "path_exists": True,
-                "path_length": path_length,
-                "path": path_details,
-            }, None, 200
+            return (
+                {
+                    "path_exists": True,
+                    "path_length": path_length,
+                    "path": path_details,
+                },
+                None,
+                200,
+            )
 
         except nx.NetworkXNoPath:
-            return {
-                "path_exists": False,
-                "message": f"No dependency path from {from_entity.name} to {to_entity.name}",
-            }, None, 200
+            return (
+                {
+                    "path_exists": False,
+                    "message": f"No dependency path from {from_entity.name} to {to_entity.name}",
+                },
+                None,
+                200,
+            )
 
     result, error, status = await run_in_threadpool(find_path_impl)
 
@@ -362,7 +388,7 @@ def _get_edge_style(dependency_type: str) -> tuple:
     """Get vis.js edge styling based on dependency type."""
     styles = {
         "depends_on": ("#34495e", False),  # solid
-        "related_to": ("#95a5a6", True),    # dashed
-        "part_of": ("#2ecc71", False),      # solid green
+        "related_to": ("#95a5a6", True),  # dashed
+        "part_of": ("#2ecc71", False),  # solid green
     }
     return styles.get(dependency_type, ("#7f8c8d", False))

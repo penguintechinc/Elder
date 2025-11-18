@@ -1,8 +1,8 @@
 """Networking resources service for network topology and visualization."""
 
 import logging
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from flask import current_app
 
@@ -53,7 +53,9 @@ class NetworkingService:
 
             self.db.commit()
 
-            logger.info(f"Created networking resource '{name}' (ID: {network_id}, Type: {network_type})")
+            logger.info(
+                f"Created networking resource '{name}' (ID: {network_id}, Type: {network_type})"
+            )
 
             return self.get_network(network_id)
 
@@ -90,19 +92,19 @@ class NetworkingService:
     ) -> Dict[str, Any]:
         """List networking resources with filters."""
         try:
-            query = (self.db.networking_resources.is_active == is_active)
+            query = self.db.networking_resources.is_active == is_active
 
             if organization_id:
-                query &= (self.db.networking_resources.organization_id == organization_id)
+                query &= self.db.networking_resources.organization_id == organization_id
 
             if network_type:
-                query &= (self.db.networking_resources.network_type == network_type)
+                query &= self.db.networking_resources.network_type == network_type
 
             if parent_id is not None:
-                query &= (self.db.networking_resources.parent_id == parent_id)
+                query &= self.db.networking_resources.parent_id == parent_id
 
             if region:
-                query &= (self.db.networking_resources.region == region)
+                query &= self.db.networking_resources.region == region
 
             total_count = self.db(query).count()
 
@@ -179,7 +181,9 @@ class NetworkingService:
             logger.error(f"Failed to update networking resource: {str(e)}")
             raise Exception(f"Failed to update networking resource: {str(e)}")
 
-    def delete_network(self, network_id: int, hard_delete: bool = False) -> Dict[str, Any]:
+    def delete_network(
+        self, network_id: int, hard_delete: bool = False
+    ) -> Dict[str, Any]:
         """Delete networking resource (soft delete by default)."""
         try:
             network = self.db.networking_resources[network_id]
@@ -190,12 +194,14 @@ class NetworkingService:
             if hard_delete:
                 # Remove all topology connections
                 self.db(
-                    (self.db.network_topology.source_network_id == network_id) |
-                    (self.db.network_topology.target_network_id == network_id)
+                    (self.db.network_topology.source_network_id == network_id)
+                    | (self.db.network_topology.target_network_id == network_id)
                 ).delete()
 
                 # Remove all entity mappings
-                self.db(self.db.network_entity_mappings.network_id == network_id).delete()
+                self.db(
+                    self.db.network_entity_mappings.network_id == network_id
+                ).delete()
 
                 # Delete the network
                 del self.db.networking_resources[network_id]
@@ -209,7 +215,11 @@ class NetworkingService:
 
             self.db.commit()
 
-            return {"success": True, "network_id": network_id, "hard_delete": hard_delete}
+            return {
+                "success": True,
+                "network_id": network_id,
+                "hard_delete": hard_delete,
+            }
 
         except ValueError:
             raise
@@ -249,7 +259,9 @@ class NetworkingService:
 
             self.db.commit()
 
-            logger.info(f"Created network topology connection: {source_network_id} -> {target_network_id} ({connection_type})")
+            logger.info(
+                f"Created network topology connection: {source_network_id} -> {target_network_id} ({connection_type})"
+            )
 
             return self.get_topology_connection(connection_id)
 
@@ -283,16 +295,15 @@ class NetworkingService:
     ) -> List[Dict[str, Any]]:
         """List topology connections, optionally filtered by network or type."""
         try:
-            query = (self.db.network_topology.id > 0)
+            query = self.db.network_topology.id > 0
 
             if network_id:
-                query &= (
-                    (self.db.network_topology.source_network_id == network_id) |
-                    (self.db.network_topology.target_network_id == network_id)
+                query &= (self.db.network_topology.source_network_id == network_id) | (
+                    self.db.network_topology.target_network_id == network_id
                 )
 
             if connection_type:
-                query &= (self.db.network_topology.connection_type == connection_type)
+                query &= self.db.network_topology.connection_type == connection_type
 
             connections = self.db(query).select()
 
@@ -351,7 +362,9 @@ class NetworkingService:
 
             self.db.commit()
 
-            logger.info(f"Mapped entity {entity_id} to network {network_id} ({relationship_type})")
+            logger.info(
+                f"Mapped entity {entity_id} to network {network_id} ({relationship_type})"
+            )
 
             return self.get_entity_mapping(mapping_id)
 
@@ -386,16 +399,19 @@ class NetworkingService:
     ) -> List[Dict[str, Any]]:
         """List entity-network mappings with filters."""
         try:
-            query = (self.db.network_entity_mappings.id > 0)
+            query = self.db.network_entity_mappings.id > 0
 
             if network_id:
-                query &= (self.db.network_entity_mappings.network_id == network_id)
+                query &= self.db.network_entity_mappings.network_id == network_id
 
             if entity_id:
-                query &= (self.db.network_entity_mappings.entity_id == entity_id)
+                query &= self.db.network_entity_mappings.entity_id == entity_id
 
             if relationship_type:
-                query &= (self.db.network_entity_mappings.relationship_type == relationship_type)
+                query &= (
+                    self.db.network_entity_mappings.relationship_type
+                    == relationship_type
+                )
 
             mappings = self.db(query).select()
 
@@ -438,16 +454,16 @@ class NetworkingService:
         try:
             # Get all networks for the organization
             networks = self.db(
-                (self.db.networking_resources.organization_id == organization_id) &
-                (self.db.networking_resources.is_active == True)
+                (self.db.networking_resources.organization_id == organization_id)
+                & (self.db.networking_resources.is_active == True)
             ).select()
 
             # Get all topology connections for these networks
             network_ids = [n.id for n in networks]
 
             connections = self.db(
-                (self.db.network_topology.source_network_id.belongs(network_ids)) &
-                (self.db.network_topology.target_network_id.belongs(network_ids))
+                (self.db.network_topology.source_network_id.belongs(network_ids))
+                & (self.db.network_topology.target_network_id.belongs(network_ids))
             ).select()
 
             # Build nodes and edges for visualization
@@ -470,7 +486,7 @@ class NetworkingService:
                     self.db.entities.ALL,
                     left=self.db.entities.on(
                         self.db.network_entity_mappings.entity_id == self.db.entities.id
-                    )
+                    ),
                 )
 
                 entity_nodes = []
@@ -478,19 +494,23 @@ class NetworkingService:
 
                 for mapping in mappings:
                     if mapping.entities.id:
-                        entity_nodes.append({
-                            "id": f"entity_{mapping.entities.id}",
-                            "type": "entity",
-                            "label": mapping.entities.name,
-                            "entity_type": mapping.entities.entity_type,
-                        })
+                        entity_nodes.append(
+                            {
+                                "id": f"entity_{mapping.entities.id}",
+                                "type": "entity",
+                                "label": mapping.entities.name,
+                                "entity_type": mapping.entities.entity_type,
+                            }
+                        )
 
-                        entity_edges.append({
-                            "id": f"mapping_{mapping.network_entity_mappings.id}",
-                            "source": f"network_{mapping.network_entity_mappings.network_id}",
-                            "target": f"entity_{mapping.network_entity_mappings.entity_id}",
-                            "type": mapping.network_entity_mappings.relationship_type,
-                        })
+                        entity_edges.append(
+                            {
+                                "id": f"mapping_{mapping.network_entity_mappings.id}",
+                                "source": f"network_{mapping.network_entity_mappings.network_id}",
+                                "target": f"entity_{mapping.network_entity_mappings.entity_id}",
+                                "type": mapping.network_entity_mappings.relationship_type,
+                            }
+                        )
 
                 result["entity_nodes"] = entity_nodes
                 result["entity_edges"] = entity_edges
@@ -520,8 +540,12 @@ class NetworkingService:
             "status_metadata": network.status_metadata,
             "tags": network.tags,
             "is_active": network.is_active,
-            "created_at": network.created_at.isoformat() if network.created_at else None,
-            "updated_at": network.updated_at.isoformat() if network.updated_at else None,
+            "created_at": (
+                network.created_at.isoformat() if network.created_at else None
+            ),
+            "updated_at": (
+                network.updated_at.isoformat() if network.updated_at else None
+            ),
         }
 
     def _serialize_topology_connection(self, connection: Any) -> Dict[str, Any]:
@@ -554,7 +578,11 @@ class NetworkingService:
             "label": network.name,
             "network_type": network.network_type,
             "region": network.region,
-            "status": network.status_metadata.get("status") if network.status_metadata else None,
+            "status": (
+                network.status_metadata.get("status")
+                if network.status_metadata
+                else None
+            ),
         }
 
     def _serialize_topology_edge(self, connection: Any) -> Dict[str, Any]:

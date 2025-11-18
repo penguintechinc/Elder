@@ -1,13 +1,13 @@
 """JWT token handling for Elder authentication using PyDAL."""
 
-from datetime import datetime, timezone
-from typing import Optional, Dict, Any
 import logging
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
 import jwt
-from flask import request, current_app, g
-from werkzeug.security import check_password_hash
+from flask import current_app, g, request
 from pydal.objects import Row
+from werkzeug.security import check_password_hash
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +55,16 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
         Decoded payload dict or None if invalid
     """
     try:
-        secret = current_app.config["JWT_SECRET_KEY"] or current_app.config["SECRET_KEY"]
+        secret = (
+            current_app.config["JWT_SECRET_KEY"] or current_app.config["SECRET_KEY"]
+        )
         algorithm = current_app.config["JWT_ALGORITHM"]
 
         logger.debug(f"Verifying token with algorithm {algorithm}")
         logger.debug(f"Token (first 20 chars): {token[:20]}...")
-        logger.debug(f"Using secret key: {secret[:10]}..." if secret else "No secret key!")
+        logger.debug(
+            f"Using secret key: {secret[:10]}..." if secret else "No secret key!"
+        )
 
         payload = jwt.decode(token, secret, algorithms=[algorithm])
         logger.debug(f"Token verified successfully. Payload: {payload}")

@@ -11,7 +11,6 @@ class Base(DeclarativeBase):
     """Base class for all database models."""
 
 
-
 class TimestampMixin:
     """Mixin for adding created_at and updated_at timestamps."""
 

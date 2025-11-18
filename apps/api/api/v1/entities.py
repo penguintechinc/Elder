@@ -1,16 +1,13 @@
 """Entity API endpoints using PyDAL with async/await."""
 
 import asyncio
-from flask import Blueprint, request, jsonify, current_app
 from dataclasses import asdict
 
-from apps.api.models.dataclasses import (
-    EntityDTO,
-    PaginatedResponse,
-    from_pydal_row,
-    from_pydal_rows,
-)
+from flask import Blueprint, current_app, jsonify, request
+
 from apps.api.auth.decorators import login_required
+from apps.api.models.dataclasses import (EntityDTO, PaginatedResponse,
+                                         from_pydal_row, from_pydal_rows)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("entities", __name__)
@@ -36,8 +33,8 @@ async def list_entities():
     db = current_app.db
 
     # Get pagination params
-    page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 50, type=int), 1000)
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 50, type=int), 1000)
 
     # Build query
     query = db.entities.id > 0
@@ -45,33 +42,32 @@ async def list_entities():
     # Apply filters
     if request.args.get("entity_type"):
         entity_type = request.args.get("entity_type")
-        query &= (db.entities.entity_type == entity_type)
+        query &= db.entities.entity_type == entity_type
 
     if request.args.get("organization_id"):
         organization_id = request.args.get("organization_id", type=int)
-        query &= (db.entities.organization_id == organization_id)
+        query &= db.entities.organization_id == organization_id
 
     if request.args.get("name"):
         name = request.args.get("name")
-        query &= (db.entities.name.ilike(f'%{name}%'))
+        query &= db.entities.name.ilike(f"%{name}%")
 
     if request.args.get("is_active") is not None:
         is_active = request.args.get("is_active", "true").lower() == "true"
-        query &= (db.entities.is_active == is_active)
+        query &= db.entities.is_active == is_active
 
     # Calculate pagination
     offset = (page - 1) * per_page
 
     # Use asyncio TaskGroup for concurrent queries (Python 3.12)
     async with asyncio.TaskGroup() as tg:
-        count_task = tg.create_task(
-            run_in_threadpool(lambda: db(query).count())
-        )
+        count_task = tg.create_task(run_in_threadpool(lambda: db(query).count()))
         rows_task = tg.create_task(
-            run_in_threadpool(lambda: db(query).select(
-                orderby=db.entities.name,
-                limitby=(offset, offset + per_page)
-            ))
+            run_in_threadpool(
+                lambda: db(query).select(
+                    orderby=db.entities.name, limitby=(offset, offset + per_page)
+                )
+            )
         )
 
     total = count_task.result()
@@ -89,7 +85,7 @@ async def list_entities():
         total=total,
         page=page,
         per_page=per_page,
-        pages=pages
+        pages=pages,
     )
 
     return jsonify(asdict(response)), 200
@@ -254,7 +250,9 @@ async def delete_entity(id: int):
 
         total_deps = outgoing_count + incoming_count
         if total_deps > 0:
-            return {"error": f"Cannot delete entity with {total_deps} dependencies. Remove dependencies first."}, False
+            return {
+                "error": f"Cannot delete entity with {total_deps} dependencies. Remove dependencies first."
+            }, False
 
         # Delete entity
         del db.entities[id]

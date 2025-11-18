@@ -9,16 +9,17 @@ the required abstract methods.
 """
 
 import abc
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Dict, Any, List
-from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
 
 from pydal import DAL
 
 
 class SyncDirection(Enum):
     """Direction of synchronization."""
+
     ELDER_TO_EXTERNAL = "elder_to_external"
     EXTERNAL_TO_ELDER = "external_to_elder"
     BIDIRECTIONAL = "bidirectional"
@@ -26,6 +27,7 @@ class SyncDirection(Enum):
 
 class SyncStatus(Enum):
     """Status of a sync operation."""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     SUCCESS = "success"
@@ -36,6 +38,7 @@ class SyncStatus(Enum):
 
 class ResourceType(Enum):
     """Type of resource being synced."""
+
     ISSUE = "issue"
     PROJECT = "project"
     MILESTONE = "milestone"
@@ -58,6 +61,7 @@ class SyncMapping:
         elder_updated_at: Elder resource last modified timestamp
         external_updated_at: External resource last modified timestamp
     """
+
     elder_type: str
     elder_id: int
     external_platform: str
@@ -82,6 +86,7 @@ class SyncOperation:
         correlation_id: Correlation ID for distributed tracing
         metadata: Additional operation-specific metadata
     """
+
     operation_type: str  # create, update, delete
     resource_type: ResourceType
     direction: SyncDirection
@@ -107,6 +112,7 @@ class SyncResult:
         updated_mappings: Updated sync mappings
         metadata: Additional result metadata
     """
+
     status: SyncStatus
     operation: SyncOperation
     items_synced: int = 0
@@ -140,6 +146,7 @@ class ConflictResolution:
         resolved: Whether conflict has been resolved
         resolution_data: Final resolved data
     """
+
     conflict_type: str
     elder_data: Dict[str, Any]
     external_data: Dict[str, Any]

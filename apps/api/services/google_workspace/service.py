@@ -2,11 +2,12 @@
 
 import json
 from datetime import datetime
-from typing import Dict, List, Any, Optional
-from pydal import DAL
+from typing import Any, Dict, List, Optional
+
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from pydal import DAL
 
 
 class GoogleWorkspaceService:
@@ -25,7 +26,9 @@ class GoogleWorkspaceService:
     # Provider Management
     # ===========================
 
-    def list_providers(self, organization_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    def list_providers(
+        self, organization_id: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
         """
         List Google Workspace providers.
 
@@ -38,9 +41,13 @@ class GoogleWorkspaceService:
         query = self.db.google_workspace_providers.id > 0
 
         if organization_id is not None:
-            query &= self.db.google_workspace_providers.organization_id == organization_id
+            query &= (
+                self.db.google_workspace_providers.organization_id == organization_id
+            )
 
-        providers = self.db(query).select(orderby=self.db.google_workspace_providers.created_at)
+        providers = self.db(query).select(
+            orderby=self.db.google_workspace_providers.created_at
+        )
 
         return [self._sanitize_provider(p.as_dict()) for p in providers]
 
@@ -71,7 +78,7 @@ class GoogleWorkspaceService:
         customer_id: str,
         admin_email: str,
         service_account_json: Dict[str, Any],
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Create Google Workspace provider.
@@ -88,10 +95,12 @@ class GoogleWorkspaceService:
             Created provider dictionary
         """
         # Validate service account JSON
-        required_keys = ['type', 'project_id', 'private_key', 'client_email']
+        required_keys = ["type", "project_id", "private_key", "client_email"]
         missing = [k for k in required_keys if k not in service_account_json]
         if missing:
-            raise Exception(f"Invalid service account JSON. Missing keys: {', '.join(missing)}")
+            raise Exception(
+                f"Invalid service account JSON. Missing keys: {', '.join(missing)}"
+            )
 
         provider_id = self.db.google_workspace_providers.insert(
             name=name,
@@ -101,7 +110,7 @@ class GoogleWorkspaceService:
             service_account_json=json.dumps(service_account_json),
             description=description,
             enabled=True,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
 
         self.db.commit()
@@ -117,7 +126,7 @@ class GoogleWorkspaceService:
         admin_email: Optional[str] = None,
         service_account_json: Optional[Dict[str, Any]] = None,
         description: Optional[str] = None,
-        enabled: Optional[bool] = None
+        enabled: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Update provider configuration.
@@ -142,27 +151,29 @@ class GoogleWorkspaceService:
         if not provider:
             raise Exception(f"Google Workspace provider {provider_id} not found")
 
-        update_data = {'updated_at': datetime.utcnow()}
+        update_data = {"updated_at": datetime.utcnow()}
 
         if name is not None:
-            update_data['name'] = name
+            update_data["name"] = name
 
         if customer_id is not None:
-            update_data['customer_id'] = customer_id
+            update_data["customer_id"] = customer_id
 
         if admin_email is not None:
-            update_data['admin_email'] = admin_email
+            update_data["admin_email"] = admin_email
 
         if service_account_json is not None:
-            update_data['service_account_json'] = json.dumps(service_account_json)
+            update_data["service_account_json"] = json.dumps(service_account_json)
 
         if description is not None:
-            update_data['description'] = description
+            update_data["description"] = description
 
         if enabled is not None:
-            update_data['enabled'] = enabled
+            update_data["enabled"] = enabled
 
-        self.db(self.db.google_workspace_providers.id == provider_id).update(**update_data)
+        self.db(self.db.google_workspace_providers.id == provider_id).update(
+            **update_data
+        )
         self.db.commit()
 
         provider = self.db.google_workspace_providers[provider_id]
@@ -189,7 +200,7 @@ class GoogleWorkspaceService:
         self.db(self.db.google_workspace_providers.id == provider_id).delete()
         self.db.commit()
 
-        return {'message': 'Google Workspace provider deleted successfully'}
+        return {"message": "Google Workspace provider deleted successfully"}
 
     def test_provider(self, provider_id: int) -> Dict[str, Any]:
         """
@@ -216,17 +227,17 @@ class GoogleWorkspaceService:
             results = client.domains().list(customer=provider.customer_id).execute()
 
             return {
-                'success': True,
-                'customer_id': provider.customer_id,
-                'domains': results.get('domains', []),
-                'message': 'Successfully connected to Google Workspace'
+                "success": True,
+                "customer_id": provider.customer_id,
+                "domains": results.get("domains", []),
+                "message": "Successfully connected to Google Workspace",
             }
 
         except Exception as e:
             return {
-                'success': False,
-                'error': str(e),
-                'message': 'Failed to connect to Google Workspace'
+                "success": False,
+                "error": str(e),
+                "message": "Failed to connect to Google Workspace",
             }
 
     # ===========================
@@ -234,10 +245,7 @@ class GoogleWorkspaceService:
     # ===========================
 
     def list_users(
-        self,
-        provider_id: int,
-        domain: Optional[str] = None,
-        limit: int = 100
+        self, provider_id: int, domain: Optional[str] = None, limit: int = 100
     ) -> Dict[str, Any]:
         """
         List Google Workspace users.
@@ -258,22 +266,19 @@ class GoogleWorkspaceService:
         try:
             client = self._get_directory_client(provider)
 
-            params = {
-                'customer': provider.customer_id,
-                'maxResults': min(limit, 500)
-            }
+            params = {"customer": provider.customer_id, "maxResults": min(limit, 500)}
 
             if domain:
-                params['domain'] = domain
+                params["domain"] = domain
 
             results = client.users().list(**params).execute()
 
-            users = results.get('users', [])
+            users = results.get("users", [])
 
             return {
-                'users': [self._format_user(u) for u in users],
-                'count': len(users),
-                'domain': domain
+                "users": [self._format_user(u) for u in users],
+                "count": len(users),
+                "domain": domain,
             }
 
         except HttpError as e:
@@ -316,7 +321,7 @@ class GoogleWorkspaceService:
         given_name: str,
         family_name: str,
         password: str,
-        org_unit_path: str = '/'
+        org_unit_path: str = "/",
     ) -> Dict[str, Any]:
         """
         Create Google Workspace user.
@@ -341,13 +346,10 @@ class GoogleWorkspaceService:
             client = self._get_directory_client(provider)
 
             user_body = {
-                'primaryEmail': primary_email,
-                'name': {
-                    'givenName': given_name,
-                    'familyName': family_name
-                },
-                'password': password,
-                'orgUnitPath': org_unit_path
+                "primaryEmail": primary_email,
+                "name": {"givenName": given_name, "familyName": family_name},
+                "password": password,
+                "orgUnitPath": org_unit_path,
             }
 
             user = client.users().insert(body=user_body).execute()
@@ -364,7 +366,7 @@ class GoogleWorkspaceService:
         given_name: Optional[str] = None,
         family_name: Optional[str] = None,
         suspended: Optional[bool] = None,
-        org_unit_path: Optional[str] = None
+        org_unit_path: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Update user details.
@@ -391,17 +393,17 @@ class GoogleWorkspaceService:
             user_body = {}
 
             if given_name is not None or family_name is not None:
-                user_body['name'] = {}
+                user_body["name"] = {}
                 if given_name is not None:
-                    user_body['name']['givenName'] = given_name
+                    user_body["name"]["givenName"] = given_name
                 if family_name is not None:
-                    user_body['name']['familyName'] = family_name
+                    user_body["name"]["familyName"] = family_name
 
             if suspended is not None:
-                user_body['suspended'] = suspended
+                user_body["suspended"] = suspended
 
             if org_unit_path is not None:
-                user_body['orgUnitPath'] = org_unit_path
+                user_body["orgUnitPath"] = org_unit_path
 
             user = client.users().update(userKey=user_key, body=user_body).execute()
 
@@ -430,7 +432,7 @@ class GoogleWorkspaceService:
             client = self._get_directory_client(provider)
             client.users().delete(userKey=user_key).execute()
 
-            return {'message': f'User {user_key} deleted successfully'}
+            return {"message": f"User {user_key} deleted successfully"}
 
         except HttpError as e:
             raise Exception(f"Failed to delete user: {str(e)}")
@@ -440,10 +442,7 @@ class GoogleWorkspaceService:
     # ===========================
 
     def list_groups(
-        self,
-        provider_id: int,
-        domain: Optional[str] = None,
-        limit: int = 100
+        self, provider_id: int, domain: Optional[str] = None, limit: int = 100
     ) -> Dict[str, Any]:
         """
         List Google Workspace groups.
@@ -464,22 +463,19 @@ class GoogleWorkspaceService:
         try:
             client = self._get_directory_client(provider)
 
-            params = {
-                'customer': provider.customer_id,
-                'maxResults': min(limit, 200)
-            }
+            params = {"customer": provider.customer_id, "maxResults": min(limit, 200)}
 
             if domain:
-                params['domain'] = domain
+                params["domain"] = domain
 
             results = client.groups().list(**params).execute()
 
-            groups = results.get('groups', [])
+            groups = results.get("groups", [])
 
             return {
-                'groups': [self._format_group(g) for g in groups],
-                'count': len(groups),
-                'domain': domain
+                "groups": [self._format_group(g) for g in groups],
+                "count": len(groups),
+                "domain": domain,
             }
 
         except HttpError as e:
@@ -513,11 +509,7 @@ class GoogleWorkspaceService:
             raise Exception(f"Failed to get group: {str(e)}")
 
     def create_group(
-        self,
-        provider_id: int,
-        email: str,
-        name: str,
-        description: Optional[str] = None
+        self, provider_id: int, email: str, name: str, description: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Create Google Workspace group.
@@ -539,13 +531,10 @@ class GoogleWorkspaceService:
         try:
             client = self._get_directory_client(provider)
 
-            group_body = {
-                'email': email,
-                'name': name
-            }
+            group_body = {"email": email, "name": name}
 
             if description:
-                group_body['description'] = description
+                group_body["description"] = description
 
             group = client.groups().insert(body=group_body).execute()
 
@@ -574,16 +563,13 @@ class GoogleWorkspaceService:
             client = self._get_directory_client(provider)
             client.groups().delete(groupKey=group_key).execute()
 
-            return {'message': f'Group {group_key} deleted successfully'}
+            return {"message": f"Group {group_key} deleted successfully"}
 
         except HttpError as e:
             raise Exception(f"Failed to delete group: {str(e)}")
 
     def list_group_members(
-        self,
-        provider_id: int,
-        group_key: str,
-        limit: int = 100
+        self, provider_id: int, group_key: str, limit: int = 100
     ) -> Dict[str, Any]:
         """
         List group members.
@@ -604,28 +590,21 @@ class GoogleWorkspaceService:
         try:
             client = self._get_directory_client(provider)
 
-            results = client.members().list(
-                groupKey=group_key,
-                maxResults=min(limit, 200)
-            ).execute()
+            results = (
+                client.members()
+                .list(groupKey=group_key, maxResults=min(limit, 200))
+                .execute()
+            )
 
-            members = results.get('members', [])
+            members = results.get("members", [])
 
-            return {
-                'members': members,
-                'count': len(members),
-                'group_key': group_key
-            }
+            return {"members": members, "count": len(members), "group_key": group_key}
 
         except HttpError as e:
             raise Exception(f"Failed to list group members: {str(e)}")
 
     def add_group_member(
-        self,
-        provider_id: int,
-        group_key: str,
-        member_email: str,
-        role: str = 'MEMBER'
+        self, provider_id: int, group_key: str, member_email: str, role: str = "MEMBER"
     ) -> Dict[str, Any]:
         """
         Add member to group.
@@ -647,15 +626,11 @@ class GoogleWorkspaceService:
         try:
             client = self._get_directory_client(provider)
 
-            member_body = {
-                'email': member_email,
-                'role': role
-            }
+            member_body = {"email": member_email, "role": role}
 
-            member = client.members().insert(
-                groupKey=group_key,
-                body=member_body
-            ).execute()
+            member = (
+                client.members().insert(groupKey=group_key, body=member_body).execute()
+            )
 
             return member
 
@@ -663,10 +638,7 @@ class GoogleWorkspaceService:
             raise Exception(f"Failed to add group member: {str(e)}")
 
     def remove_group_member(
-        self,
-        provider_id: int,
-        group_key: str,
-        member_email: str
+        self, provider_id: int, group_key: str, member_email: str
     ) -> Dict[str, str]:
         """
         Remove member from group.
@@ -687,11 +659,10 @@ class GoogleWorkspaceService:
         try:
             client = self._get_directory_client(provider)
             client.members().delete(
-                groupKey=group_key,
-                memberKey=member_email
+                groupKey=group_key, memberKey=member_email
             ).execute()
 
-            return {'message': f'Member {member_email} removed from group {group_key}'}
+            return {"message": f"Member {member_email} removed from group {group_key}"}
 
         except HttpError as e:
             raise Exception(f"Failed to remove group member: {str(e)}")
@@ -714,14 +685,16 @@ class GoogleWorkspaceService:
 
         credentials = service_account.Credentials.from_service_account_info(
             credentials_info,
-            scopes=['https://www.googleapis.com/auth/admin.directory.user',
-                    'https://www.googleapis.com/auth/admin.directory.group']
+            scopes=[
+                "https://www.googleapis.com/auth/admin.directory.user",
+                "https://www.googleapis.com/auth/admin.directory.group",
+            ],
         )
 
         # Delegate to admin user
         delegated_credentials = credentials.with_subject(provider.admin_email)
 
-        return build('admin', 'directory_v1', credentials=delegated_credentials)
+        return build("admin", "directory_v1", credentials=delegated_credentials)
 
     def _sanitize_provider(self, provider_dict: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -733,30 +706,30 @@ class GoogleWorkspaceService:
         Returns:
             Sanitized provider dictionary
         """
-        if 'service_account_json' in provider_dict:
-            provider_dict['service_account_json'] = '***masked***'
+        if "service_account_json" in provider_dict:
+            provider_dict["service_account_json"] = "***masked***"
 
         return provider_dict
 
     def _format_user(self, user: Dict[str, Any]) -> Dict[str, Any]:
         """Format user data for API response."""
         return {
-            'id': user.get('id'),
-            'primary_email': user.get('primaryEmail'),
-            'name': user.get('name', {}),
-            'suspended': user.get('suspended', False),
-            'org_unit_path': user.get('orgUnitPath'),
-            'is_admin': user.get('isAdmin', False),
-            'creation_time': user.get('creationTime'),
-            'last_login_time': user.get('lastLoginTime')
+            "id": user.get("id"),
+            "primary_email": user.get("primaryEmail"),
+            "name": user.get("name", {}),
+            "suspended": user.get("suspended", False),
+            "org_unit_path": user.get("orgUnitPath"),
+            "is_admin": user.get("isAdmin", False),
+            "creation_time": user.get("creationTime"),
+            "last_login_time": user.get("lastLoginTime"),
         }
 
     def _format_group(self, group: Dict[str, Any]) -> Dict[str, Any]:
         """Format group data for API response."""
         return {
-            'id': group.get('id'),
-            'email': group.get('email'),
-            'name': group.get('name'),
-            'description': group.get('description'),
-            'direct_members_count': group.get('directMembersCount', 0)
+            "id": group.get("id"),
+            "email": group.get("email"),
+            "name": group.get("name"),
+            "description": group.get("description"),
+            "direct_members_count": group.get("directMembersCount", 0),
         }

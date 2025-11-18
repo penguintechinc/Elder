@@ -4,17 +4,19 @@ import asyncio
 import signal
 import sys
 from typing import List
-from flask import Flask, jsonify
-from prometheus_client import Counter, Histogram, Gauge, generate_latest
+
 import aiocron
+from flask import Flask, jsonify
+from prometheus_client import Counter, Gauge, Histogram, generate_latest
 
 from apps.connector.config.settings import settings
-from apps.connector.utils.logger import configure_logging, get_logger
-from apps.connector.connectors.base import BaseConnector, SyncResult
 from apps.connector.connectors.aws_connector import AWSConnector
+from apps.connector.connectors.base import BaseConnector, SyncResult
 from apps.connector.connectors.gcp_connector import GCPConnector
-from apps.connector.connectors.google_workspace_connector import GoogleWorkspaceConnector
+from apps.connector.connectors.google_workspace_connector import \
+    GoogleWorkspaceConnector
 from apps.connector.connectors.ldap_connector import LDAPConnector
+from apps.connector.utils.logger import configure_logging, get_logger
 
 # Configure logging
 configure_logging()
@@ -91,24 +93,29 @@ class ConnectorService:
         @self.health_app.route("/status")
         def status():
             """Detailed status endpoint."""
-            return jsonify({
-                "service": "elder-connector",
-                "running": self.running,
-                "connectors": [
+            return (
+                jsonify(
                     {
-                        "name": c.name,
-                        "type": c.__class__.__name__,
+                        "service": "elder-connector",
+                        "running": self.running,
+                        "connectors": [
+                            {
+                                "name": c.name,
+                                "type": c.__class__.__name__,
+                            }
+                            for c in self.connectors
+                        ],
+                        "settings": {
+                            "sync_on_startup": settings.sync_on_startup,
+                            "aws_enabled": settings.aws_enabled,
+                            "gcp_enabled": settings.gcp_enabled,
+                            "google_workspace_enabled": settings.google_workspace_enabled,
+                            "ldap_enabled": settings.ldap_enabled,
+                        },
                     }
-                    for c in self.connectors
-                ],
-                "settings": {
-                    "sync_on_startup": settings.sync_on_startup,
-                    "aws_enabled": settings.aws_enabled,
-                    "gcp_enabled": settings.gcp_enabled,
-                    "google_workspace_enabled": settings.google_workspace_enabled,
-                    "ldap_enabled": settings.ldap_enabled,
-                },
-            }), 200
+                ),
+                200,
+            )
 
     def _initialize_connectors(self):
         """Initialize enabled connectors."""
@@ -180,6 +187,7 @@ class ConnectorService:
                 ).set(result.organizations_updated)
 
                 import time
+
                 last_sync_timestamp.labels(connector=connector.name).set(time.time())
 
                 logger.info(
@@ -219,9 +227,7 @@ class ConnectorService:
         total_ops = sum(
             r.total_operations for r in results if isinstance(r, SyncResult)
         )
-        total_errors = sum(
-            len(r.errors) for r in results if isinstance(r, SyncResult)
-        )
+        total_errors = sum(len(r.errors) for r in results if isinstance(r, SyncResult))
 
         logger.info(
             "Sync cycle completed",

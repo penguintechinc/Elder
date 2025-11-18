@@ -1,10 +1,11 @@
 """Google Workspace Integration API endpoints for Elder v1.2.0 (Phase 7)."""
 
-from flask import Blueprint, jsonify, request, current_app
-from apps.api.auth.decorators import login_required, admin_required
+from flask import Blueprint, current_app, jsonify, request
+
+from apps.api.auth.decorators import admin_required, login_required
 from apps.api.services.google_workspace import GoogleWorkspaceService
 
-bp = Blueprint('google_workspace', __name__)
+bp = Blueprint("google_workspace", __name__)
 
 
 def get_google_workspace_service():
@@ -16,7 +17,8 @@ def get_google_workspace_service():
 # Provider Management Endpoints
 # ===========================
 
-@bp.route('/providers', methods=['GET'])
+
+@bp.route("/providers", methods=["GET"])
 @login_required
 def list_providers():
     """
@@ -31,20 +33,17 @@ def list_providers():
     try:
         service = get_google_workspace_service()
 
-        organization_id = request.args.get('organization_id', type=int)
+        organization_id = request.args.get("organization_id", type=int)
 
         providers = service.list_providers(organization_id=organization_id)
 
-        return jsonify({
-            'providers': providers,
-            'count': len(providers)
-        }), 200
+        return jsonify({"providers": providers, "count": len(providers)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers', methods=['POST'])
+@bp.route("/providers", methods=["POST"])
 @admin_required
 def create_provider():
     """
@@ -68,31 +67,40 @@ def create_provider():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['name', 'organization_id', 'customer_id', 'admin_email', 'service_account_json']
+        required = [
+            "name",
+            "organization_id",
+            "customer_id",
+            "admin_email",
+            "service_account_json",
+        ]
         missing = [f for f in required if f not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_google_workspace_service()
 
         provider = service.create_provider(
-            name=data['name'],
-            organization_id=data['organization_id'],
-            customer_id=data['customer_id'],
-            admin_email=data['admin_email'],
-            service_account_json=data['service_account_json'],
-            description=data.get('description')
+            name=data["name"],
+            organization_id=data["organization_id"],
+            customer_id=data["customer_id"],
+            admin_email=data["admin_email"],
+            service_account_json=data["service_account_json"],
+            description=data.get("description"),
         )
 
         return jsonify(provider), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>', methods=['GET'])
+@bp.route("/providers/<int:provider_id>", methods=["GET"])
 @login_required
 def get_provider(provider_id):
     """
@@ -108,12 +116,12 @@ def get_provider(provider_id):
         return jsonify(provider), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>', methods=['PUT'])
+@bp.route("/providers/<int:provider_id>", methods=["PUT"])
 @admin_required
 def update_provider(provider_id):
     """
@@ -137,29 +145,29 @@ def update_provider(provider_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_google_workspace_service()
 
         provider = service.update_provider(
             provider_id=provider_id,
-            name=data.get('name'),
-            customer_id=data.get('customer_id'),
-            admin_email=data.get('admin_email'),
-            service_account_json=data.get('service_account_json'),
-            description=data.get('description'),
-            enabled=data.get('enabled')
+            name=data.get("name"),
+            customer_id=data.get("customer_id"),
+            admin_email=data.get("admin_email"),
+            service_account_json=data.get("service_account_json"),
+            description=data.get("description"),
+            enabled=data.get("enabled"),
         )
 
         return jsonify(provider), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>', methods=['DELETE'])
+@bp.route("/providers/<int:provider_id>", methods=["DELETE"])
 @admin_required
 def delete_provider(provider_id):
     """
@@ -175,12 +183,12 @@ def delete_provider(provider_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/test', methods=['POST'])
+@bp.route("/providers/<int:provider_id>/test", methods=["POST"])
 @login_required
 def test_provider(provider_id):
     """
@@ -194,20 +202,21 @@ def test_provider(provider_id):
         service = get_google_workspace_service()
         result = service.test_provider(provider_id)
 
-        status_code = 200 if result.get('success') else 400
+        status_code = 200 if result.get("success") else 400
         return jsonify(result), status_code
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # User Management Endpoints
 # ===========================
 
-@bp.route('/providers/<int:provider_id>/users', methods=['GET'])
+
+@bp.route("/providers/<int:provider_id>/users", methods=["GET"])
 @login_required
 def list_users(provider_id):
     """
@@ -224,24 +233,20 @@ def list_users(provider_id):
     try:
         service = get_google_workspace_service()
 
-        domain = request.args.get('domain')
-        limit = request.args.get('limit', 100, type=int)
+        domain = request.args.get("domain")
+        limit = request.args.get("limit", 100, type=int)
 
-        result = service.list_users(
-            provider_id=provider_id,
-            domain=domain,
-            limit=limit
-        )
+        result = service.list_users(provider_id=provider_id, domain=domain, limit=limit)
 
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/users/<path:user_key>', methods=['GET'])
+@bp.route("/providers/<int:provider_id>/users/<path:user_key>", methods=["GET"])
 @login_required
 def get_user(provider_id, user_key):
     """
@@ -257,12 +262,12 @@ def get_user(provider_id, user_key):
         return jsonify(user), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/users', methods=['POST'])
+@bp.route("/providers/<int:provider_id>/users", methods=["POST"])
 @admin_required
 def create_user(provider_id):
     """
@@ -286,33 +291,36 @@ def create_user(provider_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['primary_email', 'given_name', 'family_name', 'password']
+        required = ["primary_email", "given_name", "family_name", "password"]
         missing = [f for f in required if f not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_google_workspace_service()
 
         user = service.create_user(
             provider_id=provider_id,
-            primary_email=data['primary_email'],
-            given_name=data['given_name'],
-            family_name=data['family_name'],
-            password=data['password'],
-            org_unit_path=data.get('org_unit_path', '/')
+            primary_email=data["primary_email"],
+            given_name=data["given_name"],
+            family_name=data["family_name"],
+            password=data["password"],
+            org_unit_path=data.get("org_unit_path", "/"),
         )
 
         return jsonify(user), 201
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/users/<path:user_key>', methods=['PUT'])
+@bp.route("/providers/<int:provider_id>/users/<path:user_key>", methods=["PUT"])
 @admin_required
 def update_user(provider_id, user_key):
     """
@@ -334,28 +342,28 @@ def update_user(provider_id, user_key):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_google_workspace_service()
 
         user = service.update_user(
             provider_id=provider_id,
             user_key=user_key,
-            given_name=data.get('given_name'),
-            family_name=data.get('family_name'),
-            suspended=data.get('suspended'),
-            org_unit_path=data.get('org_unit_path')
+            given_name=data.get("given_name"),
+            family_name=data.get("family_name"),
+            suspended=data.get("suspended"),
+            org_unit_path=data.get("org_unit_path"),
         )
 
         return jsonify(user), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/users/<path:user_key>', methods=['DELETE'])
+@bp.route("/providers/<int:provider_id>/users/<path:user_key>", methods=["DELETE"])
 @admin_required
 def delete_user(provider_id, user_key):
     """
@@ -371,16 +379,17 @@ def delete_user(provider_id, user_key):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # Group Management Endpoints
 # ===========================
 
-@bp.route('/providers/<int:provider_id>/groups', methods=['GET'])
+
+@bp.route("/providers/<int:provider_id>/groups", methods=["GET"])
 @login_required
 def list_groups(provider_id):
     """
@@ -397,24 +406,22 @@ def list_groups(provider_id):
     try:
         service = get_google_workspace_service()
 
-        domain = request.args.get('domain')
-        limit = request.args.get('limit', 100, type=int)
+        domain = request.args.get("domain")
+        limit = request.args.get("limit", 100, type=int)
 
         result = service.list_groups(
-            provider_id=provider_id,
-            domain=domain,
-            limit=limit
+            provider_id=provider_id, domain=domain, limit=limit
         )
 
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/groups/<path:group_key>', methods=['GET'])
+@bp.route("/providers/<int:provider_id>/groups/<path:group_key>", methods=["GET"])
 @login_required
 def get_group(provider_id, group_key):
     """
@@ -430,12 +437,12 @@ def get_group(provider_id, group_key):
         return jsonify(group), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/groups', methods=['POST'])
+@bp.route("/providers/<int:provider_id>/groups", methods=["POST"])
 @admin_required
 def create_group(provider_id):
     """
@@ -457,31 +464,34 @@ def create_group(provider_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['email', 'name']
+        required = ["email", "name"]
         missing = [f for f in required if f not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_google_workspace_service()
 
         group = service.create_group(
             provider_id=provider_id,
-            email=data['email'],
-            name=data['name'],
-            description=data.get('description')
+            email=data["email"],
+            name=data["name"],
+            description=data.get("description"),
         )
 
         return jsonify(group), 201
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/groups/<path:group_key>', methods=['DELETE'])
+@bp.route("/providers/<int:provider_id>/groups/<path:group_key>", methods=["DELETE"])
 @admin_required
 def delete_group(provider_id, group_key):
     """
@@ -497,12 +507,14 @@ def delete_group(provider_id, group_key):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/groups/<path:group_key>/members', methods=['GET'])
+@bp.route(
+    "/providers/<int:provider_id>/groups/<path:group_key>/members", methods=["GET"]
+)
 @login_required
 def list_group_members(provider_id, group_key):
     """
@@ -518,23 +530,23 @@ def list_group_members(provider_id, group_key):
     try:
         service = get_google_workspace_service()
 
-        limit = request.args.get('limit', 100, type=int)
+        limit = request.args.get("limit", 100, type=int)
 
         result = service.list_group_members(
-            provider_id=provider_id,
-            group_key=group_key,
-            limit=limit
+            provider_id=provider_id, group_key=group_key, limit=limit
         )
 
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/groups/<path:group_key>/members', methods=['POST'])
+@bp.route(
+    "/providers/<int:provider_id>/groups/<path:group_key>/members", methods=["POST"]
+)
 @admin_required
 def add_group_member(provider_id, group_key):
     """
@@ -554,27 +566,30 @@ def add_group_member(provider_id, group_key):
     try:
         data = request.get_json()
 
-        if not data or 'member_email' not in data:
-            return jsonify({'error': 'member_email is required'}), 400
+        if not data or "member_email" not in data:
+            return jsonify({"error": "member_email is required"}), 400
 
         service = get_google_workspace_service()
 
         member = service.add_group_member(
             provider_id=provider_id,
             group_key=group_key,
-            member_email=data['member_email'],
-            role=data.get('role', 'MEMBER')
+            member_email=data["member_email"],
+            role=data.get("role", "MEMBER"),
         )
 
         return jsonify(member), 201
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>/groups/<path:group_key>/members/<path:member_email>', methods=['DELETE'])
+@bp.route(
+    "/providers/<int:provider_id>/groups/<path:group_key>/members/<path:member_email>",
+    methods=["DELETE"],
+)
 @admin_required
 def remove_group_member(provider_id, group_key, member_email):
     """
@@ -588,14 +603,12 @@ def remove_group_member(provider_id, group_key, member_email):
         service = get_google_workspace_service()
 
         result = service.remove_group_member(
-            provider_id=provider_id,
-            group_key=group_key,
-            member_email=member_email
+            provider_id=provider_id, group_key=group_key, member_email=member_email
         )
 
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500

@@ -3,18 +3,9 @@
 from datetime import datetime
 from typing import List, Optional
 
-from apps.api.grpc.generated import (
-    common_pb2,
-    organization_pb2,
-    entity_pb2,
-    auth_pb2,
-)
-from apps.api.models import (
-    Organization,
-    Entity,
-    Dependency,
-    Identity,
-)
+from apps.api.grpc.generated import (auth_pb2, common_pb2, entity_pb2,
+                                     organization_pb2)
+from apps.api.models import Dependency, Entity, Identity, Organization
 
 
 def datetime_to_timestamp(dt: Optional[datetime]) -> common_pb2.Timestamp:
@@ -44,6 +35,7 @@ def dict_to_metadata_fields(data: dict) -> List[common_pb2.MetadataField]:
         elif isinstance(value, dict) or isinstance(value, list):
             field_type = "json"
             import json
+
             value_str = json.dumps(value)
         else:
             field_type = "string"

@@ -3,8 +3,8 @@
 import enum
 from typing import List
 
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Boolean
-from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy import Boolean, Column, Enum, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, relationship
 
 from apps.api.models.base import Base, IDMixin, TimestampMixin
 
@@ -118,7 +118,9 @@ class Identity(Base, IDMixin, TimestampMixin):
         Returns:
             True if member, False otherwise
         """
-        return any(membership.group_id == group.id for membership in self.group_memberships)
+        return any(
+            membership.group_id == group.id for membership in self.group_memberships
+        )
 
 
 class IdentityGroup(Base, IDMixin, TimestampMixin):

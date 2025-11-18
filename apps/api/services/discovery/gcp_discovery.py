@@ -1,12 +1,12 @@
 """GCP cloud discovery client for Elder."""
 
-from typing import Dict, Any, List
 from datetime import datetime
+from typing import Any, Dict, List
 
 try:
-    from google.cloud import compute_v1, storage, functions_v1
-    from google.cloud.sql import v1 as sql_v1
     from google.auth import default as google_auth_default
+    from google.cloud import compute_v1, functions_v1, storage
+    from google.cloud.sql import v1 as sql_v1
     from google.oauth2 import service_account
 except ImportError:
     compute_v1 = storage = functions_v1 = sql_v1 = None
@@ -23,7 +23,9 @@ class GCPDiscoveryClient(BaseDiscoveryProvider):
         super().__init__(config)
 
         if not compute_v1:
-            raise ImportError("google-cloud SDK required. Install: pip install google-cloud-compute google-cloud-storage")
+            raise ImportError(
+                "google-cloud SDK required. Install: pip install google-cloud-compute google-cloud-storage"
+            )
 
         self.project_id = config.get("project_id")
         if not self.project_id:
@@ -32,8 +34,15 @@ class GCPDiscoveryClient(BaseDiscoveryProvider):
         # Initialize credentials
         if config.get("credentials_json"):
             import json
-            creds_dict = json.loads(config["credentials_json"]) if isinstance(config["credentials_json"], str) else config["credentials_json"]
-            self.credentials = service_account.Credentials.from_service_account_info(creds_dict)
+
+            creds_dict = (
+                json.loads(config["credentials_json"])
+                if isinstance(config["credentials_json"], str)
+                else config["credentials_json"]
+            )
+            self.credentials = service_account.Credentials.from_service_account_info(
+                creds_dict
+            )
         else:
             self.credentials, _ = google_auth_default()
 
@@ -93,7 +102,11 @@ class GCPDiscoveryClient(BaseDiscoveryProvider):
                                 "zone": instance.zone.split("/")[-1],
                             },
                             region=instance.zone.split("/")[-1],
-                            tags=dict(instance.labels) if hasattr(instance, 'labels') else {},
+                            tags=(
+                                dict(instance.labels)
+                                if hasattr(instance, "labels")
+                                else {}
+                            ),
                         )
                         resources.append(resource)
         except:
@@ -104,7 +117,9 @@ class GCPDiscoveryClient(BaseDiscoveryProvider):
         """Discover GCS buckets."""
         resources = []
         try:
-            client = storage.Client(project=self.project_id, credentials=self.credentials)
+            client = storage.Client(
+                project=self.project_id, credentials=self.credentials
+            )
             for bucket in client.list_buckets():
                 resource = self.format_resource(
                     resource_id=bucket.name,
@@ -113,7 +128,11 @@ class GCPDiscoveryClient(BaseDiscoveryProvider):
                     metadata={
                         "location": bucket.location,
                         "storage_class": bucket.storage_class,
-                        "created": bucket.time_created.isoformat() if bucket.time_created else None,
+                        "created": (
+                            bucket.time_created.isoformat()
+                            if bucket.time_created
+                            else None
+                        ),
                     },
                     region=bucket.location,
                     tags=dict(bucket.labels) if bucket.labels else {},

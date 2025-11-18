@@ -1,8 +1,9 @@
 """Webhook notifications for issue creation events."""
 
+from typing import Any, Dict, List, Optional
+
 import requests
 import structlog
-from typing import Dict, Any, List, Optional
 
 logger = structlog.get_logger()
 
@@ -14,7 +15,7 @@ async def send_issue_created_webhooks(
     issue_type: str,
     is_incident: int,
     organization_id: Optional[int],
-    web_url_base: str = "http://localhost:3000"
+    web_url_base: str = "http://localhost:3000",
 ) -> List[Dict[str, Any]]:
     """
     Send webhook notifications for a newly created issue to all configured webhooks for the organization.
@@ -32,18 +33,25 @@ async def send_issue_created_webhooks(
         List of webhook delivery results
     """
     if not organization_id:
-        logger.info("issue_webhooks_skipped", issue_id=issue_id, reason="no_organization")
+        logger.info(
+            "issue_webhooks_skipped", issue_id=issue_id, reason="no_organization"
+        )
         return []
 
     # Get all webhook configurations for this organization
     webhook_configs = db(
-        (db.alert_configurations.organization_id == organization_id) &
-        (db.alert_configurations.destination_type == 'webhook') &
-        (db.alert_configurations.enabled == 1)
+        (db.alert_configurations.organization_id == organization_id)
+        & (db.alert_configurations.destination_type == "webhook")
+        & (db.alert_configurations.enabled == 1)
     ).select()
 
     if not webhook_configs:
-        logger.info("issue_webhooks_skipped", issue_id=issue_id, organization_id=organization_id, reason="no_webhooks")
+        logger.info(
+            "issue_webhooks_skipped",
+            issue_id=issue_id,
+            organization_id=organization_id,
+            reason="no_webhooks",
+        )
         return []
 
     # Prepare webhook payload
@@ -65,7 +73,11 @@ async def send_issue_created_webhooks(
     for config in webhook_configs:
         webhook_url = config.config.get("url") if config.config else None
         if not webhook_url:
-            logger.warning("webhook_config_missing_url", config_id=config.id, organization_id=organization_id)
+            logger.warning(
+                "webhook_config_missing_url",
+                config_id=config.id,
+                organization_id=organization_id,
+            )
             continue
 
         try:
@@ -79,9 +91,9 @@ async def send_issue_created_webhooks(
                 headers={
                     "Content-Type": "application/json",
                     "User-Agent": "Elder-Issue-Webhook/1.0",
-                    **headers
+                    **headers,
                 },
-                timeout=timeout
+                timeout=timeout,
             )
 
             success = response.status_code in range(200, 300)
@@ -92,16 +104,18 @@ async def send_issue_created_webhooks(
                 config_id=config.id,
                 webhook_url=webhook_url,
                 status_code=response.status_code,
-                success=success
+                success=success,
             )
 
-            results.append({
-                "config_id": config.id,
-                "webhook_url": webhook_url,
-                "status_code": response.status_code,
-                "success": success,
-                "response": response.text[:500] if not success else None
-            })
+            results.append(
+                {
+                    "config_id": config.id,
+                    "webhook_url": webhook_url,
+                    "status_code": response.status_code,
+                    "success": success,
+                    "response": response.text[:500] if not success else None,
+                }
+            )
 
         except requests.exceptions.RequestException as e:
             logger.error(
@@ -109,14 +123,16 @@ async def send_issue_created_webhooks(
                 issue_id=issue_id,
                 config_id=config.id,
                 webhook_url=webhook_url,
-                error=str(e)
+                error=str(e),
             )
 
-            results.append({
-                "config_id": config.id,
-                "webhook_url": webhook_url,
-                "success": False,
-                "error": str(e)
-            })
+            results.append(
+                {
+                    "config_id": config.id,
+                    "webhook_url": webhook_url,
+                    "success": False,
+                    "error": str(e),
+                }
+            )
 
     return results

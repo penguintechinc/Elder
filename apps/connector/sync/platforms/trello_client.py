@@ -7,27 +7,24 @@ Trello mapping:
 - Labels → Labels
 """
 
-import httpx
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
+import httpx
 from pydal import DAL
 
-from apps.connector.sync.base import (
-    BaseSyncClient,
-    SyncOperation,
-    SyncResult,
-    SyncStatus,
-    ResourceType,
-    SyncDirection,
-)
+from apps.connector.sync.base import (BaseSyncClient, ResourceType,
+                                      SyncDirection, SyncOperation, SyncResult,
+                                      SyncStatus)
 from apps.connector.sync.conflict_resolver import ConflictResolver
 
 
 class TrelloSyncClient(BaseSyncClient):
     """Trello sync client implementation."""
 
-    def __init__(self, config: Dict[str, Any], db: DAL, sync_config_id: int, logger: Any):
+    def __init__(
+        self, config: Dict[str, Any], db: DAL, sync_config_id: int, logger: Any
+    ):
         super().__init__("trello", config, db, sync_config_id, logger)
 
         self.api_key = config.get("api_key")
@@ -56,7 +53,9 @@ class TrelloSyncClient(BaseSyncClient):
     def sync_issue(self, operation: SyncOperation) -> SyncResult:
         """Sync issue with Trello (Card)."""
         self.logger.info(f"Trello card sync: {operation.operation_type}")
-        return SyncResult(status=SyncStatus.SUCCESS, operation=operation, items_synced=1)
+        return SyncResult(
+            status=SyncStatus.SUCCESS, operation=operation, items_synced=1
+        )
 
     def sync_project(self, operation: SyncOperation) -> SyncResult:
         """Sync project with Trello (Board)."""
@@ -70,7 +69,9 @@ class TrelloSyncClient(BaseSyncClient):
         """Sync label with Trello."""
         return SyncResult(status=SyncStatus.SUCCESS, operation=operation)
 
-    def batch_sync(self, resource_type: ResourceType, since: Optional[datetime] = None) -> SyncResult:
+    def batch_sync(
+        self, resource_type: ResourceType, since: Optional[datetime] = None
+    ) -> SyncResult:
         """Batch sync Trello resources."""
         self.logger.info(f"Trello batch sync for {resource_type.value}")
         return SyncResult(

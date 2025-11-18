@@ -6,6 +6,7 @@ from typing import Dict, List
 # Main entity types
 class EntityType:
     """Main entity type constants."""
+
     NETWORK = "network"
     COMPUTE = "compute"
     STORAGE = "storage"
@@ -16,6 +17,7 @@ class EntityType:
 # Network sub-types
 class NetworkSubType:
     """Network device sub-types."""
+
     SUBNET = "subnet"
     FIREWALL = "firewall"
     PROXY = "proxy"
@@ -34,6 +36,7 @@ class NetworkSubType:
 # Compute sub-types
 class ComputeSubType:
     """Compute resource sub-types."""
+
     SERVER = "server"
     SERVERLESS = "serverless"
     LAPTOP = "laptop"
@@ -49,6 +52,7 @@ class ComputeSubType:
 # Storage sub-types
 class StorageSubType:
     """Storage resource sub-types."""
+
     HARD_DISK = "hard_disk"
     NVME_DISK = "nvme_disk"
     SOLID_STATE_DISK = "solid_state_disk"
@@ -63,6 +67,7 @@ class StorageSubType:
 # Datacenter sub-types
 class DatacenterSubType:
     """Datacenter/network container sub-types."""
+
     PUBLIC_VPC = "public_vpc"
     PRIVATE_VPC = "private_vpc"
     PHYSICAL = "physical"
@@ -73,6 +78,7 @@ class DatacenterSubType:
 # Security sub-types
 class SecuritySubType:
     """Security issue sub-types."""
+
     VULNERABILITY = "vulnerability"
     ARCHITECTURAL = "architectural"
     CONFIG = "config"
@@ -145,26 +151,44 @@ ENTITY_SUBTYPES: Dict[str, List[str]] = {
 DEFAULT_METADATA_TEMPLATES: Dict[str, Dict[str, Dict]] = {
     EntityType.NETWORK: {
         NetworkSubType.ROUTER: {
-            "routing_protocols": {"type": "array", "description": "Routing protocols (BGP, OSPF, etc.)"},
+            "routing_protocols": {
+                "type": "array",
+                "description": "Routing protocols (BGP, OSPF, etc.)",
+            },
             "routing_table": {"type": "object", "description": "Routing table data"},
             "interfaces": {"type": "array", "description": "Network interfaces"},
         },
         NetworkSubType.FIREWALL: {
             "rules": {"type": "array", "description": "Firewall rules"},
-            "default_policy": {"type": "string", "description": "Default policy (allow/deny)"},
+            "default_policy": {
+                "type": "string",
+                "description": "Default policy (allow/deny)",
+            },
         },
         NetworkSubType.PROXY: {
             "backend_servers": {"type": "array", "description": "Backend servers"},
-            "load_balancer_algorithm": {"type": "string", "description": "Load balancing algorithm"},
+            "load_balancer_algorithm": {
+                "type": "string",
+                "description": "Load balancing algorithm",
+            },
         },
         NetworkSubType.SUBNET: {
-            "cidr_block": {"type": "string", "description": "CIDR notation (e.g., 10.0.1.0/24)"},
+            "cidr_block": {
+                "type": "string",
+                "description": "CIDR notation (e.g., 10.0.1.0/24)",
+            },
             "gateway": {"type": "string", "description": "Gateway IP address"},
-            "available_ips": {"type": "integer", "description": "Available IP addresses"},
+            "available_ips": {
+                "type": "integer",
+                "description": "Available IP addresses",
+            },
         },
         NetworkSubType.NAMESPACE: {
             "cluster": {"type": "string", "description": "Kubernetes cluster name"},
-            "resource_quota": {"type": "object", "description": "Resource quotas and limits"},
+            "resource_quota": {
+                "type": "object",
+                "description": "Resource quotas and limits",
+            },
             "labels": {"type": "object", "description": "Namespace labels"},
             "annotations": {"type": "object", "description": "Namespace annotations"},
         },
@@ -187,49 +211,79 @@ DEFAULT_METADATA_TEMPLATES: Dict[str, Dict[str, Dict]] = {
         ComputeSubType.KUBERNETES_CLUSTER: {
             "version": {"type": "string", "description": "Kubernetes version"},
             "node_count": {"type": "integer", "description": "Number of nodes"},
-            "control_plane_endpoint": {"type": "string", "description": "API server endpoint"},
+            "control_plane_endpoint": {
+                "type": "string",
+                "description": "API server endpoint",
+            },
         },
         ComputeSubType.SERVERLESS: {
-            "runtime": {"type": "string", "description": "Runtime environment (Python, Node.js, etc.)"},
+            "runtime": {
+                "type": "string",
+                "description": "Runtime environment (Python, Node.js, etc.)",
+            },
             "memory_mb": {"type": "integer", "description": "Allocated memory in MB"},
             "timeout_seconds": {"type": "integer", "description": "Execution timeout"},
         },
     },
     EntityType.STORAGE: {
         StorageSubType.DATABASE: {
-            "engine": {"type": "string", "description": "Database engine (PostgreSQL, MySQL, etc.)"},
+            "engine": {
+                "type": "string",
+                "description": "Database engine (PostgreSQL, MySQL, etc.)",
+            },
             "version": {"type": "string", "description": "Database version"},
             "port": {"type": "integer", "description": "Database port"},
-            "connection_string": {"type": "string", "description": "Connection string (masked)"},
+            "connection_string": {
+                "type": "string",
+                "description": "Connection string (masked)",
+            },
             "replica_count": {"type": "integer", "description": "Number of replicas"},
         },
         StorageSubType.CACHING: {
-            "engine": {"type": "string", "description": "Cache engine (Redis, Valkey, Memcached)"},
+            "engine": {
+                "type": "string",
+                "description": "Cache engine (Redis, Valkey, Memcached)",
+            },
             "memory_mb": {"type": "integer", "description": "Cache size in MB"},
             "eviction_policy": {"type": "string", "description": "Eviction policy"},
         },
         StorageSubType.QUEUE_SYSTEM: {
-            "engine": {"type": "string", "description": "Queue engine (SQS, Kafka, RabbitMQ)"},
-            "message_retention_hours": {"type": "integer", "description": "Message retention period"},
+            "engine": {
+                "type": "string",
+                "description": "Queue engine (SQS, Kafka, RabbitMQ)",
+            },
+            "message_retention_hours": {
+                "type": "integer",
+                "description": "Message retention period",
+            },
             "max_queue_size": {"type": "integer", "description": "Maximum queue size"},
         },
         StorageSubType.HARD_DISK: {
             "capacity_gb": {"type": "number", "description": "Disk capacity in GB"},
             "rpm": {"type": "integer", "description": "Rotations per minute"},
-            "interface": {"type": "string", "description": "Disk interface (SATA, SAS)"},
+            "interface": {
+                "type": "string",
+                "description": "Disk interface (SATA, SAS)",
+            },
         },
         StorageSubType.SOLID_STATE_DISK: {
             "capacity_gb": {"type": "number", "description": "SSD capacity in GB"},
             "interface": {"type": "string", "description": "Interface (SATA, NVMe)"},
             "read_speed_mbps": {"type": "integer", "description": "Read speed in MB/s"},
-            "write_speed_mbps": {"type": "integer", "description": "Write speed in MB/s"},
+            "write_speed_mbps": {
+                "type": "integer",
+                "description": "Write speed in MB/s",
+            },
         },
     },
     EntityType.DATACENTER: {
         DatacenterSubType.PUBLIC_VPC: {
             "cidr_block": {"type": "string", "description": "VPC CIDR block"},
             "region": {"type": "string", "description": "Cloud region"},
-            "internet_gateway": {"type": "string", "description": "Internet gateway ID"},
+            "internet_gateway": {
+                "type": "string",
+                "description": "Internet gateway ID",
+            },
         },
         DatacenterSubType.PRIVATE_VPC: {
             "cidr_block": {"type": "string", "description": "VPC CIDR block"},
@@ -239,7 +293,10 @@ DEFAULT_METADATA_TEMPLATES: Dict[str, Dict[str, Dict]] = {
         DatacenterSubType.PHYSICAL: {
             "location": {"type": "string", "description": "Physical location"},
             "provider": {"type": "string", "description": "Datacenter provider"},
-            "power_capacity_kw": {"type": "number", "description": "Power capacity in kW"},
+            "power_capacity_kw": {
+                "type": "number",
+                "description": "Power capacity in kW",
+            },
             "cooling_type": {"type": "string", "description": "Cooling system type"},
         },
     },
@@ -248,16 +305,28 @@ DEFAULT_METADATA_TEMPLATES: Dict[str, Dict[str, Dict]] = {
             "cve": {"type": "string", "description": "CVE identifier"},
             "cvss_score": {"type": "number", "description": "CVSS score (0-10)"},
             "severity": {"type": "string", "description": "Severity level"},
-            "affected_versions": {"type": "array", "description": "Affected software versions"},
+            "affected_versions": {
+                "type": "array",
+                "description": "Affected software versions",
+            },
         },
         SecuritySubType.COMPLIANCE: {
-            "framework": {"type": "string", "description": "Compliance framework (SOC2, ISO27001)"},
+            "framework": {
+                "type": "string",
+                "description": "Compliance framework (SOC2, ISO27001)",
+            },
             "control_id": {"type": "string", "description": "Control identifier"},
             "status": {"type": "string", "description": "Compliance status"},
         },
         SecuritySubType.CONFIG: {
-            "misconfiguration_type": {"type": "string", "description": "Type of misconfiguration"},
-            "affected_service": {"type": "string", "description": "Affected service or component"},
+            "misconfiguration_type": {
+                "type": "string",
+                "description": "Type of misconfiguration",
+            },
+            "affected_service": {
+                "type": "string",
+                "description": "Affected service or component",
+            },
             "remediation": {"type": "string", "description": "Remediation steps"},
         },
     },

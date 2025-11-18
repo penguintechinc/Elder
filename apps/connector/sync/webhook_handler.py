@@ -7,26 +7,22 @@ Webhooks enable real-time synchronization by receiving push notifications
 when resources are created, updated, or deleted on external platforms.
 """
 
-import hmac
 import hashlib
+import hmac
 import json
-from typing import Dict, Any, Optional, Callable
 from datetime import datetime
 from enum import Enum
+from typing import Any, Callable, Dict, Optional
 
-from apps.connector.sync.base import (
-    BaseSyncClient,
-    SyncOperation,
-    SyncResult,
-    SyncStatus,
-    ResourceType,
-    SyncDirection,
-)
+from apps.connector.sync.base import (BaseSyncClient, ResourceType,
+                                      SyncDirection, SyncOperation, SyncResult,
+                                      SyncStatus)
 from apps.connector.sync.conflict_resolver import ConflictResolver
 
 
 class WebhookEvent(Enum):
     """Types of webhook events."""
+
     ISSUE_CREATED = "issue_created"
     ISSUE_UPDATED = "issue_updated"
     ISSUE_DELETED = "issue_deleted"
@@ -172,7 +168,9 @@ class WebhookHandler:
         )
 
         # Validate signature
-        signature = headers.get("X-Hub-Signature-256") or headers.get("X-Gitlab-Token") or ""
+        signature = (
+            headers.get("X-Hub-Signature-256") or headers.get("X-Gitlab-Token") or ""
+        )
         if not self.validate_signature(payload, signature):
             self.logger.error("Webhook signature validation failed")
             return SyncResult(

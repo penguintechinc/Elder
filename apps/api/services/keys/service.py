@@ -1,10 +1,10 @@
 """Keys management service - business logic layer for key operations."""
 
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from apps.api.services.keys.base import BaseKeyProvider
 from apps.api.services.keys.aws_client import AWSKMSClient
+from apps.api.services.keys.base import BaseKeyProvider
 from apps.api.services.keys.gcp_client import GCPKMSClient
 from apps.api.services.keys.infisical_client import InfisicalClient
 
@@ -60,9 +60,7 @@ class KeysService:
 
     # Provider Management
 
-    def list_providers(
-        self, enabled_only: bool = False
-    ) -> List[Dict[str, Any]]:
+    def list_providers(self, enabled_only: bool = False) -> List[Dict[str, Any]]:
         """
         List all key providers.
 
@@ -458,7 +456,10 @@ class KeysService:
         return result
 
     def generate_data_key(
-        self, key_id: int, key_spec: str = "AES_256", context: Optional[Dict[str, str]] = None
+        self,
+        key_id: int,
+        key_spec: str = "AES_256",
+        context: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """Generate a data encryption key."""
         key = self.db.keys[key_id]
@@ -487,7 +488,9 @@ class KeysService:
             raise Exception(f"Key not found: {key_id}")
 
         if key.key_type != "asymmetric":
-            raise Exception(f"Key must be asymmetric for signing (type: {key.key_type})")
+            raise Exception(
+                f"Key must be asymmetric for signing (type: {key.key_type})"
+            )
 
         if key.key_state != "Enabled":
             raise Exception(f"Key is not enabled (state: {key.key_state})")
@@ -510,10 +513,14 @@ class KeysService:
             raise Exception(f"Key not found: {key_id}")
 
         if key.key_type != "asymmetric":
-            raise Exception(f"Key must be asymmetric for verification (type: {key.key_type})")
+            raise Exception(
+                f"Key must be asymmetric for verification (type: {key.key_type})"
+            )
 
         client = self._get_provider_client(key.key_provider_id)
-        result = client.verify(key.provider_key_id, message, signature, signing_algorithm)
+        result = client.verify(
+            key.provider_key_id, message, signature, signing_algorithm
+        )
 
         # Log access
         self._log_access(key_id, "verify", algorithm=signing_algorithm)
@@ -561,12 +568,9 @@ class KeysService:
         Returns:
             List of access log entries
         """
-        logs = (
-            self.db(self.db.key_access_log.key_id == key_id)
-            .select(
-                orderby=~self.db.key_access_log.accessed_at,
-                limitby=(offset, offset + limit),
-            )
+        logs = self.db(self.db.key_access_log.key_id == key_id).select(
+            orderby=~self.db.key_access_log.accessed_at,
+            limitby=(offset, offset + limit),
         )
 
         return [log.as_dict() for log in logs]

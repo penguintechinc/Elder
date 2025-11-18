@@ -1,11 +1,11 @@
 """AWS KMS client for key management operations."""
 
 import base64
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 try:
     import boto3
-    from botocore.exceptions import ClientError, BotoCoreError
+    from botocore.exceptions import BotoCoreError, ClientError
 except ImportError:
     boto3 = None
     ClientError = Exception
@@ -89,9 +89,9 @@ class AWSKMSClient(BaseKeyProvider):
             # Create key
             create_params = {
                 "Description": description or f"Elder managed key: {key_name}",
-                "KeyUsage": "ENCRYPT_DECRYPT"
-                if key_type != "hmac"
-                else "GENERATE_VERIFY_MAC",
+                "KeyUsage": (
+                    "ENCRYPT_DECRYPT" if key_type != "hmac" else "GENERATE_VERIFY_MAC"
+                ),
                 "KeySpec": key_spec,
             }
 
@@ -105,7 +105,9 @@ class AWSKMSClient(BaseKeyProvider):
             key_metadata = response["KeyMetadata"]
 
             # Create alias
-            alias_name = f"alias/{key_name}" if not key_name.startswith("alias/") else key_name
+            alias_name = (
+                f"alias/{key_name}" if not key_name.startswith("alias/") else key_name
+            )
             try:
                 self.client.create_alias(
                     AliasName=alias_name, TargetKeyId=key_metadata["KeyId"]
@@ -127,7 +129,9 @@ class AWSKMSClient(BaseKeyProvider):
             }
 
         except ClientError as e:
-            raise Exception(f"AWS KMS create key error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS KMS create key error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS KMS create key error: {str(e)}")
 
@@ -147,7 +151,9 @@ class AWSKMSClient(BaseKeyProvider):
 
             # Get aliases
             aliases_response = self.client.list_aliases(KeyId=key_metadata["KeyId"])
-            aliases = [alias["AliasName"] for alias in aliases_response.get("Aliases", [])]
+            aliases = [
+                alias["AliasName"] for alias in aliases_response.get("Aliases", [])
+            ]
 
             return {
                 "key_id": key_metadata["KeyId"],
@@ -159,9 +165,11 @@ class AWSKMSClient(BaseKeyProvider):
                 "key_usage": key_metadata.get("KeyUsage"),
                 "key_spec": key_metadata.get("KeySpec"),
                 "aliases": aliases,
-                "deletion_date": key_metadata.get("DeletionDate").isoformat()
-                if key_metadata.get("DeletionDate")
-                else None,
+                "deletion_date": (
+                    key_metadata.get("DeletionDate").isoformat()
+                    if key_metadata.get("DeletionDate")
+                    else None
+                ),
             }
 
         except ClientError as e:
@@ -208,7 +216,9 @@ class AWSKMSClient(BaseKeyProvider):
             }
 
         except ClientError as e:
-            raise Exception(f"AWS KMS list keys error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS KMS list keys error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS KMS list keys error: {str(e)}")
 
@@ -219,7 +229,9 @@ class AWSKMSClient(BaseKeyProvider):
             return self.get_key(key_id)
 
         except ClientError as e:
-            raise Exception(f"AWS KMS enable key error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS KMS enable key error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS KMS enable key error: {str(e)}")
 
@@ -230,7 +242,9 @@ class AWSKMSClient(BaseKeyProvider):
             return self.get_key(key_id)
 
         except ClientError as e:
-            raise Exception(f"AWS KMS disable key error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS KMS disable key error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS KMS disable key error: {str(e)}")
 
@@ -308,7 +322,9 @@ class AWSKMSClient(BaseKeyProvider):
             response = self.client.encrypt(**params)
 
             return {
-                "ciphertext": base64.b64encode(response["CiphertextBlob"]).decode("utf-8"),
+                "ciphertext": base64.b64encode(response["CiphertextBlob"]).decode(
+                    "utf-8"
+                ),
                 "key_id": response["KeyId"],
             }
 
@@ -376,7 +392,9 @@ class AWSKMSClient(BaseKeyProvider):
             response = self.client.generate_data_key(**params)
 
             return {
-                "plaintext_key": base64.b64encode(response["Plaintext"]).decode("utf-8"),
+                "plaintext_key": base64.b64encode(response["Plaintext"]).decode(
+                    "utf-8"
+                ),
                 "ciphertext_key": base64.b64encode(response["CiphertextBlob"]).decode(
                     "utf-8"
                 ),
@@ -484,7 +502,9 @@ class AWSKMSClient(BaseKeyProvider):
             }
 
         except ClientError as e:
-            raise Exception(f"AWS KMS rotate key error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS KMS rotate key error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS KMS rotate key error: {str(e)}")
 

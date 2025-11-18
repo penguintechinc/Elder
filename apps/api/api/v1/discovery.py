@@ -1,10 +1,11 @@
 """Cloud Auto-Discovery API endpoints for Elder v1.2.0 (Phase 5)."""
 
-from flask import Blueprint, jsonify, request, current_app
-from apps.api.auth.decorators import login_required, admin_required
+from flask import Blueprint, current_app, jsonify, request
+
+from apps.api.auth.decorators import admin_required, login_required
 from apps.api.services.discovery import DiscoveryService
 
-bp = Blueprint('discovery', __name__)
+bp = Blueprint("discovery", __name__)
 
 
 def get_discovery_service():
@@ -14,7 +15,8 @@ def get_discovery_service():
 
 # Discovery Jobs endpoints
 
-@bp.route('/jobs', methods=['GET'])
+
+@bp.route("/jobs", methods=["GET"])
 @login_required
 def list_discovery_jobs():
     """
@@ -31,31 +33,26 @@ def list_discovery_jobs():
     try:
         service = get_discovery_service()
 
-        provider = request.args.get('provider')
-        enabled = request.args.get('enabled')
-        organization_id = request.args.get('organization_id', type=int)
+        provider = request.args.get("provider")
+        enabled = request.args.get("enabled")
+        organization_id = request.args.get("organization_id", type=int)
 
         # Convert enabled string to boolean
         enabled_bool = None
         if enabled is not None:
-            enabled_bool = enabled.lower() == 'true'
+            enabled_bool = enabled.lower() == "true"
 
         jobs = service.list_jobs(
-            provider=provider,
-            enabled=enabled_bool,
-            organization_id=organization_id
+            provider=provider, enabled=enabled_bool, organization_id=organization_id
         )
 
-        return jsonify({
-            'jobs': jobs,
-            'count': len(jobs)
-        }), 200
+        return jsonify({"jobs": jobs, "count": len(jobs)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/jobs', methods=['POST'])
+@bp.route("/jobs", methods=["POST"])
 @admin_required
 def create_discovery_job():
     """
@@ -84,30 +81,33 @@ def create_discovery_job():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['name', 'provider', 'config', 'organization_id']
+        required = ["name", "provider", "config", "organization_id"]
         missing = [f for f in required if f not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_discovery_service()
         job = service.create_job(
-            name=data['name'],
-            provider=data['provider'],
-            config=data['config'],
-            organization_id=data['organization_id'],
-            schedule_interval=data.get('schedule_interval'),
-            description=data.get('description')
+            name=data["name"],
+            provider=data["provider"],
+            config=data["config"],
+            organization_id=data["organization_id"],
+            schedule_interval=data.get("schedule_interval"),
+            description=data.get("description"),
         )
 
         return jsonify(job), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/jobs/<int:job_id>', methods=['GET'])
+@bp.route("/jobs/<int:job_id>", methods=["GET"])
 @login_required
 def get_discovery_job(job_id):
     """
@@ -123,12 +123,12 @@ def get_discovery_job(job_id):
         return jsonify(job), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/jobs/<int:job_id>', methods=['PUT'])
+@bp.route("/jobs/<int:job_id>", methods=["PUT"])
 @admin_required
 def update_discovery_job(job_id):
     """
@@ -151,27 +151,27 @@ def update_discovery_job(job_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_discovery_service()
         job = service.update_job(
             job_id=job_id,
-            name=data.get('name'),
-            config=data.get('config'),
-            schedule_interval=data.get('schedule_interval'),
-            description=data.get('description'),
-            enabled=data.get('enabled')
+            name=data.get("name"),
+            config=data.get("config"),
+            schedule_interval=data.get("schedule_interval"),
+            description=data.get("description"),
+            enabled=data.get("enabled"),
         )
 
         return jsonify(job), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/jobs/<int:job_id>', methods=['DELETE'])
+@bp.route("/jobs/<int:job_id>", methods=["DELETE"])
 @admin_required
 def delete_discovery_job(job_id):
     """
@@ -187,12 +187,12 @@ def delete_discovery_job(job_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/jobs/<int:job_id>/test', methods=['POST'])
+@bp.route("/jobs/<int:job_id>/test", methods=["POST"])
 @login_required
 def test_discovery_job(job_id):
     """
@@ -208,12 +208,12 @@ def test_discovery_job(job_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/jobs/<int:job_id>/run', methods=['POST'])
+@bp.route("/jobs/<int:job_id>/run", methods=["POST"])
 @admin_required
 def run_discovery_job(job_id):
     """
@@ -227,16 +227,16 @@ def run_discovery_job(job_id):
         service = get_discovery_service()
         result = service.run_discovery(job_id)
 
-        status_code = 202 if result.get('success') else 500
+        status_code = 202 if result.get("success") else 500
         return jsonify(result), status_code
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/jobs/<int:job_id>/history', methods=['GET'])
+@bp.route("/jobs/<int:job_id>/history", methods=["GET"])
 @login_required
 def get_discovery_job_history(job_id):
     """
@@ -251,20 +251,17 @@ def get_discovery_job_history(job_id):
     try:
         service = get_discovery_service()
 
-        limit = request.args.get('limit', 50, type=int)
+        limit = request.args.get("limit", 50, type=int)
 
         history = service.get_discovery_history(job_id=job_id, limit=limit)
 
-        return jsonify({
-            'history': history,
-            'count': len(history)
-        }), 200
+        return jsonify({"history": history, "count": len(history)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/history', methods=['GET'])
+@bp.route("/history", methods=["GET"])
 @login_required
 def get_all_discovery_history():
     """
@@ -279,14 +276,11 @@ def get_all_discovery_history():
     try:
         service = get_discovery_service()
 
-        limit = request.args.get('limit', 50, type=int)
+        limit = request.args.get("limit", 50, type=int)
 
         history = service.get_discovery_history(limit=limit)
 
-        return jsonify({
-            'history': history,
-            'count': len(history)
-        }), 200
+        return jsonify({"history": history, "count": len(history)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500

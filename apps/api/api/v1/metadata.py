@@ -2,7 +2,8 @@
 
 import json
 from datetime import datetime
-from flask import Blueprint, jsonify, request, current_app
+
+from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required, resource_role_required
 from shared.async_utils import run_in_threadpool
@@ -18,14 +19,14 @@ def _coerce_value(value, field_type: str):
         return str(value)
     elif field_type == "number":
         try:
-            return float(value) if '.' in str(value) else int(value)
+            return float(value) if "." in str(value) else int(value)
         except (ValueError, TypeError):
             raise ValueError(f"Invalid number value: {value}")
     elif field_type == "boolean":
         if isinstance(value, bool):
             return value
         if isinstance(value, str):
-            return value.lower() in ('true', '1', 'yes')
+            return value.lower() in ("true", "1", "yes")
         return bool(value)
     elif field_type == "date":
         if isinstance(value, datetime):
@@ -48,11 +49,11 @@ def _parse_value(value_str: str, field_type: str):
         return value_str
     elif field_type == "number":
         try:
-            return float(value_str) if '.' in value_str else int(value_str)
+            return float(value_str) if "." in value_str else int(value_str)
         except ValueError:
             return value_str
     elif field_type == "boolean":
-        return value_str.lower() in ('true', '1', 'yes')
+        return value_str.lower() in ("true", "1", "yes")
     elif field_type == "date":
         return value_str
     elif field_type == "json":
@@ -109,8 +110,8 @@ async def get_entity_metadata(id: int):
 
         # Get all metadata fields
         fields = db(
-            (db.metadata_fields.resource_type == "entity") &
-            (db.metadata_fields.resource_id == id)
+            (db.metadata_fields.resource_type == "entity")
+            & (db.metadata_fields.resource_id == id)
         ).select()
 
         # Build metadata dictionary with type conversion
@@ -178,11 +179,15 @@ async def create_entity_metadata(id: int):
             return None, "Entity not found", 404
 
         # Check if system metadata
-        existing = db(
-            (db.metadata_fields.resource_type == "entity") &
-            (db.metadata_fields.resource_id == id) &
-            (db.metadata_fields.key == data["key"])
-        ).select().first()
+        existing = (
+            db(
+                (db.metadata_fields.resource_type == "entity")
+                & (db.metadata_fields.resource_id == id)
+                & (db.metadata_fields.key == data["key"])
+            )
+            .select()
+            .first()
+        )
 
         if existing and existing.is_system:
             return None, "System metadata fields cannot be modified", 403
@@ -275,11 +280,15 @@ async def update_entity_metadata(id: int, field_key: str):
             return None, "Entity not found", 404
 
         # Get metadata field
-        field = db(
-            (db.metadata_fields.resource_type == "entity") &
-            (db.metadata_fields.resource_id == id) &
-            (db.metadata_fields.key == field_key)
-        ).select().first()
+        field = (
+            db(
+                (db.metadata_fields.resource_type == "entity")
+                & (db.metadata_fields.resource_id == id)
+                & (db.metadata_fields.key == field_key)
+            )
+            .select()
+            .first()
+        )
 
         if not field:
             return None, f"Metadata field '{field_key}' not found", 404
@@ -311,7 +320,9 @@ async def update_entity_metadata(id: int, field_key: str):
 
         # Build response with parsed value
         field_dict = updated_field.as_dict()
-        field_dict["value"] = _parse_value(updated_field.value, updated_field.field_type)
+        field_dict["value"] = _parse_value(
+            updated_field.value, updated_field.field_type
+        )
 
         return field_dict, None, None
 
@@ -354,11 +365,15 @@ async def delete_entity_metadata(id: int, field_key: str):
             return None, "Entity not found", 404
 
         # Get metadata field
-        field = db(
-            (db.metadata_fields.resource_type == "entity") &
-            (db.metadata_fields.resource_id == id) &
-            (db.metadata_fields.key == field_key)
-        ).select().first()
+        field = (
+            db(
+                (db.metadata_fields.resource_type == "entity")
+                & (db.metadata_fields.resource_id == id)
+                & (db.metadata_fields.key == field_key)
+            )
+            .select()
+            .first()
+        )
 
         if not field:
             return None, f"Metadata field '{field_key}' not found", 404
@@ -424,8 +439,8 @@ async def get_organization_metadata(id: int):
 
         # Get all metadata fields
         fields = db(
-            (db.metadata_fields.resource_type == "organization") &
-            (db.metadata_fields.resource_id == id)
+            (db.metadata_fields.resource_type == "organization")
+            & (db.metadata_fields.resource_id == id)
         ).select()
 
         # Build metadata dictionary with type conversion
@@ -493,11 +508,15 @@ async def create_organization_metadata(id: int):
             return None, "Organization not found", 404
 
         # Check if system metadata
-        existing = db(
-            (db.metadata_fields.resource_type == "organization") &
-            (db.metadata_fields.resource_id == id) &
-            (db.metadata_fields.key == data["key"])
-        ).select().first()
+        existing = (
+            db(
+                (db.metadata_fields.resource_type == "organization")
+                & (db.metadata_fields.resource_id == id)
+                & (db.metadata_fields.key == data["key"])
+            )
+            .select()
+            .first()
+        )
 
         if existing and existing.is_system:
             return None, "System metadata fields cannot be modified", 403
@@ -590,11 +609,15 @@ async def update_organization_metadata(id: int, field_key: str):
             return None, "Organization not found", 404
 
         # Get metadata field
-        field = db(
-            (db.metadata_fields.resource_type == "organization") &
-            (db.metadata_fields.resource_id == id) &
-            (db.metadata_fields.key == field_key)
-        ).select().first()
+        field = (
+            db(
+                (db.metadata_fields.resource_type == "organization")
+                & (db.metadata_fields.resource_id == id)
+                & (db.metadata_fields.key == field_key)
+            )
+            .select()
+            .first()
+        )
 
         if not field:
             return None, f"Metadata field '{field_key}' not found", 404
@@ -626,7 +649,9 @@ async def update_organization_metadata(id: int, field_key: str):
 
         # Build response with parsed value
         field_dict = updated_field.as_dict()
-        field_dict["value"] = _parse_value(updated_field.value, updated_field.field_type)
+        field_dict["value"] = _parse_value(
+            updated_field.value, updated_field.field_type
+        )
 
         return field_dict, None, None
 
@@ -669,11 +694,15 @@ async def delete_organization_metadata(id: int, field_key: str):
             return None, "Organization not found", 404
 
         # Get metadata field
-        field = db(
-            (db.metadata_fields.resource_type == "organization") &
-            (db.metadata_fields.resource_id == id) &
-            (db.metadata_fields.key == field_key)
-        ).select().first()
+        field = (
+            db(
+                (db.metadata_fields.resource_type == "organization")
+                & (db.metadata_fields.resource_id == id)
+                & (db.metadata_fields.key == field_key)
+            )
+            .select()
+            .first()
+        )
 
         if not field:
             return None, f"Metadata field '{field_key}' not found", 404

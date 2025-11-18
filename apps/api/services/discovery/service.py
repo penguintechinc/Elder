@@ -1,12 +1,12 @@
 """Discovery service - business logic layer for cloud resource discovery."""
 
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from apps.api.services.discovery.base import BaseDiscoveryProvider
 from apps.api.services.discovery.aws_discovery import AWSDiscoveryClient
-from apps.api.services.discovery.gcp_discovery import GCPDiscoveryClient
 from apps.api.services.discovery.azure_discovery import AzureDiscoveryClient
+from apps.api.services.discovery.base import BaseDiscoveryProvider
+from apps.api.services.discovery.gcp_discovery import GCPDiscoveryClient
 from apps.api.services.discovery.k8s_discovery import KubernetesDiscoveryClient
 
 
@@ -67,7 +67,7 @@ class DiscoveryService:
         self,
         provider: Optional[str] = None,
         enabled: Optional[bool] = None,
-        organization_id: Optional[int] = None
+        organization_id: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """List all discovery jobs with optional filters."""
         query = self.db.discovery_jobs.id > 0
@@ -107,7 +107,9 @@ class DiscoveryService:
         # Validate provider type
         valid_providers = ["aws", "gcp", "azure", "kubernetes"]
         if provider.lower() not in valid_providers:
-            raise Exception(f"Invalid provider: {provider}. Must be one of {valid_providers}")
+            raise Exception(
+                f"Invalid provider: {provider}. Must be one of {valid_providers}"
+            )
 
         # Create job
         job_id = self.db.discovery_jobs.insert(
@@ -253,9 +255,7 @@ class DiscoveryService:
             }
 
     def get_discovery_history(
-        self,
-        job_id: Optional[int] = None,
-        limit: int = 50
+        self, job_id: Optional[int] = None, limit: int = 50
     ) -> List[Dict[str, Any]]:
         """Get discovery execution history."""
         query = self.db.discovery_history.id > 0
@@ -264,8 +264,7 @@ class DiscoveryService:
             query &= self.db.discovery_history.discovery_job_id == job_id
 
         history = self.db(query).select(
-            orderby=~self.db.discovery_history.discovered_at,
-            limitby=(0, limit)
+            orderby=~self.db.discovery_history.discovered_at, limitby=(0, limit)
         )
 
         return [h.as_dict() for h in history]
@@ -273,9 +272,7 @@ class DiscoveryService:
     # Helper Methods
 
     def _store_discovered_resources(
-        self,
-        organization_id: int,
-        discovery_results: Dict[str, Any]
+        self, organization_id: int, discovery_results: Dict[str, Any]
     ) -> None:
         """
         Store discovered resources as entities in Elder.
@@ -303,10 +300,18 @@ class DiscoveryService:
 
             for resource in resources:
                 # Check if entity already exists by resource_id in metadata
-                existing = self.db(
-                    (self.db.entities.organization_id == organization_id) &
-                    (self.db.entities.metadata.like(f'%{resource["resource_id"]}%'))
-                ).select().first()
+                existing = (
+                    self.db(
+                        (self.db.entities.organization_id == organization_id)
+                        & (
+                            self.db.entities.metadata.like(
+                                f'%{resource["resource_id"]}%'
+                            )
+                        )
+                    )
+                    .select()
+                    .first()
+                )
 
                 if existing:
                     # Update existing entity

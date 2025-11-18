@@ -49,9 +49,9 @@ def init_db(app: Flask) -> None:
         Full PyDAL docs: https://py4web.com/_documentation/static/en/chapter-07.html
     """
     global db
+    import logging
     import os
     import time
-    import logging
 
     logger = logging.getLogger(__name__)
 
@@ -90,7 +90,9 @@ def init_db(app: Flask) -> None:
 
         elif db_type in ["postgresql", "postgres"]:
             # PostgreSQL - PyDAL uses 'postgres://' not 'postgresql://'
-            database_url = f"postgres://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+            database_url = (
+                f"postgres://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+            )
 
         elif db_type in ["mssql", "mssql3", "mssql4"]:
             # Microsoft SQL Server - mssql (legacy), mssql3 (2005+), mssql4 (2012+)
@@ -167,7 +169,7 @@ def init_db(app: Flask) -> None:
 
     # Wait for database to be ready (retry logic for startup)
     max_retries = 30  # 30 retries = 30 seconds max wait
-    retry_delay = 1   # 1 second between retries
+    retry_delay = 1  # 1 second between retries
 
     for attempt in range(max_retries):
         try:
@@ -177,12 +179,14 @@ def init_db(app: Flask) -> None:
             # With pool_size=1, we get proper migration while maintaining thread safety
             db = DAL(
                 database_url,
-                folder=app.instance_path if hasattr(app, 'instance_path') else 'databases',
+                folder=(
+                    app.instance_path if hasattr(app, "instance_path") else "databases"
+                ),
                 migrate=True,
                 fake_migrate_all=False,  # Allow table creation on first run
                 lazy_tables=False,
                 pool_size=1,  # Minimum pool size to enable migration
-                adapter_args={'attempts': 1}  # Don't retry failed connections
+                adapter_args={"attempts": 1},  # Don't retry failed connections
             )
             # Test the connection
             db.executesql("SELECT 1")
@@ -190,10 +194,14 @@ def init_db(app: Flask) -> None:
             break
         except Exception as e:
             if attempt < max_retries - 1:
-                logger.warning(f"Database connection attempt {attempt + 1}/{max_retries} failed: {e}. Retrying in {retry_delay}s...")
+                logger.warning(
+                    f"Database connection attempt {attempt + 1}/{max_retries} failed: {e}. Retrying in {retry_delay}s..."
+                )
                 time.sleep(retry_delay)
             else:
-                logger.error(f"Failed to connect to database after {max_retries} attempts")
+                logger.error(
+                    f"Failed to connect to database after {max_retries} attempts"
+                )
                 raise
 
     # Store db instance in app context
@@ -237,12 +245,14 @@ def _define_tables(db: DAL) -> None:
 
     # Import table definitions
     from apps.api.models.pydal_models import define_all_tables
+
     define_all_tables(db)
 
 
 def _init_default_data(db: DAL) -> None:
     """Initialize default data (roles, permissions, admin user)."""
     import os
+
     from werkzeug.security import generate_password_hash
 
     # Check if roles already exist
@@ -275,27 +285,71 @@ def _init_default_data(db: DAL) -> None:
         # Create default permissions
         permissions_data = [
             # Entity permissions
-            {"name": "create_entity", "resource_type": "entity", "action_name": "create"},
+            {
+                "name": "create_entity",
+                "resource_type": "entity",
+                "action_name": "create",
+            },
             {"name": "edit_entity", "resource_type": "entity", "action_name": "edit"},
-            {"name": "delete_entity", "resource_type": "entity", "action_name": "delete"},
+            {
+                "name": "delete_entity",
+                "resource_type": "entity",
+                "action_name": "delete",
+            },
             {"name": "view_entity", "resource_type": "entity", "action_name": "view"},
             # Organization permissions
-            {"name": "create_organization", "resource_type": "organization", "action_name": "create"},
-            {"name": "edit_organization", "resource_type": "organization", "action_name": "edit"},
-            {"name": "delete_organization", "resource_type": "organization", "action_name": "delete"},
-            {"name": "view_organization", "resource_type": "organization", "action_name": "view"},
+            {
+                "name": "create_organization",
+                "resource_type": "organization",
+                "action_name": "create",
+            },
+            {
+                "name": "edit_organization",
+                "resource_type": "organization",
+                "action_name": "edit",
+            },
+            {
+                "name": "delete_organization",
+                "resource_type": "organization",
+                "action_name": "delete",
+            },
+            {
+                "name": "view_organization",
+                "resource_type": "organization",
+                "action_name": "view",
+            },
             # Dependency permissions
-            {"name": "create_dependency", "resource_type": "dependency", "action_name": "create"},
-            {"name": "delete_dependency", "resource_type": "dependency", "action_name": "delete"},
-            {"name": "view_dependency", "resource_type": "dependency", "action_name": "view"},
+            {
+                "name": "create_dependency",
+                "resource_type": "dependency",
+                "action_name": "create",
+            },
+            {
+                "name": "delete_dependency",
+                "resource_type": "dependency",
+                "action_name": "delete",
+            },
+            {
+                "name": "view_dependency",
+                "resource_type": "dependency",
+                "action_name": "view",
+            },
             # User management
-            {"name": "manage_users", "resource_type": "identity", "action_name": "manage"},
+            {
+                "name": "manage_users",
+                "resource_type": "identity",
+                "action_name": "manage",
+            },
             {"name": "view_users", "resource_type": "identity", "action_name": "view"},
             # Role management
             {"name": "manage_roles", "resource_type": "role", "action_name": "manage"},
             {"name": "view_roles", "resource_type": "role", "action_name": "view"},
             # Audit logs
-            {"name": "view_audit_logs", "resource_type": "audit", "action_name": "view"},
+            {
+                "name": "view_audit_logs",
+                "resource_type": "audit",
+                "action_name": "view",
+            },
         ]
 
         permissions = {}
@@ -307,13 +361,24 @@ def _init_default_data(db: DAL) -> None:
         role_permissions_map = {
             "super_admin": list(permissions.keys()),  # All permissions
             "org_admin": [
-                "create_entity", "edit_entity", "delete_entity", "view_entity",
-                "view_organization", "create_dependency", "delete_dependency",
-                "view_dependency", "view_users", "view_audit_logs",
+                "create_entity",
+                "edit_entity",
+                "delete_entity",
+                "view_entity",
+                "view_organization",
+                "create_dependency",
+                "delete_dependency",
+                "view_dependency",
+                "view_users",
+                "view_audit_logs",
             ],
             "editor": [
-                "create_entity", "edit_entity", "view_entity",
-                "view_organization", "create_dependency", "view_dependency",
+                "create_entity",
+                "edit_entity",
+                "view_entity",
+                "view_organization",
+                "create_dependency",
+                "view_dependency",
             ],
             "viewer": ["view_entity", "view_organization", "view_dependency"],
         }

@@ -7,27 +7,24 @@ GitLab-specific features:
 - Milestones at project and group level
 """
 
-import httpx
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
+import httpx
 from pydal import DAL
 
-from apps.connector.sync.base import (
-    BaseSyncClient,
-    SyncOperation,
-    SyncResult,
-    SyncStatus,
-    ResourceType,
-    SyncDirection,
-)
+from apps.connector.sync.base import (BaseSyncClient, ResourceType,
+                                      SyncDirection, SyncOperation, SyncResult,
+                                      SyncStatus)
 from apps.connector.sync.conflict_resolver import ConflictResolver
 
 
 class GitLabSyncClient(BaseSyncClient):
     """GitLab sync client implementation."""
 
-    def __init__(self, config: Dict[str, Any], db: DAL, sync_config_id: int, logger: Any):
+    def __init__(
+        self, config: Dict[str, Any], db: DAL, sync_config_id: int, logger: Any
+    ):
         super().__init__("gitlab", config, db, sync_config_id, logger)
 
         self.api_token = config.get("api_token")
@@ -75,7 +72,9 @@ class GitLabSyncClient(BaseSyncClient):
         """Sync label with GitLab (supports scoped labels)."""
         return SyncResult(status=SyncStatus.SUCCESS, operation=operation)
 
-    def batch_sync(self, resource_type: ResourceType, since: Optional[datetime] = None) -> SyncResult:
+    def batch_sync(
+        self, resource_type: ResourceType, since: Optional[datetime] = None
+    ) -> SyncResult:
         """Batch sync GitLab resources."""
         self.logger.info(f"GitLab batch sync for {resource_type.value}")
         return SyncResult(

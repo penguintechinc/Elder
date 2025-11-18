@@ -1,11 +1,13 @@
 """Advanced Search API endpoints for Elder v1.2.0 (Phase 10)."""
 
 import json
-from flask import Blueprint, jsonify, request, current_app
+
+from flask import Blueprint, current_app, jsonify, request
+
 from apps.api.auth.decorators import login_required
 from apps.api.services.search import SearchService
 
-bp = Blueprint('search', __name__)
+bp = Blueprint("search", __name__)
 
 
 def get_search_service():
@@ -17,7 +19,8 @@ def get_search_service():
 # Universal Search Endpoints
 # ===========================
 
-@bp.route('', methods=['GET'])
+
+@bp.route("", methods=["GET"])
 @login_required
 def search_all():
     """
@@ -37,14 +40,14 @@ def search_all():
     try:
         service = get_search_service()
 
-        query = request.args.get('q', '')
-        types_str = request.args.get('types', 'entity,organization,issue')
-        filters_str = request.args.get('filters')
-        limit = request.args.get('limit', 50, type=int)
-        offset = request.args.get('offset', 0, type=int)
+        query = request.args.get("q", "")
+        types_str = request.args.get("types", "entity,organization,issue")
+        filters_str = request.args.get("filters")
+        limit = request.args.get("limit", 50, type=int)
+        offset = request.args.get("offset", 0, type=int)
 
         # Parse types
-        resource_types = [t.strip() for t in types_str.split(',') if t.strip()]
+        resource_types = [t.strip() for t in types_str.split(",") if t.strip()]
 
         # Parse filters
         filters = None
@@ -56,22 +59,23 @@ def search_all():
             resource_types=resource_types,
             filters=filters,
             limit=limit,
-            offset=offset
+            offset=offset,
         )
 
         return jsonify(results), 200
 
     except json.JSONDecodeError:
-        return jsonify({'error': 'Invalid filters JSON'}), 400
+        return jsonify({"error": "Invalid filters JSON"}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # Entity Search Endpoints
 # ===========================
 
-@bp.route('/entities', methods=['GET'])
+
+@bp.route("/entities", methods=["GET"])
 @login_required
 def search_entities():
     """
@@ -93,19 +97,19 @@ def search_entities():
     try:
         service = get_search_service()
 
-        query = request.args.get('q')
-        entity_type = request.args.get('entity_type')
-        sub_type = request.args.get('sub_type')
-        organization_id = request.args.get('organization_id', type=int)
-        tags_str = request.args.get('tags')
-        filters_str = request.args.get('filters')
-        limit = request.args.get('limit', 50, type=int)
-        offset = request.args.get('offset', 0, type=int)
+        query = request.args.get("q")
+        entity_type = request.args.get("entity_type")
+        sub_type = request.args.get("sub_type")
+        organization_id = request.args.get("organization_id", type=int)
+        tags_str = request.args.get("tags")
+        filters_str = request.args.get("filters")
+        limit = request.args.get("limit", 50, type=int)
+        offset = request.args.get("offset", 0, type=int)
 
         # Parse tags
         tags = None
         if tags_str:
-            tags = [t.strip() for t in tags_str.split(',') if t.strip()]
+            tags = [t.strip() for t in tags_str.split(",") if t.strip()]
 
         # Parse filters
         filters = None
@@ -120,22 +124,23 @@ def search_entities():
             tags=tags,
             filters=filters,
             limit=limit,
-            offset=offset
+            offset=offset,
         )
 
         return jsonify(results), 200
 
     except json.JSONDecodeError:
-        return jsonify({'error': 'Invalid filters JSON'}), 400
+        return jsonify({"error": "Invalid filters JSON"}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # Organization Search Endpoints
 # ===========================
 
-@bp.route('/organizations', methods=['GET'])
+
+@bp.route("/organizations", methods=["GET"])
 @login_required
 def search_organizations():
     """
@@ -154,31 +159,32 @@ def search_organizations():
     try:
         service = get_search_service()
 
-        query = request.args.get('q')
-        organization_type = request.args.get('organization_type')
-        parent_id = request.args.get('parent_id', type=int)
-        limit = request.args.get('limit', 50, type=int)
-        offset = request.args.get('offset', 0, type=int)
+        query = request.args.get("q")
+        organization_type = request.args.get("organization_type")
+        parent_id = request.args.get("parent_id", type=int)
+        limit = request.args.get("limit", 50, type=int)
+        offset = request.args.get("offset", 0, type=int)
 
         results = service.search_organizations(
             query=query,
             organization_type=organization_type,
             parent_id=parent_id,
             limit=limit,
-            offset=offset
+            offset=offset,
         )
 
         return jsonify(results), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # Issue Search Endpoints
 # ===========================
 
-@bp.route('/issues', methods=['GET'])
+
+@bp.route("/issues", methods=["GET"])
 @login_required
 def search_issues():
     """
@@ -200,19 +206,19 @@ def search_issues():
     try:
         service = get_search_service()
 
-        query = request.args.get('q')
-        status = request.args.get('status')
-        priority = request.args.get('priority')
-        assignee_id = request.args.get('assignee_id', type=int)
-        organization_id = request.args.get('organization_id', type=int)
-        labels_str = request.args.get('labels')
-        limit = request.args.get('limit', 50, type=int)
-        offset = request.args.get('offset', 0, type=int)
+        query = request.args.get("q")
+        status = request.args.get("status")
+        priority = request.args.get("priority")
+        assignee_id = request.args.get("assignee_id", type=int)
+        organization_id = request.args.get("organization_id", type=int)
+        labels_str = request.args.get("labels")
+        limit = request.args.get("limit", 50, type=int)
+        offset = request.args.get("offset", 0, type=int)
 
         # Parse labels
         labels = None
         if labels_str:
-            labels = [l.strip() for l in labels_str.split(',') if l.strip()]
+            labels = [l.strip() for l in labels_str.split(",") if l.strip()]
 
         results = service.search_issues(
             query=query,
@@ -222,20 +228,21 @@ def search_issues():
             organization_id=organization_id,
             labels=labels,
             limit=limit,
-            offset=offset
+            offset=offset,
         )
 
         return jsonify(results), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # Graph Search Endpoints
 # ===========================
 
-@bp.route('/graph', methods=['POST'])
+
+@bp.route("/graph", methods=["POST"])
 @login_required
 def search_graph():
     """
@@ -256,31 +263,32 @@ def search_graph():
     try:
         data = request.get_json()
 
-        if not data or 'start_entity_id' not in data:
-            return jsonify({'error': 'start_entity_id is required'}), 400
+        if not data or "start_entity_id" not in data:
+            return jsonify({"error": "start_entity_id is required"}), 400
 
         service = get_search_service()
 
         results = service.search_graph(
-            start_entity_id=data['start_entity_id'],
-            max_depth=data.get('max_depth', 3),
-            dependency_types=data.get('dependency_types'),
-            entity_filters=data.get('entity_filters')
+            start_entity_id=data["start_entity_id"],
+            max_depth=data.get("max_depth", 3),
+            dependency_types=data.get("dependency_types"),
+            entity_filters=data.get("entity_filters"),
         )
 
         return jsonify(results), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # Saved Search Endpoints
 # ===========================
 
-@bp.route('/saved', methods=['GET'])
+
+@bp.route("/saved", methods=["GET"])
 @login_required
 def list_saved_searches():
     """
@@ -295,23 +303,17 @@ def list_saved_searches():
     try:
         service = get_search_service()
 
-        limit = request.args.get('limit', 50, type=int)
+        limit = request.args.get("limit", 50, type=int)
 
-        searches = service.list_saved_searches(
-            user_id=current_user.id,
-            limit=limit
-        )
+        searches = service.list_saved_searches(user_id=current_user.id, limit=limit)
 
-        return jsonify({
-            'searches': searches,
-            'count': len(searches)
-        }), 200
+        return jsonify({"searches": searches, "count": len(searches)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/saved', methods=['POST'])
+@bp.route("/saved", methods=["POST"])
 @login_required
 def create_saved_search():
     """
@@ -334,31 +336,34 @@ def create_saved_search():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['name', 'query', 'resource_type']
+        required = ["name", "query", "resource_type"]
         missing = [f for f in required if f not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_search_service()
 
         search = service.create_saved_search(
             user_id=current_user.id,
-            name=data['name'],
-            query=data['query'],
-            resource_type=data['resource_type'],
-            filters=data.get('filters'),
-            description=data.get('description')
+            name=data["name"],
+            query=data["query"],
+            resource_type=data["resource_type"],
+            filters=data.get("filters"),
+            description=data.get("description"),
         )
 
         return jsonify(search), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/saved/<int:search_id>', methods=['GET'])
+@bp.route("/saved/<int:search_id>", methods=["GET"])
 @login_required
 def get_saved_search(search_id):
     """
@@ -371,20 +376,17 @@ def get_saved_search(search_id):
     try:
         service = get_search_service()
 
-        search = service.get_saved_search(
-            search_id=search_id,
-            user_id=current_user.id
-        )
+        search = service.get_saved_search(search_id=search_id, user_id=current_user.id)
 
         return jsonify(search), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower() or 'not owned' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower() or "not owned" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/saved/<int:search_id>/execute', methods=['GET'])
+@bp.route("/saved/<int:search_id>/execute", methods=["GET"])
 @login_required
 def execute_saved_search(search_id):
     """
@@ -401,25 +403,22 @@ def execute_saved_search(search_id):
     try:
         service = get_search_service()
 
-        limit = request.args.get('limit', 50, type=int)
-        offset = request.args.get('offset', 0, type=int)
+        limit = request.args.get("limit", 50, type=int)
+        offset = request.args.get("offset", 0, type=int)
 
         results = service.execute_saved_search(
-            search_id=search_id,
-            user_id=current_user.id,
-            limit=limit,
-            offset=offset
+            search_id=search_id, user_id=current_user.id, limit=limit, offset=offset
         )
 
         return jsonify(results), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower() or 'not owned' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower() or "not owned" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/saved/<int:search_id>', methods=['PUT'])
+@bp.route("/saved/<int:search_id>", methods=["PUT"])
 @login_required
 def update_saved_search(search_id):
     """
@@ -441,28 +440,28 @@ def update_saved_search(search_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_search_service()
 
         search = service.update_saved_search(
             search_id=search_id,
             user_id=current_user.id,
-            name=data.get('name'),
-            query=data.get('query'),
-            filters=data.get('filters'),
-            description=data.get('description')
+            name=data.get("name"),
+            query=data.get("query"),
+            filters=data.get("filters"),
+            description=data.get("description"),
         )
 
         return jsonify(search), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower() or 'not owned' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower() or "not owned" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/saved/<int:search_id>', methods=['DELETE'])
+@bp.route("/saved/<int:search_id>", methods=["DELETE"])
 @login_required
 def delete_saved_search(search_id):
     """
@@ -476,23 +475,23 @@ def delete_saved_search(search_id):
         service = get_search_service()
 
         result = service.delete_saved_search(
-            search_id=search_id,
-            user_id=current_user.id
+            search_id=search_id, user_id=current_user.id
         )
 
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower() or 'not owned' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower() or "not owned" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # Search Analytics Endpoints
 # ===========================
 
-@bp.route('/analytics/popular', methods=['GET'])
+
+@bp.route("/analytics/popular", methods=["GET"])
 @login_required
 def get_popular_searches():
     """
@@ -507,20 +506,17 @@ def get_popular_searches():
     try:
         service = get_search_service()
 
-        limit = request.args.get('limit', 10, type=int)
+        limit = request.args.get("limit", 10, type=int)
 
         popular = service.get_popular_searches(limit=limit)
 
-        return jsonify({
-            'popular_searches': popular,
-            'count': len(popular)
-        }), 200
+        return jsonify({"popular_searches": popular, "count": len(popular)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/suggest', methods=['GET'])
+@bp.route("/suggest", methods=["GET"])
 @login_required
 def search_suggestions():
     """
@@ -537,20 +533,15 @@ def search_suggestions():
     try:
         service = get_search_service()
 
-        query = request.args.get('q', '')
-        resource_type = request.args.get('type')
-        limit = request.args.get('limit', 10, type=int)
+        query = request.args.get("q", "")
+        resource_type = request.args.get("type")
+        limit = request.args.get("limit", 10, type=int)
 
         suggestions = service.get_search_suggestions(
-            partial_query=query,
-            resource_type=resource_type,
-            limit=limit
+            partial_query=query, resource_type=resource_type, limit=limit
         )
 
-        return jsonify({
-            'suggestions': suggestions,
-            'count': len(suggestions)
-        }), 200
+        return jsonify({"suggestions": suggestions, "count": len(suggestions)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500

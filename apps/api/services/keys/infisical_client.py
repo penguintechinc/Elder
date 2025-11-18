@@ -2,8 +2,8 @@
 
 import base64
 import json
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 try:
     import requests
@@ -170,7 +170,11 @@ class InfisicalClient(BaseKeyProvider):
             secret_value = result.get("secret", {}).get("secretValue", "{}")
 
             # Parse stored key data
-            key_data = json.loads(secret_value) if isinstance(secret_value, str) else secret_value
+            key_data = (
+                json.loads(secret_value)
+                if isinstance(secret_value, str)
+                else secret_value
+            )
 
             return {
                 "key_id": key_id,
@@ -218,7 +222,11 @@ class InfisicalClient(BaseKeyProvider):
                 try:
                     # Parse key data
                     secret_value = secret.get("secretValue", "{}")
-                    key_data = json.loads(secret_value) if isinstance(secret_value, str) else secret_value
+                    key_data = (
+                        json.loads(secret_value)
+                        if isinstance(secret_value, str)
+                        else secret_value
+                    )
 
                     # Only include keys (filter out regular secrets)
                     if isinstance(key_data, dict) and key_data.get("type") in [
@@ -230,9 +238,11 @@ class InfisicalClient(BaseKeyProvider):
                             {
                                 "key_id": secret.get("secretKey"),
                                 "key_arn": f"infisical://{self.workspace_id}/{secret.get('secretKey')}",
-                                "state": "Enabled"
-                                if key_data.get("enabled", True)
-                                else "Disabled",
+                                "state": (
+                                    "Enabled"
+                                    if key_data.get("enabled", True)
+                                    else "Disabled"
+                                ),
                                 "created_at": key_data.get("created_at", ""),
                                 "type": key_data.get("type", ""),
                             }
@@ -279,7 +289,9 @@ class InfisicalClient(BaseKeyProvider):
                 "secretValue": json.dumps(key_value),
             }
 
-            update_response = requests.patch(endpoint, headers=self.headers, json=payload)
+            update_response = requests.patch(
+                endpoint, headers=self.headers, json=payload
+            )
             if update_response.status_code != 200:
                 raise Exception(f"Infisical API error: {update_response.text}")
 
@@ -311,7 +323,9 @@ class InfisicalClient(BaseKeyProvider):
                 "secretValue": json.dumps(key_value),
             }
 
-            update_response = requests.patch(endpoint, headers=self.headers, json=payload)
+            update_response = requests.patch(
+                endpoint, headers=self.headers, json=payload
+            )
             if update_response.status_code != 200:
                 raise Exception(f"Infisical API error: {update_response.text}")
 
@@ -385,8 +399,9 @@ class InfisicalClient(BaseKeyProvider):
             key_material = base64.b64decode(key_data.get("material", ""))
 
             # Perform encryption using AES-GCM
-            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
             import os
+
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
             aesgcm = AESGCM(key_material)
             nonce = os.urandom(12)  # 96-bit nonce for GCM
@@ -500,7 +515,9 @@ class InfisicalClient(BaseKeyProvider):
             if get_response.status_code != 200:
                 raise Exception(f"Infisical API error: {get_response.text}")
 
-            key_data = json.loads(get_response.json().get("secret", {}).get("secretValue", "{}"))
+            key_data = json.loads(
+                get_response.json().get("secret", {}).get("secretValue", "{}")
+            )
 
             # Update material
             key_data["material"] = base64.b64encode(new_material).decode("utf-8")
@@ -513,7 +530,9 @@ class InfisicalClient(BaseKeyProvider):
                 "secretValue": json.dumps(key_data),
             }
 
-            update_response = requests.patch(endpoint, headers=self.headers, json=payload)
+            update_response = requests.patch(
+                endpoint, headers=self.headers, json=payload
+            )
             if update_response.status_code != 200:
                 raise Exception(f"Infisical API error: {update_response.text}")
 

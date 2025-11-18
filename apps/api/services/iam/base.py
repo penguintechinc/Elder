@@ -1,7 +1,7 @@
 """Base abstract class for IAM providers."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 
 
 class BaseIAMProvider(ABC):
@@ -197,7 +197,10 @@ class BaseIAMProvider(ABC):
 
     @abstractmethod
     def list_policies(
-        self, scope: Optional[str] = None, limit: Optional[int] = None, next_token: Optional[str] = None
+        self,
+        scope: Optional[str] = None,
+        limit: Optional[int] = None,
+        next_token: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         List policies.

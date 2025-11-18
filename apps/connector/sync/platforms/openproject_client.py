@@ -7,31 +7,30 @@ OpenProject mapping:
 - Types → Issue Types
 """
 
-import httpx
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
+import httpx
 from pydal import DAL
 
-from apps.connector.sync.base import (
-    BaseSyncClient,
-    SyncOperation,
-    SyncResult,
-    SyncStatus,
-    ResourceType,
-    SyncDirection,
-)
+from apps.connector.sync.base import (BaseSyncClient, ResourceType,
+                                      SyncDirection, SyncOperation, SyncResult,
+                                      SyncStatus)
 from apps.connector.sync.conflict_resolver import ConflictResolver
 
 
 class OpenProjectSyncClient(BaseSyncClient):
     """OpenProject sync client implementation."""
 
-    def __init__(self, config: Dict[str, Any], db: DAL, sync_config_id: int, logger: Any):
+    def __init__(
+        self, config: Dict[str, Any], db: DAL, sync_config_id: int, logger: Any
+    ):
         super().__init__("openproject", config, db, sync_config_id, logger)
 
         self.api_key = config.get("api_key")
-        self.base_url = config.get("base_url")  # e.g., https://yourcompany.openproject.com
+        self.base_url = config.get(
+            "base_url"
+        )  # e.g., https://yourcompany.openproject.com
         self.project_id = config.get("project_id")
 
         self.client = httpx.Client(
@@ -56,7 +55,9 @@ class OpenProjectSyncClient(BaseSyncClient):
     def sync_issue(self, operation: SyncOperation) -> SyncResult:
         """Sync issue with OpenProject (Work Package)."""
         self.logger.info(f"OpenProject work package sync: {operation.operation_type}")
-        return SyncResult(status=SyncStatus.SUCCESS, operation=operation, items_synced=1)
+        return SyncResult(
+            status=SyncStatus.SUCCESS, operation=operation, items_synced=1
+        )
 
     def sync_project(self, operation: SyncOperation) -> SyncResult:
         """Sync project with OpenProject."""
@@ -70,7 +71,9 @@ class OpenProjectSyncClient(BaseSyncClient):
         """Sync label with OpenProject (Types/Categories)."""
         return SyncResult(status=SyncStatus.SUCCESS, operation=operation)
 
-    def batch_sync(self, resource_type: ResourceType, since: Optional[datetime] = None) -> SyncResult:
+    def batch_sync(
+        self, resource_type: ResourceType, since: Optional[datetime] = None
+    ) -> SyncResult:
         """Batch sync OpenProject resources."""
         self.logger.info(f"OpenProject batch sync for {resource_type.value}")
         return SyncResult(

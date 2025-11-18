@@ -1,10 +1,11 @@
 """Keys Management API endpoints for Elder v1.2.0 (Phase 3)."""
 
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, current_app, jsonify, request
+
 from apps.api.auth.decorators import login_required
 from apps.api.services.keys import KeysService
 
-bp = Blueprint('keys', __name__)
+bp = Blueprint("keys", __name__)
 
 
 def get_keys_service():
@@ -14,7 +15,8 @@ def get_keys_service():
 
 # Key Management Endpoints
 
-@bp.route('', methods=['GET'])
+
+@bp.route("", methods=["GET"])
 @login_required
 def list_keys():
     """
@@ -31,26 +33,21 @@ def list_keys():
     try:
         service = get_keys_service()
 
-        provider_id = request.args.get('provider_id', type=int)
-        key_type = request.args.get('key_type')
-        enabled_only = request.args.get('enabled_only', 'false').lower() == 'true'
+        provider_id = request.args.get("provider_id", type=int)
+        key_type = request.args.get("key_type")
+        enabled_only = request.args.get("enabled_only", "false").lower() == "true"
 
         keys = service.list_keys(
-            provider_id=provider_id,
-            key_type=key_type,
-            enabled_only=enabled_only
+            provider_id=provider_id, key_type=key_type, enabled_only=enabled_only
         )
 
-        return jsonify({
-            'keys': keys,
-            'count': len(keys)
-        }), 200
+        return jsonify({"keys": keys, "count": len(keys)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:key_id>', methods=['GET'])
+@bp.route("/<int:key_id>", methods=["GET"])
 @login_required
 def get_key(key_id):
     """
@@ -66,12 +63,12 @@ def get_key(key_id):
         return jsonify(key), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('', methods=['POST'])
+@bp.route("", methods=["POST"])
 @login_required
 def create_key():
     """
@@ -96,33 +93,36 @@ def create_key():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['provider_id', 'key_name']
+        required = ["provider_id", "key_name"]
         missing = [field for field in required if field not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_keys_service()
 
         key = service.create_key(
-            provider_id=data['provider_id'],
-            key_name=data['key_name'],
-            key_type=data.get('key_type', 'symmetric'),
-            key_spec=data.get('key_spec'),
-            description=data.get('description'),
-            tags=data.get('tags')
+            provider_id=data["provider_id"],
+            key_name=data["key_name"],
+            key_type=data.get("key_type", "symmetric"),
+            key_spec=data.get("key_spec"),
+            description=data.get("description"),
+            tags=data.get("tags"),
         )
 
         return jsonify(key), 201
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/<int:key_id>/enable', methods=['POST'])
+@bp.route("/<int:key_id>/enable", methods=["POST"])
 @login_required
 def enable_key(key_id):
     """
@@ -138,12 +138,12 @@ def enable_key(key_id):
         return jsonify(key), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:key_id>/disable', methods=['POST'])
+@bp.route("/<int:key_id>/disable", methods=["POST"])
 @login_required
 def disable_key(key_id):
     """
@@ -159,12 +159,12 @@ def disable_key(key_id):
         return jsonify(key), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:key_id>/rotate', methods=['POST'])
+@bp.route("/<int:key_id>/rotate", methods=["POST"])
 @login_required
 def rotate_key(key_id):
     """
@@ -180,12 +180,12 @@ def rotate_key(key_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:key_id>', methods=['DELETE'])
+@bp.route("/<int:key_id>", methods=["DELETE"])
 @login_required
 def delete_key(key_id):
     """
@@ -199,21 +199,22 @@ def delete_key(key_id):
         404: Key not found
     """
     try:
-        pending_days = request.args.get('pending_days', 30, type=int)
+        pending_days = request.args.get("pending_days", 30, type=int)
 
         service = get_keys_service()
         result = service.delete_key(key_id, pending_days)
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # Cryptographic Operations
 
-@bp.route('/<int:key_id>/encrypt', methods=['POST'])
+
+@bp.route("/<int:key_id>/encrypt", methods=["POST"])
 @login_required
 def encrypt_data(key_id):
     """
@@ -232,25 +233,23 @@ def encrypt_data(key_id):
     try:
         data = request.get_json()
 
-        if not data or 'plaintext' not in data:
-            return jsonify({'error': 'plaintext field required'}), 400
+        if not data or "plaintext" not in data:
+            return jsonify({"error": "plaintext field required"}), 400
 
         service = get_keys_service()
         result = service.encrypt(
-            key_id=key_id,
-            plaintext=data['plaintext'],
-            context=data.get('context')
+            key_id=key_id, plaintext=data["plaintext"], context=data.get("context")
         )
 
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:key_id>/decrypt', methods=['POST'])
+@bp.route("/<int:key_id>/decrypt", methods=["POST"])
 @login_required
 def decrypt_data(key_id):
     """
@@ -269,25 +268,23 @@ def decrypt_data(key_id):
     try:
         data = request.get_json()
 
-        if not data or 'ciphertext' not in data:
-            return jsonify({'error': 'ciphertext field required'}), 400
+        if not data or "ciphertext" not in data:
+            return jsonify({"error": "ciphertext field required"}), 400
 
         service = get_keys_service()
         result = service.decrypt(
-            key_id=key_id,
-            ciphertext=data['ciphertext'],
-            context=data.get('context')
+            key_id=key_id, ciphertext=data["ciphertext"], context=data.get("context")
         )
 
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:key_id>/generate-data-key', methods=['POST'])
+@bp.route("/<int:key_id>/generate-data-key", methods=["POST"])
 @login_required
 def generate_data_key(key_id):
     """
@@ -309,19 +306,19 @@ def generate_data_key(key_id):
         service = get_keys_service()
         result = service.generate_data_key(
             key_id=key_id,
-            key_spec=data.get('key_spec', 'AES_256'),
-            context=data.get('context')
+            key_spec=data.get("key_spec", "AES_256"),
+            context=data.get("context"),
         )
 
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:key_id>/sign', methods=['POST'])
+@bp.route("/<int:key_id>/sign", methods=["POST"])
 @login_required
 def sign_data(key_id):
     """
@@ -341,27 +338,27 @@ def sign_data(key_id):
     try:
         data = request.get_json()
 
-        if not data or 'message' not in data:
-            return jsonify({'error': 'message field required'}), 400
+        if not data or "message" not in data:
+            return jsonify({"error": "message field required"}), 400
 
         service = get_keys_service()
         result = service.sign(
             key_id=key_id,
-            message=data['message'],
-            signing_algorithm=data.get('signing_algorithm', 'RSASSA_PSS_SHA_256')
+            message=data["message"],
+            signing_algorithm=data.get("signing_algorithm", "RSASSA_PSS_SHA_256"),
         )
 
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        if 'must be asymmetric' in str(e).lower():
-            return jsonify({'error': str(e)}), 400
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        if "must be asymmetric" in str(e).lower():
+            return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:key_id>/verify', methods=['POST'])
+@bp.route("/<int:key_id>/verify", methods=["POST"])
 @login_required
 def verify_signature(key_id):
     """
@@ -383,32 +380,35 @@ def verify_signature(key_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['message', 'signature', 'signing_algorithm']
+        required = ["message", "signature", "signing_algorithm"]
         missing = [field for field in required if field not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_keys_service()
         result = service.verify(
             key_id=key_id,
-            message=data['message'],
-            signature=data['signature'],
-            signing_algorithm=data['signing_algorithm']
+            message=data["message"],
+            signature=data["signature"],
+            signing_algorithm=data["signing_algorithm"],
         )
 
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        if 'must be asymmetric' in str(e).lower():
-            return jsonify({'error': str(e)}), 400
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        if "must be asymmetric" in str(e).lower():
+            return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:key_id>/access-log', methods=['GET'])
+@bp.route("/<int:key_id>/access-log", methods=["GET"])
 @login_required
 def get_key_access_log(key_id):
     """
@@ -423,29 +423,35 @@ def get_key_access_log(key_id):
         404: Key not found
     """
     try:
-        limit = request.args.get('limit', 100, type=int)
-        offset = request.args.get('offset', 0, type=int)
+        limit = request.args.get("limit", 100, type=int)
+        offset = request.args.get("offset", 0, type=int)
 
         service = get_keys_service()
         logs = service.get_access_log(key_id, limit=limit, offset=offset)
 
-        return jsonify({
-            'key_id': key_id,
-            'logs': logs,
-            'count': len(logs),
-            'limit': limit,
-            'offset': offset
-        }), 200
+        return (
+            jsonify(
+                {
+                    "key_id": key_id,
+                    "logs": logs,
+                    "count": len(logs),
+                    "limit": limit,
+                    "offset": offset,
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # Key Provider endpoints
 
-@bp.route('/providers', methods=['GET'])
+
+@bp.route("/providers", methods=["GET"])
 @login_required
 def list_key_providers():
     """
@@ -458,21 +464,18 @@ def list_key_providers():
         200: List of key providers
     """
     try:
-        enabled_only = request.args.get('enabled_only', 'false').lower() == 'true'
+        enabled_only = request.args.get("enabled_only", "false").lower() == "true"
 
         service = get_keys_service()
         providers = service.list_providers(enabled_only=enabled_only)
 
-        return jsonify({
-            'providers': providers,
-            'count': len(providers)
-        }), 200
+        return jsonify({"providers": providers, "count": len(providers)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers', methods=['POST'])
+@bp.route("/providers", methods=["POST"])
 @login_required
 def create_key_provider():
     """
@@ -498,29 +501,32 @@ def create_key_provider():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['name', 'provider_type', 'config']
+        required = ["name", "provider_type", "config"]
         missing = [field for field in required if field not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_keys_service()
 
         provider = service.create_provider(
-            name=data['name'],
-            provider_type=data['provider_type'],
-            config=data['config'],
-            description=data.get('description')
+            name=data["name"],
+            provider_type=data["provider_type"],
+            config=data["config"],
+            description=data.get("description"),
         )
 
         return jsonify(provider), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>', methods=['GET'])
+@bp.route("/providers/<int:provider_id>", methods=["GET"])
 @login_required
 def get_key_provider(provider_id):
     """
@@ -536,12 +542,12 @@ def get_key_provider(provider_id):
         return jsonify(provider), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>', methods=['PUT'])
+@bp.route("/providers/<int:provider_id>", methods=["PUT"])
 @login_required
 def update_key_provider(provider_id):
     """
@@ -563,27 +569,27 @@ def update_key_provider(provider_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_keys_service()
 
         provider = service.update_provider(
             provider_id=provider_id,
-            name=data.get('name'),
-            config=data.get('config'),
-            description=data.get('description'),
-            enabled=data.get('enabled')
+            name=data.get("name"),
+            config=data.get("config"),
+            description=data.get("description"),
+            enabled=data.get("enabled"),
         )
 
         return jsonify(provider), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/providers/<int:provider_id>', methods=['DELETE'])
+@bp.route("/providers/<int:provider_id>", methods=["DELETE"])
 @login_required
 def delete_key_provider(provider_id):
     """
@@ -600,14 +606,14 @@ def delete_key_provider(provider_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        if 'cannot delete' in str(e).lower():
-            return jsonify({'error': str(e)}), 400
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        if "cannot delete" in str(e).lower():
+            return jsonify({"error": str(e)}), 400
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/providers/<int:provider_id>/test', methods=['POST'])
+@bp.route("/providers/<int:provider_id>/test", methods=["POST"])
 @login_required
 def test_key_provider(provider_id):
     """
@@ -623,6 +629,6 @@ def test_key_provider(provider_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500

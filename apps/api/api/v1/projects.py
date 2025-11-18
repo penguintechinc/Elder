@@ -1,15 +1,12 @@
 """Projects management API endpoints for Elder using PyDAL with async/await."""
 
-from flask import Blueprint, jsonify, request, current_app
 from dataclasses import asdict
 
+from flask import Blueprint, current_app, jsonify, request
+
 from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.dataclasses import (
-    ProjectDTO,
-    PaginatedResponse,
-    from_pydal_row,
-    from_pydal_rows,
-)
+from apps.api.models.dataclasses import (PaginatedResponse, ProjectDTO,
+                                         from_pydal_row, from_pydal_rows)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("projects", __name__)
@@ -38,8 +35,8 @@ async def list_projects():
     db = current_app.db
 
     # Get pagination params
-    page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 50, type=int), 1000)
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 50, type=int), 1000)
 
     # Build query
     def get_projects():
@@ -48,17 +45,16 @@ async def list_projects():
         # Apply filters
         if request.args.get("organization_id"):
             org_id = request.args.get("organization_id", type=int)
-            query &= (db.projects.organization_id == org_id)
+            query &= db.projects.organization_id == org_id
 
         if request.args.get("status"):
-            query &= (db.projects.status == request.args.get("status"))
+            query &= db.projects.status == request.args.get("status")
 
         if request.args.get("search"):
             search = request.args.get("search")
-            search_pattern = f'%{search}%'
-            query &= (
-                (db.projects.name.ilike(search_pattern)) |
-                (db.projects.description.ilike(search_pattern))
+            search_pattern = f"%{search}%"
+            query &= (db.projects.name.ilike(search_pattern)) | (
+                db.projects.description.ilike(search_pattern)
             )
 
         # Calculate pagination
@@ -67,8 +63,7 @@ async def list_projects():
         # Get count and rows
         total = db(query).count()
         rows = db(query).select(
-            orderby=~db.projects.created_at,
-            limitby=(offset, offset + per_page)
+            orderby=~db.projects.created_at, limitby=(offset, offset + per_page)
         )
 
         return total, rows
@@ -87,7 +82,7 @@ async def list_projects():
         total=total,
         page=page,
         per_page=per_page,
-        pages=pages
+        pages=pages,
     )
 
     return jsonify(asdict(response)), 200

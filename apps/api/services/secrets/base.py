@@ -2,8 +2,8 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -20,14 +20,18 @@ class SecretValue:
     updated_at: Optional[datetime] = None
     metadata: Optional[Dict[str, Any]] = None
 
-    def mask(self) -> 'SecretValue':
+    def mask(self) -> "SecretValue":
         """Return a masked version of this secret."""
         return SecretValue(
             name=self.name,
-            value='***MASKED***' if self.value else None,
+            value="***MASKED***" if self.value else None,
             is_masked=True,
             is_kv=self.is_kv,
-            kv_pairs={k: '***MASKED***' for k in self.kv_pairs.keys()} if self.kv_pairs else None,
+            kv_pairs=(
+                {k: "***MASKED***" for k in self.kv_pairs.keys()}
+                if self.kv_pairs
+                else None
+            ),
             version=self.version,
             created_at=self.created_at,
             updated_at=self.updated_at,
@@ -113,7 +117,9 @@ class SecretProviderClient(ABC):
         """
 
     @abstractmethod
-    def create_secret(self, path: str, value: str, metadata: Optional[Dict[str, Any]] = None) -> SecretMetadata:
+    def create_secret(
+        self, path: str, value: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> SecretMetadata:
         """
         Create a new secret in the provider.
 

@@ -1,18 +1,13 @@
 """Organization API endpoints."""
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request
 from marshmallow import ValidationError
 
-from apps.api.schemas.organization import (
-    OrganizationCreateSchema,
-    OrganizationUpdateSchema,
-)
+from apps.api.schemas.organization import (OrganizationCreateSchema,
+                                           OrganizationUpdateSchema)
+from shared.api_utils import (handle_validation_error, make_error_response,
+                              validate_request)
 from shared.database import db
-from shared.api_utils import (
-    validate_request,
-    make_error_response,
-    handle_validation_error,
-)
 
 bp = Blueprint("organizations", __name__)
 
@@ -42,13 +37,13 @@ def list_organizations():
     # Apply filters
     if request.args.get("parent_id"):
         parent_id = request.args.get("parent_id", type=int)
-        query &= (db.organizations.parent_id == parent_id)
+        query &= db.organizations.parent_id == parent_id
 
     # Support both 'name' and 'search' parameters for name filtering
     search_term = request.args.get("name") or request.args.get("search")
     if search_term:
         # Case-insensitive search using PostgreSQL ILIKE
-        query &= (db.organizations.name.ilike(f'%{search_term}%'))
+        query &= db.organizations.name.ilike(f"%{search_term}%")
 
     # Get total count
     total = db(query).count()
@@ -59,8 +54,7 @@ def list_organizations():
 
     # Execute query with pagination and ordering
     rows = db(query).select(
-        orderby=db.organizations.name,
-        limitby=(offset, offset + per_page)
+        orderby=db.organizations.name, limitby=(offset, offset + per_page)
     )
 
     # Convert to dict list
@@ -237,7 +231,9 @@ def get_organization_children(id: int):
         children = get_descendants(id)
     else:
         # Just direct children
-        children = [row.as_dict() for row in db(db.organizations.parent_id == id).select()]
+        children = [
+            row.as_dict() for row in db(db.organizations.parent_id == id).select()
+        ]
 
     return jsonify(children), 200
 
@@ -274,11 +270,16 @@ def get_organization_hierarchy(id: int):
     # Build hierarchy string
     hierarchy_string = " > ".join([o["name"] for o in path])
 
-    return jsonify({
-        "path": path,
-        "depth": depth,
-        "hierarchy_string": hierarchy_string,
-    }), 200
+    return (
+        jsonify(
+            {
+                "path": path,
+                "depth": depth,
+                "hierarchy_string": hierarchy_string,
+            }
+        ),
+        200,
+    )
 
 
 @bp.route("/<int:id>/graph", methods=["GET"])
@@ -314,32 +315,36 @@ def get_organization_graph(id: int):
         if org_row.id in visited_orgs:
             return
         visited_orgs.add(org_row.id)
-        nodes.append({
-            "id": f"org-{org_row.id}",
-            "label": org_row.name,
-            "type": "organization",
-            "metadata": {
-                "id": org_row.id,
-                "description": org_row.description,
-                "parent_id": org_row.parent_id,
+        nodes.append(
+            {
+                "id": f"org-{org_row.id}",
+                "label": org_row.name,
+                "type": "organization",
+                "metadata": {
+                    "id": org_row.id,
+                    "description": org_row.description,
+                    "parent_id": org_row.parent_id,
+                },
             }
-        })
+        )
 
     # Helper function to add entity node (PyDAL row)
     def add_entity_node(entity_row):
         if entity_row.id in visited_entities:
             return
         visited_entities.add(entity_row.id)
-        nodes.append({
-            "id": f"entity-{entity_row.id}",
-            "label": entity_row.name,
-            "type": entity_row.entity_type or "default",
-            "metadata": {
-                "id": entity_row.id,
-                "entity_type": entity_row.entity_type,
-                "organization_id": entity_row.organization_id,
+        nodes.append(
+            {
+                "id": f"entity-{entity_row.id}",
+                "label": entity_row.name,
+                "type": entity_row.entity_type or "default",
+                "metadata": {
+                    "id": entity_row.id,
+                    "entity_type": entity_row.entity_type,
+                    "organization_id": entity_row.organization_id,
+                },
             }
-        })
+        )
 
     # Helper to recursively get children
     def get_all_descendants(parent_id, current_depth=0):
@@ -356,15 +361,17 @@ def get_organization_graph(id: int):
 
     # Get all child organizations recursively
     all_children = get_all_descendants(org.id)
-    for child in all_children[:depth * 10]:  # Limit total orgs
+    for child in all_children[: depth * 10]:  # Limit total orgs
         add_org_node(child)
         # Add edge from parent to child
         if child.parent_id:
-            edges.append({
-                "from": f"org-{child.parent_id}",
-                "to": f"org-{child.id}",
-                "label": "parent"
-            })
+            edges.append(
+                {
+                    "from": f"org-{child.parent_id}",
+                    "to": f"org-{child.id}",
+                    "label": "parent",
+                }
+            )
 
     # Get parent hierarchy up to depth
     current = org
@@ -374,11 +381,13 @@ def get_organization_graph(id: int):
             if not parent:
                 break
             add_org_node(parent)
-            edges.append({
-                "from": f"org-{parent.id}",
-                "to": f"org-{current.id}",
-                "label": "parent"
-            })
+            edges.append(
+                {
+                    "from": f"org-{parent.id}",
+                    "to": f"org-{current.id}",
+                    "label": "parent",
+                }
+            )
             current = parent
         else:
             break
@@ -386,35 +395,46 @@ def get_organization_graph(id: int):
     # Get entities for all visited organizations
     org_ids = list(visited_orgs)
     if org_ids:
-        entities = db(db.entities.organization_id.belongs(org_ids)).select(limitby=(0, 100))
+        entities = db(db.entities.organization_id.belongs(org_ids)).select(
+            limitby=(0, 100)
+        )
 
         for entity in entities:
             add_entity_node(entity)
             # Add edge from organization to entity
-            edges.append({
-                "from": f"org-{entity.organization_id}",
-                "to": f"entity-{entity.id}",
-                "label": "contains"
-            })
+            edges.append(
+                {
+                    "from": f"org-{entity.organization_id}",
+                    "to": f"entity-{entity.id}",
+                    "label": "contains",
+                }
+            )
 
     # Get dependencies between entities
     entity_ids = list(visited_entities)
     if entity_ids:
         dependencies = db(
-            (db.dependencies.source_entity_id.belongs(entity_ids)) &
-            (db.dependencies.target_entity_id.belongs(entity_ids))
+            (db.dependencies.source_entity_id.belongs(entity_ids))
+            & (db.dependencies.target_entity_id.belongs(entity_ids))
         ).select()
 
         for dep in dependencies:
-            edges.append({
-                "from": f"entity-{dep.source_entity_id}",
-                "to": f"entity-{dep.target_entity_id}",
-                "label": dep.dependency_type or "depends"
-            })
+            edges.append(
+                {
+                    "from": f"entity-{dep.source_entity_id}",
+                    "to": f"entity-{dep.target_entity_id}",
+                    "label": dep.dependency_type or "depends",
+                }
+            )
 
-    return jsonify({
-        "nodes": nodes,
-        "edges": edges,
-        "center_node": f"org-{org.id}",
-        "depth": depth,
-    }), 200
+    return (
+        jsonify(
+            {
+                "nodes": nodes,
+                "edges": edges,
+                "center_node": f"org-{org.id}",
+                "depth": depth,
+            }
+        ),
+        200,
+    )

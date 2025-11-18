@@ -1,7 +1,7 @@
 """Azure AD (Microsoft Entra ID) client for identity and access management."""
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 try:
     from azure.identity import ClientSecretCredential
@@ -40,13 +40,15 @@ class AzureADClient(BaseIAMProvider):
         self.client_secret = config.get("client_secret")
 
         if not all([self.tenant_id, self.client_id, self.client_secret]):
-            raise ValueError("Azure AD requires tenant_id, client_id, and client_secret")
+            raise ValueError(
+                "Azure AD requires tenant_id, client_id, and client_secret"
+            )
 
         # Create credential and Graph client
         self.credential = ClientSecretCredential(
             tenant_id=self.tenant_id,
             client_id=self.client_id,
-            client_secret=self.client_secret
+            client_secret=self.client_secret,
         )
 
         self.client = GraphServiceClient(credentials=self.credential)
@@ -74,7 +76,11 @@ class AzureADClient(BaseIAMProvider):
 
             return {
                 "users": users,
-                "next_token": result.odata_next_link if hasattr(result, 'odata_next_link') else None,
+                "next_token": (
+                    result.odata_next_link
+                    if hasattr(result, "odata_next_link")
+                    else None
+                ),
             }
 
         except Exception as e:
@@ -97,25 +103,26 @@ class AzureADClient(BaseIAMProvider):
         username: str,
         display_name: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Create a new Azure AD user."""
         try:
+            from msgraph.generated.models.password_profile import \
+                PasswordProfile
             from msgraph.generated.models.user import User
-            from msgraph.generated.models.password_profile import PasswordProfile
 
             user = User()
             user.user_principal_name = username
             user.display_name = display_name or username
-            user.mail_nickname = username.split('@')[0]
+            user.mail_nickname = username.split("@")[0]
 
             # Set temporary password
             password_profile = PasswordProfile()
             password_profile.force_change_password_next_sign_in = True
-            password_profile.password = kwargs.get('password', 'TempPass123!')
+            password_profile.password = kwargs.get("password", "TempPass123!")
             user.password_profile = password_profile
 
-            user.account_enabled = kwargs.get('enabled', True)
+            user.account_enabled = kwargs.get("enabled", True)
 
             created_user = self.client.users.post(user)
 
@@ -145,7 +152,7 @@ class AzureADClient(BaseIAMProvider):
         user_identifier: str,
         display_name: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Update Azure AD user."""
         try:
@@ -156,8 +163,8 @@ class AzureADClient(BaseIAMProvider):
             if display_name:
                 user.display_name = display_name
 
-            if kwargs.get('enabled') is not None:
-                user.account_enabled = kwargs['enabled']
+            if kwargs.get("enabled") is not None:
+                user.account_enabled = kwargs["enabled"]
 
             self.client.users.by_user_id(user_identifier).patch(user)
 
@@ -190,7 +197,11 @@ class AzureADClient(BaseIAMProvider):
 
             return {
                 "roles": roles,
-                "next_token": result.odata_next_link if hasattr(result, 'odata_next_link') else None,
+                "next_token": (
+                    result.odata_next_link
+                    if hasattr(result, "odata_next_link")
+                    else None
+                ),
             }
 
         except Exception as e:
@@ -213,7 +224,7 @@ class AzureADClient(BaseIAMProvider):
         role_name: str,
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Create a new Azure AD group (role)."""
         try:
@@ -221,7 +232,7 @@ class AzureADClient(BaseIAMProvider):
 
             group = Group()
             group.display_name = role_name
-            group.mail_nickname = role_name.replace(' ', '_').lower()
+            group.mail_nickname = role_name.replace(" ", "_").lower()
             group.mail_enabled = False
             group.security_enabled = True
             group.description = description
@@ -256,16 +267,25 @@ class AzureADClient(BaseIAMProvider):
     ) -> Dict[str, Any]:
         """Add user to Azure AD group (role assignment)."""
         try:
-            from msgraph.generated.models.reference_create import ReferenceCreate
+            from msgraph.generated.models.reference_create import \
+                ReferenceCreate
 
             reference = ReferenceCreate()
-            reference.odata_id = f"https://graph.microsoft.com/v1.0/users/{user_identifier}"
+            reference.odata_id = (
+                f"https://graph.microsoft.com/v1.0/users/{user_identifier}"
+            )
 
             self.client.groups.by_group_id(role_identifier).members.ref.post(reference)
 
-            logger.info(f"Assigned Azure AD user {user_identifier} to group {role_identifier}")
+            logger.info(
+                f"Assigned Azure AD user {user_identifier} to group {role_identifier}"
+            )
 
-            return {"success": True, "user_id": user_identifier, "role_id": role_identifier}
+            return {
+                "success": True,
+                "user_id": user_identifier,
+                "role_id": role_identifier,
+            }
 
         except Exception as e:
             logger.error(f"Azure AD assign role error: {str(e)}")
@@ -276,11 +296,19 @@ class AzureADClient(BaseIAMProvider):
     ) -> Dict[str, Any]:
         """Remove user from Azure AD group."""
         try:
-            self.client.groups.by_group_id(role_identifier).members.by_directory_object_id(user_identifier).ref.delete()
+            self.client.groups.by_group_id(
+                role_identifier
+            ).members.by_directory_object_id(user_identifier).ref.delete()
 
-            logger.info(f"Removed Azure AD user {user_identifier} from group {role_identifier}")
+            logger.info(
+                f"Removed Azure AD user {user_identifier} from group {role_identifier}"
+            )
 
-            return {"success": True, "user_id": user_identifier, "role_id": role_identifier}
+            return {
+                "success": True,
+                "user_id": user_identifier,
+                "role_id": role_identifier,
+            }
 
         except Exception as e:
             logger.error(f"Azure AD remove role error: {str(e)}")
@@ -309,7 +337,9 @@ class AzureADClient(BaseIAMProvider):
             "display_name": user.display_name,
             "email": user.mail or user.user_principal_name,
             "enabled": user.account_enabled,
-            "created_at": user.created_date_time.isoformat() if user.created_date_time else None,
+            "created_at": (
+                user.created_date_time.isoformat() if user.created_date_time else None
+            ),
             "provider": "azure_ad",
         }
 
@@ -319,7 +349,9 @@ class AzureADClient(BaseIAMProvider):
             "id": group.id,
             "name": group.display_name,
             "description": group.description or "",
-            "created_at": group.created_date_time.isoformat() if group.created_date_time else None,
+            "created_at": (
+                group.created_date_time.isoformat() if group.created_date_time else None
+            ),
             "provider": "azure_ad",
         }
 

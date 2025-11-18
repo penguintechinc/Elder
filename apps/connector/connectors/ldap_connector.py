@@ -1,14 +1,16 @@
 """LDAP/LDAPS connector for syncing directory services to Elder."""
 
 import ssl
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
 import ldap3
-from ldap3 import Server, Connection, ALL, SUBTREE
+from ldap3 import ALL, SUBTREE, Connection, Server
 from ldap3.core.exceptions import LDAPException
 
-from apps.connector.connectors.base import BaseConnector, SyncResult
 from apps.connector.config.settings import settings
-from apps.connector.utils.elder_client import ElderAPIClient, Organization, Entity
+from apps.connector.connectors.base import BaseConnector, SyncResult
+from apps.connector.utils.elder_client import (ElderAPIClient, Entity,
+                                               Organization)
 
 
 class LDAPConnector(BaseConnector):
@@ -34,7 +36,11 @@ class LDAPConnector(BaseConnector):
             if use_ssl:
                 # Create TLS configuration
                 tls_config = ldap3.Tls(
-                    validate=ssl.CERT_REQUIRED if settings.ldap_verify_cert else ssl.CERT_NONE,
+                    validate=(
+                        ssl.CERT_REQUIRED
+                        if settings.ldap_verify_cert
+                        else ssl.CERT_NONE
+                    ),
                 )
                 tls = tls_config
 
@@ -180,12 +186,16 @@ class LDAPConnector(BaseConnector):
             for entry in entries:
                 dn = str(entry.entry_dn)
                 ou_name = str(entry.ou) if hasattr(entry, "ou") else None
-                description = str(entry.description) if hasattr(entry, "description") else ""
+                description = (
+                    str(entry.description) if hasattr(entry, "description") else ""
+                )
 
                 if not ou_name:
                     # Extract OU name from DN
                     components = self._parse_dn_components(dn)
-                    ou_name = next((v for k, v in components if k.lower() == "ou"), None)
+                    ou_name = next(
+                        (v for k, v in components if k.lower() == "ou"), None
+                    )
 
                 if not ou_name:
                     continue
@@ -234,8 +244,14 @@ class LDAPConnector(BaseConnector):
                 search_filter=settings.ldap_user_filter,
                 search_scope=SUBTREE,
                 attributes=[
-                    "cn", "uid", "mail", "givenName", "sn",
-                    "displayName", "memberOf", "distinguishedName",
+                    "cn",
+                    "uid",
+                    "mail",
+                    "givenName",
+                    "sn",
+                    "displayName",
+                    "memberOf",
+                    "distinguishedName",
                     "userAccountControl",  # For Active Directory
                 ],
             )
@@ -247,9 +263,13 @@ class LDAPConnector(BaseConnector):
                 cn = str(entry.cn) if hasattr(entry, "cn") else None
                 uid = str(entry.uid) if hasattr(entry, "uid") else None
                 mail = str(entry.mail) if hasattr(entry, "mail") else None
-                given_name = str(entry.givenName) if hasattr(entry, "givenName") else None
+                given_name = (
+                    str(entry.givenName) if hasattr(entry, "givenName") else None
+                )
                 surname = str(entry.sn) if hasattr(entry, "sn") else None
-                display_name = str(entry.displayName) if hasattr(entry, "displayName") else None
+                display_name = (
+                    str(entry.displayName) if hasattr(entry, "displayName") else None
+                )
 
                 # Determine user's name
                 name = display_name or cn or uid or mail
@@ -338,7 +358,9 @@ class LDAPConnector(BaseConnector):
             for entry in entries:
                 dn = str(entry.entry_dn)
                 cn = str(entry.cn) if hasattr(entry, "cn") else None
-                description = str(entry.description) if hasattr(entry, "description") else ""
+                description = (
+                    str(entry.description) if hasattr(entry, "description") else ""
+                )
 
                 if not cn:
                     continue

@@ -1,8 +1,8 @@
 """Base discovery provider for cloud resource discovery."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 
 class BaseDiscoveryProvider(ABC):
@@ -115,7 +115,7 @@ class BaseDiscoveryProvider(ABC):
         name: str,
         metadata: Dict[str, Any],
         region: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None
+        tags: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """
         Format discovered resource into standard Elder format.

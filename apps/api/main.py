@@ -1,14 +1,15 @@
 """Main Flask application for Elder."""
 
-import os
 import logging
+import os
+
 import structlog
+from asgiref.wsgi import WsgiToAsgi
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from prometheus_flask_exporter import PrometheusMetrics
-from asgiref.wsgi import WsgiToAsgi
 
 from apps.api.config import get_config
 from shared.database import init_db
@@ -17,7 +18,7 @@ from shared.database import init_db
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     level=getattr(logging, log_level),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
 
@@ -116,7 +117,7 @@ def _init_extensions(app: Flask) -> None:
     csrf = CSRFProtect(app)
 
     # Exempt API routes from CSRF since they use JWT Bearer tokens
-    app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+    app.config["WTF_CSRF_CHECK_DEFAULT"] = False
 
     # Login Manager
     login_manager = LoginManager()
@@ -133,7 +134,9 @@ def _init_extensions(app: Flask) -> None:
     # Prometheus Metrics
     if app.config.get("METRICS_ENABLED"):
         metrics = PrometheusMetrics(app)
-        metrics.info("elder_app_info", "Elder Application", version=app.config["APP_VERSION"])
+        metrics.info(
+            "elder_app_info", "Elder Application", version=app.config["APP_VERSION"]
+        )
 
     logger.info("extensions_initialized")
 
@@ -171,45 +174,36 @@ def _register_blueprints(app: Flask) -> None:
         app: Flask application
     """
     # Import blueprints (async versions where available)
-    from apps.api.api.v1 import (
-        organizations_pydal,
-        entities,
-        entity_types,
-        dependencies,
-        graph,
-        auth,
-        profile,
-        identities,
-        api_keys,
-        users,
-        lookup,
-        resource_roles,
-        issues,
-        metadata,
-        projects,
-        milestones,
-        labels,
-        organization_tree,
-        sync,
-        secrets,  # Phase 2: Secrets Management
-        keys,  # Phase 3: Keys Management
-        iam,  # Phase 4: IAM Integration
-        discovery,  # Phase 5: Cloud Auto-Discovery
-        audit,  # Phase 8: Audit System Enhancement
-        webhooks,  # Phase 9: Webhook & Notification System
-        search,  # Phase 10: Advanced Search
-        backup,  # Phase 10: Backup & Data Management
-        google_workspace,  # Phase 7: Google Workspace Integration
-        networking,  # v2.0.0: Networking Resources & Topology
-        builtin_secrets,  # v2.0.0: Built-in Secrets Storage
-    )
+    from apps.api.api.v1 import audit  # Phase 8: Audit System Enhancement
+    from apps.api.api.v1 import backup  # Phase 10: Backup & Data Management
+    from apps.api.api.v1 import \
+        builtin_secrets  # v2.0.0: Built-in Secrets Storage
+    from apps.api.api.v1 import discovery  # Phase 5: Cloud Auto-Discovery
+    from apps.api.api.v1 import \
+        google_workspace  # Phase 7: Google Workspace Integration
+    from apps.api.api.v1 import iam  # Phase 4: IAM Integration
+    from apps.api.api.v1 import keys  # Phase 3: Keys Management
+    from apps.api.api.v1 import \
+        networking  # v2.0.0: Networking Resources & Topology
+    from apps.api.api.v1 import search  # Phase 10: Advanced Search
+    from apps.api.api.v1 import secrets  # Phase 2: Secrets Management
+    from apps.api.api.v1 import \
+        webhooks  # Phase 9: Webhook & Notification System
+    from apps.api.api.v1 import (api_keys, auth, dependencies, entities,
+                                 entity_types, graph, identities, issues,
+                                 labels, lookup, metadata, milestones,
+                                 organization_tree, organizations_pydal,
+                                 profile, projects, resource_roles, sync,
+                                 users)
     from apps.api.web import routes as web
 
     # Register API v1 blueprints
     api_prefix = app.config["API_PREFIX"]
 
     # Use async organizations_pydal blueprint (PyDAL + async/await)
-    app.register_blueprint(organizations_pydal.bp, url_prefix=f"{api_prefix}/organizations")
+    app.register_blueprint(
+        organizations_pydal.bp, url_prefix=f"{api_prefix}/organizations"
+    )
     app.register_blueprint(entities.bp, url_prefix=f"{api_prefix}/entities")
     app.register_blueprint(entity_types.bp, url_prefix=f"{api_prefix}/entity-types")
     app.register_blueprint(dependencies.bp, url_prefix=f"{api_prefix}/dependencies")
@@ -234,16 +228,24 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(secrets.bp, url_prefix=f"{api_prefix}/secrets")  # Phase 2
     app.register_blueprint(keys.bp, url_prefix=f"{api_prefix}/keys")  # Phase 3
     app.register_blueprint(iam.bp, url_prefix=f"{api_prefix}/iam")  # Phase 4
-    app.register_blueprint(discovery.bp, url_prefix=f"{api_prefix}/discovery")  # Phase 5
+    app.register_blueprint(
+        discovery.bp, url_prefix=f"{api_prefix}/discovery"
+    )  # Phase 5
     app.register_blueprint(audit.bp, url_prefix=f"{api_prefix}/audit")  # Phase 8
     app.register_blueprint(webhooks.bp, url_prefix=f"{api_prefix}/webhooks")  # Phase 9
     app.register_blueprint(search.bp, url_prefix=f"{api_prefix}/search")  # Phase 10
     app.register_blueprint(backup.bp, url_prefix=f"{api_prefix}/backup")  # Phase 10
-    app.register_blueprint(google_workspace.bp, url_prefix=f"{api_prefix}/google-workspace")  # Phase 7
+    app.register_blueprint(
+        google_workspace.bp, url_prefix=f"{api_prefix}/google-workspace"
+    )  # Phase 7
 
     # v2.0.0 Feature blueprints
-    app.register_blueprint(networking.bp)  # Networking already has /api/v1/networking prefix
-    app.register_blueprint(builtin_secrets.bp)  # Built-in secrets already has /api/v1/builtin-secrets prefix
+    app.register_blueprint(
+        networking.bp
+    )  # Networking already has /api/v1/networking prefix
+    app.register_blueprint(
+        builtin_secrets.bp
+    )  # Built-in secrets already has /api/v1/builtin-secrets prefix
 
     # Public lookup endpoint (no /api/v1 prefix for cleaner URLs)
     app.register_blueprint(lookup.bp, url_prefix="/lookup")
@@ -251,7 +253,23 @@ def _register_blueprints(app: Flask) -> None:
     # Web UI blueprint (root routes)
     app.register_blueprint(web.bp, url_prefix="")
 
-    logger.info("blueprints_registered", api_prefix=api_prefix, blueprints=["organizations (async PyDAL)", "entities", "dependencies", "graph", "auth", "identities", "resource_roles", "issues", "metadata", "lookup", "web"])
+    logger.info(
+        "blueprints_registered",
+        api_prefix=api_prefix,
+        blueprints=[
+            "organizations (async PyDAL)",
+            "entities",
+            "dependencies",
+            "graph",
+            "auth",
+            "identities",
+            "resource_roles",
+            "issues",
+            "metadata",
+            "lookup",
+            "web",
+        ],
+    )
 
 
 def _register_error_handlers(app: Flask) -> None:
@@ -270,12 +288,18 @@ def _register_error_handlers(app: Flask) -> None:
     @app.errorhandler(401)
     def unauthorized(error):
         """Handle 401 Unauthorized."""
-        return jsonify({"error": "Unauthorized", "message": "Authentication required"}), 401
+        return (
+            jsonify({"error": "Unauthorized", "message": "Authentication required"}),
+            401,
+        )
 
     @app.errorhandler(403)
     def forbidden(error):
         """Handle 403 Forbidden."""
-        return jsonify({"error": "Forbidden", "message": "Insufficient permissions"}), 403
+        return (
+            jsonify({"error": "Forbidden", "message": "Insufficient permissions"}),
+            403,
+        )
 
     @app.errorhandler(404)
     def not_found(error):
@@ -285,13 +309,19 @@ def _register_error_handlers(app: Flask) -> None:
     @app.errorhandler(429)
     def rate_limit_exceeded(error):
         """Handle 429 Rate Limit Exceeded."""
-        return jsonify({"error": "Rate Limit Exceeded", "message": "Too many requests"}), 429
+        return (
+            jsonify({"error": "Rate Limit Exceeded", "message": "Too many requests"}),
+            429,
+        )
 
     @app.errorhandler(500)
     def internal_server_error(error):
         """Handle 500 Internal Server Error."""
         logger.error("internal_server_error", error=str(error))
-        return jsonify({"error": "Internal Server Error", "message": "An error occurred"}), 500
+        return (
+            jsonify({"error": "Internal Server Error", "message": "An error occurred"}),
+            500,
+        )
 
     logger.info("error_handlers_registered")
 
@@ -300,6 +330,7 @@ if __name__ == "__main__":
     # Create and run application directly with Flask dev server
     # Note: create_app() returns ASGI app, so we need to unwrap it
     import uvicorn
+
     asgi_app = create_app()
     uvicorn.run(
         asgi_app,

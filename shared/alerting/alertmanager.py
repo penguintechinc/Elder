@@ -1,9 +1,10 @@
 """Alertmanager client for sending incident alerts from Elder issues."""
 
-import os
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
+
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ class AlertmanagerClient:
             alertmanager_url: URL to Alertmanager API (default: from env or localhost:9093)
         """
         self.alertmanager_url = alertmanager_url or os.getenv(
-            'ALERTMANAGER_URL', 'http://alertmanager:9093'
+            "ALERTMANAGER_URL", "http://alertmanager:9093"
         )
         self.api_url = f"{self.alertmanager_url}/api/v2/alerts"
         self.timeout = httpx.Timeout(10.0, connect=5.0)
@@ -115,41 +116,41 @@ class AlertmanagerClient:
         """
         # Map priority to severity
         severity_map = {
-            'low': 'warning',
-            'medium': 'warning',
-            'high': 'high',
-            'critical': 'critical',
+            "low": "warning",
+            "medium": "warning",
+            "high": "high",
+            "critical": "critical",
         }
-        severity = severity_map.get(priority.lower(), 'warning')
+        severity = severity_map.get(priority.lower(), "warning")
 
         # Build labels
         labels = {
-            'severity': severity,
-            'component': 'incident',
-            'issue_id': str(issue_id),
-            'issue_title': issue_title,
-            'priority': priority,
-            'organization': organization_name,
-            'organization_id': str(organization_id),
+            "severity": severity,
+            "component": "incident",
+            "issue_id": str(issue_id),
+            "issue_title": issue_title,
+            "priority": priority,
+            "organization": organization_name,
+            "organization_id": str(organization_id),
         }
 
         if assigned_to:
-            labels['assigned_to'] = assigned_to
+            labels["assigned_to"] = assigned_to
 
         # Build annotations
         annotations = {
-            'summary': f"Incident: {issue_title}",
-            'description': description or "No description provided",
+            "summary": f"Incident: {issue_title}",
+            "description": description or "No description provided",
         }
 
         if entities:
-            annotations['entities'] = ', '.join(entities)
+            annotations["entities"] = ", ".join(entities)
 
         if web_url:
-            annotations['url'] = web_url
+            annotations["url"] = web_url
 
         return await self.send_alert(
-            alertname='ElderIncidentIssue',
+            alertname="ElderIncidentIssue",
             labels=labels,
             annotations=annotations,
             generator_url=web_url,
@@ -175,21 +176,21 @@ class AlertmanagerClient:
             True if alert was resolved successfully
         """
         labels = {
-            'severity': 'info',
-            'component': 'incident',
-            'issue_id': str(issue_id),
-            'issue_title': issue_title,
-            'organization': organization_name,
-            'organization_id': str(organization_id),
+            "severity": "info",
+            "component": "incident",
+            "issue_id": str(issue_id),
+            "issue_title": issue_title,
+            "organization": organization_name,
+            "organization_id": str(organization_id),
         }
 
         annotations = {
-            'summary': f"Incident Resolved: {issue_title}",
-            'description': "This incident has been resolved",
+            "summary": f"Incident Resolved: {issue_title}",
+            "description": "This incident has been resolved",
         }
 
         return await self.send_alert(
-            alertname='ElderIncidentIssue',
+            alertname="ElderIncidentIssue",
             labels=labels,
             annotations=annotations,
             ends_at=datetime.now(timezone.utc),
@@ -214,7 +215,7 @@ async def send_incident_alert(
     priority: str,
     organization_name: str,
     organization_id: int,
-    **kwargs
+    **kwargs,
 ) -> bool:
     """
     Convenience function to send an incident alert.
@@ -228,5 +229,5 @@ async def send_incident_alert(
         priority=priority,
         organization_name=organization_name,
         organization_id=organization_id,
-        **kwargs
+        **kwargs,
     )

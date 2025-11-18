@@ -1,17 +1,15 @@
 """Authentication API endpoints using PyDAL with async/await."""
 
 import os
-from flask import Blueprint, request, jsonify, current_app, g
-from werkzeug.security import generate_password_hash
-from datetime import datetime, timezone
 from dataclasses import asdict
+from datetime import datetime, timezone
 
-from apps.api.models.dataclasses import (
-    IdentityDTO,
-    from_pydal_row,
-)
-from apps.api.auth import generate_token, verify_password, login_required
+from flask import Blueprint, current_app, g, jsonify, request
+from werkzeug.security import generate_password_hash
+
+from apps.api.auth import generate_token, login_required, verify_password
 from apps.api.auth.jwt_handler import verify_token
+from apps.api.models.dataclasses import IdentityDTO, from_pydal_row
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("auth", __name__)
@@ -101,14 +99,19 @@ async def register():
     if error:
         return jsonify({"error": error}), status
 
-    return jsonify({
-        "message": "User registered successfully",
-        "user": {
-            "id": identity.id,
-            "username": identity.username,
-            "email": identity.email,
-        },
-    }), 201
+    return (
+        jsonify(
+            {
+                "message": "User registered successfully",
+                "user": {
+                    "id": identity.id,
+                    "username": identity.username,
+                    "email": identity.email,
+                },
+            }
+        ),
+        201,
+    )
 
 
 @bp.route("/guest-enabled", methods=["GET"])
@@ -212,18 +215,23 @@ async def login():
     access_token = generate_token(identity, "access")
     refresh_token = generate_token(identity, "refresh")
 
-    return jsonify({
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "Bearer",
-        "user": {
-            "id": identity.id,
-            "username": identity.username,
-            "email": identity.email,
-            "full_name": identity.full_name,
-            "is_superuser": identity.is_superuser,
-        },
-    }), 200
+    return (
+        jsonify(
+            {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "token_type": "Bearer",
+                "user": {
+                    "id": identity.id,
+                    "username": identity.username,
+                    "email": identity.email,
+                    "full_name": identity.full_name,
+                    "is_superuser": identity.is_superuser,
+                },
+            }
+        ),
+        200,
+    )
 
 
 @bp.route("/logout", methods=["POST"])
@@ -238,12 +246,14 @@ async def logout():
     db = current_app.db
 
     # Create logout audit log
-    await run_in_threadpool(lambda: _create_audit_log_sync(
-        db=db,
-        identity_id=g.current_user.id,
-        action="logout",
-        resource_type="auth",
-    ))
+    await run_in_threadpool(
+        lambda: _create_audit_log_sync(
+            db=db,
+            identity_id=g.current_user.id,
+            action="logout",
+            resource_type="auth",
+        )
+    )
 
     return jsonify({"message": "Logged out successfully"}), 200
 
@@ -376,10 +386,15 @@ async def refresh_token_endpoint():
     # Generate new access token
     access_token = generate_token(identity, "access")
 
-    return jsonify({
-        "access_token": access_token,
-        "token_type": "Bearer",
-    }), 200
+    return (
+        jsonify(
+            {
+                "access_token": access_token,
+                "token_type": "Bearer",
+            }
+        ),
+        200,
+    )
 
 
 def _create_audit_log_sync(

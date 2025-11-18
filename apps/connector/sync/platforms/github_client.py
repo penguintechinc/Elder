@@ -10,21 +10,15 @@ Implements two-way synchronization between Elder and GitHub:
 GitHub API: REST API v3 + GraphQL for complex queries
 """
 
-import httpx
 from datetime import datetime
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 
+import httpx
 from pydal import DAL
 
-from apps.connector.sync.base import (
-    BaseSyncClient,
-    SyncOperation,
-    SyncResult,
-    SyncStatus,
-    SyncMapping,
-    ResourceType,
-    SyncDirection,
-)
+from apps.connector.sync.base import (BaseSyncClient, ResourceType,
+                                      SyncDirection, SyncMapping,
+                                      SyncOperation, SyncResult, SyncStatus)
 from apps.connector.sync.conflict_resolver import ConflictResolver
 
 
@@ -215,7 +209,9 @@ class GitHubSyncClient(BaseSyncClient):
                     status=SyncStatus.FAILED,
                     operation=operation,
                     items_failed=1,
-                    errors=[f"GitHub API error: {response.status_code} - {response.text}"],
+                    errors=[
+                        f"GitHub API error: {response.status_code} - {response.text}"
+                    ],
                 )
 
         elif operation.operation_type == "update":
@@ -250,7 +246,9 @@ class GitHubSyncClient(BaseSyncClient):
                     status=SyncStatus.FAILED,
                     operation=operation,
                     items_failed=1,
-                    errors=[f"GitHub API error: {response.status_code} - {response.text}"],
+                    errors=[
+                        f"GitHub API error: {response.status_code} - {response.text}"
+                    ],
                 )
 
         return SyncResult(
@@ -277,17 +275,23 @@ class GitHubSyncClient(BaseSyncClient):
             "title": github_issue.get("title"),
             "description": github_issue.get("body") or "",
             "status": "open" if github_issue.get("state") == "open" else "closed",
-            "priority": self._map_github_labels_to_priority(github_issue.get("labels", [])),
+            "priority": self._map_github_labels_to_priority(
+                github_issue.get("labels", [])
+            ),
             "updated_at": github_issue.get("updated_at"),
         }
 
         if operation.operation_type == "create":
             # Create Elder issue
-            config_row = self.db(self.db.sync_configs.id == self.sync_config_id).select().first()
+            config_row = (
+                self.db(self.db.sync_configs.id == self.sync_config_id).select().first()
+            )
             two_way_create = config_row.two_way_create if config_row else False
 
             if not two_way_create:
-                self.logger.info("Two-way creation disabled, skipping GitHub issue creation in Elder")
+                self.logger.info(
+                    "Two-way creation disabled, skipping GitHub issue creation in Elder"
+                )
                 return SyncResult(
                     status=SyncStatus.SUCCESS,
                     operation=operation,
@@ -295,7 +299,11 @@ class GitHubSyncClient(BaseSyncClient):
                 )
 
             # Get organization from config or mapping
-            org_id = config_row.config_json.get("elder_organization_id") if config_row else None
+            org_id = (
+                config_row.config_json.get("elder_organization_id")
+                if config_row
+                else None
+            )
 
             if not org_id:
                 return SyncResult(
@@ -394,13 +402,19 @@ class GitHubSyncClient(BaseSyncClient):
 
             if not resolved_conflict.resolved:
                 # Manual resolution required
-                mapping_id = self.create_mapping(operation.mapping) if not operation.mapping else operation.mapping.elder_id
+                mapping_id = (
+                    self.create_mapping(operation.mapping)
+                    if not operation.mapping
+                    else operation.mapping.elder_id
+                )
                 self.record_conflict(resolved_conflict, mapping_id)
 
                 return SyncResult(
                     status=SyncStatus.CONFLICT,
                     operation=operation,
-                    conflicts=[self.conflict_resolver.get_conflict_summary(resolved_conflict)],
+                    conflicts=[
+                        self.conflict_resolver.get_conflict_summary(resolved_conflict)
+                    ],
                 )
 
             # Use resolved data
@@ -578,7 +592,9 @@ class GitHubSyncClient(BaseSyncClient):
                 break
 
         return SyncResult(
-            status=SyncStatus.SUCCESS if total_failed == 0 else SyncStatus.PARTIAL_SUCCESS,
+            status=(
+                SyncStatus.SUCCESS if total_failed == 0 else SyncStatus.PARTIAL_SUCCESS
+            ),
             operation=SyncOperation(
                 operation_type="batch",
                 resource_type=ResourceType.ISSUE,
@@ -619,7 +635,9 @@ class GitHubSyncClient(BaseSyncClient):
         )
 
         operation = SyncOperation(
-            operation_type=action if action in ["opened", "edited", "closed"] else "update",
+            operation_type=(
+                action if action in ["opened", "edited", "closed"] else "update"
+            ),
             resource_type=ResourceType.ISSUE,
             direction=SyncDirection.EXTERNAL_TO_ELDER,
             external_data=issue,

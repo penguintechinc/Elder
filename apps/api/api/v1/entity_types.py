@@ -1,18 +1,17 @@
 """Entity types API endpoints for Elder v1.2.0."""
 
 from flask import Blueprint, jsonify, request
+
 from apps.api.auth.decorators import login_required
-from apps.api.models.entity_types import (
-    get_all_entity_types,
-    get_subtypes_for_type,
-    get_default_metadata_for_subtype,
-    DEFAULT_METADATA_TEMPLATES,
-)
+from apps.api.models.entity_types import (DEFAULT_METADATA_TEMPLATES,
+                                          get_all_entity_types,
+                                          get_default_metadata_for_subtype,
+                                          get_subtypes_for_type)
 
-bp = Blueprint('entity_types', __name__)
+bp = Blueprint("entity_types", __name__)
 
 
-@bp.route('/', methods=['GET'])
+@bp.route("/", methods=["GET"])
 @login_required
 def list_entity_types():
     """
@@ -25,19 +24,14 @@ def list_entity_types():
 
     for entity_type in get_all_entity_types():
         subtypes = get_subtypes_for_type(entity_type)
-        entity_types.append({
-            'type': entity_type,
-            'subtypes': subtypes,
-            'subtype_count': len(subtypes)
-        })
+        entity_types.append(
+            {"type": entity_type, "subtypes": subtypes, "subtype_count": len(subtypes)}
+        )
 
-    return jsonify({
-        'entity_types': entity_types,
-        'total': len(entity_types)
-    }), 200
+    return jsonify({"entity_types": entity_types, "total": len(entity_types)}), 200
 
 
-@bp.route('/<entity_type>', methods=['GET'])
+@bp.route("/<entity_type>", methods=["GET"])
 @login_required
 def get_entity_type(entity_type):
     """
@@ -51,18 +45,19 @@ def get_entity_type(entity_type):
         404: Entity type not found
     """
     if entity_type not in get_all_entity_types():
-        return jsonify({'error': 'Entity type not found'}), 404
+        return jsonify({"error": "Entity type not found"}), 404
 
     subtypes = get_subtypes_for_type(entity_type)
 
-    return jsonify({
-        'type': entity_type,
-        'subtypes': subtypes,
-        'subtype_count': len(subtypes)
-    }), 200
+    return (
+        jsonify(
+            {"type": entity_type, "subtypes": subtypes, "subtype_count": len(subtypes)}
+        ),
+        200,
+    )
 
 
-@bp.route('/<entity_type>/subtypes', methods=['GET'])
+@bp.route("/<entity_type>/subtypes", methods=["GET"])
 @login_required
 def list_subtypes(entity_type):
     """
@@ -76,18 +71,19 @@ def list_subtypes(entity_type):
         404: Entity type not found
     """
     if entity_type not in get_all_entity_types():
-        return jsonify({'error': 'Entity type not found'}), 404
+        return jsonify({"error": "Entity type not found"}), 404
 
     subtypes = get_subtypes_for_type(entity_type)
 
-    return jsonify({
-        'entity_type': entity_type,
-        'subtypes': subtypes,
-        'total': len(subtypes)
-    }), 200
+    return (
+        jsonify(
+            {"entity_type": entity_type, "subtypes": subtypes, "total": len(subtypes)}
+        ),
+        200,
+    )
 
 
-@bp.route('/<entity_type>/metadata', methods=['GET'])
+@bp.route("/<entity_type>/metadata", methods=["GET"])
 @login_required
 def get_type_metadata_templates(entity_type):
     """
@@ -101,17 +97,17 @@ def get_type_metadata_templates(entity_type):
         404: Entity type not found
     """
     if entity_type not in get_all_entity_types():
-        return jsonify({'error': 'Entity type not found'}), 404
+        return jsonify({"error": "Entity type not found"}), 404
 
     type_templates = DEFAULT_METADATA_TEMPLATES.get(entity_type, {})
 
-    return jsonify({
-        'entity_type': entity_type,
-        'metadata_templates': type_templates
-    }), 200
+    return (
+        jsonify({"entity_type": entity_type, "metadata_templates": type_templates}),
+        200,
+    )
 
 
-@bp.route('/<entity_type>/<sub_type>/metadata', methods=['GET'])
+@bp.route("/<entity_type>/<sub_type>/metadata", methods=["GET"])
 @login_required
 def get_subtype_metadata_template(entity_type, sub_type):
     """
@@ -126,22 +122,27 @@ def get_subtype_metadata_template(entity_type, sub_type):
         404: Entity type or sub-type not found
     """
     if entity_type not in get_all_entity_types():
-        return jsonify({'error': 'Entity type not found'}), 404
+        return jsonify({"error": "Entity type not found"}), 404
 
     subtypes = get_subtypes_for_type(entity_type)
     if sub_type not in subtypes:
-        return jsonify({'error': 'Sub-type not found'}), 404
+        return jsonify({"error": "Sub-type not found"}), 404
 
     template = get_default_metadata_for_subtype(entity_type, sub_type)
 
-    return jsonify({
-        'entity_type': entity_type,
-        'sub_type': sub_type,
-        'metadata_template': template
-    }), 200
+    return (
+        jsonify(
+            {
+                "entity_type": entity_type,
+                "sub_type": sub_type,
+                "metadata_template": template,
+            }
+        ),
+        200,
+    )
 
 
-@bp.route('/validate', methods=['POST'])
+@bp.route("/validate", methods=["POST"])
 @login_required
 def validate_entity_type():
     """
@@ -160,21 +161,18 @@ def validate_entity_type():
     data = request.get_json()
 
     if not data:
-        return jsonify({'error': 'Request body required'}), 400
+        return jsonify({"error": "Request body required"}), 400
 
-    entity_type = data.get('entity_type')
-    sub_type = data.get('sub_type')
+    entity_type = data.get("entity_type")
+    sub_type = data.get("sub_type")
 
     if not entity_type:
-        return jsonify({'error': 'entity_type required'}), 400
+        return jsonify({"error": "entity_type required"}), 400
 
     # Validate entity type
     type_valid = entity_type in get_all_entity_types()
 
-    result = {
-        'entity_type': entity_type,
-        'entity_type_valid': type_valid
-    }
+    result = {"entity_type": entity_type, "entity_type_valid": type_valid}
 
     # Validate sub-type if provided
     if sub_type:
@@ -184,11 +182,11 @@ def validate_entity_type():
         else:
             subtype_valid = False
 
-        result['sub_type'] = sub_type
-        result['sub_type_valid'] = subtype_valid
+        result["sub_type"] = sub_type
+        result["sub_type_valid"] = subtype_valid
 
-    result['valid'] = result['entity_type_valid'] and (
-        not sub_type or result.get('sub_type_valid', False)
+    result["valid"] = result["entity_type_valid"] and (
+        not sub_type or result.get("sub_type_valid", False)
     )
 
     return jsonify(result), 200

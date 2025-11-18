@@ -1,13 +1,15 @@
 """AWS connector for syncing AWS resources to Elder."""
 
 import time
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 
-from apps.connector.connectors.base import BaseConnector, SyncResult
 from apps.connector.config.settings import settings
-from apps.connector.utils.elder_client import ElderAPIClient, Organization, Entity
+from apps.connector.connectors.base import BaseConnector, SyncResult
+from apps.connector.utils.elder_client import (ElderAPIClient, Entity,
+                                               Organization)
 
 
 class AWSConnector(BaseConnector):
@@ -18,7 +20,9 @@ class AWSConnector(BaseConnector):
         super().__init__("aws")
         self.elder_client: Optional[ElderAPIClient] = None
         self.aws_clients: Dict[str, Any] = {}
-        self.organization_cache: Dict[str, int] = {}  # Map AWS account/region to Elder org ID
+        self.organization_cache: Dict[str, int] = (
+            {}
+        )  # Map AWS account/region to Elder org ID
 
     async def connect(self) -> None:
         """Establish connection to AWS and Elder API."""
@@ -147,7 +151,11 @@ class AWSConnector(BaseConnector):
             for vpc in vpcs.get("Vpcs", []):
                 vpc_id = vpc["VpcId"]
                 vpc_name = next(
-                    (tag["Value"] for tag in vpc.get("Tags", []) if tag["Key"] == "Name"),
+                    (
+                        tag["Value"]
+                        for tag in vpc.get("Tags", [])
+                        if tag["Key"] == "Name"
+                    ),
                     vpc_id,
                 )
 
@@ -155,7 +163,7 @@ class AWSConnector(BaseConnector):
                 state = vpc.get("State", "unknown")
                 status_metadata = {
                     "status": state.capitalize(),
-                    "timestamp": int(time.time())
+                    "timestamp": int(time.time()),
                 }
 
                 entity = Entity(
@@ -199,7 +207,9 @@ class AWSConnector(BaseConnector):
 
         return created, updated
 
-    async def _sync_ec2_instances(self, region: str, region_org_id: int) -> tuple[int, int]:
+    async def _sync_ec2_instances(
+        self, region: str, region_org_id: int
+    ) -> tuple[int, int]:
         """
         Sync EC2 instances from AWS region.
 
@@ -220,7 +230,11 @@ class AWSConnector(BaseConnector):
                 for instance in reservation.get("Instances", []):
                     instance_id = instance["InstanceId"]
                     instance_name = next(
-                        (tag["Value"] for tag in instance.get("Tags", []) if tag["Key"] == "Name"),
+                        (
+                            tag["Value"]
+                            for tag in instance.get("Tags", [])
+                            if tag["Key"] == "Name"
+                        ),
                         instance_id,
                     )
 
@@ -228,7 +242,7 @@ class AWSConnector(BaseConnector):
                     state = instance.get("State", {}).get("Name", "unknown")
                     status_metadata = {
                         "status": state.capitalize(),
-                        "timestamp": int(time.time())
+                        "timestamp": int(time.time()),
                     }
 
                     entity = Entity(
@@ -244,10 +258,16 @@ class AWSConnector(BaseConnector):
                             "public_ip": instance.get("PublicIpAddress"),
                             "vpc_id": instance.get("VpcId"),
                             "subnet_id": instance.get("SubnetId"),
-                            "availability_zone": instance.get("Placement", {}).get("AvailabilityZone"),
+                            "availability_zone": instance.get("Placement", {}).get(
+                                "AvailabilityZone"
+                            ),
                             "region": region,
                             "provider": "aws",
-                            "launch_time": instance.get("LaunchTime").isoformat() if instance.get("LaunchTime") else None,
+                            "launch_time": (
+                                instance.get("LaunchTime").isoformat()
+                                if instance.get("LaunchTime")
+                                else None
+                            ),
                         },
                         status_metadata=status_metadata,
                         tags=["aws", "ec2", "compute", region],
@@ -274,11 +294,15 @@ class AWSConnector(BaseConnector):
                         created += 1
 
         except ClientError as e:
-            self.logger.error("Failed to sync EC2 instances", region=region, error=str(e))
+            self.logger.error(
+                "Failed to sync EC2 instances", region=region, error=str(e)
+            )
 
         return created, updated
 
-    async def _sync_rds_instances(self, region: str, region_org_id: int) -> tuple[int, int]:
+    async def _sync_rds_instances(
+        self, region: str, region_org_id: int
+    ) -> tuple[int, int]:
         """
         Sync RDS instances (including Aurora) from AWS region.
 
@@ -305,7 +329,7 @@ class AWSConnector(BaseConnector):
                 status = db_instance.get("DBInstanceStatus", "unknown")
                 status_metadata = {
                     "status": status.capitalize(),  # available -> Available
-                    "timestamp": int(time.time())
+                    "timestamp": int(time.time()),
                 }
 
                 entity = Entity(
@@ -321,20 +345,37 @@ class AWSConnector(BaseConnector):
                         "instance_class": db_instance.get("DBInstanceClass"),
                         "allocated_storage_gb": db_instance.get("AllocatedStorage"),
                         "status": status,
-                        "endpoint": db_instance.get("Endpoint", {}).get("Address") if db_instance.get("Endpoint") else None,
-                        "port": db_instance.get("Endpoint", {}).get("Port") if db_instance.get("Endpoint") else None,
+                        "endpoint": (
+                            db_instance.get("Endpoint", {}).get("Address")
+                            if db_instance.get("Endpoint")
+                            else None
+                        ),
+                        "port": (
+                            db_instance.get("Endpoint", {}).get("Port")
+                            if db_instance.get("Endpoint")
+                            else None
+                        ),
                         "availability_zone": db_instance.get("AvailabilityZone"),
                         "multi_az": db_instance.get("MultiAZ", False),
                         "storage_encrypted": db_instance.get("StorageEncrypted", False),
-                        "vpc_id": db_instance.get("DBSubnetGroup", {}).get("VpcId") if db_instance.get("DBSubnetGroup") else None,
+                        "vpc_id": (
+                            db_instance.get("DBSubnetGroup", {}).get("VpcId")
+                            if db_instance.get("DBSubnetGroup")
+                            else None
+                        ),
                         "is_aurora": is_aurora,
                         "region": region,
                         "provider": "aws",
                         "service": "rds",
-                        "created_time": db_instance.get("InstanceCreateTime").isoformat() if db_instance.get("InstanceCreateTime") else None,
+                        "created_time": (
+                            db_instance.get("InstanceCreateTime").isoformat()
+                            if db_instance.get("InstanceCreateTime")
+                            else None
+                        ),
                     },
                     status_metadata=status_metadata,
-                    tags=["aws", "rds", "database", engine, region] + (["aurora"] if is_aurora else []),
+                    tags=["aws", "rds", "database", engine, region]
+                    + (["aurora"] if is_aurora else []),
                     is_active=status.lower() == "available",
                 )
 
@@ -358,11 +399,15 @@ class AWSConnector(BaseConnector):
                     created += 1
 
         except ClientError as e:
-            self.logger.error("Failed to sync RDS instances", region=region, error=str(e))
+            self.logger.error(
+                "Failed to sync RDS instances", region=region, error=str(e)
+            )
 
         return created, updated
 
-    async def _sync_elasticache_clusters(self, region: str, region_org_id: int) -> tuple[int, int]:
+    async def _sync_elasticache_clusters(
+        self, region: str, region_org_id: int
+    ) -> tuple[int, int]:
         """
         Sync Elasticache clusters from AWS region.
 
@@ -388,7 +433,7 @@ class AWSConnector(BaseConnector):
                 status = cluster.get("CacheClusterStatus", "unknown")
                 status_metadata = {
                     "status": status.capitalize(),
-                    "timestamp": int(time.time())
+                    "timestamp": int(time.time()),
                 }
 
                 entity = Entity(
@@ -404,14 +449,30 @@ class AWSConnector(BaseConnector):
                         "node_type": cluster.get("CacheNodeType"),
                         "num_cache_nodes": cluster.get("NumCacheNodes", 0),
                         "status": status,
-                        "endpoint": cluster.get("CacheNodes", [{}])[0].get("Endpoint", {}).get("Address") if cluster.get("CacheNodes") else None,
-                        "port": cluster.get("CacheNodes", [{}])[0].get("Endpoint", {}).get("Port") if cluster.get("CacheNodes") else None,
+                        "endpoint": (
+                            cluster.get("CacheNodes", [{}])[0]
+                            .get("Endpoint", {})
+                            .get("Address")
+                            if cluster.get("CacheNodes")
+                            else None
+                        ),
+                        "port": (
+                            cluster.get("CacheNodes", [{}])[0]
+                            .get("Endpoint", {})
+                            .get("Port")
+                            if cluster.get("CacheNodes")
+                            else None
+                        ),
                         "availability_zone": cluster.get("PreferredAvailabilityZone"),
                         "vpc_id": cluster.get("CacheSubnetGroupName"),
                         "region": region,
                         "provider": "aws",
                         "service": "elasticache",
-                        "created_time": cluster.get("CacheClusterCreateTime").isoformat() if cluster.get("CacheClusterCreateTime") else None,
+                        "created_time": (
+                            cluster.get("CacheClusterCreateTime").isoformat()
+                            if cluster.get("CacheClusterCreateTime")
+                            else None
+                        ),
                     },
                     status_metadata=status_metadata,
                     tags=["aws", "elasticache", "cache", engine, region],
@@ -438,11 +499,15 @@ class AWSConnector(BaseConnector):
                     created += 1
 
         except ClientError as e:
-            self.logger.error("Failed to sync ElastiCache clusters", region=region, error=str(e))
+            self.logger.error(
+                "Failed to sync ElastiCache clusters", region=region, error=str(e)
+            )
 
         return created, updated
 
-    async def _sync_sqs_queues(self, region: str, region_org_id: int) -> tuple[int, int]:
+    async def _sync_sqs_queues(
+        self, region: str, region_org_id: int
+    ) -> tuple[int, int]:
         """
         Sync SQS queues from AWS region.
 
@@ -468,15 +533,14 @@ class AWSConnector(BaseConnector):
                 # Get queue attributes
                 try:
                     attrs = sqs.get_queue_attributes(
-                        QueueUrl=queue_url,
-                        AttributeNames=["All"]
+                        QueueUrl=queue_url, AttributeNames=["All"]
                     )
                     attributes = attrs.get("Attributes", {})
 
                     # SQS queues don't have a traditional status, mark as Available
                     status_metadata = {
                         "status": "Available",
-                        "timestamp": int(time.time())
+                        "timestamp": int(time.time()),
                     }
 
                     entity = Entity(
@@ -489,16 +553,26 @@ class AWSConnector(BaseConnector):
                             "queue_url": queue_url,
                             "queue_name": queue_name,
                             "queue_arn": attributes.get("QueueArn"),
-                            "approximate_messages": int(attributes.get("ApproximateNumberOfMessages", 0)),
-                            "message_retention_seconds": int(attributes.get("MessageRetentionPeriod", 0)),
-                            "visibility_timeout": int(attributes.get("VisibilityTimeout", 0)),
+                            "approximate_messages": int(
+                                attributes.get("ApproximateNumberOfMessages", 0)
+                            ),
+                            "message_retention_seconds": int(
+                                attributes.get("MessageRetentionPeriod", 0)
+                            ),
+                            "visibility_timeout": int(
+                                attributes.get("VisibilityTimeout", 0)
+                            ),
                             "delay_seconds": int(attributes.get("DelaySeconds", 0)),
-                            "receive_wait_time": int(attributes.get("ReceiveMessageWaitTimeSeconds", 0)),
+                            "receive_wait_time": int(
+                                attributes.get("ReceiveMessageWaitTimeSeconds", 0)
+                            ),
                             "is_fifo": queue_name.endswith(".fifo"),
                             "region": region,
                             "provider": "aws",
                             "service": "sqs",
-                            "created_timestamp": int(attributes.get("CreatedTimestamp", 0)),
+                            "created_timestamp": int(
+                                attributes.get("CreatedTimestamp", 0)
+                            ),
                         },
                         status_metadata=status_metadata,
                         tags=["aws", "sqs", "queue", region],
@@ -528,7 +602,7 @@ class AWSConnector(BaseConnector):
                     self.logger.warning(
                         "Failed to get queue attributes",
                         queue=queue_name,
-                        error=str(queue_error)
+                        error=str(queue_error),
                     )
 
         except ClientError as e:
@@ -580,7 +654,11 @@ class AWSConnector(BaseConnector):
                         "region": region,
                         "provider": "aws",
                         "service": "s3",
-                        "creation_date": bucket.get("CreationDate").isoformat() if bucket.get("CreationDate") else None,
+                        "creation_date": (
+                            bucket.get("CreationDate").isoformat()
+                            if bucket.get("CreationDate")
+                            else None
+                        ),
                     },
                     tags=["aws", "s3", "storage", region],
                 )
@@ -650,22 +728,30 @@ class AWSConnector(BaseConnector):
                 result.entities_updated += vpc_updated
 
                 # Sync EC2 instances
-                ec2_created, ec2_updated = await self._sync_ec2_instances(region, region_org_id)
+                ec2_created, ec2_updated = await self._sync_ec2_instances(
+                    region, region_org_id
+                )
                 result.entities_created += ec2_created
                 result.entities_updated += ec2_updated
 
                 # Sync RDS instances (v1.2.1)
-                rds_created, rds_updated = await self._sync_rds_instances(region, region_org_id)
+                rds_created, rds_updated = await self._sync_rds_instances(
+                    region, region_org_id
+                )
                 result.entities_created += rds_created
                 result.entities_updated += rds_updated
 
                 # Sync ElastiCache clusters (v1.2.1)
-                cache_created, cache_updated = await self._sync_elasticache_clusters(region, region_org_id)
+                cache_created, cache_updated = await self._sync_elasticache_clusters(
+                    region, region_org_id
+                )
                 result.entities_created += cache_created
                 result.entities_updated += cache_updated
 
                 # Sync SQS queues (v1.2.1)
-                sqs_created, sqs_updated = await self._sync_sqs_queues(region, region_org_id)
+                sqs_created, sqs_updated = await self._sync_sqs_queues(
+                    region, region_org_id
+                )
                 result.entities_created += sqs_created
                 result.entities_updated += sqs_updated
 

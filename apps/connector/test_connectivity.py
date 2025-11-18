@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Test connectivity to external services before running the connector."""
 
-import sys
 import os
+import sys
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 import asyncio
+
 from apps.connector.config.settings import settings
 from apps.connector.utils.logger import configure_logging, get_logger
 
@@ -51,8 +52,8 @@ async def test_gcp():
         return True
 
     try:
-        from google.cloud import compute_v1
         from google.auth import load_credentials_from_file
+        from google.cloud import compute_v1
 
         logger.info("Testing GCP connectivity...")
 
@@ -60,6 +61,7 @@ async def test_gcp():
             credentials, _ = load_credentials_from_file(settings.gcp_credentials_path)
         else:
             from google.auth import default
+
             credentials, _ = default()
 
         zones_client = compute_v1.ZonesClient(credentials=credentials)
@@ -93,7 +95,9 @@ async def test_google_workspace():
             settings.google_workspace_admin_email
         )
 
-        admin_service = build("admin", "directory_v1", credentials=delegated_credentials)
+        admin_service = build(
+            "admin", "directory_v1", credentials=delegated_credentials
+        )
         admin_service.users().list(
             customer=settings.google_workspace_customer_id,
             maxResults=1,
@@ -117,15 +121,18 @@ async def test_ldap():
 
     try:
         import ssl
+
         import ldap3
-        from ldap3 import Server, Connection, ALL
+        from ldap3 import ALL, Connection, Server
 
         logger.info("Testing LDAP connectivity...")
 
         tls = None
         if settings.ldap_use_ssl:
             tls_config = ldap3.Tls(
-                validate=ssl.CERT_REQUIRED if settings.ldap_verify_cert else ssl.CERT_NONE,
+                validate=(
+                    ssl.CERT_REQUIRED if settings.ldap_verify_cert else ssl.CERT_NONE
+                ),
             )
             tls = tls_config
 
@@ -176,7 +183,9 @@ async def test_elder_api():
             healthy = await client.health_check()
 
             if healthy:
-                logger.info("✓ Elder API connection successful", url=settings.elder_api_url)
+                logger.info(
+                    "✓ Elder API connection successful", url=settings.elder_api_url
+                )
                 return True
             else:
                 logger.error("✗ Elder API health check failed")

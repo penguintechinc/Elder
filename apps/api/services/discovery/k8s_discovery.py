@@ -1,7 +1,7 @@
 """Kubernetes cluster discovery client for Elder - IaaS focus."""
 
-from typing import Dict, Any, List
 from datetime import datetime
+from typing import Any, Dict, List
 
 try:
     from kubernetes import client, config
@@ -79,11 +79,31 @@ class KubernetesDiscoveryClient(BaseDiscoveryProvider):
                     resource_type="k8s_node",
                     name=node.metadata.name,
                     metadata={
-                        "capacity_cpu": node.status.capacity.get("cpu") if node.status.capacity else None,
-                        "capacity_memory": node.status.capacity.get("memory") if node.status.capacity else None,
-                        "kubelet_version": node.status.node_info.kubelet_version if node.status.node_info else None,
-                        "os_image": node.status.node_info.os_image if node.status.node_info else None,
-                        "conditions": [c.type for c in node.status.conditions] if node.status.conditions else [],
+                        "capacity_cpu": (
+                            node.status.capacity.get("cpu")
+                            if node.status.capacity
+                            else None
+                        ),
+                        "capacity_memory": (
+                            node.status.capacity.get("memory")
+                            if node.status.capacity
+                            else None
+                        ),
+                        "kubelet_version": (
+                            node.status.node_info.kubelet_version
+                            if node.status.node_info
+                            else None
+                        ),
+                        "os_image": (
+                            node.status.node_info.os_image
+                            if node.status.node_info
+                            else None
+                        ),
+                        "conditions": (
+                            [c.type for c in node.status.conditions]
+                            if node.status.conditions
+                            else []
+                        ),
                     },
                     region="N/A",
                     tags=node.metadata.labels or {},
@@ -105,7 +125,11 @@ class KubernetesDiscoveryClient(BaseDiscoveryProvider):
                         "node_name": pod.spec.node_name if pod.spec else None,
                         "phase": pod.status.phase if pod.status else None,
                         "pod_ip": pod.status.pod_ip if pod.status else None,
-                        "containers_count": len(pod.spec.containers) if pod.spec and pod.spec.containers else 0,
+                        "containers_count": (
+                            len(pod.spec.containers)
+                            if pod.spec and pod.spec.containers
+                            else 0
+                        ),
                     },
                     region="N/A",
                     tags=pod.metadata.labels or {},
@@ -128,9 +152,15 @@ class KubernetesDiscoveryClient(BaseDiscoveryProvider):
                     resource_type="k8s_persistent_volume",
                     name=pv.metadata.name,
                     metadata={
-                        "capacity": pv.spec.capacity.get("storage") if pv.spec and pv.spec.capacity else None,
+                        "capacity": (
+                            pv.spec.capacity.get("storage")
+                            if pv.spec and pv.spec.capacity
+                            else None
+                        ),
                         "access_modes": pv.spec.access_modes if pv.spec else [],
-                        "storage_class": pv.spec.storage_class_name if pv.spec else None,
+                        "storage_class": (
+                            pv.spec.storage_class_name if pv.spec else None
+                        ),
                         "phase": pv.status.phase if pv.status else None,
                     },
                     region="N/A",
@@ -157,7 +187,14 @@ class KubernetesDiscoveryClient(BaseDiscoveryProvider):
                         "namespace": svc.metadata.namespace,
                         "type": svc.spec.type if svc.spec else None,
                         "cluster_ip": svc.spec.cluster_ip if svc.spec else None,
-                        "ports": [{"port": p.port, "protocol": p.protocol} for p in svc.spec.ports] if svc.spec and svc.spec.ports else [],
+                        "ports": (
+                            [
+                                {"port": p.port, "protocol": p.protocol}
+                                for p in svc.spec.ports
+                            ]
+                            if svc.spec and svc.spec.ports
+                            else []
+                        ),
                     },
                     region="N/A",
                     tags=svc.metadata.labels or {},

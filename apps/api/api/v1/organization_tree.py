@@ -1,6 +1,7 @@
 """API endpoints for recursive organization tree operations."""
 
-from flask import Blueprint, jsonify, current_app
+from flask import Blueprint, current_app, jsonify
+
 from apps.api.auth.decorators import login_required
 from shared.async_utils import run_in_threadpool
 
@@ -70,7 +71,7 @@ async def get_organization_tree_stats(org_id: int):
         total_issues = len(issues)
 
         # Count active issues (open or in_progress)
-        active_issues = len([i for i in issues if i.status in ('open', 'in_progress')])
+        active_issues = len([i for i in issues if i.status in ("open", "in_progress")])
 
         # Count by issue priority
         issue_priority_counts = {}
@@ -83,7 +84,7 @@ async def get_organization_tree_stats(org_id: int):
         total_projects = len(projects)
 
         # Count active projects
-        active_projects = len([p for p in projects if p.status == 'active'])
+        active_projects = len([p for p in projects if p.status == "active"])
 
         # Count by project status
         project_status_counts = {}
@@ -95,23 +96,27 @@ async def get_organization_tree_stats(org_id: int):
         milestones = db(db.milestones.organization_id.belongs(all_org_ids)).select()
         total_milestones = len(milestones)
 
-        return {
-            "organization_id": org_id,
-            "organization_name": root_org.name,
-            "total_sub_organizations": total_sub_orgs,
-            "total_entities": total_entities,
-            "total_issues": total_issues,
-            "total_projects": total_projects,
-            "total_milestones": total_milestones,
-            "active_issues": active_issues,
-            "active_projects": active_projects,
-            "organizations": all_org_ids,
-            "breakdown": {
-                "by_entity_type": entity_type_counts,
-                "by_issue_priority": issue_priority_counts,
-                "by_project_status": project_status_counts,
-            }
-        }, None, None
+        return (
+            {
+                "organization_id": org_id,
+                "organization_name": root_org.name,
+                "total_sub_organizations": total_sub_orgs,
+                "total_entities": total_entities,
+                "total_issues": total_issues,
+                "total_projects": total_projects,
+                "total_milestones": total_milestones,
+                "active_issues": active_issues,
+                "active_projects": active_projects,
+                "organizations": all_org_ids,
+                "breakdown": {
+                    "by_entity_type": entity_type_counts,
+                    "by_issue_priority": issue_priority_counts,
+                    "by_project_status": project_status_counts,
+                },
+            },
+            None,
+            None,
+        )
 
     result, error, status = await run_in_threadpool(get_recursive_stats)
 

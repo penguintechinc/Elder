@@ -8,13 +8,14 @@ Supports multiple log destinations:
 - Cloud-native services (AWS CloudWatch, GCP Cloud Logging)
 """
 
-import os
-import sys
 import logging
+import os
 import socket
+import sys
 from datetime import datetime
-from typing import Optional, List
 from logging.handlers import SysLogHandler
+from typing import List, Optional
+
 import structlog
 
 
@@ -36,7 +37,9 @@ class KafkaHTTP3Handler(logging.Handler):
             import httpx
 
             self.httpx = httpx
-            self.session = httpx.Client(http2=True)  # HTTP/3 support requires specific build
+            self.session = httpx.Client(
+                http2=True
+            )  # HTTP/3 support requires specific build
         except ImportError:
             structlog.get_logger().warning(
                 "httpx_not_available",
@@ -56,7 +59,9 @@ class KafkaHTTP3Handler(logging.Handler):
             if self.api_key:
                 headers["Authorization"] = f"Bearer {self.api_key}"
 
-            self.session.post(self.kafka_url, json=payload, headers=headers, timeout=5.0)
+            self.session.post(
+                self.kafka_url, json=payload, headers=headers, timeout=5.0
+            )
         except Exception as e:
             # Don't let logging errors crash the application
             structlog.get_logger().warning(

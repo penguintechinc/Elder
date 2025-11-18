@@ -1,14 +1,14 @@
 """User management endpoints (admin only)."""
 
 from dataclasses import asdict
-from flask import Blueprint, request, jsonify, current_app
+
+from flask import Blueprint, current_app, jsonify, request
 from werkzeug.security import generate_password_hash
-from apps.api.auth.decorators import login_required, role_required, get_current_user
-from apps.api.models.dataclasses import (
-    IdentityDTO,
-    PaginatedResponse,
-    from_pydal_rows
-)
+
+from apps.api.auth.decorators import (get_current_user, login_required,
+                                      role_required)
+from apps.api.models.dataclasses import (IdentityDTO, PaginatedResponse,
+                                         from_pydal_rows)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("users", __name__)
@@ -16,7 +16,7 @@ bp = Blueprint("users", __name__)
 
 @bp.route("", methods=["GET"])
 @login_required
-@role_required('admin')
+@role_required("admin")
 async def list_users():
     """List all users (admin only)."""
     db = current_app.db
@@ -57,7 +57,7 @@ async def list_users():
             db.identities.created_at,
             db.identities.updated_at,
             orderby=db.identities.username,
-            limitby=(offset, offset + per_page)
+            limitby=(offset, offset + per_page),
         )
         return total, rows
 
@@ -75,7 +75,7 @@ async def list_users():
         total=total,
         page=page,
         per_page=per_page,
-        pages=pages
+        pages=pages,
     )
 
     return jsonify(asdict(response)), 200
@@ -83,7 +83,7 @@ async def list_users():
 
 @bp.route("", methods=["POST"])
 @login_required
-@role_required('admin')
+@role_required("admin")
 async def create_user():
     """Create a new user (admin only)."""
     db = current_app.db
@@ -117,7 +117,11 @@ async def create_user():
 
     # Build queries outside threadpool function (db is thread-local)
     username_query = db.identities.username == username
-    email_query = (db.identities.email == insert_data["email"]) if insert_data.get("email") else None
+    email_query = (
+        (db.identities.email == insert_data["email"])
+        if insert_data.get("email")
+        else None
+    )
 
     # Create user
     def create():
@@ -157,7 +161,7 @@ async def create_user():
         mfa_enabled=user_row.mfa_enabled,
         last_login_at=user_row.last_login_at,
         created_at=user_row.created_at,
-        updated_at=user_row.updated_at
+        updated_at=user_row.updated_at,
     )
 
     return jsonify(asdict(user_dto)), 201
@@ -165,7 +169,7 @@ async def create_user():
 
 @bp.route("/<int:user_id>", methods=["PATCH"])
 @login_required
-@role_required('admin')
+@role_required("admin")
 async def update_user(user_id: int):
     """Update a user (admin only)."""
     db = current_app.db
@@ -178,8 +182,13 @@ async def update_user(user_id: int):
     update_data = {}
 
     allowed_fields = [
-        'email', 'full_name', 'organization_id', 'portal_role',
-        'is_active', 'is_superuser', 'mfa_enabled'
+        "email",
+        "full_name",
+        "organization_id",
+        "portal_role",
+        "is_active",
+        "is_superuser",
+        "mfa_enabled",
     ]
 
     for field in allowed_fields:
@@ -187,8 +196,8 @@ async def update_user(user_id: int):
             update_data[field] = data[field]
 
     # Handle password update
-    if 'password' in data and data['password']:
-        update_data['password_hash'] = generate_password_hash(data['password'])
+    if "password" in data and data["password"]:
+        update_data["password_hash"] = generate_password_hash(data["password"])
 
     if not update_data:
         return jsonify({"error": "No valid fields to update"}), 400
@@ -224,7 +233,7 @@ async def update_user(user_id: int):
         mfa_enabled=user_row.mfa_enabled,
         last_login_at=user_row.last_login_at,
         created_at=user_row.created_at,
-        updated_at=user_row.updated_at
+        updated_at=user_row.updated_at,
     )
 
     return jsonify(asdict(user_dto)), 200
@@ -232,7 +241,7 @@ async def update_user(user_id: int):
 
 @bp.route("/<int:user_id>", methods=["DELETE"])
 @login_required
-@role_required('admin')
+@role_required("admin")
 async def delete_user(user_id: int):
     """Delete a user (admin only)."""
     db = current_app.db

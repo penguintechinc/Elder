@@ -2,8 +2,9 @@
 
 import base64
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
+
 import requests
 
 from .base import BaseKeyProvider
@@ -35,33 +36,32 @@ class VaultTransitClient(BaseKeyProvider):
 
     def _init_client(self) -> None:
         """Initialize Vault client session."""
-        self.base_url = self.config['url'].rstrip('/')
-        self.token = self.config['token']
-        self.namespace = self.config.get('namespace')
-        self.mount_point = self.config.get('mount_point', 'transit')
-        self.verify_tls = self.config.get('verify_tls', True)
+        self.base_url = self.config["url"].rstrip("/")
+        self.token = self.config["token"]
+        self.namespace = self.config.get("namespace")
+        self.mount_point = self.config.get("mount_point", "transit")
+        self.verify_tls = self.config.get("verify_tls", True)
 
         # Setup session
         self.session = requests.Session()
-        self.session.headers.update({
-            'X-Vault-Token': self.token,
-            'Content-Type': 'application/json'
-        })
+        self.session.headers.update(
+            {"X-Vault-Token": self.token, "Content-Type": "application/json"}
+        )
 
         if self.namespace:
-            self.session.headers.update({'X-Vault-Namespace': self.namespace})
+            self.session.headers.update({"X-Vault-Namespace": self.namespace})
 
         # Setup TLS verification
         if isinstance(self.verify_tls, str):
             self.session.verify = self.verify_tls
-        elif self.verify_tls and self.config.get('ca_cert'):
-            self.session.verify = self.config['ca_cert']
+        elif self.verify_tls and self.config.get("ca_cert"):
+            self.session.verify = self.config["ca_cert"]
         else:
             self.session.verify = self.verify_tls
 
         # Setup mTLS if provided
-        if self.config.get('client_cert') and self.config.get('client_key'):
-            self.session.cert = (self.config['client_cert'], self.config['client_key'])
+        if self.config.get("client_cert") and self.config.get("client_key"):
+            self.session.cert = (self.config["client_cert"], self.config["client_key"])
 
         logger.info(f"Initialized Vault Transit client for {self.base_url}")
 
@@ -77,7 +77,11 @@ class VaultTransitClient(BaseKeyProvider):
             elif response.status_code == 403:
                 raise Exception(f"Access denied to path: {path}")
             elif response.status_code >= 400:
-                error_msg = response.json().get('errors', [response.text])[0] if response.text else 'Unknown error'
+                error_msg = (
+                    response.json().get("errors", [response.text])[0]
+                    if response.text
+                    else "Unknown error"
+                )
                 raise Exception(f"Vault API error: {error_msg}")
 
             return response.json() if response.text else {}
@@ -126,11 +130,11 @@ class VaultTransitClient(BaseKeyProvider):
                 "type": vault_type,
                 "derived": False,
                 "exportable": False,
-                "allow_plaintext_backup": False
+                "allow_plaintext_backup": False,
             }
 
             api_path = f"/v1/{self.mount_point}/keys/{key_name}"
-            self._make_request('POST', api_path, json=payload)
+            self._make_request("POST", api_path, json=payload)
 
             # Get key details
             key_info = self.get_key(key_name)
@@ -153,25 +157,29 @@ class VaultTransitClient(BaseKeyProvider):
         """Get Transit key metadata."""
         try:
             api_path = f"/v1/{self.mount_point}/keys/{key_id}"
-            response = self._make_request('GET', api_path)
+            response = self._make_request("GET", api_path)
 
-            data = response.get('data', {})
+            data = response.get("data", {})
 
             return {
                 "key_id": key_id,
                 "key_arn": f"vault://{self.mount_point}/keys/{key_id}",
-                "key_type": data.get('type', 'unknown'),
-                "state": "enabled" if not data.get('deletion_allowed', False) else "pending_deletion",
+                "key_type": data.get("type", "unknown"),
+                "state": (
+                    "enabled"
+                    if not data.get("deletion_allowed", False)
+                    else "pending_deletion"
+                ),
                 "created_at": None,  # Vault doesn't provide creation time
                 "description": "",
                 "enabled": True,
-                "latest_version": data.get('latest_version'),
-                "min_decryption_version": data.get('min_decryption_version'),
-                "min_encryption_version": data.get('min_encryption_version'),
-                "supports_encryption": data.get('supports_encryption', False),
-                "supports_decryption": data.get('supports_decryption', False),
-                "supports_derivation": data.get('supports_derivation', False),
-                "supports_signing": data.get('supports_signing', False),
+                "latest_version": data.get("latest_version"),
+                "min_decryption_version": data.get("min_decryption_version"),
+                "min_encryption_version": data.get("min_encryption_version"),
+                "supports_encryption": data.get("supports_encryption", False),
+                "supports_decryption": data.get("supports_decryption", False),
+                "supports_derivation": data.get("supports_derivation", False),
+                "supports_signing": data.get("supports_signing", False),
             }
 
         except Exception as e:
@@ -188,9 +196,9 @@ class VaultTransitClient(BaseKeyProvider):
         """
         try:
             api_path = f"/v1/{self.mount_point}/keys"
-            response = self._make_request('LIST', api_path)
+            response = self._make_request("LIST", api_path)
 
-            key_names = response.get('data', {}).get('keys', [])
+            key_names = response.get("data", {}).get("keys", [])
 
             keys = []
             for name in key_names[:limit] if limit else key_names:
@@ -205,7 +213,7 @@ class VaultTransitClient(BaseKeyProvider):
 
             return {
                 "keys": keys,
-                "next_token": None  # Vault Transit doesn't support pagination
+                "next_token": None,  # Vault Transit doesn't support pagination
             }
 
         except Exception as e:
@@ -224,10 +232,10 @@ class VaultTransitClient(BaseKeyProvider):
             payload = {
                 "deletion_allowed": False,
                 "exportable": False,
-                "allow_plaintext_backup": False
+                "allow_plaintext_backup": False,
             }
 
-            self._make_request('POST', api_path, json=payload)
+            self._make_request("POST", api_path, json=payload)
 
             logger.info(f"Enabled Transit key '{key_id}'")
 
@@ -247,17 +255,17 @@ class VaultTransitClient(BaseKeyProvider):
         try:
             # Get current key info
             key_info = self.get_key(key_id)
-            latest_version = key_info.get('latest_version', 1)
+            latest_version = key_info.get("latest_version", 1)
 
             # Set min_encryption_version to a very high number to prevent new encryption
             api_path = f"/v1/{self.mount_point}/keys/{key_id}/config"
-            payload = {
-                "min_encryption_version": latest_version + 1000
-            }
+            payload = {"min_encryption_version": latest_version + 1000}
 
-            self._make_request('POST', api_path, json=payload)
+            self._make_request("POST", api_path, json=payload)
 
-            logger.info(f"Disabled Transit key '{key_id}' (set min_encryption_version high)")
+            logger.info(
+                f"Disabled Transit key '{key_id}' (set min_encryption_version high)"
+            )
 
             return {"key_id": key_id, "state": "disabled"}
 
@@ -277,14 +285,16 @@ class VaultTransitClient(BaseKeyProvider):
         try:
             # First, allow deletion
             config_path = f"/v1/{self.mount_point}/keys/{key_id}/config"
-            self._make_request('POST', config_path, json={"deletion_allowed": True})
+            self._make_request("POST", config_path, json={"deletion_allowed": True})
 
-            logger.info(f"Scheduled deletion for Transit key '{key_id}' (deletion_allowed=true)")
+            logger.info(
+                f"Scheduled deletion for Transit key '{key_id}' (deletion_allowed=true)"
+            )
 
             return {
                 "key_id": key_id,
                 "state": "pending_deletion",
-                "deletion_date": None  # Transit doesn't have pending periods
+                "deletion_date": None,  # Transit doesn't have pending periods
             }
 
         except Exception as e:
@@ -296,7 +306,7 @@ class VaultTransitClient(BaseKeyProvider):
         try:
             # Disallow deletion
             config_path = f"/v1/{self.mount_point}/keys/{key_id}/config"
-            self._make_request('POST', config_path, json={"deletion_allowed": False})
+            self._make_request("POST", config_path, json={"deletion_allowed": False})
 
             logger.info(f"Cancelled deletion for Transit key '{key_id}'")
 
@@ -322,9 +332,9 @@ class VaultTransitClient(BaseKeyProvider):
                 payload["context"] = base64.b64encode(context_str.encode()).decode()
 
             api_path = f"/v1/{self.mount_point}/encrypt/{key_id}"
-            response = self._make_request('POST', api_path, json=payload)
+            response = self._make_request("POST", api_path, json=payload)
 
-            ciphertext = response.get('data', {}).get('ciphertext')
+            ciphertext = response.get("data", {}).get("ciphertext")
 
             return {
                 "ciphertext": ciphertext,
@@ -347,12 +357,14 @@ class VaultTransitClient(BaseKeyProvider):
         try:
             # Extract key_id from ciphertext prefix if possible
             # Format: vault:v1:base64ciphertext
-            key_id = ciphertext.split(':')[0] if ':' in ciphertext else None
+            key_id = ciphertext.split(":")[0] if ":" in ciphertext else None
 
-            if not key_id or key_id == 'vault':
+            if not key_id or key_id == "vault":
                 # Ciphertext doesn't contain key info, need to try all keys
                 # This is not ideal, but Transit requires knowing which key to use
-                raise Exception("Cannot determine key_id from ciphertext, Transit requires explicit key_id")
+                raise Exception(
+                    "Cannot determine key_id from ciphertext, Transit requires explicit key_id"
+                )
 
             payload = {"ciphertext": ciphertext}
 
@@ -362,7 +374,9 @@ class VaultTransitClient(BaseKeyProvider):
 
             # We'll need to modify the signature to accept key_id or infer it somehow
             # For now, raise an error indicating this limitation
-            raise Exception("Decrypt requires key_id to be passed separately for Vault Transit")
+            raise Exception(
+                "Decrypt requires key_id to be passed separately for Vault Transit"
+            )
 
         except Exception as e:
             logger.error(f"Failed to decrypt: {str(e)}")
@@ -380,9 +394,9 @@ class VaultTransitClient(BaseKeyProvider):
                 payload["context"] = base64.b64encode(context_str.encode()).decode()
 
             api_path = f"/v1/{self.mount_point}/decrypt/{key_id}"
-            response = self._make_request('POST', api_path, json=payload)
+            response = self._make_request("POST", api_path, json=payload)
 
-            plaintext_b64 = response.get('data', {}).get('plaintext')
+            plaintext_b64 = response.get("data", {}).get("plaintext")
             plaintext = base64.b64decode(plaintext_b64).decode()
 
             return {
@@ -420,13 +434,13 @@ class VaultTransitClient(BaseKeyProvider):
                 payload["context"] = base64.b64encode(context_str.encode()).decode()
 
             api_path = f"/v1/{self.mount_point}/datakey/plaintext/{key_id}"
-            response = self._make_request('POST', api_path, json=payload)
+            response = self._make_request("POST", api_path, json=payload)
 
-            data = response.get('data', {})
+            data = response.get("data", {})
 
             return {
-                "plaintext_key": data.get('plaintext'),
-                "ciphertext_key": data.get('ciphertext'),
+                "plaintext_key": data.get("plaintext"),
+                "ciphertext_key": data.get("ciphertext"),
                 "key_id": key_id,
             }
 
@@ -454,15 +468,12 @@ class VaultTransitClient(BaseKeyProvider):
             # Transit requires base64-encoded input
             input_b64 = base64.b64encode(message.encode()).decode()
 
-            payload = {
-                "input": input_b64,
-                "signature_algorithm": vault_algo
-            }
+            payload = {"input": input_b64, "signature_algorithm": vault_algo}
 
             api_path = f"/v1/{self.mount_point}/sign/{key_id}"
-            response = self._make_request('POST', api_path, json=payload)
+            response = self._make_request("POST", api_path, json=payload)
 
-            signature = response.get('data', {}).get('signature')
+            signature = response.get("data", {}).get("signature")
 
             return {
                 "signature": signature,
@@ -492,13 +503,13 @@ class VaultTransitClient(BaseKeyProvider):
             payload = {
                 "input": input_b64,
                 "signature": signature,
-                "signature_algorithm": vault_algo
+                "signature_algorithm": vault_algo,
             }
 
             api_path = f"/v1/{self.mount_point}/verify/{key_id}"
-            response = self._make_request('POST', api_path, json=payload)
+            response = self._make_request("POST", api_path, json=payload)
 
-            valid = response.get('data', {}).get('valid', False)
+            valid = response.get("data", {}).get("valid", False)
 
             return {
                 "valid": valid,
@@ -513,16 +524,18 @@ class VaultTransitClient(BaseKeyProvider):
         """Rotate a Transit key (create new version)."""
         try:
             api_path = f"/v1/{self.mount_point}/keys/{key_id}/rotate"
-            self._make_request('POST', api_path)
+            self._make_request("POST", api_path)
 
             # Get updated key info
             key_info = self.get_key(key_id)
 
-            logger.info(f"Rotated Transit key '{key_id}' to version {key_info.get('latest_version')}")
+            logger.info(
+                f"Rotated Transit key '{key_id}' to version {key_info.get('latest_version')}"
+            )
 
             return {
                 "key_id": key_id,
-                "latest_version": key_info.get('latest_version'),
+                "latest_version": key_info.get("latest_version"),
                 "rotation_date": datetime.now().isoformat(),
             }
 

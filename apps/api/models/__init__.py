@@ -1,44 +1,30 @@
 """Database models for Elder application using PyDAL."""
 
 # PyDAL table definitions
-from apps.api.models.pydal_models import define_all_tables
-
 # Python 3.12 dataclass DTOs
-from apps.api.models.dataclasses import (
-    OrganizationDTO,
-    CreateOrganizationRequest,
-    UpdateOrganizationRequest,
-    EntityDTO,
-    CreateEntityRequest,
-    UpdateEntityRequest,
-    DependencyDTO,
-    CreateDependencyRequest,
-    IdentityDTO,
-    CreateIdentityRequest,
-    UpdateIdentityRequest,
-    IdentityGroupDTO,
-    CreateIdentityGroupRequest,
-    RoleDTO,
-    PermissionDTO,
-    ResourceRoleDTO,
-    CreateResourceRoleRequest,
-    IssueDTO,
-    CreateIssueRequest,
-    UpdateIssueRequest,
-    IssueLabelDTO,
-    IssueCommentDTO,
-    CreateIssueCommentRequest,
-    MetadataFieldDTO,
-    CreateMetadataFieldRequest,
-    LoginRequest,
-    LoginResponse,
-    RegisterRequest,
-    AuditLogDTO,
-    PaginatedResponse,
-    from_pydal_row,
-    from_pydal_rows,
-    to_dict,
-)
+from apps.api.models.dataclasses import (AuditLogDTO, CreateDependencyRequest,
+                                         CreateEntityRequest,
+                                         CreateIdentityGroupRequest,
+                                         CreateIdentityRequest,
+                                         CreateIssueCommentRequest,
+                                         CreateIssueRequest,
+                                         CreateMetadataFieldRequest,
+                                         CreateOrganizationRequest,
+                                         CreateResourceRoleRequest,
+                                         DependencyDTO, EntityDTO, IdentityDTO,
+                                         IdentityGroupDTO, IssueCommentDTO,
+                                         IssueDTO, IssueLabelDTO, LoginRequest,
+                                         LoginResponse, MetadataFieldDTO,
+                                         OrganizationDTO, PaginatedResponse,
+                                         PermissionDTO, RegisterRequest,
+                                         ResourceRoleDTO, RoleDTO,
+                                         UpdateEntityRequest,
+                                         UpdateIdentityRequest,
+                                         UpdateIssueRequest,
+                                         UpdateOrganizationRequest,
+                                         from_pydal_row, from_pydal_rows,
+                                         to_dict)
+from apps.api.models.pydal_models import define_all_tables
 
 __all__ = [
     # PyDAL table definitions

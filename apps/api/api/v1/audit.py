@@ -1,15 +1,18 @@
 """Audit System API endpoints for Elder v1.2.0 (Phase 8)."""
 
-from flask import Blueprint, jsonify, request, current_app
-from apps.api.auth.decorators import login_required, admin_required
 from datetime import datetime, timedelta
 
-bp = Blueprint('audit', __name__)
+from flask import Blueprint, current_app, jsonify, request
+
+from apps.api.auth.decorators import admin_required, login_required
+
+bp = Blueprint("audit", __name__)
 
 
 # Audit Retention Policies
 
-@bp.route('/retention-policies', methods=['GET'])
+
+@bp.route("/retention-policies", methods=["GET"])
 @login_required
 def list_retention_policies():
     """
@@ -24,16 +27,18 @@ def list_retention_policies():
             orderby=db.audit_retention_policies.resource_type
         )
 
-        return jsonify({
-            'policies': [p.as_dict() for p in policies],
-            'count': len(policies)
-        }), 200
+        return (
+            jsonify(
+                {"policies": [p.as_dict() for p in policies], "count": len(policies)}
+            ),
+            200,
+        )
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/retention-policies/<int:policy_id>', methods=['GET'])
+@bp.route("/retention-policies/<int:policy_id>", methods=["GET"])
 @login_required
 def get_retention_policy(policy_id):
     """
@@ -48,15 +53,15 @@ def get_retention_policy(policy_id):
         policy = db.audit_retention_policies[policy_id]
 
         if not policy:
-            return jsonify({'error': 'Retention policy not found'}), 404
+            return jsonify({"error": "Retention policy not found"}), 404
 
         return jsonify(policy.as_dict()), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/retention-policies', methods=['POST'])
+@bp.route("/retention-policies", methods=["POST"])
 @admin_required
 def create_retention_policy():
     """
@@ -77,22 +82,36 @@ def create_retention_policy():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        if 'resource_type' not in data or 'retention_days' not in data:
-            return jsonify({'error': 'resource_type and retention_days are required'}), 400
+        if "resource_type" not in data or "retention_days" not in data:
+            return (
+                jsonify({"error": "resource_type and retention_days are required"}),
+                400,
+            )
 
         db = current_app.db
 
         # Check if policy already exists for this resource type
-        existing = db(db.audit_retention_policies.resource_type == data['resource_type']).select().first()
+        existing = (
+            db(db.audit_retention_policies.resource_type == data["resource_type"])
+            .select()
+            .first()
+        )
         if existing:
-            return jsonify({'error': f'Retention policy already exists for {data["resource_type"]}'}), 400
+            return (
+                jsonify(
+                    {
+                        "error": f'Retention policy already exists for {data["resource_type"]}'
+                    }
+                ),
+                400,
+            )
 
         policy_id = db.audit_retention_policies.insert(
-            resource_type=data['resource_type'],
-            retention_days=data['retention_days'],
-            enabled=data.get('enabled', True),
+            resource_type=data["resource_type"],
+            retention_days=data["retention_days"],
+            enabled=data.get("enabled", True),
             created_at=datetime.utcnow(),
         )
 
@@ -102,10 +121,10 @@ def create_retention_policy():
         return jsonify(policy.as_dict()), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/retention-policies/<int:policy_id>', methods=['PUT'])
+@bp.route("/retention-policies/<int:policy_id>", methods=["PUT"])
 @admin_required
 def update_retention_policy(policy_id):
     """
@@ -125,20 +144,20 @@ def update_retention_policy(policy_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         db = current_app.db
         policy = db.audit_retention_policies[policy_id]
 
         if not policy:
-            return jsonify({'error': 'Retention policy not found'}), 404
+            return jsonify({"error": "Retention policy not found"}), 404
 
         update_data = {}
-        if 'retention_days' in data:
-            update_data['retention_days'] = data['retention_days']
-        if 'enabled' in data:
-            update_data['enabled'] = data['enabled']
-        update_data['updated_at'] = datetime.utcnow()
+        if "retention_days" in data:
+            update_data["retention_days"] = data["retention_days"]
+        if "enabled" in data:
+            update_data["enabled"] = data["enabled"]
+        update_data["updated_at"] = datetime.utcnow()
 
         db(db.audit_retention_policies.id == policy_id).update(**update_data)
         db.commit()
@@ -147,10 +166,10 @@ def update_retention_policy(policy_id):
         return jsonify(policy.as_dict()), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/retention-policies/<int:policy_id>', methods=['DELETE'])
+@bp.route("/retention-policies/<int:policy_id>", methods=["DELETE"])
 @admin_required
 def delete_retention_policy(policy_id):
     """
@@ -165,20 +184,21 @@ def delete_retention_policy(policy_id):
         policy = db.audit_retention_policies[policy_id]
 
         if not policy:
-            return jsonify({'error': 'Retention policy not found'}), 404
+            return jsonify({"error": "Retention policy not found"}), 404
 
         db(db.audit_retention_policies.id == policy_id).delete()
         db.commit()
 
-        return jsonify({'message': 'Retention policy deleted successfully'}), 200
+        return jsonify({"message": "Retention policy deleted successfully"}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 # Audit Log Cleanup (admin operation)
 
-@bp.route('/cleanup', methods=['POST'])
+
+@bp.route("/cleanup", methods=["POST"])
 @admin_required
 def cleanup_audit_logs():
     """
@@ -192,12 +212,12 @@ def cleanup_audit_logs():
     """
     try:
         db = current_app.db
-        dry_run = request.args.get('dry_run', 'true').lower() == 'true'
+        dry_run = request.args.get("dry_run", "true").lower() == "true"
 
         # Get all enabled retention policies
         policies = db(
-            (db.audit_retention_policies.id > 0) &
-            (db.audit_retention_policies.enabled is True)
+            (db.audit_retention_policies.id > 0)
+            & (db.audit_retention_policies.enabled is True)
         ).select()
 
         results = {}
@@ -212,24 +232,29 @@ def cleanup_audit_logs():
 
             if dry_run:
                 results[policy.resource_type] = {
-                    'retention_days': policy.retention_days,
-                    'cutoff_date': cutoff_date.isoformat(),
-                    'action': 'dry_run'
+                    "retention_days": policy.retention_days,
+                    "cutoff_date": cutoff_date.isoformat(),
+                    "action": "dry_run",
                 }
             else:
                 results[policy.resource_type] = {
-                    'retention_days': policy.retention_days,
-                    'cutoff_date': cutoff_date.isoformat(),
-                    'deleted': 0,
-                    'action': 'cleanup_performed'
+                    "retention_days": policy.retention_days,
+                    "cutoff_date": cutoff_date.isoformat(),
+                    "deleted": 0,
+                    "action": "cleanup_performed",
                 }
 
-        return jsonify({
-            'dry_run': dry_run,
-            'results': results,
-            'total_deleted': total_deleted,
-            'executed_at': datetime.utcnow().isoformat()
-        }), 200
+        return (
+            jsonify(
+                {
+                    "dry_run": dry_run,
+                    "results": results,
+                    "total_deleted": total_deleted,
+                    "executed_at": datetime.utcnow().isoformat(),
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500

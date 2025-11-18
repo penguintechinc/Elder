@@ -1,6 +1,6 @@
 """Kubernetes RBAC client for identity and access management operations."""
 
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 
 try:
     from kubernetes import client, config
@@ -67,8 +67,16 @@ class KubernetesRBACClient(BaseIAMProvider):
 
             return {
                 "users": users,
-                "next_token": response.metadata._continue if hasattr(response.metadata, '_continue') else None,
-                "truncated": bool(response.metadata._continue if hasattr(response.metadata, '_continue') else False),
+                "next_token": (
+                    response.metadata._continue
+                    if hasattr(response.metadata, "_continue")
+                    else None
+                ),
+                "truncated": bool(
+                    response.metadata._continue
+                    if hasattr(response.metadata, "_continue")
+                    else False
+                ),
             }
 
         except ApiException as e:
@@ -95,7 +103,7 @@ class KubernetesRBACClient(BaseIAMProvider):
         username: str,
         display_name: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Create a new service account."""
         try:
@@ -126,7 +134,9 @@ class KubernetesRBACClient(BaseIAMProvider):
                 name=user_identifier, namespace=self.namespace
             )
 
-            return {"message": f"Service account {user_identifier} deleted successfully"}
+            return {
+                "message": f"Service account {user_identifier} deleted successfully"
+            }
 
         except ApiException as e:
             raise Exception(f"K8s RBAC delete user error: {e.reason}")
@@ -138,7 +148,7 @@ class KubernetesRBACClient(BaseIAMProvider):
         user_identifier: str,
         display_name: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Update service account metadata."""
         try:
@@ -184,8 +194,16 @@ class KubernetesRBACClient(BaseIAMProvider):
 
             return {
                 "roles": roles,
-                "next_token": response.metadata._continue if hasattr(response.metadata, '_continue') else None,
-                "truncated": bool(response.metadata._continue if hasattr(response.metadata, '_continue') else False),
+                "next_token": (
+                    response.metadata._continue
+                    if hasattr(response.metadata, "_continue")
+                    else None
+                ),
+                "truncated": bool(
+                    response.metadata._continue
+                    if hasattr(response.metadata, "_continue")
+                    else False
+                ),
             }
 
         except ApiException as e:
@@ -213,7 +231,7 @@ class KubernetesRBACClient(BaseIAMProvider):
         description: Optional[str] = None,
         trust_policy: Optional[Dict[str, Any]] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Create a new role."""
         try:
@@ -272,7 +290,7 @@ class KubernetesRBACClient(BaseIAMProvider):
         role_identifier: str,
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Update role metadata."""
         try:
@@ -336,8 +354,16 @@ class KubernetesRBACClient(BaseIAMProvider):
 
             return {
                 "policies": policies,
-                "next_token": response.metadata._continue if hasattr(response.metadata, '_continue') else None,
-                "truncated": bool(response.metadata._continue if hasattr(response.metadata, '_continue') else False),
+                "next_token": (
+                    response.metadata._continue
+                    if hasattr(response.metadata, "_continue")
+                    else None
+                ),
+                "truncated": bool(
+                    response.metadata._continue
+                    if hasattr(response.metadata, "_continue")
+                    else False
+                ),
             }
 
         except ApiException as e:
@@ -365,7 +391,7 @@ class KubernetesRBACClient(BaseIAMProvider):
         policy_document: Dict[str, Any],
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Create a role binding."""
         try:
@@ -514,7 +540,9 @@ class KubernetesRBACClient(BaseIAMProvider):
     def list_user_policies(self, user_identifier: str) -> List[Dict[str, Any]]:
         """List all roles attached to a service account."""
         try:
-            response = self.rbac_v1.list_namespaced_role_binding(namespace=self.namespace)
+            response = self.rbac_v1.list_namespaced_role_binding(
+                namespace=self.namespace
+            )
 
             policies = []
             for rb in response.items:
@@ -563,9 +591,11 @@ class KubernetesRBACClient(BaseIAMProvider):
 
             return {
                 "token": response.status.token,
-                "expiration": response.status.expiration_timestamp.isoformat()
-                if response.status.expiration_timestamp
-                else None,
+                "expiration": (
+                    response.status.expiration_timestamp.isoformat()
+                    if response.status.expiration_timestamp
+                    else None
+                ),
                 "user": user_identifier,
             }
 
@@ -672,9 +702,11 @@ class KubernetesRBACClient(BaseIAMProvider):
             "username": sa.metadata.name,
             "name": sa.metadata.name,
             "namespace": sa.metadata.namespace,
-            "created_at": sa.metadata.creation_timestamp.isoformat()
-            if sa.metadata.creation_timestamp
-            else None,
+            "created_at": (
+                sa.metadata.creation_timestamp.isoformat()
+                if sa.metadata.creation_timestamp
+                else None
+            ),
             "labels": sa.metadata.labels or {},
             "annotations": sa.metadata.annotations or {},
         }
@@ -696,9 +728,11 @@ class KubernetesRBACClient(BaseIAMProvider):
             "id": role.metadata.uid,
             "name": role.metadata.name,
             "namespace": role.metadata.namespace,
-            "created_at": role.metadata.creation_timestamp.isoformat()
-            if role.metadata.creation_timestamp
-            else None,
+            "created_at": (
+                role.metadata.creation_timestamp.isoformat()
+                if role.metadata.creation_timestamp
+                else None
+            ),
             "rules": rules,
             "labels": role.metadata.labels or {},
             "annotations": role.metadata.annotations or {},
@@ -726,7 +760,9 @@ class KubernetesRBACClient(BaseIAMProvider):
                 "api_group": rb.role_ref.api_group,
             },
             "subjects": subjects,
-            "created_at": rb.metadata.creation_timestamp.isoformat()
-            if rb.metadata.creation_timestamp
-            else None,
+            "created_at": (
+                rb.metadata.creation_timestamp.isoformat()
+                if rb.metadata.creation_timestamp
+                else None
+            ),
         }

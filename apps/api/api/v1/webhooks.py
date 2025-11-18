@@ -1,10 +1,11 @@
 """Webhook & Notification System API endpoints for Elder v1.2.0 (Phase 9)."""
 
-from flask import Blueprint, jsonify, request, current_app
-from apps.api.auth.decorators import login_required, admin_required
+from flask import Blueprint, current_app, jsonify, request
+
+from apps.api.auth.decorators import admin_required, login_required
 from apps.api.services.webhooks import WebhookService
 
-bp = Blueprint('webhooks', __name__)
+bp = Blueprint("webhooks", __name__)
 
 
 def get_webhook_service():
@@ -16,7 +17,8 @@ def get_webhook_service():
 # Webhook Endpoints
 # ===========================
 
-@bp.route('', methods=['GET'])
+
+@bp.route("", methods=["GET"])
 @login_required
 def list_webhooks():
     """
@@ -32,29 +34,25 @@ def list_webhooks():
     try:
         service = get_webhook_service()
 
-        organization_id = request.args.get('organization_id', type=int)
-        enabled = request.args.get('enabled')
+        organization_id = request.args.get("organization_id", type=int)
+        enabled = request.args.get("enabled")
 
         # Convert enabled string to boolean
         enabled_bool = None
         if enabled is not None:
-            enabled_bool = enabled.lower() == 'true'
+            enabled_bool = enabled.lower() == "true"
 
         webhooks = service.list_webhooks(
-            organization_id=organization_id,
-            enabled=enabled_bool
+            organization_id=organization_id, enabled=enabled_bool
         )
 
-        return jsonify({
-            'webhooks': webhooks,
-            'count': len(webhooks)
-        }), 200
+        return jsonify({"webhooks": webhooks, "count": len(webhooks)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('', methods=['POST'])
+@bp.route("", methods=["POST"])
 @admin_required
 def create_webhook():
     """
@@ -79,31 +77,34 @@ def create_webhook():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['name', 'url', 'events', 'organization_id']
+        required = ["name", "url", "events", "organization_id"]
         missing = [f for f in required if f not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_webhook_service()
         webhook = service.create_webhook(
-            name=data['name'],
-            url=data['url'],
-            events=data['events'],
-            organization_id=data['organization_id'],
-            secret=data.get('secret'),
-            description=data.get('description'),
-            headers=data.get('headers')
+            name=data["name"],
+            url=data["url"],
+            events=data["events"],
+            organization_id=data["organization_id"],
+            secret=data.get("secret"),
+            description=data.get("description"),
+            headers=data.get("headers"),
         )
 
         return jsonify(webhook), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/<int:webhook_id>', methods=['GET'])
+@bp.route("/<int:webhook_id>", methods=["GET"])
 @login_required
 def get_webhook(webhook_id):
     """
@@ -119,12 +120,12 @@ def get_webhook(webhook_id):
         return jsonify(webhook), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:webhook_id>', methods=['PUT'])
+@bp.route("/<int:webhook_id>", methods=["PUT"])
 @admin_required
 def update_webhook(webhook_id):
     """
@@ -149,29 +150,29 @@ def update_webhook(webhook_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_webhook_service()
         webhook = service.update_webhook(
             webhook_id=webhook_id,
-            name=data.get('name'),
-            url=data.get('url'),
-            events=data.get('events'),
-            secret=data.get('secret'),
-            description=data.get('description'),
-            headers=data.get('headers'),
-            enabled=data.get('enabled')
+            name=data.get("name"),
+            url=data.get("url"),
+            events=data.get("events"),
+            secret=data.get("secret"),
+            description=data.get("description"),
+            headers=data.get("headers"),
+            enabled=data.get("enabled"),
         )
 
         return jsonify(webhook), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/<int:webhook_id>', methods=['DELETE'])
+@bp.route("/<int:webhook_id>", methods=["DELETE"])
 @admin_required
 def delete_webhook(webhook_id):
     """
@@ -187,12 +188,12 @@ def delete_webhook(webhook_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:webhook_id>/test', methods=['POST'])
+@bp.route("/<int:webhook_id>/test", methods=["POST"])
 @login_required
 def test_webhook(webhook_id):
     """
@@ -207,16 +208,16 @@ def test_webhook(webhook_id):
         service = get_webhook_service()
         result = service.test_webhook(webhook_id)
 
-        status_code = 200 if result.get('success') else 400
+        status_code = 200 if result.get("success") else 400
         return jsonify(result), status_code
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:webhook_id>/deliveries', methods=['GET'])
+@bp.route("/<int:webhook_id>/deliveries", methods=["GET"])
 @login_required
 def get_webhook_deliveries(webhook_id):
     """
@@ -233,30 +234,25 @@ def get_webhook_deliveries(webhook_id):
     try:
         service = get_webhook_service()
 
-        limit = request.args.get('limit', 50, type=int)
-        success = request.args.get('success')
+        limit = request.args.get("limit", 50, type=int)
+        success = request.args.get("success")
 
         # Convert success string to boolean
         success_bool = None
         if success is not None:
-            success_bool = success.lower() == 'true'
+            success_bool = success.lower() == "true"
 
         deliveries = service.get_webhook_deliveries(
-            webhook_id=webhook_id,
-            limit=limit,
-            success=success_bool
+            webhook_id=webhook_id, limit=limit, success=success_bool
         )
 
-        return jsonify({
-            'deliveries': deliveries,
-            'count': len(deliveries)
-        }), 200
+        return jsonify({"deliveries": deliveries, "count": len(deliveries)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/<int:webhook_id>/deliveries/<int:delivery_id>/redeliver', methods=['POST'])
+@bp.route("/<int:webhook_id>/deliveries/<int:delivery_id>/redeliver", methods=["POST"])
 @admin_required
 def redeliver_webhook(webhook_id, delivery_id):
     """
@@ -270,20 +266,21 @@ def redeliver_webhook(webhook_id, delivery_id):
         service = get_webhook_service()
         result = service.redeliver_webhook(webhook_id, delivery_id)
 
-        status_code = 200 if result.get('success') else 400
+        status_code = 200 if result.get("success") else 400
         return jsonify(result), status_code
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # Notification Rule Endpoints
 # ===========================
 
-@bp.route('/notification-rules', methods=['GET'])
+
+@bp.route("/notification-rules", methods=["GET"])
 @login_required
 def list_notification_rules():
     """
@@ -299,24 +296,20 @@ def list_notification_rules():
     try:
         service = get_webhook_service()
 
-        organization_id = request.args.get('organization_id', type=int)
-        channel = request.args.get('channel')
+        organization_id = request.args.get("organization_id", type=int)
+        channel = request.args.get("channel")
 
         rules = service.list_notification_rules(
-            organization_id=organization_id,
-            channel=channel
+            organization_id=organization_id, channel=channel
         )
 
-        return jsonify({
-            'rules': rules,
-            'count': len(rules)
-        }), 200
+        return jsonify({"rules": rules, "count": len(rules)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/notification-rules', methods=['POST'])
+@bp.route("/notification-rules", methods=["POST"])
 @admin_required
 def create_notification_rule():
     """
@@ -343,30 +336,33 @@ def create_notification_rule():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['name', 'channel', 'events', 'config', 'organization_id']
+        required = ["name", "channel", "events", "config", "organization_id"]
         missing = [f for f in required if f not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_webhook_service()
         rule = service.create_notification_rule(
-            name=data['name'],
-            channel=data['channel'],
-            events=data['events'],
-            config=data['config'],
-            organization_id=data['organization_id'],
-            description=data.get('description')
+            name=data["name"],
+            channel=data["channel"],
+            events=data["events"],
+            config=data["config"],
+            organization_id=data["organization_id"],
+            description=data.get("description"),
         )
 
         return jsonify(rule), 201
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/notification-rules/<int:rule_id>', methods=['GET'])
+@bp.route("/notification-rules/<int:rule_id>", methods=["GET"])
 @login_required
 def get_notification_rule(rule_id):
     """
@@ -382,12 +378,12 @@ def get_notification_rule(rule_id):
         return jsonify(rule), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/notification-rules/<int:rule_id>', methods=['PUT'])
+@bp.route("/notification-rules/<int:rule_id>", methods=["PUT"])
 @admin_required
 def update_notification_rule(rule_id):
     """
@@ -410,27 +406,27 @@ def update_notification_rule(rule_id):
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
         service = get_webhook_service()
         rule = service.update_notification_rule(
             rule_id=rule_id,
-            name=data.get('name'),
-            events=data.get('events'),
-            config=data.get('config'),
-            description=data.get('description'),
-            enabled=data.get('enabled')
+            name=data.get("name"),
+            events=data.get("events"),
+            config=data.get("config"),
+            description=data.get("description"),
+            enabled=data.get("enabled"),
         )
 
         return jsonify(rule), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 400
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 400
 
 
-@bp.route('/notification-rules/<int:rule_id>', methods=['DELETE'])
+@bp.route("/notification-rules/<int:rule_id>", methods=["DELETE"])
 @admin_required
 def delete_notification_rule(rule_id):
     """
@@ -446,12 +442,12 @@ def delete_notification_rule(rule_id):
         return jsonify(result), 200
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
-@bp.route('/notification-rules/<int:rule_id>/test', methods=['POST'])
+@bp.route("/notification-rules/<int:rule_id>/test", methods=["POST"])
 @login_required
 def test_notification_rule(rule_id):
     """
@@ -466,20 +462,21 @@ def test_notification_rule(rule_id):
         service = get_webhook_service()
         result = service.test_notification_rule(rule_id)
 
-        status_code = 200 if result.get('success') else 400
+        status_code = 200 if result.get("success") else 400
         return jsonify(result), status_code
 
     except Exception as e:
-        if 'not found' in str(e).lower():
-            return jsonify({'error': str(e)}), 404
-        return jsonify({'error': str(e)}), 500
+        if "not found" in str(e).lower():
+            return jsonify({"error": str(e)}), 404
+        return jsonify({"error": str(e)}), 500
 
 
 # ===========================
 # Event Broadcasting Endpoint
 # ===========================
 
-@bp.route('/broadcast', methods=['POST'])
+
+@bp.route("/broadcast", methods=["POST"])
 @admin_required
 def broadcast_event():
     """
@@ -500,21 +497,24 @@ def broadcast_event():
         data = request.get_json()
 
         if not data:
-            return jsonify({'error': 'Request body required'}), 400
+            return jsonify({"error": "Request body required"}), 400
 
-        required = ['event_type', 'payload', 'organization_id']
+        required = ["event_type", "payload", "organization_id"]
         missing = [f for f in required if f not in data]
         if missing:
-            return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
+            return (
+                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                400,
+            )
 
         service = get_webhook_service()
         result = service.broadcast_event(
-            event_type=data['event_type'],
-            payload=data['payload'],
-            organization_id=data['organization_id']
+            event_type=data["event_type"],
+            payload=data["payload"],
+            organization_id=data["organization_id"],
         )
 
         return jsonify(result), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400

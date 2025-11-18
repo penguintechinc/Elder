@@ -1,11 +1,11 @@
 """AWS IAM client for identity and access management operations."""
 
 import json
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 
 try:
     import boto3
-    from botocore.exceptions import ClientError, BotoCoreError
+    from botocore.exceptions import BotoCoreError, ClientError
 except ImportError:
     boto3 = None
     ClientError = Exception
@@ -79,7 +79,9 @@ class AWSIAMClient(BaseIAMProvider):
             }
 
         except ClientError as e:
-            raise Exception(f"AWS IAM list users error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM list users error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM list users error: {str(e)}")
 
@@ -92,7 +94,9 @@ class AWSIAMClient(BaseIAMProvider):
             # Get user tags
             try:
                 tags_response = self.client.list_user_tags(UserName=user_identifier)
-                tags = {tag["Key"]: tag["Value"] for tag in tags_response.get("Tags", [])}
+                tags = {
+                    tag["Key"]: tag["Value"] for tag in tags_response.get("Tags", [])
+                }
             except Exception:
                 tags = {}
 
@@ -111,7 +115,7 @@ class AWSIAMClient(BaseIAMProvider):
         username: str,
         display_name: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Create a new IAM user."""
         try:
@@ -135,7 +139,9 @@ class AWSIAMClient(BaseIAMProvider):
             return normalized_user
 
         except ClientError as e:
-            raise Exception(f"AWS IAM create user error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM create user error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM create user error: {str(e)}")
 
@@ -167,7 +173,9 @@ class AWSIAMClient(BaseIAMProvider):
 
             # Delete inline policies
             try:
-                inline_policies = self.client.list_user_policies(UserName=user_identifier)
+                inline_policies = self.client.list_user_policies(
+                    UserName=user_identifier
+                )
                 for policy_name in inline_policies.get("PolicyNames", []):
                     self.client.delete_user_policy(
                         UserName=user_identifier, PolicyName=policy_name
@@ -177,7 +185,9 @@ class AWSIAMClient(BaseIAMProvider):
 
             # Remove from all groups
             try:
-                groups_response = self.client.list_groups_for_user(UserName=user_identifier)
+                groups_response = self.client.list_groups_for_user(
+                    UserName=user_identifier
+                )
                 for group in groups_response.get("Groups", []):
                     self.client.remove_user_from_group(
                         UserName=user_identifier, GroupName=group["GroupName"]
@@ -191,7 +201,9 @@ class AWSIAMClient(BaseIAMProvider):
             return {"message": f"User {user_identifier} deleted successfully"}
 
         except ClientError as e:
-            raise Exception(f"AWS IAM delete user error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM delete user error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM delete user error: {str(e)}")
 
@@ -200,7 +212,7 @@ class AWSIAMClient(BaseIAMProvider):
         user_identifier: str,
         display_name: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Update IAM user metadata."""
         try:
@@ -220,7 +232,9 @@ class AWSIAMClient(BaseIAMProvider):
                     existing_tags = self.client.list_user_tags(UserName=user_identifier)
                     if existing_tags.get("Tags"):
                         tag_keys = [tag["Key"] for tag in existing_tags["Tags"]]
-                        self.client.untag_user(UserName=user_identifier, TagKeys=tag_keys)
+                        self.client.untag_user(
+                            UserName=user_identifier, TagKeys=tag_keys
+                        )
                 except Exception:
                     pass
 
@@ -233,7 +247,9 @@ class AWSIAMClient(BaseIAMProvider):
             return self.get_user(kwargs.get("new_user_name", user_identifier))
 
         except ClientError as e:
-            raise Exception(f"AWS IAM update user error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM update user error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM update user error: {str(e)}")
 
@@ -261,7 +277,9 @@ class AWSIAMClient(BaseIAMProvider):
             }
 
         except ClientError as e:
-            raise Exception(f"AWS IAM list roles error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM list roles error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM list roles error: {str(e)}")
 
@@ -274,7 +292,9 @@ class AWSIAMClient(BaseIAMProvider):
             # Get role tags
             try:
                 tags_response = self.client.list_role_tags(RoleName=role_identifier)
-                tags = {tag["Key"]: tag["Value"] for tag in tags_response.get("Tags", [])}
+                tags = {
+                    tag["Key"]: tag["Value"] for tag in tags_response.get("Tags", [])
+                }
             except Exception:
                 tags = {}
 
@@ -295,7 +315,7 @@ class AWSIAMClient(BaseIAMProvider):
         description: Optional[str] = None,
         trust_policy: Optional[Dict[str, Any]] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Create a new IAM role."""
         try:
@@ -327,7 +347,9 @@ class AWSIAMClient(BaseIAMProvider):
                 create_params["MaxSessionDuration"] = kwargs["max_session_duration"]
 
             if tags:
-                create_params["Tags"] = [{"Key": k, "Value": v} for k, v in tags.items()]
+                create_params["Tags"] = [
+                    {"Key": k, "Value": v} for k, v in tags.items()
+                ]
 
             response = self.client.create_role(**create_params)
             role = response["Role"]
@@ -338,7 +360,9 @@ class AWSIAMClient(BaseIAMProvider):
             return normalized_role
 
         except ClientError as e:
-            raise Exception(f"AWS IAM create role error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM create role error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM create role error: {str(e)}")
 
@@ -360,7 +384,9 @@ class AWSIAMClient(BaseIAMProvider):
 
             # Delete inline policies
             try:
-                inline_policies = self.client.list_role_policies(RoleName=role_identifier)
+                inline_policies = self.client.list_role_policies(
+                    RoleName=role_identifier
+                )
                 for policy_name in inline_policies.get("PolicyNames", []):
                     self.client.delete_role_policy(
                         RoleName=role_identifier, PolicyName=policy_name
@@ -387,7 +413,9 @@ class AWSIAMClient(BaseIAMProvider):
             return {"message": f"Role {role_identifier} deleted successfully"}
 
         except ClientError as e:
-            raise Exception(f"AWS IAM delete role error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM delete role error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM delete role error: {str(e)}")
 
@@ -396,7 +424,7 @@ class AWSIAMClient(BaseIAMProvider):
         role_identifier: str,
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Update IAM role metadata."""
         try:
@@ -420,7 +448,9 @@ class AWSIAMClient(BaseIAMProvider):
                     existing_tags = self.client.list_role_tags(RoleName=role_identifier)
                     if existing_tags.get("Tags"):
                         tag_keys = [tag["Key"] for tag in existing_tags["Tags"]]
-                        self.client.untag_role(RoleName=role_identifier, TagKeys=tag_keys)
+                        self.client.untag_role(
+                            RoleName=role_identifier, TagKeys=tag_keys
+                        )
                 except Exception:
                     pass
 
@@ -433,7 +463,9 @@ class AWSIAMClient(BaseIAMProvider):
             return self.get_role(role_identifier)
 
         except ClientError as e:
-            raise Exception(f"AWS IAM update role error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM update role error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM update role error: {str(e)}")
 
@@ -460,7 +492,8 @@ class AWSIAMClient(BaseIAMProvider):
             response = self.client.list_policies(**params)
 
             policies = [
-                self._normalize_policy(policy) for policy in response.get("Policies", [])
+                self._normalize_policy(policy)
+                for policy in response.get("Policies", [])
             ]
 
             return {
@@ -470,7 +503,9 @@ class AWSIAMClient(BaseIAMProvider):
             }
 
         except ClientError as e:
-            raise Exception(f"AWS IAM list policies error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM list policies error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM list policies error: {str(e)}")
 
@@ -497,7 +532,9 @@ class AWSIAMClient(BaseIAMProvider):
             return normalized_policy
 
         except ClientError as e:
-            raise Exception(f"AWS IAM get policy error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM get policy error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM get policy error: {str(e)}")
 
@@ -507,7 +544,7 @@ class AWSIAMClient(BaseIAMProvider):
         policy_document: Dict[str, Any],
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """Create a new IAM policy."""
         try:
@@ -523,7 +560,9 @@ class AWSIAMClient(BaseIAMProvider):
                 create_params["Path"] = kwargs["path"]
 
             if tags:
-                create_params["Tags"] = [{"Key": k, "Value": v} for k, v in tags.items()]
+                create_params["Tags"] = [
+                    {"Key": k, "Value": v} for k, v in tags.items()
+                ]
 
             response = self.client.create_policy(**create_params)
             policy = response["Policy"]
@@ -534,7 +573,9 @@ class AWSIAMClient(BaseIAMProvider):
             return normalized_policy
 
         except ClientError as e:
-            raise Exception(f"AWS IAM create policy error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM create policy error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM create policy error: {str(e)}")
 
@@ -560,7 +601,9 @@ class AWSIAMClient(BaseIAMProvider):
             return {"message": f"Policy {policy_identifier} deleted successfully"}
 
         except ClientError as e:
-            raise Exception(f"AWS IAM delete policy error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM delete policy error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM delete policy error: {str(e)}")
 
@@ -787,7 +830,9 @@ class AWSIAMClient(BaseIAMProvider):
             }
 
         except ClientError as e:
-            raise Exception(f"AWS IAM list groups error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM list groups error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM list groups error: {str(e)}")
 
@@ -810,7 +855,9 @@ class AWSIAMClient(BaseIAMProvider):
             }
 
         except ClientError as e:
-            raise Exception(f"AWS IAM create group error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM create group error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM create group error: {str(e)}")
 
@@ -847,7 +894,9 @@ class AWSIAMClient(BaseIAMProvider):
             return {"message": f"Group {group_identifier} deleted successfully"}
 
         except ClientError as e:
-            raise Exception(f"AWS IAM delete group error: {e.response['Error']['Message']}")
+            raise Exception(
+                f"AWS IAM delete group error: {e.response['Error']['Message']}"
+            )
         except Exception as e:
             raise Exception(f"AWS IAM delete group error: {str(e)}")
 
@@ -860,7 +909,9 @@ class AWSIAMClient(BaseIAMProvider):
                 UserName=user_identifier, GroupName=group_identifier
             )
 
-            return {"message": f"User {user_identifier} added to group {group_identifier}"}
+            return {
+                "message": f"User {user_identifier} added to group {group_identifier}"
+            }
 
         except ClientError as e:
             raise Exception(

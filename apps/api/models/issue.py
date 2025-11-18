@@ -4,8 +4,9 @@ import enum
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Text, DateTime, Table
-from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy import (Column, DateTime, Enum, ForeignKey, Integer, String,
+                        Table, Text)
+from sqlalchemy.orm import Mapped, relationship
 
 from apps.api.models.base import Base, IDMixin, TimestampMixin
 
@@ -56,8 +57,18 @@ class IssueLinkType(enum.Enum):
 issue_label_assignments = Table(
     "issue_label_assignments",
     Base.metadata,
-    Column("issue_id", Integer, ForeignKey("issues.id", ondelete="CASCADE"), primary_key=True),
-    Column("label_id", Integer, ForeignKey("issue_labels.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "issue_id",
+        Integer,
+        ForeignKey("issues.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "label_id",
+        Integer,
+        ForeignKey("issue_labels.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
@@ -330,7 +341,9 @@ class IssueComment(Base, IDMixin, TimestampMixin):
 
     def __repr__(self) -> str:
         """String representation of comment."""
-        content_preview = self.content[:50] + "..." if len(self.content) > 50 else self.content
+        content_preview = (
+            self.content[:50] + "..." if len(self.content) > 50 else self.content
+        )
         return f"<IssueComment(id={self.id}, issue_id={self.issue_id}, content='{content_preview}')>"
 
 
@@ -384,6 +397,7 @@ class IssueEntityLink(Base, IDMixin, TimestampMixin):
 
 # Helper functions for recursive issue queries
 
+
 def get_organization_issues_recursive(organization_id: int) -> List[Issue]:
     """
     Get all issues for an organization recursively.
@@ -412,9 +426,11 @@ def get_organization_issues_recursive(organization_id: int) -> List[Issue]:
     org_ids = [org.id] + [child.id for child in child_orgs]
 
     # Get issues directly on organizations
-    org_issues = db.session.query(Issue).filter(
-        Issue.resource_type == "organization", Issue.resource_id.in_(org_ids)
-    ).all()
+    org_issues = (
+        db.session.query(Issue)
+        .filter(Issue.resource_type == "organization", Issue.resource_id.in_(org_ids))
+        .all()
+    )
 
     # Get all entities in these organizations
     from apps.api.models import Entity
@@ -425,9 +441,11 @@ def get_organization_issues_recursive(organization_id: int) -> List[Issue]:
     entity_id_list = [eid[0] for eid in entity_ids]
 
     # Get issues on entities
-    entity_issues = db.session.query(Issue).filter(
-        Issue.resource_type == "entity", Issue.resource_id.in_(entity_id_list)
-    ).all()
+    entity_issues = (
+        db.session.query(Issue)
+        .filter(Issue.resource_type == "entity", Issue.resource_id.in_(entity_id_list))
+        .all()
+    )
 
     # Combine and deduplicate
     all_issues = org_issues + entity_issues

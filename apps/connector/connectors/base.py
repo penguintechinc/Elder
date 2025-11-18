@@ -1,8 +1,8 @@
 """Base connector interface."""
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
 from dataclasses import dataclass
+from typing import Any, Dict, List
 
 from apps.connector.utils.logger import get_logger
 

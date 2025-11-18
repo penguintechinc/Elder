@@ -2,12 +2,12 @@
 
 import base64
 import json
-from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
 
 try:
-    from google.cloud import kms
     from google.api_core import exceptions as google_exceptions
+    from google.cloud import kms
     from google.oauth2 import service_account
 except ImportError:
     kms = None
@@ -110,7 +110,9 @@ class GCPKMSClient(BaseKeyProvider):
                 "asymmetric": kms.CryptoKey.CryptoKeyPurpose.ASYMMETRIC_SIGN,
                 "hmac": kms.CryptoKey.CryptoKeyPurpose.MAC,
             }
-            purpose = purpose_map.get(key_type, kms.CryptoKey.CryptoKeyPurpose.ENCRYPT_DECRYPT)
+            purpose = purpose_map.get(
+                key_type, kms.CryptoKey.CryptoKeyPurpose.ENCRYPT_DECRYPT
+            )
 
             # Build crypto key
             crypto_key = {
@@ -120,17 +122,21 @@ class GCPKMSClient(BaseKeyProvider):
 
             # Set algorithm based on key type
             if key_type == "symmetric":
-                crypto_key["version_template"]["algorithm"] = (
+                crypto_key["version_template"][
+                    "algorithm"
+                ] = (
                     kms.CryptoKeyVersion.CryptoKeyVersionAlgorithm.GOOGLE_SYMMETRIC_ENCRYPTION
                 )
             elif key_type == "asymmetric":
-                crypto_key["version_template"]["algorithm"] = (
+                crypto_key["version_template"][
+                    "algorithm"
+                ] = (
                     kms.CryptoKeyVersion.CryptoKeyVersionAlgorithm.RSA_SIGN_PSS_2048_SHA256
                 )
             elif key_type == "hmac":
-                crypto_key["version_template"]["algorithm"] = (
-                    kms.CryptoKeyVersion.CryptoKeyVersionAlgorithm.HMAC_SHA256
-                )
+                crypto_key["version_template"][
+                    "algorithm"
+                ] = kms.CryptoKeyVersion.CryptoKeyVersionAlgorithm.HMAC_SHA256
 
             # Add labels if provided
             if tags:
@@ -191,9 +197,11 @@ class GCPKMSClient(BaseKeyProvider):
                 "purpose": crypto_key.purpose.name,
                 "algorithm": crypto_key.version_template.algorithm.name,
                 "labels": dict(crypto_key.labels),
-                "rotation_period": crypto_key.rotation_period.seconds
-                if crypto_key.rotation_period
-                else None,
+                "rotation_period": (
+                    crypto_key.rotation_period.seconds
+                    if crypto_key.rotation_period
+                    else None
+                ),
             }
 
         except google_exceptions.NotFound:
@@ -243,7 +251,9 @@ class GCPKMSClient(BaseKeyProvider):
 
             return {
                 "keys": keys,
-                "next_token": response.next_page_token if response.next_page_token else None,
+                "next_token": (
+                    response.next_page_token if response.next_page_token else None
+                ),
             }
 
         except google_exceptions.GoogleAPIError as e:
@@ -265,10 +275,16 @@ class GCPKMSClient(BaseKeyProvider):
 
             # Disable the version
             update_mask = {"paths": ["state"]}
-            crypto_key_version = {"name": version_name, "state": kms.CryptoKeyVersion.CryptoKeyVersionState.DISABLED}
+            crypto_key_version = {
+                "name": version_name,
+                "state": kms.CryptoKeyVersion.CryptoKeyVersionState.DISABLED,
+            }
 
             self.client.update_crypto_key_version(
-                request={"crypto_key_version": crypto_key_version, "update_mask": update_mask}
+                request={
+                    "crypto_key_version": crypto_key_version,
+                    "update_mask": update_mask,
+                }
             )
 
             return self.get_key(key_id)
@@ -339,7 +355,9 @@ class GCPKMSClient(BaseKeyProvider):
             # Add additional authenticated data if provided
             if context:
                 # GCP expects a single AAD field, so we JSON encode the context
-                request["additional_authenticated_data"] = json.dumps(context).encode("utf-8")
+                request["additional_authenticated_data"] = json.dumps(context).encode(
+                    "utf-8"
+                )
 
             response = self.client.encrypt(request=request)
 
@@ -379,7 +397,9 @@ class GCPKMSClient(BaseKeyProvider):
 
             # Add AAD if provided
             if context:
-                request["additional_authenticated_data"] = json.dumps(context).encode("utf-8")
+                request["additional_authenticated_data"] = json.dumps(context).encode(
+                    "utf-8"
+                )
 
             response = self.client.decrypt(request=request)
 
@@ -546,7 +566,11 @@ class GCPKMSClient(BaseKeyProvider):
         try:
             # Try to list key rings
             location_name = self.client.location_path(self.project_id, self.location_id)
-            list(self.client.list_key_rings(request={"parent": location_name, "page_size": 1}))
+            list(
+                self.client.list_key_rings(
+                    request={"parent": location_name, "page_size": 1}
+                )
+            )
             return True
         except Exception:
             return False

@@ -1,9 +1,10 @@
 """Elder API client for creating and updating organizations and entities."""
 
-from typing import Optional, Dict, Any, List
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
 import aiohttp
 import backoff
-from dataclasses import dataclass
 
 from apps.connector.config.settings import settings
 from apps.connector.utils.logger import get_logger

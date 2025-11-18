@@ -1,6 +1,7 @@
 """Configuration settings for Elder Connector Service."""
 
 from typing import Optional
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -27,9 +28,15 @@ class Settings(BaseSettings):
 
     # AWS Configuration
     aws_enabled: bool = Field(default=False, description="Enable AWS connector")
-    aws_access_key_id: Optional[str] = Field(default=None, description="AWS Access Key ID")
-    aws_secret_access_key: Optional[str] = Field(default=None, description="AWS Secret Access Key")
-    aws_default_region: str = Field(default="us-east-1", description="Default AWS region")
+    aws_access_key_id: Optional[str] = Field(
+        default=None, description="AWS Access Key ID"
+    )
+    aws_secret_access_key: Optional[str] = Field(
+        default=None, description="AWS Secret Access Key"
+    )
+    aws_default_region: str = Field(
+        default="us-east-1", description="Default AWS region"
+    )
     aws_regions: str = Field(
         default="us-east-1,us-west-2",
         description="Comma-separated list of AWS regions to scan",

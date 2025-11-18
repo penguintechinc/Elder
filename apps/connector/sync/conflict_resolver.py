@@ -13,14 +13,15 @@ The primary strategy is Last-Modified-Wins as specified in the v1.1.0 requiremen
 """
 
 from datetime import datetime
-from typing import Dict, Any, Optional, List
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
 from apps.connector.sync.base import ConflictResolution, SyncMapping
 
 
 class ResolutionStrategy(Enum):
     """Available conflict resolution strategies."""
+
     LAST_MODIFIED_WINS = "last_modified_wins"
     ELDER_WINS = "elder_wins"
     EXTERNAL_WINS = "external_wins"
@@ -30,6 +31,7 @@ class ResolutionStrategy(Enum):
 
 class ConflictType(Enum):
     """Types of conflicts that can occur."""
+
     TIMESTAMP_CONFLICT = "timestamp"
     FIELD_MISMATCH = "field_mismatch"
     DELETED_EXTERNAL = "deleted_external"
@@ -177,9 +179,7 @@ class ConflictResolver:
         Returns:
             Resolved data (most recently modified version)
         """
-        elder_modified = self._parse_datetime(
-            conflict.elder_data.get("updated_at")
-        )
+        elder_modified = self._parse_datetime(conflict.elder_data.get("updated_at"))
         external_modified = self._parse_datetime(
             conflict.external_data.get("updated_at")
         )
@@ -250,7 +250,9 @@ class ConflictResolver:
 
                 if elder_modified and external_modified:
                     merged[key] = (
-                        elder_value if elder_modified > external_modified else external_value
+                        elder_value
+                        if elder_modified > external_modified
+                        else external_value
                     )
                 else:
                     # Default to Elder value

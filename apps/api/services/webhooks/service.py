@@ -1,12 +1,13 @@
 """Webhook & Notification Service for Elder v1.2.0 (Phase 9)."""
 
-import hmac
 import hashlib
+import hmac
 import json
 import time
-import requests
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
+
+import requests
 from pydal import DAL
 
 
@@ -27,9 +28,7 @@ class WebhookService:
     # ===========================
 
     def list_webhooks(
-        self,
-        organization_id: Optional[int] = None,
-        enabled: Optional[bool] = None
+        self, organization_id: Optional[int] = None, enabled: Optional[bool] = None
     ) -> List[Dict[str, Any]]:
         """
         List all webhooks with optional filtering.
@@ -81,7 +80,7 @@ class WebhookService:
         organization_id: int,
         secret: Optional[str] = None,
         description: Optional[str] = None,
-        headers: Optional[Dict[str, str]] = None
+        headers: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """
         Create a new webhook.
@@ -99,7 +98,7 @@ class WebhookService:
             Created webhook dictionary
         """
         # Validate URL
-        if not url.startswith(('http://', 'https://')):
+        if not url.startswith(("http://", "https://")):
             raise Exception("Webhook URL must start with http:// or https://")
 
         # Validate events
@@ -115,7 +114,7 @@ class WebhookService:
             description=description,
             headers_json=json.dumps(headers) if headers else None,
             enabled=True,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
 
         self.db.commit()
@@ -132,7 +131,7 @@ class WebhookService:
         secret: Optional[str] = None,
         description: Optional[str] = None,
         headers: Optional[Dict[str, str]] = None,
-        enabled: Optional[bool] = None
+        enabled: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Update webhook configuration.
@@ -158,32 +157,32 @@ class WebhookService:
         if not webhook:
             raise Exception(f"Webhook {webhook_id} not found")
 
-        update_data = {'updated_at': datetime.utcnow()}
+        update_data = {"updated_at": datetime.utcnow()}
 
         if name is not None:
-            update_data['name'] = name
+            update_data["name"] = name
 
         if url is not None:
-            if not url.startswith(('http://', 'https://')):
+            if not url.startswith(("http://", "https://")):
                 raise Exception("Webhook URL must start with http:// or https://")
-            update_data['url'] = url
+            update_data["url"] = url
 
         if events is not None:
             if not isinstance(events, list):
                 raise Exception("Events must be a list")
-            update_data['events_json'] = json.dumps(events)
+            update_data["events_json"] = json.dumps(events)
 
         if secret is not None:
-            update_data['secret'] = secret
+            update_data["secret"] = secret
 
         if description is not None:
-            update_data['description'] = description
+            update_data["description"] = description
 
         if headers is not None:
-            update_data['headers_json'] = json.dumps(headers)
+            update_data["headers_json"] = json.dumps(headers)
 
         if enabled is not None:
-            update_data['enabled'] = enabled
+            update_data["enabled"] = enabled
 
         self.db(self.db.webhooks.id == webhook_id).update(**update_data)
         self.db.commit()
@@ -216,17 +215,14 @@ class WebhookService:
         self.db(self.db.webhooks.id == webhook_id).delete()
         self.db.commit()
 
-        return {'message': 'Webhook deleted successfully'}
+        return {"message": "Webhook deleted successfully"}
 
     # ===========================
     # Webhook Delivery Methods
     # ===========================
 
     def deliver_webhook(
-        self,
-        webhook_id: int,
-        event_type: str,
-        payload: Dict[str, Any]
+        self, webhook_id: int, event_type: str, payload: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Deliver a webhook event.
@@ -250,13 +246,15 @@ class WebhookService:
         # Check if webhook subscribes to this event
         events = json.loads(webhook.events_json)
         if event_type not in events:
-            raise Exception(f"Webhook {webhook_id} does not subscribe to event {event_type}")
+            raise Exception(
+                f"Webhook {webhook_id} does not subscribe to event {event_type}"
+            )
 
         # Prepare payload
         delivery_payload = {
-            'event': event_type,
-            'timestamp': datetime.utcnow().isoformat(),
-            'data': payload
+            "event": event_type,
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": payload,
         }
 
         # Create delivery record
@@ -265,7 +263,7 @@ class WebhookService:
             event_type=event_type,
             payload_json=json.dumps(delivery_payload),
             attempts=0,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
         self.db.commit()
 
@@ -273,10 +271,7 @@ class WebhookService:
         return self._attempt_delivery(delivery_id, webhook, delivery_payload)
 
     def _attempt_delivery(
-        self,
-        delivery_id: int,
-        webhook: Any,
-        payload: Dict[str, Any]
+        self, delivery_id: int, webhook: Any, payload: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Attempt to deliver a webhook.
@@ -292,8 +287,8 @@ class WebhookService:
         try:
             # Prepare headers
             headers = {
-                'Content-Type': 'application/json',
-                'User-Agent': 'Elder-Webhook/1.2.0'
+                "Content-Type": "application/json",
+                "User-Agent": "Elder-Webhook/1.2.0",
             }
 
             # Add custom headers if configured
@@ -304,18 +299,14 @@ class WebhookService:
             # Generate HMAC signature if secret is configured
             if webhook.secret:
                 signature = self._generate_signature(
-                    webhook.secret,
-                    json.dumps(payload)
+                    webhook.secret, json.dumps(payload)
                 )
-                headers['X-Elder-Signature'] = signature
+                headers["X-Elder-Signature"] = signature
 
             # Send webhook
             start_time = time.time()
             response = requests.post(
-                webhook.url,
-                json=payload,
-                headers=headers,
-                timeout=30
+                webhook.url, json=payload, headers=headers, timeout=30
             )
             duration_ms = int((time.time() - start_time) * 1000)
 
@@ -328,15 +319,15 @@ class WebhookService:
                 status_code=response.status_code,
                 response_body=response.text[:1000],  # Truncate response
                 duration_ms=duration_ms,
-                delivered_at=datetime.utcnow() if success else None
+                delivered_at=datetime.utcnow() if success else None,
             )
             self.db.commit()
 
             return {
-                'delivery_id': delivery_id,
-                'success': success,
-                'status_code': response.status_code,
-                'duration_ms': duration_ms
+                "delivery_id": delivery_id,
+                "success": success,
+                "status_code": response.status_code,
+                "duration_ms": duration_ms,
             }
 
         except Exception as e:
@@ -344,21 +335,13 @@ class WebhookService:
             self.db(self.db.webhook_deliveries.id == delivery_id).update(
                 attempts=self.db.webhook_deliveries.attempts + 1,
                 success=False,
-                error_message=str(e)[:500]  # Truncate error
+                error_message=str(e)[:500],  # Truncate error
             )
             self.db.commit()
 
-            return {
-                'delivery_id': delivery_id,
-                'success': False,
-                'error': str(e)
-            }
+            return {"delivery_id": delivery_id, "success": False, "error": str(e)}
 
-    def redeliver_webhook(
-        self,
-        webhook_id: int,
-        delivery_id: int
-    ) -> Dict[str, Any]:
+    def redeliver_webhook(self, webhook_id: int, delivery_id: int) -> Dict[str, Any]:
         """
         Retry a failed webhook delivery.
 
@@ -381,7 +364,9 @@ class WebhookService:
             raise Exception(f"Delivery {delivery_id} not found")
 
         if delivery.webhook_id != webhook_id:
-            raise Exception(f"Delivery {delivery_id} does not belong to webhook {webhook_id}")
+            raise Exception(
+                f"Delivery {delivery_id} does not belong to webhook {webhook_id}"
+            )
 
         # Parse original payload
         payload = json.loads(delivery.payload_json)
@@ -390,10 +375,7 @@ class WebhookService:
         return self._attempt_delivery(delivery_id, webhook, payload)
 
     def get_webhook_deliveries(
-        self,
-        webhook_id: int,
-        limit: int = 50,
-        success: Optional[bool] = None
+        self, webhook_id: int, limit: int = 50, success: Optional[bool] = None
     ) -> List[Dict[str, Any]]:
         """
         Get webhook delivery history.
@@ -412,8 +394,7 @@ class WebhookService:
             query &= self.db.webhook_deliveries.success == success
 
         deliveries = self.db(query).select(
-            orderby=~self.db.webhook_deliveries.created_at,
-            limitby=(0, limit)
+            orderby=~self.db.webhook_deliveries.created_at, limitby=(0, limit)
         )
 
         return [d.as_dict() for d in deliveries]
@@ -438,14 +419,14 @@ class WebhookService:
 
         # Create test payload
         test_payload = {
-            'test': True,
-            'webhook_id': webhook_id,
-            'message': 'This is a test webhook delivery from Elder'
+            "test": True,
+            "webhook_id": webhook_id,
+            "message": "This is a test webhook delivery from Elder",
         }
 
         # Use first subscribed event for test
         events = json.loads(webhook.events_json)
-        event_type = events[0] if events else 'test.event'
+        event_type = events[0] if events else "test.event"
 
         return self.deliver_webhook(webhook_id, event_type, test_payload)
 
@@ -454,9 +435,7 @@ class WebhookService:
     # ===========================
 
     def list_notification_rules(
-        self,
-        organization_id: Optional[int] = None,
-        channel: Optional[str] = None
+        self, organization_id: Optional[int] = None, channel: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         List notification rules with optional filtering.
@@ -507,7 +486,7 @@ class WebhookService:
         events: List[str],
         config: Dict[str, Any],
         organization_id: int,
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Create a notification rule.
@@ -524,9 +503,11 @@ class WebhookService:
             Created notification rule dictionary
         """
         # Validate channel
-        valid_channels = ['email', 'slack', 'teams', 'pagerduty']
+        valid_channels = ["email", "slack", "teams", "pagerduty"]
         if channel not in valid_channels:
-            raise Exception(f"Invalid channel. Must be one of: {', '.join(valid_channels)}")
+            raise Exception(
+                f"Invalid channel. Must be one of: {', '.join(valid_channels)}"
+            )
 
         # Validate events
         if not events or not isinstance(events, list):
@@ -544,7 +525,7 @@ class WebhookService:
             organization_id=organization_id,
             description=description,
             enabled=True,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
         )
 
         self.db.commit()
@@ -559,7 +540,7 @@ class WebhookService:
         events: Optional[List[str]] = None,
         config: Optional[Dict[str, Any]] = None,
         description: Optional[str] = None,
-        enabled: Optional[bool] = None
+        enabled: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Update notification rule.
@@ -583,26 +564,26 @@ class WebhookService:
         if not rule:
             raise Exception(f"Notification rule {rule_id} not found")
 
-        update_data = {'updated_at': datetime.utcnow()}
+        update_data = {"updated_at": datetime.utcnow()}
 
         if name is not None:
-            update_data['name'] = name
+            update_data["name"] = name
 
         if events is not None:
             if not isinstance(events, list):
                 raise Exception("Events must be a list")
-            update_data['events_json'] = json.dumps(events)
+            update_data["events_json"] = json.dumps(events)
 
         if config is not None:
             if not isinstance(config, dict):
                 raise Exception("Config must be a dictionary")
-            update_data['config_json'] = json.dumps(config)
+            update_data["config_json"] = json.dumps(config)
 
         if description is not None:
-            update_data['description'] = description
+            update_data["description"] = description
 
         if enabled is not None:
-            update_data['enabled'] = enabled
+            update_data["enabled"] = enabled
 
         self.db(self.db.notification_rules.id == rule_id).update(**update_data)
         self.db.commit()
@@ -631,7 +612,7 @@ class WebhookService:
         self.db(self.db.notification_rules.id == rule_id).delete()
         self.db.commit()
 
-        return {'message': 'Notification rule deleted successfully'}
+        return {"message": "Notification rule deleted successfully"}
 
     def test_notification_rule(self, rule_id: int) -> Dict[str, Any]:
         """
@@ -653,18 +634,14 @@ class WebhookService:
 
         # Create test notification
         test_payload = {
-            'test': True,
-            'rule_id': rule_id,
-            'message': f'This is a test notification from Elder via {rule.channel}'
+            "test": True,
+            "rule_id": rule_id,
+            "message": f"This is a test notification from Elder via {rule.channel}",
         }
 
         return self._send_notification(rule, test_payload)
 
-    def _send_notification(
-        self,
-        rule: Any,
-        payload: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _send_notification(self, rule: Any, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Send notification via configured channel.
 
@@ -678,140 +655,110 @@ class WebhookService:
         try:
             config = json.loads(rule.config_json)
 
-            if rule.channel == 'email':
+            if rule.channel == "email":
                 return self._send_email_notification(config, payload)
-            elif rule.channel == 'slack':
+            elif rule.channel == "slack":
                 return self._send_slack_notification(config, payload)
-            elif rule.channel == 'teams':
+            elif rule.channel == "teams":
                 return self._send_teams_notification(config, payload)
-            elif rule.channel == 'pagerduty':
+            elif rule.channel == "pagerduty":
                 return self._send_pagerduty_notification(config, payload)
             else:
                 raise Exception(f"Unsupported channel: {rule.channel}")
 
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            return {"success": False, "error": str(e)}
 
     def _send_email_notification(
-        self,
-        config: Dict[str, Any],
-        payload: Dict[str, Any]
+        self, config: Dict[str, Any], payload: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Send email notification."""
         # NOTE: In production, integrate with SMTP or email service (SendGrid, SES, etc.)
         # For now, return success indicating email would be sent
         return {
-            'success': True,
-            'channel': 'email',
-            'recipients': config.get('recipients', []),
-            'message': 'Email notification would be sent in production'
+            "success": True,
+            "channel": "email",
+            "recipients": config.get("recipients", []),
+            "message": "Email notification would be sent in production",
         }
 
     def _send_slack_notification(
-        self,
-        config: Dict[str, Any],
-        payload: Dict[str, Any]
+        self, config: Dict[str, Any], payload: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Send Slack notification."""
-        webhook_url = config.get('webhook_url')
+        webhook_url = config.get("webhook_url")
         if not webhook_url:
             raise Exception("Slack webhook_url is required in config")
 
         try:
             response = requests.post(
-                webhook_url,
-                json={'text': json.dumps(payload, indent=2)},
-                timeout=10
+                webhook_url, json={"text": json.dumps(payload, indent=2)}, timeout=10
             )
             return {
-                'success': response.status_code == 200,
-                'channel': 'slack',
-                'status_code': response.status_code
+                "success": response.status_code == 200,
+                "channel": "slack",
+                "status_code": response.status_code,
             }
         except Exception as e:
-            return {
-                'success': False,
-                'channel': 'slack',
-                'error': str(e)
-            }
+            return {"success": False, "channel": "slack", "error": str(e)}
 
     def _send_teams_notification(
-        self,
-        config: Dict[str, Any],
-        payload: Dict[str, Any]
+        self, config: Dict[str, Any], payload: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Send Microsoft Teams notification."""
-        webhook_url = config.get('webhook_url')
+        webhook_url = config.get("webhook_url")
         if not webhook_url:
             raise Exception("Teams webhook_url is required in config")
 
         try:
             response = requests.post(
-                webhook_url,
-                json={'text': json.dumps(payload, indent=2)},
-                timeout=10
+                webhook_url, json={"text": json.dumps(payload, indent=2)}, timeout=10
             )
             return {
-                'success': response.status_code == 200,
-                'channel': 'teams',
-                'status_code': response.status_code
+                "success": response.status_code == 200,
+                "channel": "teams",
+                "status_code": response.status_code,
             }
         except Exception as e:
-            return {
-                'success': False,
-                'channel': 'teams',
-                'error': str(e)
-            }
+            return {"success": False, "channel": "teams", "error": str(e)}
 
     def _send_pagerduty_notification(
-        self,
-        config: Dict[str, Any],
-        payload: Dict[str, Any]
+        self, config: Dict[str, Any], payload: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Send PagerDuty notification."""
-        routing_key = config.get('routing_key')
+        routing_key = config.get("routing_key")
         if not routing_key:
             raise Exception("PagerDuty routing_key is required in config")
 
         try:
             response = requests.post(
-                'https://events.pagerduty.com/v2/enqueue',
+                "https://events.pagerduty.com/v2/enqueue",
                 json={
-                    'routing_key': routing_key,
-                    'event_action': 'trigger',
-                    'payload': {
-                        'summary': 'Elder Notification',
-                        'source': 'elder',
-                        'severity': 'info',
-                        'custom_details': payload
-                    }
+                    "routing_key": routing_key,
+                    "event_action": "trigger",
+                    "payload": {
+                        "summary": "Elder Notification",
+                        "source": "elder",
+                        "severity": "info",
+                        "custom_details": payload,
+                    },
                 },
-                timeout=10
+                timeout=10,
             )
             return {
-                'success': response.status_code == 202,
-                'channel': 'pagerduty',
-                'status_code': response.status_code
+                "success": response.status_code == 202,
+                "channel": "pagerduty",
+                "status_code": response.status_code,
             }
         except Exception as e:
-            return {
-                'success': False,
-                'channel': 'pagerduty',
-                'error': str(e)
-            }
+            return {"success": False, "channel": "pagerduty", "error": str(e)}
 
     # ===========================
     # Event Broadcasting Methods
     # ===========================
 
     def broadcast_event(
-        self,
-        event_type: str,
-        payload: Dict[str, Any],
-        organization_id: int
+        self, event_type: str, payload: Dict[str, Any], organization_id: int
     ) -> Dict[str, Any]:
         """
         Broadcast an event to all applicable webhooks and notification rules.
@@ -826,8 +773,8 @@ class WebhookService:
         """
         # Find webhooks subscribed to this event
         webhooks = self.db(
-            (self.db.webhooks.organization_id == organization_id) &
-            (self.db.webhooks.enabled == True)
+            (self.db.webhooks.organization_id == organization_id)
+            & (self.db.webhooks.enabled == True)
         ).select()
 
         webhook_results = []
@@ -838,16 +785,14 @@ class WebhookService:
                     result = self.deliver_webhook(webhook.id, event_type, payload)
                     webhook_results.append(result)
                 except Exception as e:
-                    webhook_results.append({
-                        'webhook_id': webhook.id,
-                        'success': False,
-                        'error': str(e)
-                    })
+                    webhook_results.append(
+                        {"webhook_id": webhook.id, "success": False, "error": str(e)}
+                    )
 
         # Find notification rules for this event
         rules = self.db(
-            (self.db.notification_rules.organization_id == organization_id) &
-            (self.db.notification_rules.enabled == True)
+            (self.db.notification_rules.organization_id == organization_id)
+            & (self.db.notification_rules.enabled == True)
         ).select()
 
         notification_results = []
@@ -858,20 +803,20 @@ class WebhookService:
                     result = self._send_notification(rule, payload)
                     notification_results.append(result)
                 except Exception as e:
-                    notification_results.append({
-                        'rule_id': rule.id,
-                        'success': False,
-                        'error': str(e)
-                    })
+                    notification_results.append(
+                        {"rule_id": rule.id, "success": False, "error": str(e)}
+                    )
 
         return {
-            'event_type': event_type,
-            'webhooks_triggered': len(webhook_results),
-            'webhooks_successful': sum(1 for r in webhook_results if r.get('success')),
-            'notifications_triggered': len(notification_results),
-            'notifications_successful': sum(1 for r in notification_results if r.get('success')),
-            'webhook_results': webhook_results,
-            'notification_results': notification_results
+            "event_type": event_type,
+            "webhooks_triggered": len(webhook_results),
+            "webhooks_successful": sum(1 for r in webhook_results if r.get("success")),
+            "notifications_triggered": len(notification_results),
+            "notifications_successful": sum(
+                1 for r in notification_results if r.get("success")
+            ),
+            "webhook_results": webhook_results,
+            "notification_results": notification_results,
         }
 
     # ===========================
@@ -890,9 +835,7 @@ class WebhookService:
             HMAC signature (sha256 hex)
         """
         return hmac.new(
-            secret.encode('utf-8'),
-            payload.encode('utf-8'),
-            hashlib.sha256
+            secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256
         ).hexdigest()
 
     def _sanitize_webhook(self, webhook_dict: Dict[str, Any]) -> Dict[str, Any]:
@@ -905,16 +848,16 @@ class WebhookService:
         Returns:
             Sanitized webhook dictionary
         """
-        if 'secret' in webhook_dict and webhook_dict['secret']:
-            webhook_dict['secret'] = '***masked***'
+        if "secret" in webhook_dict and webhook_dict["secret"]:
+            webhook_dict["secret"] = "***masked***"
 
         # Parse JSON fields for API response
-        if 'events_json' in webhook_dict:
-            webhook_dict['events'] = json.loads(webhook_dict['events_json'])
-            del webhook_dict['events_json']
+        if "events_json" in webhook_dict:
+            webhook_dict["events"] = json.loads(webhook_dict["events_json"])
+            del webhook_dict["events_json"]
 
-        if 'headers_json' in webhook_dict and webhook_dict['headers_json']:
-            webhook_dict['headers'] = json.loads(webhook_dict['headers_json'])
-            del webhook_dict['headers_json']
+        if "headers_json" in webhook_dict and webhook_dict["headers_json"]:
+            webhook_dict["headers"] = json.loads(webhook_dict["headers_json"])
+            del webhook_dict["headers_json"]
 
         return webhook_dict

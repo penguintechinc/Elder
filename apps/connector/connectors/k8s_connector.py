@@ -2,12 +2,14 @@
 
 import time
 from typing import Dict, Optional
+
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
-from apps.connector.connectors.base import BaseConnector, SyncResult
 from apps.connector.config.settings import settings
-from apps.connector.utils.elder_client import ElderAPIClient, Organization, Entity
+from apps.connector.connectors.base import BaseConnector, SyncResult
+from apps.connector.utils.elder_client import (ElderAPIClient, Entity,
+                                               Organization)
 
 
 class KubernetesConnector(BaseConnector):
@@ -19,7 +21,9 @@ class KubernetesConnector(BaseConnector):
         self.elder_client: Optional[ElderAPIClient] = None
         self.k8s_core_v1: Optional[client.CoreV1Api] = None
         self.k8s_apps_v1: Optional[client.AppsV1Api] = None
-        self.organization_cache: Dict[str, int] = {}  # Map cluster/namespace to Elder org ID
+        self.organization_cache: Dict[str, int] = (
+            {}
+        )  # Map cluster/namespace to Elder org ID
         self.cluster_name: Optional[str] = None
 
     async def connect(self) -> None:
@@ -36,7 +40,9 @@ class KubernetesConnector(BaseConnector):
                 config.load_kube_config()
                 # Extract cluster name from kubeconfig
                 contexts, active_context = config.list_kube_config_contexts()
-                self.cluster_name = active_context['name'] if active_context else "default"
+                self.cluster_name = (
+                    active_context["name"] if active_context else "default"
+                )
                 self.logger.info("Loaded kubeconfig", cluster=self.cluster_name)
 
             # Initialize K8S API clients
@@ -132,10 +138,7 @@ class KubernetesConnector(BaseConnector):
                 ns_status = ns.status.phase if ns.status else "Unknown"
 
                 # Get status metadata
-                status_metadata = {
-                    "status": ns_status,
-                    "timestamp": int(time.time())
-                }
+                status_metadata = {"status": ns_status, "timestamp": int(time.time())}
 
                 # Get resource quotas if present
                 resource_quota = {}
@@ -144,7 +147,9 @@ class KubernetesConnector(BaseConnector):
                     if quotas.items:
                         quota = quotas.items[0]
                         if quota.status and quota.status.hard:
-                            resource_quota = {k: str(v) for k, v in quota.status.hard.items()}
+                            resource_quota = {
+                                k: str(v) for k, v in quota.status.hard.items()
+                            }
                 except ApiException:
                     pass
 
@@ -158,7 +163,11 @@ class KubernetesConnector(BaseConnector):
                         "namespace": ns_name,
                         "cluster": self.cluster_name,
                         "uid": ns.metadata.uid,
-                        "creation_timestamp": ns.metadata.creation_timestamp.isoformat() if ns.metadata.creation_timestamp else None,
+                        "creation_timestamp": (
+                            ns.metadata.creation_timestamp.isoformat()
+                            if ns.metadata.creation_timestamp
+                            else None
+                        ),
                         "labels": ns.metadata.labels or {},
                         "annotations": ns.metadata.annotations or {},
                         "resource_quota": resource_quota,
@@ -178,7 +187,10 @@ class KubernetesConnector(BaseConnector):
                 found = None
                 for item in existing.get("items", []):
                     attrs = item.get("attributes", {})
-                    if attrs.get("namespace") == ns_name and attrs.get("cluster") == self.cluster_name:
+                    if (
+                        attrs.get("namespace") == ns_name
+                        and attrs.get("cluster") == self.cluster_name
+                    ):
                         found = item
                         break
 
@@ -215,10 +227,7 @@ class KubernetesConnector(BaseConnector):
                 namespace = secret.metadata.namespace
 
                 # Secrets are always "Available" (no status concept)
-                status_metadata = {
-                    "status": "Available",
-                    "timestamp": int(time.time())
-                }
+                status_metadata = {"status": "Available", "timestamp": int(time.time())}
 
                 # Count secret keys without exposing values
                 secret_keys = list(secret.data.keys()) if secret.data else []
@@ -237,7 +246,11 @@ class KubernetesConnector(BaseConnector):
                         "type": secret.type,
                         "secret_key_count": len(secret_keys),
                         "secret_keys": secret_keys,  # Key names only, no values
-                        "creation_timestamp": secret.metadata.creation_timestamp.isoformat() if secret.metadata.creation_timestamp else None,
+                        "creation_timestamp": (
+                            secret.metadata.creation_timestamp.isoformat()
+                            if secret.metadata.creation_timestamp
+                            else None
+                        ),
                         "labels": secret.metadata.labels or {},
                         "annotations": secret.metadata.annotations or {},
                         "provider": "kubernetes",
@@ -256,9 +269,11 @@ class KubernetesConnector(BaseConnector):
                 found = None
                 for item in existing.get("items", []):
                     attrs = item.get("attributes", {})
-                    if (attrs.get("secret_name") == secret_name and
-                        attrs.get("namespace") == namespace and
-                        attrs.get("cluster") == self.cluster_name):
+                    if (
+                        attrs.get("secret_name") == secret_name
+                        and attrs.get("namespace") == namespace
+                        and attrs.get("cluster") == self.cluster_name
+                    ):
                         found = item
                         break
 
@@ -296,19 +311,24 @@ class KubernetesConnector(BaseConnector):
                 pod_phase = pod.status.phase if pod.status else "Unknown"
 
                 # Get status metadata
-                status_metadata = {
-                    "status": pod_phase,
-                    "timestamp": int(time.time())
-                }
+                status_metadata = {"status": pod_phase, "timestamp": int(time.time())}
 
                 # Get container information
                 containers = []
-                for container in (pod.spec.containers or []):
-                    containers.append({
-                        "name": container.name,
-                        "image": container.image,
-                        "ports": [{"containerPort": p.container_port, "protocol": p.protocol} for p in (container.ports or [])],
-                    })
+                for container in pod.spec.containers or []:
+                    containers.append(
+                        {
+                            "name": container.name,
+                            "image": container.image,
+                            "ports": [
+                                {
+                                    "containerPort": p.container_port,
+                                    "protocol": p.protocol,
+                                }
+                                for p in (container.ports or [])
+                            ],
+                        }
+                    )
 
                 entity = Entity(
                     name=f"Pod: {namespace}/{pod_name}",
@@ -327,14 +347,26 @@ class KubernetesConnector(BaseConnector):
                         "phase": pod_phase,
                         "containers": containers,
                         "restart_policy": pod.spec.restart_policy if pod.spec else None,
-                        "service_account": pod.spec.service_account if pod.spec else None,
-                        "creation_timestamp": pod.metadata.creation_timestamp.isoformat() if pod.metadata.creation_timestamp else None,
+                        "service_account": (
+                            pod.spec.service_account if pod.spec else None
+                        ),
+                        "creation_timestamp": (
+                            pod.metadata.creation_timestamp.isoformat()
+                            if pod.metadata.creation_timestamp
+                            else None
+                        ),
                         "labels": pod.metadata.labels or {},
                         "annotations": pod.metadata.annotations or {},
                         "provider": "kubernetes",
                     },
                     status_metadata=status_metadata,
-                    tags=["kubernetes", "pod", "container", namespace, self.cluster_name],
+                    tags=[
+                        "kubernetes",
+                        "pod",
+                        "container",
+                        namespace,
+                        self.cluster_name,
+                    ],
                     is_active=pod_phase == "Running",
                 )
 
@@ -347,9 +379,11 @@ class KubernetesConnector(BaseConnector):
                 found = None
                 for item in existing.get("items", []):
                     attrs = item.get("attributes", {})
-                    if (attrs.get("pod_name") == pod_name and
-                        attrs.get("namespace") == namespace and
-                        attrs.get("cluster") == self.cluster_name):
+                    if (
+                        attrs.get("pod_name") == pod_name
+                        and attrs.get("namespace") == namespace
+                        and attrs.get("cluster") == self.cluster_name
+                    ):
                         found = item
                         break
 
@@ -387,10 +421,7 @@ class KubernetesConnector(BaseConnector):
                 pvc_phase = pvc.status.phase if pvc.status else "Unknown"
 
                 # Get status metadata
-                status_metadata = {
-                    "status": pvc_phase,
-                    "timestamp": int(time.time())
-                }
+                status_metadata = {"status": pvc_phase, "timestamp": int(time.time())}
 
                 # Get capacity
                 capacity = None
@@ -409,12 +440,24 @@ class KubernetesConnector(BaseConnector):
                         "cluster": self.cluster_name,
                         "uid": pvc.metadata.uid,
                         "volume_name": pvc.spec.volume_name if pvc.spec else None,
-                        "storage_class": pvc.spec.storage_class_name if pvc.spec else None,
+                        "storage_class": (
+                            pvc.spec.storage_class_name if pvc.spec else None
+                        ),
                         "access_modes": pvc.spec.access_modes if pvc.spec else [],
-                        "requested_storage": str(pvc.spec.resources.requests.get("storage")) if pvc.spec and pvc.spec.resources and pvc.spec.resources.requests else None,
+                        "requested_storage": (
+                            str(pvc.spec.resources.requests.get("storage"))
+                            if pvc.spec
+                            and pvc.spec.resources
+                            and pvc.spec.resources.requests
+                            else None
+                        ),
                         "capacity": str(capacity) if capacity else None,
                         "phase": pvc_phase,
-                        "creation_timestamp": pvc.metadata.creation_timestamp.isoformat() if pvc.metadata.creation_timestamp else None,
+                        "creation_timestamp": (
+                            pvc.metadata.creation_timestamp.isoformat()
+                            if pvc.metadata.creation_timestamp
+                            else None
+                        ),
                         "labels": pvc.metadata.labels or {},
                         "annotations": pvc.metadata.annotations or {},
                         "provider": "kubernetes",
@@ -433,9 +476,11 @@ class KubernetesConnector(BaseConnector):
                 found = None
                 for item in existing.get("items", []):
                     attrs = item.get("attributes", {})
-                    if (attrs.get("pvc_name") == pvc_name and
-                        attrs.get("namespace") == namespace and
-                        attrs.get("cluster") == self.cluster_name):
+                    if (
+                        attrs.get("pvc_name") == pvc_name
+                        and attrs.get("namespace") == namespace
+                        and attrs.get("cluster") == self.cluster_name
+                    ):
                         found = item
                         break
 
