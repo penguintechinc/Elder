@@ -442,5 +442,5 @@ vagrant/.TODO
 .FUTURE
 .TODO
 
-settings.local.json
+*.local.json
 .claude/
