@@ -50,9 +50,10 @@ async def list_labels():
         # Apply search filter
         if request.args.get("search"):
             search = request.args.get("search")
+            search_pattern = f'%{search.lower()}%'
             query &= (
-                (db.issue_labels.name.lower().contains(search.lower())) |
-                (db.issue_labels.description.lower().contains(search.lower()))
+                (db.issue_labels.name.lower().like(search_pattern)) |
+                (db.issue_labels.description.lower().like(search_pattern))
             )
 
         # Calculate pagination

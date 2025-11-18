@@ -50,10 +50,11 @@ async def list_identities():
     # Search filter (case-insensitive search on username, email, full_name)
     search = request.args.get("search") or request.args.get("name")
     if search:
+        search_pattern = f'%{search.lower()}%'
         query &= (
-            (db.identities.username.lower().contains(search.lower())) |
-            (db.identities.email.lower().contains(search.lower())) |
-            (db.identities.full_name.lower().contains(search.lower()))
+            (db.identities.username.lower().like(search_pattern)) |
+            (db.identities.email.lower().like(search_pattern)) |
+            (db.identities.full_name.lower().like(search_pattern))
         )
 
     identity_type = request.args.get("identity_type")

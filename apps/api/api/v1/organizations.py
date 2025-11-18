@@ -47,8 +47,8 @@ def list_organizations():
     # Support both 'name' and 'search' parameters for name filtering
     search_term = request.args.get("name") or request.args.get("search")
     if search_term:
-        # Case-insensitive search using lower() for both field and search term
-        query &= (db.organizations.name.lower().contains(search_term.lower()))
+        # Case-insensitive search using like with wildcards
+        query &= (db.organizations.name.lower().like(f'%{search_term.lower()}%'))
 
     # Get total count
     total = db(query).count()

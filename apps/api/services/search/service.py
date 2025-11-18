@@ -122,9 +122,10 @@ class SearchService:
 
         # Text search on name and description (case-insensitive)
         if query:
+            search_pattern = f'%{query.lower()}%'
             db_query &= (
-                self.db.entities.name.lower().contains(query.lower()) |
-                self.db.entities.description.lower().contains(query.lower())
+                self.db.entities.name.lower().like(search_pattern) |
+                self.db.entities.description.lower().like(search_pattern)
             )
 
         # Entity type filter
@@ -189,9 +190,10 @@ class SearchService:
 
         # Text search (case-insensitive)
         if query:
+            search_pattern = f'%{query.lower()}%'
             db_query &= (
-                self.db.organizations.name.lower().contains(query.lower()) |
-                self.db.organizations.description.lower().contains(query.lower())
+                self.db.organizations.name.lower().like(search_pattern) |
+                self.db.organizations.description.lower().like(search_pattern)
             )
 
         # Type filter
@@ -255,9 +257,10 @@ class SearchService:
 
         # Text search (case-insensitive)
         if query:
+            search_pattern = f'%{query.lower()}%'
             db_query &= (
-                self.db.issues.title.lower().contains(query.lower()) |
-                self.db.issues.description.lower().contains(query.lower())
+                self.db.issues.title.lower().like(search_pattern) |
+                self.db.issues.description.lower().like(search_pattern)
             )
 
         # Status filter

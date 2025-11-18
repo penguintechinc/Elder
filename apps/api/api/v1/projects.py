@@ -59,9 +59,10 @@ async def list_projects():
 
         if request.args.get("search"):
             search = request.args.get("search")
+            search_pattern = f'%{search.lower()}%'
             query &= (
-                (db.projects.name.lower().contains(search.lower())) |
-                (db.projects.description.lower().contains(search.lower()))
+                (db.projects.name.lower().like(search_pattern)) |
+                (db.projects.description.lower().like(search_pattern))
             )
 
         # Calculate pagination
