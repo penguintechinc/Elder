@@ -143,6 +143,9 @@ async def create_issue():
     if not data.get("title"):
         return jsonify({"error": "title is required"}), 400
 
+    # Capture current_user before thread pool (Flask g doesn't propagate to threads)
+    current_user_id = g.current_user.id
+
     def create():
         # Create issue
         issue_id = db.issues.insert(
@@ -151,14 +154,15 @@ async def create_issue():
             status=data.get("status", "open"),
             priority=data.get("priority", "medium"),
             issue_type=data.get("issue_type", "other"),
-            reporter_id=g.current_user.id,
+            reporter_id=current_user_id,
             assignee_id=data.get("assignee_id"),
             organization_id=data.get("organization_id"),
             is_incident=data.get("is_incident", 0),
         )
         db.commit()
 
-        return db.issues[issue_id]
+        # Explicitly select the row to get all fields
+        return db(db.issues.id == issue_id).select().first()
 
     issue = await run_in_threadpool(create)
 

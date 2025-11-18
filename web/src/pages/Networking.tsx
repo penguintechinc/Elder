@@ -54,9 +54,12 @@ export default function Networking() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteNetwork(id),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['networks'],
+        refetchType: 'all'
+      })
       toast.success('Network deleted')
-      queryClient.invalidateQueries({ queryKey: ['networks'] })
     },
   })
 
@@ -237,7 +240,6 @@ export default function Networking() {
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['networks'] })
           }}
         />
       )}
@@ -252,16 +254,28 @@ export default function Networking() {
   )
 }
 
-function CreateNetworkModal({ organizationId, onClose, onSuccess }: any) {
+function CreateNetworkModal({ organizationId: initialOrgId, onClose, onSuccess }: any) {
   const [name, setName] = useState('')
   const [networkType, setNetworkType] = useState('')
   const [description, setDescription] = useState('')
   const [region, setRegion] = useState('')
   const [location, setLocation] = useState('')
+  const [organizationId, setOrganizationId] = useState(initialOrgId || '')
+
+  const { data: orgs } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: () => api.getOrganizations(),
+  })
+
+  const queryClient = useQueryClient()
 
   const createMutation = useMutation({
     mutationFn: (data: any) => api.createNetwork(data),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['networks'],
+        refetchType: 'all'
+      })
       toast.success('Network created')
       onSuccess()
     },
@@ -279,7 +293,7 @@ function CreateNetworkModal({ organizationId, onClose, onSuccess }: any) {
     createMutation.mutate({
       name,
       network_type: networkType,
-      organization_id: organizationId,
+      organization_id: parseInt(organizationId),
       description,
       region,
       location,
@@ -294,6 +308,16 @@ function CreateNetworkModal({ organizationId, onClose, onSuccess }: any) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <Select
+              label="Organization"
+              required
+              value={organizationId}
+              onChange={(e) => setOrganizationId(e.target.value)}
+              options={[
+                { value: '', label: 'Select organization' },
+                ...(orgs?.items || []).map((o: any) => ({ value: o.id, label: o.name })),
+              ]}
+            />
             <Input
               label="Name"
               required

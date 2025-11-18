@@ -68,6 +68,7 @@ class EntityDTO:
     tags: Optional[list[str]]
     is_active: bool
     default_metadata: Optional[dict]
+    status_metadata: Optional[dict]
     created_at: datetime
     updated_at: datetime
 

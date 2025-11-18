@@ -387,6 +387,7 @@ def define_all_tables(db):
         Field('reporter_id', 'reference identities', notnull=True, ondelete='CASCADE'),
         Field('assignee_id', 'reference identities', ondelete='SET NULL'),
         Field('organization_id', 'reference organizations', ondelete='CASCADE'),
+        Field('is_incident', 'integer', default=0, notnull=True),  # Boolean: 0=false, 1=true
         Field('closed_at', 'datetime'),
         Field('created_at', 'datetime', default=lambda: datetime.datetime.now(datetime.timezone.utc)),
         Field('updated_at', 'datetime', update=lambda: datetime.datetime.now(datetime.timezone.utc)),

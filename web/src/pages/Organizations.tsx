@@ -26,14 +26,18 @@ export default function Organizations() {
   }, [initialParentId])
 
   const { data, isLoading } = useQuery({
-    queryKey: ['organizations', { search }],
+    queryKey: ['organizations', search],
     queryFn: () => api.getOrganizations({ search }),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteOrganization(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['organizations'] })
+    onSuccess: async (_data, deletedId) => {
+      // Invalidate all organization queries to force refetch
+      await queryClient.invalidateQueries({
+        queryKey: ['organizations'],
+        refetchType: 'all'
+      })
       toast.success('Organization deleted successfully')
     },
     onError: () => {
@@ -139,7 +143,7 @@ export default function Organizations() {
           }}
           onSuccess={() => {
             setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['organizations'] })
+            toast.success('Organization created successfully')
             // Clear query params on success
             if (initialParentId) {
               navigate('/organizations', { replace: true })
@@ -155,7 +159,6 @@ export default function Organizations() {
           onClose={() => setEditingOrg(null)}
           onSuccess={() => {
             setEditingOrg(null)
-            queryClient.invalidateQueries({ queryKey: ['organizations'] })
           }}
         />
       )}
@@ -173,14 +176,21 @@ function CreateOrganizationModal({ initialParentId, onClose, onSuccess }: Create
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
 
+  const queryClient = useQueryClient()
+
   const createMutation = useMutation({
     mutationFn: (data: { name: string; description?: string; parent_id?: number }) =>
       api.createOrganization(data),
-    onSuccess: () => {
-      toast.success('Organization created successfully')
+    onSuccess: async (newOrg) => {
+      // Invalidate all organization queries to force refetch
+      await queryClient.invalidateQueries({
+        queryKey: ['organizations'],
+        refetchType: 'all'
+      })
       onSuccess()
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Create organization error:', error)
       toast.error('Failed to create organization')
     },
   })
@@ -248,11 +258,17 @@ interface EditOrganizationModalProps {
 function EditOrganizationModal({ organization, onClose, onSuccess }: EditOrganizationModalProps) {
   const [name, setName] = useState(organization.name)
   const [description, setDescription] = useState(organization.description || '')
+  const queryClient = useQueryClient()
 
   const updateMutation = useMutation({
     mutationFn: (data: { name: string; description?: string }) =>
       api.updateOrganization(organization.id, data),
-    onSuccess: () => {
+    onSuccess: async (updatedOrg) => {
+      // Invalidate all organization queries to force refetch
+      await queryClient.invalidateQueries({
+        queryKey: ['organizations'],
+        refetchType: 'all'
+      })
       toast.success('Organization updated successfully')
       onSuccess()
     },

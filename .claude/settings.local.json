@@ -65,7 +65,10 @@
       "Bash(docker inspect:*)",
       "Bash(docker cp:*)",
       "Bash(for file in Issues.tsx Projects.tsx Entities.tsx)",
-      "Bash(do echo \"=== Checking $file ===\")"
+      "Bash(do echo \"=== Checking $file ===\")",
+      "Bash(for file in /home/penguin/code/Elder/apps/api/api/v1/*.py)",
+      "Bash(do if grep -q \"from apps.api.models import\\|from sqlalchemy\" $file)",
+      "Bash(then echo '=== $(basename $file) ===' grep -n \"from apps.api.models import\\|from sqlalchemy\\|db.session\" $file)"
     ],
     "deny": [],
     "ask": []

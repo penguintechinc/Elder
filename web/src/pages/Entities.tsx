@@ -110,9 +110,12 @@ export default function Entities() {
               navigate('/entities', { replace: true })
             }
           }}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['entities'],
+              refetchType: 'all'
+            })
             setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['entities'] })
             // Clear query params on success
             if (initialOrgId) {
               navigate('/entities', { replace: true })
@@ -142,16 +145,11 @@ function CreateEntityModal({ initialOrganizationId, onClose, onSuccess }: any) {
     queryFn: () => api.getOrganizations(),
   })
 
-  // Debug: Log the entity types data
-  console.log('Entity Types Data:', entityTypesData)
-
   // Get category options from entity_types array
   const categoryOptions = entityTypesData?.entity_types?.map((et: any) => ({
     value: et.type,
     label: et.type.charAt(0).toUpperCase() + et.type.slice(1).replace('_', ' ')
   })) || []
-
-  console.log('Category Options:', categoryOptions)
 
   // Get sub-type options for selected category
   const selectedCategoryData = entityTypesData?.entity_types?.find((et: any) => et.type === entityCategory)

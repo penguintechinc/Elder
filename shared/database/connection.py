@@ -19,25 +19,34 @@ def init_db(app: Flask) -> None:
 
     Environment Variables:
         DATABASE_URL: Full database URI (takes precedence if set)
-        DB_TYPE: Database type (postgresql, mysql, sqlite, etc.) - default: postgresql
+        DB_TYPE: Database type (postgresql, mysql, mariadb, mariadb-galera, sqlite, etc.) - default: postgresql
         DB_HOST: Database host - default: localhost
-        DB_PORT: Database port - default: 5432 for PostgreSQL
+        DB_PORT: Database port - default: 5432 (PostgreSQL) or 3306 (MySQL/MariaDB)
         DB_NAME: Database name - default: elder
         DB_USER: Database username - default: elder
         DB_PASSWORD: Database password - default: elder
         DB_POOL_SIZE: Connection pool size - default: 10
 
-    Supported Database URIs (PyDAL):
-        - PostgreSQL: postgres://user:pass@host:port/db (NOTE: 'postgres' not 'postgresql')
-        - MySQL: mysql://user:pass@host/db?set_encoding=utf8mb4
-        - SQLite: sqlite://storage.sqlite
+    Primary Supported Databases (Fully Tested):
+        - PostgreSQL: postgres://user:pass@host:5432/db
+        - MariaDB: mysql://user:pass@host:3306/db?set_encoding=utf8mb4
+        - MariaDB Galera Cluster: mysql://user:pass@host:3306/db?set_encoding=utf8mb4
+        - SQLite: sqlite://storage.sqlite (development only)
+
+    Additional PyDAL-Supported Databases (Use with caution):
+        - MySQL: mysql://user:pass@host:3306/db?set_encoding=utf8mb4
         - MSSQL: mssql3://user:pass@host/db (2005+), mssql4://user:pass@host/db (2012+)
         - Oracle: oracle://user/pass@db
         - MongoDB: mongodb://user:pass@host/db
         - Google Cloud SQL: google:sql://project:instance/database
         - And more: FireBird, DB2, Ingres, Sybase, Informix, Teradata, Cubrid, SAPDB
 
-        Full list: https://py4web.com/_documentation/static/en/chapter-07.html
+    Note:
+        - All database access uses PyDAL for portability
+        - SQLAlchemy models are only used for table initialization
+        - Code is designed to work identically on PostgreSQL and MariaDB Galera
+
+        Full PyDAL docs: https://py4web.com/_documentation/static/en/chapter-07.html
     """
     global db
     import os
@@ -71,9 +80,13 @@ def init_db(app: Flask) -> None:
             # SQLite - file-based database
             database_url = f"sqlite://{db_name}.sqlite"
 
-        elif db_type in ["mysql", "mariadb"]:
-            # MySQL/MariaDB - with UTF8MB4 encoding
-            database_url = f"mysql://{db_user}:{db_password}@{db_host}/{db_name}?set_encoding=utf8mb4"
+        elif db_type in ["mysql", "mariadb", "mariadb-galera"]:
+            # MySQL/MariaDB/Galera - with UTF8MB4 encoding
+            # Default port for MySQL/MariaDB
+            if not db_port or db_port == "5432":  # Reset if PostgreSQL default was used
+                db_port = "3306"
+
+            database_url = f"mysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}?set_encoding=utf8mb4"
 
         elif db_type in ["postgresql", "postgres"]:
             # PostgreSQL - PyDAL uses 'postgres://' not 'postgresql://'

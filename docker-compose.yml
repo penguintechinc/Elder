@@ -77,6 +77,9 @@ services:
       - JWT_ACCESS_TOKEN_HOURS=${JWT_ACCESS_TOKEN_HOURS:-4}
       - JWT_REFRESH_TOKEN_DAYS=${JWT_REFRESH_TOKEN_DAYS:-30}
 
+      # CORS Configuration
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3002}
+
       # Database - Use individual components for flexibility
       - DB_TYPE=postgres
       - DB_HOST=postgres
@@ -121,7 +124,7 @@ services:
       - METRICS_ENABLED=true
 
     ports:
-      - "${API_PORT:-5000}:5000"
+      - "${API_PORT:-4000}:5000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -189,7 +192,7 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
     ports:
-      - "${GRAFANA_PORT:-3001}:3000"
+      - "${GRAFANA_PORT:-4001}:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./infrastructure/monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
@@ -235,7 +238,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
 
     ports:
-      - "${GRPC_PORT:-50051}:50051"
+      - "${GRPC_PORT:-50052}:50051"
     depends_on:
       postgres:
         condition: service_healthy
