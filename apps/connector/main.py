@@ -3,7 +3,7 @@
 import asyncio
 import signal
 import sys
-from typing import List, Optional
+from typing import List
 from flask import Flask, jsonify
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
 import aiocron

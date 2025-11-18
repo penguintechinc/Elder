@@ -7,7 +7,6 @@ from apps.api.grpc.generated import (
     common_pb2,
     organization_pb2,
     entity_pb2,
-    dependency_pb2,
     auth_pb2,
 )
 from apps.api.models import (

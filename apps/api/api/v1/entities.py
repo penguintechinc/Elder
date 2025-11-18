@@ -2,13 +2,10 @@
 
 import asyncio
 from flask import Blueprint, request, jsonify, current_app
-from datetime import datetime, timezone
 from dataclasses import asdict
 
 from apps.api.models.dataclasses import (
     EntityDTO,
-    CreateEntityRequest,
-    UpdateEntityRequest,
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,

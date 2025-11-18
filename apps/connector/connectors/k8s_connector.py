@@ -1,8 +1,7 @@
 """Kubernetes connector for syncing K8S resources to Elder (v1.2.1)."""
 
-import asyncio
 import time
-from typing import List, Dict, Any, Optional
+from typing import Dict, Optional
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 

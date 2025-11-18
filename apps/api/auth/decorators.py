@@ -1,9 +1,8 @@
 """Authentication and authorization decorators using PyDAL."""
 
-import asyncio
 from functools import wraps
 from flask import jsonify, g, request, current_app
-from typing import Callable, List, Optional
+from typing import Callable, List
 from pydal.objects import Row
 import inspect
 

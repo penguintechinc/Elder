@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List
-from datetime import datetime
 
 
 class BaseIAMProvider(ABC):
@@ -38,7 +37,6 @@ class BaseIAMProvider(ABC):
                 "next_token": "pagination-token" or None
             }
         """
-        pass
 
     @abstractmethod
     def get_user(self, user_identifier: str) -> Dict[str, Any]:
@@ -51,7 +49,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with user details
         """
-        pass
 
     @abstractmethod
     def create_user(
@@ -73,7 +70,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with created user details
         """
-        pass
 
     @abstractmethod
     def delete_user(self, user_identifier: str) -> Dict[str, Any]:
@@ -86,7 +82,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with deletion result
         """
-        pass
 
     @abstractmethod
     def update_user(
@@ -108,7 +103,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with updated user details
         """
-        pass
 
     # Role Management
 
@@ -130,7 +124,6 @@ class BaseIAMProvider(ABC):
                 "next_token": "pagination-token" or None
             }
         """
-        pass
 
     @abstractmethod
     def get_role(self, role_identifier: str) -> Dict[str, Any]:
@@ -143,7 +136,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with role details
         """
-        pass
 
     @abstractmethod
     def create_role(
@@ -167,7 +159,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with created role details
         """
-        pass
 
     @abstractmethod
     def delete_role(self, role_identifier: str) -> Dict[str, Any]:
@@ -180,7 +171,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with deletion result
         """
-        pass
 
     @abstractmethod
     def update_role(
@@ -202,7 +192,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with updated role details
         """
-        pass
 
     # Policy Management
 
@@ -225,7 +214,6 @@ class BaseIAMProvider(ABC):
                 "next_token": "pagination-token" or None
             }
         """
-        pass
 
     @abstractmethod
     def get_policy(self, policy_identifier: str) -> Dict[str, Any]:
@@ -238,7 +226,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with policy details
         """
-        pass
 
     @abstractmethod
     def create_policy(
@@ -262,7 +249,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with created policy details
         """
-        pass
 
     @abstractmethod
     def delete_policy(self, policy_identifier: str) -> Dict[str, Any]:
@@ -275,7 +261,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with deletion result
         """
-        pass
 
     # Policy Attachments
 
@@ -293,7 +278,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with attachment result
         """
-        pass
 
     @abstractmethod
     def detach_policy_from_user(
@@ -309,7 +293,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with detachment result
         """
-        pass
 
     @abstractmethod
     def attach_policy_to_role(
@@ -325,7 +308,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with attachment result
         """
-        pass
 
     @abstractmethod
     def detach_policy_from_role(
@@ -341,7 +323,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with detachment result
         """
-        pass
 
     @abstractmethod
     def list_user_policies(self, user_identifier: str) -> List[Dict[str, Any]]:
@@ -354,7 +335,6 @@ class BaseIAMProvider(ABC):
         Returns:
             List of policy dictionaries
         """
-        pass
 
     @abstractmethod
     def list_role_policies(self, role_identifier: str) -> List[Dict[str, Any]]:
@@ -367,7 +347,6 @@ class BaseIAMProvider(ABC):
         Returns:
             List of policy dictionaries
         """
-        pass
 
     # Access Keys / Credentials
 
@@ -382,7 +361,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with access key details
         """
-        pass
 
     @abstractmethod
     def list_access_keys(self, user_identifier: str) -> List[Dict[str, Any]]:
@@ -395,7 +373,6 @@ class BaseIAMProvider(ABC):
         Returns:
             List of access key dictionaries
         """
-        pass
 
     @abstractmethod
     def delete_access_key(
@@ -411,7 +388,6 @@ class BaseIAMProvider(ABC):
         Returns:
             Dictionary with deletion result
         """
-        pass
 
     # Group Management (optional, not all providers support)
 
@@ -462,7 +438,6 @@ class BaseIAMProvider(ABC):
         Returns:
             True if connection successful, False otherwise
         """
-        pass
 
     @abstractmethod
     def sync_from_provider(self) -> Dict[str, Any]:
@@ -478,7 +453,6 @@ class BaseIAMProvider(ABC):
                 "errors": [list of error messages]
             }
         """
-        pass
 
     def _normalize_user(self, raw_user: Dict[str, Any]) -> Dict[str, Any]:
         """

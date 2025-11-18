@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 import boto3
-from botocore.exceptions import ClientError, BotoCoreError
+from botocore.exceptions import ClientError
 
 from .base import (
     SecretProviderClient,

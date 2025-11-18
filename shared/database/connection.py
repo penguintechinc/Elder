@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from typing import Generator
 
 from flask import Flask
-from pydal import DAL, Field
+from pydal import DAL
 
 # Global PyDAL instance
 db = None
@@ -254,7 +254,6 @@ def _init_default_data(db: DAL) -> None:
     except Exception:
         # Tables don't exist yet (first run), rollback failed transaction and continue
         db.rollback()
-        pass
 
     # Only create roles/permissions/org if they don't exist
     roles = {}

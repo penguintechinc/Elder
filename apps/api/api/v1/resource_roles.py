@@ -3,10 +3,9 @@
 from flask import Blueprint, jsonify, request, current_app, g
 from dataclasses import asdict
 
-from apps.api.auth.decorators import login_required, resource_role_required
+from apps.api.auth.decorators import login_required
 from apps.api.models.dataclasses import (
     ResourceRoleDTO,
-    CreateResourceRoleRequest,
     from_pydal_row,
     from_pydal_rows,
 )

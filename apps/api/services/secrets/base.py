@@ -69,7 +69,6 @@ class SecretProviderClient(ABC):
         Raises:
             ValueError: If configuration is invalid
         """
-        pass
 
     @abstractmethod
     def test_connection(self) -> bool:
@@ -79,7 +78,6 @@ class SecretProviderClient(ABC):
         Returns:
             True if connection is successful, False otherwise
         """
-        pass
 
     @abstractmethod
     def get_secret(self, path: str, version: Optional[str] = None) -> SecretValue:
@@ -98,7 +96,6 @@ class SecretProviderClient(ABC):
             SecretAccessDeniedException: If access is denied
             SecretProviderException: For other provider errors
         """
-        pass
 
     @abstractmethod
     def list_secrets(self, prefix: Optional[str] = None) -> List[SecretMetadata]:
@@ -114,7 +111,6 @@ class SecretProviderClient(ABC):
         Raises:
             SecretProviderException: For provider errors
         """
-        pass
 
     @abstractmethod
     def create_secret(self, path: str, value: str, metadata: Optional[Dict[str, Any]] = None) -> SecretMetadata:
@@ -133,7 +129,6 @@ class SecretProviderClient(ABC):
             SecretAlreadyExistsException: If secret already exists
             SecretProviderException: For other provider errors
         """
-        pass
 
     @abstractmethod
     def update_secret(self, path: str, value: str) -> SecretMetadata:
@@ -151,7 +146,6 @@ class SecretProviderClient(ABC):
             SecretNotFoundException: If secret doesn't exist
             SecretProviderException: For provider errors
         """
-        pass
 
     @abstractmethod
     def delete_secret(self, path: str, force: bool = False) -> bool:
@@ -169,7 +163,6 @@ class SecretProviderClient(ABC):
             SecretNotFoundException: If secret doesn't exist
             SecretProviderException: For provider errors
         """
-        pass
 
     @abstractmethod
     def get_secret_versions(self, path: str) -> List[str]:
@@ -186,29 +179,23 @@ class SecretProviderClient(ABC):
             SecretNotFoundException: If secret doesn't exist
             SecretProviderException: For provider errors
         """
-        pass
 
 
 class SecretProviderException(Exception):
     """Base exception for secret provider errors."""
-    pass
 
 
 class SecretNotFoundException(SecretProviderException):
     """Exception raised when a secret is not found."""
-    pass
 
 
 class SecretAccessDeniedException(SecretProviderException):
     """Exception raised when access to a secret is denied."""
-    pass
 
 
 class SecretAlreadyExistsException(SecretProviderException):
     """Exception raised when trying to create a secret that already exists."""
-    pass
 
 
 class InvalidSecretConfigException(SecretProviderException):
     """Exception raised when secret provider configuration is invalid."""
-    pass

@@ -1,14 +1,7 @@
 """User Profile API endpoints using PyDAL with async/await."""
 
-import asyncio
 from flask import Blueprint, request, jsonify, current_app, g
-from datetime import datetime, timezone
-from dataclasses import asdict
 
-from apps.api.models.dataclasses import (
-    IdentityDTO,
-    from_pydal_row,
-)
 from apps.api.auth.decorators import login_required
 from shared.async_utils import run_in_threadpool
 

@@ -1,7 +1,6 @@
 """Google Workspace connector for syncing users, groups, and org units to Elder."""
 
-import asyncio
-from typing import List, Dict, Any, Optional
+from typing import Dict, Optional
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError

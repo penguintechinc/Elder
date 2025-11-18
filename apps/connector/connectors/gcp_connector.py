@@ -1,8 +1,7 @@
 """GCP connector for syncing Google Cloud Platform resources to Elder."""
 
-import asyncio
-from typing import List, Dict, Any, Optional
-from google.cloud import compute_v1, storage, resourcemanager_v3
+from typing import Dict, Optional
+from google.cloud import compute_v1, storage
 from google.auth import load_credentials_from_file
 from google.api_core.exceptions import GoogleAPIError
 

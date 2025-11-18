@@ -1,8 +1,7 @@
 """Base abstract class for key management providers."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+from typing import Dict, Any, Optional
 
 
 class BaseKeyProvider(ABC):
@@ -47,7 +46,6 @@ class BaseKeyProvider(ABC):
                 "created_at": "ISO8601 timestamp",
             }
         """
-        pass
 
     @abstractmethod
     def get_key(self, key_id: str) -> Dict[str, Any]:
@@ -60,7 +58,6 @@ class BaseKeyProvider(ABC):
         Returns:
             Dictionary with key metadata
         """
-        pass
 
     @abstractmethod
     def list_keys(
@@ -80,7 +77,6 @@ class BaseKeyProvider(ABC):
                 "next_token": "pagination-token" or None
             }
         """
-        pass
 
     @abstractmethod
     def enable_key(self, key_id: str) -> Dict[str, Any]:
@@ -93,7 +89,6 @@ class BaseKeyProvider(ABC):
         Returns:
             Dictionary with updated key state
         """
-        pass
 
     @abstractmethod
     def disable_key(self, key_id: str) -> Dict[str, Any]:
@@ -106,7 +101,6 @@ class BaseKeyProvider(ABC):
         Returns:
             Dictionary with updated key state
         """
-        pass
 
     @abstractmethod
     def schedule_key_deletion(
@@ -122,7 +116,6 @@ class BaseKeyProvider(ABC):
         Returns:
             Dictionary with deletion details
         """
-        pass
 
     @abstractmethod
     def cancel_key_deletion(self, key_id: str) -> Dict[str, Any]:
@@ -135,7 +128,6 @@ class BaseKeyProvider(ABC):
         Returns:
             Dictionary with updated key state
         """
-        pass
 
     @abstractmethod
     def encrypt(
@@ -156,7 +148,6 @@ class BaseKeyProvider(ABC):
                 "key_id": "key-used-for-encryption",
             }
         """
-        pass
 
     @abstractmethod
     def decrypt(
@@ -176,7 +167,6 @@ class BaseKeyProvider(ABC):
                 "key_id": "key-used-for-decryption",
             }
         """
-        pass
 
     @abstractmethod
     def generate_data_key(
@@ -201,7 +191,6 @@ class BaseKeyProvider(ABC):
                 "key_id": "master-key-id",
             }
         """
-        pass
 
     @abstractmethod
     def sign(
@@ -226,7 +215,6 @@ class BaseKeyProvider(ABC):
                 "algorithm": "signing-algorithm-used",
             }
         """
-        pass
 
     @abstractmethod
     def verify(
@@ -248,7 +236,6 @@ class BaseKeyProvider(ABC):
                 "key_id": "key-used-for-verification",
             }
         """
-        pass
 
     @abstractmethod
     def rotate_key(self, key_id: str) -> Dict[str, Any]:
@@ -261,7 +248,6 @@ class BaseKeyProvider(ABC):
         Returns:
             Dictionary with rotation details
         """
-        pass
 
     @abstractmethod
     def test_connection(self) -> bool:
@@ -271,7 +257,6 @@ class BaseKeyProvider(ABC):
         Returns:
             True if connection successful, False otherwise
         """
-        pass
 
     def _normalize_key_metadata(self, raw_metadata: Dict[str, Any]) -> Dict[str, Any]:
         """

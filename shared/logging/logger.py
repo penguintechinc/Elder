@@ -10,12 +10,11 @@ Supports multiple log destinations:
 
 import os
 import sys
-import json
 import logging
 import socket
 from datetime import datetime
-from typing import Dict, Any, Optional, List
-from logging.handlers import SysLogHandler, SocketHandler
+from typing import Optional, List
+from logging.handlers import SysLogHandler
 import structlog
 
 

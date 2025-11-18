@@ -1,6 +1,5 @@
 """Elder API client for creating and updating organizations and entities."""
 
-import asyncio
 from typing import Optional, Dict, Any, List
 import aiohttp
 import backoff

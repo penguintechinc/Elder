@@ -3,7 +3,7 @@
 import enum
 from typing import List, Optional
 
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Column, Enum, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped
 
 from apps.api.models.base import Base, IDMixin, TimestampMixin

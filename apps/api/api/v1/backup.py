@@ -1,7 +1,7 @@
 """Backup & Data Management API endpoints for Elder v1.2.0 (Phase 10)."""
 
 from flask import Blueprint, jsonify, request, send_file, current_app
-from apps.api.auth.decorators import login_required, admin_required
+from apps.api.auth.decorators import admin_required
 from apps.api.services.backup import BackupService
 from werkzeug.utils import secure_filename
 import os

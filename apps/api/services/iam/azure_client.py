@@ -1,14 +1,11 @@
 """Azure AD (Microsoft Entra ID) client for identity and access management."""
 
 import logging
-from typing import Dict, Any, Optional, List
-from datetime import datetime
+from typing import Dict, Any, Optional
 
 try:
     from azure.identity import ClientSecretCredential
     from msgraph import GraphServiceClient
-    from msgraph.generated.users.users_request_builder import UsersRequestBuilder
-    from msgraph.generated.groups.groups_request_builder import GroupsRequestBuilder
 except ImportError:
     GraphServiceClient = None
 

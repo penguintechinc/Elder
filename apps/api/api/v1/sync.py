@@ -252,7 +252,7 @@ def sync_status():
 
     # Count configs
     total_configs = db(db.sync_configs).count()
-    enabled_configs = db(db.sync_configs.enabled == True).count()
+    enabled_configs = db(db.sync_configs.enabled is True).count()
 
     # Count recent syncs (last 24 hours)
     from datetime import timedelta
@@ -260,11 +260,11 @@ def sync_status():
 
     recent_syncs = db(db.sync_history.started_at > cutoff).count()
     recent_failures = db(
-        (db.sync_history.started_at > cutoff) & (db.sync_history.success == False)
+        (db.sync_history.started_at > cutoff) & (db.sync_history.success is False)
     ).count()
 
     # Count unresolved conflicts
-    unresolved_conflicts = db(db.sync_conflicts.resolved == False).count()
+    unresolved_conflicts = db(db.sync_conflicts.resolved is False).count()
 
     # Count mappings
     total_mappings = db(db.sync_mappings).count()

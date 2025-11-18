@@ -11,7 +11,6 @@ from .base import (
     SecretValue,
     SecretMetadata,
     SecretNotFoundException,
-    SecretAccessDeniedException,
     SecretAlreadyExistsException,
     SecretProviderException,
     InvalidSecretConfigException,

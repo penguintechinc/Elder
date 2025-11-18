@@ -6,9 +6,7 @@ from apps.api.models.entity_types import (
     get_all_entity_types,
     get_subtypes_for_type,
     get_default_metadata_for_subtype,
-    ENTITY_SUBTYPES,
     DEFAULT_METADATA_TEMPLATES,
-    EntityType,
 )
 
 bp = Blueprint('entity_types', __name__)

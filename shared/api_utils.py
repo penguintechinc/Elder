@@ -2,7 +2,7 @@
 
 import math
 from typing import Any, Dict, List, Tuple
-from flask import request, jsonify
+from flask import request
 from sqlalchemy.orm import Query
 from marshmallow import ValidationError
 

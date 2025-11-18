@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 import requests
 import structlog
-from flask import current_app
 
 logger = structlog.get_logger()
 

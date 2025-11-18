@@ -15,14 +15,11 @@ from dataclasses import dataclass
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from apscheduler.triggers.cron import CronTrigger
 
 from pydal import DAL
 
 from apps.connector.sync.base import (
     BaseSyncClient,
-    SyncResult,
-    SyncStatus,
     ResourceType,
 )
 from apps.connector.config.settings import settings

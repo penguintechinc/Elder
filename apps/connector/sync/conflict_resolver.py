@@ -13,7 +13,7 @@ The primary strategy is Last-Modified-Wins as specified in the v1.1.0 requiremen
 """
 
 from datetime import datetime
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List
 from enum import Enum
 
 from apps.connector.sync.base import ConflictResolution, SyncMapping

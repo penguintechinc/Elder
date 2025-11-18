@@ -2,7 +2,7 @@
 
 import enum
 from typing import Optional
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Text, JSON
+from sqlalchemy import Column, Enum, ForeignKey, Integer, String, JSON
 from sqlalchemy.orm import relationship, Mapped
 
 from apps.api.models.base import Base, IDMixin, TimestampMixin

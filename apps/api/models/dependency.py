@@ -1,7 +1,6 @@
 """Dependency model for tracking relationships between entities."""
 
 import enum
-from typing import Optional
 
 from sqlalchemy import Column, Enum, ForeignKey, Integer, JSON, DateTime
 from sqlalchemy.orm import relationship, Mapped

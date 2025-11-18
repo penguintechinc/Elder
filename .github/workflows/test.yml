@@ -29,7 +29,7 @@ jobs:
           pip install flake8 black isort mypy
 
       - name: Run flake8
-        run: flake8 apps/ shared/ --max-line-length=120 --exclude=apps/api/grpc/generated
+        run: flake8 apps/ shared/
 
       - name: Run black
         run: black --check apps/ shared/ --exclude=apps/api/grpc/generated
@@ -57,7 +57,7 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'
 

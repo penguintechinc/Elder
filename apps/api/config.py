@@ -123,7 +123,6 @@ class Config:
     @staticmethod
     def init_app(app: Any) -> None:
         """Initialize application with configuration."""
-        pass
 
 
 class DevelopmentConfig(Config):

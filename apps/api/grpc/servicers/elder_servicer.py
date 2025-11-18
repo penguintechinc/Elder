@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Optional
 
 from apps.api.grpc.generated import (
-    elder_pb2,
     elder_pb2_grpc,
     common_pb2,
     organization_pb2,
@@ -18,15 +17,9 @@ from apps.api.grpc.generated import (
 
 from apps.api.models import (
     Organization,
-    Entity,
-    Dependency,
-    Identity,
 )
 from apps.api.grpc.converters import (
     organization_to_proto,
-    entity_to_proto,
-    dependency_to_proto,
-    identity_to_proto,
 )
 from shared.database import db
 

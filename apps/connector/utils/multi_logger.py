@@ -14,7 +14,7 @@ import logging
 import socket
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Any
 from logging.handlers import SysLogHandler
 
 import structlog

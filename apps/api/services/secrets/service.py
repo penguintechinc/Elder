@@ -9,11 +9,8 @@ from apps.api.models.pydal_models import define_all_tables
 
 from .base import (
     SecretProviderClient,
-    SecretValue,
-    SecretMetadata,
     SecretProviderException,
     SecretNotFoundException,
-    SecretAccessDeniedException,
 )
 from .aws_client import AWSSecretsManagerClient
 from .gcp_client import GCPSecretManagerClient

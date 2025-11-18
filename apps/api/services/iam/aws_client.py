@@ -2,7 +2,6 @@
 
 import json
 from typing import Dict, Any, Optional, List
-from datetime import datetime
 
 try:
     import boto3

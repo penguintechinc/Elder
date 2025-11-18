@@ -1,13 +1,11 @@
 """Organization Units (OUs) API endpoints using PyDAL with async/await."""
 
 from flask import Blueprint, request, jsonify, current_app
-from datetime import datetime, timezone
 from dataclasses import asdict
 
 from apps.api.models.dataclasses import (
     OrganizationDTO,
     CreateOrganizationRequest,
-    UpdateOrganizationRequest,
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,

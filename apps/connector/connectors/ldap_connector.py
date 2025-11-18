@@ -1,8 +1,7 @@
 """LDAP/LDAPS connector for syncing directory services to Elder."""
 
-import asyncio
 import ssl
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Optional
 import ldap3
 from ldap3 import Server, Connection, ALL, SUBTREE
 from ldap3.core.exceptions import LDAPException

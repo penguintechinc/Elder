@@ -11,7 +11,7 @@ from prometheus_flask_exporter import PrometheusMetrics
 from asgiref.wsgi import WsgiToAsgi
 
 from apps.api.config import get_config
-from shared.database import init_db, db
+from shared.database import init_db
 
 # Configure standard library logging
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()

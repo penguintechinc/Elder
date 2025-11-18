@@ -1,6 +1,5 @@
 """Authentication API endpoints using PyDAL with async/await."""
 
-import asyncio
 import os
 from flask import Blueprint, request, jsonify, current_app, g
 from werkzeug.security import generate_password_hash
@@ -9,9 +8,6 @@ from dataclasses import asdict
 
 from apps.api.models.dataclasses import (
     IdentityDTO,
-    LoginRequest,
-    RegisterRequest,
-    AuditLogDTO,
     from_pydal_row,
 )
 from apps.api.auth import generate_token, verify_password, login_required

@@ -1,7 +1,7 @@
 """Keys Management API endpoints for Elder v1.2.0 (Phase 3)."""
 
 from flask import Blueprint, jsonify, request, current_app
-from apps.api.auth.decorators import login_required, admin_required
+from apps.api.auth.decorators import login_required
 from apps.api.services.keys import KeysService
 
 bp = Blueprint('keys', __name__)

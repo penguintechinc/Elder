@@ -1,7 +1,7 @@
 """Identity models for users, service accounts, and groups."""
 
 import enum
-from typing import List, Optional
+from typing import List
 
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Boolean
 from sqlalchemy.orm import relationship, Mapped

@@ -2,16 +2,9 @@
 
 import json
 from datetime import datetime
-from flask import Blueprint, jsonify, request, current_app, g
-from dataclasses import asdict
+from flask import Blueprint, jsonify, request, current_app
 
 from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.dataclasses import (
-    MetadataFieldDTO,
-    CreateMetadataFieldRequest,
-    from_pydal_row,
-    from_pydal_rows,
-)
 from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
 

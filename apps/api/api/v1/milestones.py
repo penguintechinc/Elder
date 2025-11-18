@@ -1,15 +1,12 @@
 """Milestones management API endpoints for Elder using PyDAL with async/await."""
 
-import asyncio
-from flask import Blueprint, jsonify, request, current_app, g
+from flask import Blueprint, jsonify, request, current_app
 from datetime import datetime, timezone
 from dataclasses import asdict
 
 from apps.api.auth.decorators import login_required, resource_role_required
 from apps.api.models.dataclasses import (
     MilestoneDTO,
-    CreateMilestoneRequest,
-    UpdateMilestoneRequest,
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,
@@ -286,7 +283,7 @@ async def delete_milestone(id: int):
         if not milestone:
             return False
 
-        del db.milestones[milestone_id]
+        del db.milestones[id]
         db.commit()
         return True
 

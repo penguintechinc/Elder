@@ -75,12 +75,10 @@ class BaseConnector(ABC):
         Raises:
             Exception: On connection failure
         """
-        pass
 
     @abstractmethod
     async def disconnect(self) -> None:
         """Disconnect from the external service."""
-        pass
 
     @abstractmethod
     async def sync(self) -> SyncResult:
@@ -93,7 +91,6 @@ class BaseConnector(ABC):
         Raises:
             Exception: On sync failure
         """
-        pass
 
     @abstractmethod
     async def health_check(self) -> bool:
@@ -103,7 +100,6 @@ class BaseConnector(ABC):
         Returns:
             True if healthy, False otherwise
         """
-        pass
 
     async def __aenter__(self):
         """Async context manager entry."""

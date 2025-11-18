@@ -1,9 +1,7 @@
 """AWS KMS client for key management operations."""
 
 import base64
-import json
 from typing import Dict, Any, Optional
-from datetime import datetime
 
 try:
     import boto3

@@ -1,8 +1,7 @@
 """JWT token handling for Elder authentication using PyDAL."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
-from functools import wraps
 import logging
 
 import jwt

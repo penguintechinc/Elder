@@ -2,13 +2,11 @@
 
 import hashlib
 import secrets
-from datetime import datetime, timezone
 from dataclasses import asdict
 from flask import Blueprint, request, jsonify
 from apps.api.auth.decorators import login_required, get_current_user
 from apps.api.models.dataclasses import (
     APIKeyDTO,
-    CreateAPIKeyRequest,
     CreateAPIKeyResponse,
     PaginatedResponse,
     from_pydal_rows

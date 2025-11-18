@@ -1,15 +1,11 @@
 """Projects management API endpoints for Elder using PyDAL with async/await."""
 
-import asyncio
-from flask import Blueprint, jsonify, request, current_app, g
-from datetime import datetime, timezone
+from flask import Blueprint, jsonify, request, current_app
 from dataclasses import asdict
 
 from apps.api.auth.decorators import login_required, resource_role_required
 from apps.api.models.dataclasses import (
     ProjectDTO,
-    CreateProjectRequest,
-    UpdateProjectRequest,
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,

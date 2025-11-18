@@ -6,8 +6,6 @@ from werkzeug.security import generate_password_hash
 from apps.api.auth.decorators import login_required, role_required, get_current_user
 from apps.api.models.dataclasses import (
     IdentityDTO,
-    CreateIdentityRequest,
-    UpdateIdentityRequest,
     PaginatedResponse,
     from_pydal_rows
 )

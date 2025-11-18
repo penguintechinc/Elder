@@ -42,7 +42,6 @@ class BaseDiscoveryProvider(ABC):
                 "discovery_time": datetime
             }
         """
-        pass
 
     @abstractmethod
     def discover_compute(self) -> List[Dict[str, Any]]:
@@ -52,7 +51,6 @@ class BaseDiscoveryProvider(ABC):
         Returns:
             List of compute resources
         """
-        pass
 
     @abstractmethod
     def discover_storage(self) -> List[Dict[str, Any]]:
@@ -62,7 +60,6 @@ class BaseDiscoveryProvider(ABC):
         Returns:
             List of storage resources
         """
-        pass
 
     @abstractmethod
     def discover_network(self) -> List[Dict[str, Any]]:
@@ -72,7 +69,6 @@ class BaseDiscoveryProvider(ABC):
         Returns:
             List of network resources
         """
-        pass
 
     @abstractmethod
     def discover_databases(self) -> List[Dict[str, Any]]:
@@ -82,7 +78,6 @@ class BaseDiscoveryProvider(ABC):
         Returns:
             List of database resources
         """
-        pass
 
     @abstractmethod
     def discover_serverless(self) -> List[Dict[str, Any]]:
@@ -92,7 +87,6 @@ class BaseDiscoveryProvider(ABC):
         Returns:
             List of serverless resources
         """
-        pass
 
     # Utility Methods
 
@@ -104,7 +98,6 @@ class BaseDiscoveryProvider(ABC):
         Returns:
             True if connection successful, False otherwise
         """
-        pass
 
     @abstractmethod
     def get_supported_services(self) -> List[str]:
@@ -114,7 +107,6 @@ class BaseDiscoveryProvider(ABC):
         Returns:
             List of service names
         """
-        pass
 
     def format_resource(
         self,

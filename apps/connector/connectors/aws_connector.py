@@ -1,8 +1,7 @@
 """AWS connector for syncing AWS resources to Elder."""
 
-import asyncio
 import time
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, Optional
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 

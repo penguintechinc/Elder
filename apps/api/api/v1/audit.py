@@ -2,7 +2,7 @@
 
 from flask import Blueprint, jsonify, request, current_app
 from apps.api.auth.decorators import login_required, admin_required
-from datetime import datetime
+from datetime import datetime, timedelta
 
 bp = Blueprint('audit', __name__)
 
@@ -197,7 +197,7 @@ def cleanup_audit_logs():
         # Get all enabled retention policies
         policies = db(
             (db.audit_retention_policies.id > 0) &
-            (db.audit_retention_policies.enabled == True)
+            (db.audit_retention_policies.enabled is True)
         ).select()
 
         results = {}
@@ -233,6 +233,3 @@ def cleanup_audit_logs():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-
-from datetime import timedelta

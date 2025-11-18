@@ -1,0 +1,38 @@
+[flake8]
+max-line-length = 120
+exclude =
+    .git,
+    __pycache__,
+    venv,
+    .venv,
+    env,
+    ENV,
+    apps/api/grpc/generated,
+    node_modules,
+    .eggs,
+    *.egg
+
+# Ignore specific errors
+ignore =
+    # F403: Star imports (used in pydal_models.py for validators)
+    F403,
+    # F405: May be undefined from star imports
+    F405,
+    # E303: Too many blank lines (formatting preference)
+    E303,
+   # W503: Line break before binary operator (conflicts with black)
+    W503,
+    # W504: Line break after binary operator (conflicts with black)
+    W504
+
+# Per-file ignores
+per-file-ignores =
+    # Ignore F821 (undefined names) in model files - these are forward references
+    apps/api/models/*.py:F821,
+    # Ignore F401 (unused imports) in __init__.py files
+    __init__.py:F401,
+    # Ignore E501 (line too long) in migration files
+    alembic/versions/*.py:E501
+
+# McCabe complexity
+max-complexity = 15

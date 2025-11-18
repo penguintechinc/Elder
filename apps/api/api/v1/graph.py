@@ -1,17 +1,9 @@
 """Graph visualization API endpoints using PyDAL with async/await."""
 
-import asyncio
 from flask import Blueprint, request, jsonify, current_app
-from typing import Dict, List, Set, Any
-from dataclasses import asdict
+from typing import Dict
 import networkx as nx
 
-from apps.api.models.dataclasses import (
-    EntityDTO,
-    DependencyDTO,
-    from_pydal_row,
-    from_pydal_rows,
-)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("graph", __name__)
@@ -207,7 +199,7 @@ async def analyze_graph():
                 "circular_dependencies": len(cycles),
                 "cycles": cycles[:5] if cycles else [],  # Return first 5 cycles
             }
-        except:
+        except Exception:
             analysis["issues"] = {"circular_dependencies": 0, "cycles": []}
 
         # Find isolated entities (no dependencies)

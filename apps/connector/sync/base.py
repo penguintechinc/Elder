@@ -192,7 +192,6 @@ class BaseSyncClient(abc.ABC):
         Returns:
             True if configuration is valid, False otherwise
         """
-        pass
 
     @abc.abstractmethod
     def test_connection(self) -> bool:
@@ -201,7 +200,6 @@ class BaseSyncClient(abc.ABC):
         Returns:
             True if connection successful, False otherwise
         """
-        pass
 
     @abc.abstractmethod
     def sync_issue(
@@ -216,7 +214,6 @@ class BaseSyncClient(abc.ABC):
         Returns:
             Result of the sync operation
         """
-        pass
 
     @abc.abstractmethod
     def sync_project(
@@ -231,7 +228,6 @@ class BaseSyncClient(abc.ABC):
         Returns:
             Result of the sync operation
         """
-        pass
 
     @abc.abstractmethod
     def sync_milestone(
@@ -246,7 +242,6 @@ class BaseSyncClient(abc.ABC):
         Returns:
             Result of the sync operation
         """
-        pass
 
     @abc.abstractmethod
     def sync_label(
@@ -261,7 +256,6 @@ class BaseSyncClient(abc.ABC):
         Returns:
             Result of the sync operation
         """
-        pass
 
     @abc.abstractmethod
     def batch_sync(
@@ -278,7 +272,6 @@ class BaseSyncClient(abc.ABC):
         Returns:
             Aggregate result of batch sync
         """
-        pass
 
     @abc.abstractmethod
     def handle_webhook(
@@ -293,7 +286,6 @@ class BaseSyncClient(abc.ABC):
         Returns:
             Result of processing the webhook
         """
-        pass
 
     def get_mapping(
         self,

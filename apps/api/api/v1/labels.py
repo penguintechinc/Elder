@@ -1,15 +1,11 @@
 """Labels management API endpoints for Elder using PyDAL with async/await."""
 
-import asyncio
 from flask import Blueprint, jsonify, request, current_app
-from datetime import datetime, timezone
 from dataclasses import asdict
 
 from apps.api.auth.decorators import login_required
 from apps.api.models.dataclasses import (
     IssueLabelDTO,
-    CreateLabelRequest,
-    UpdateLabelRequest,
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,

@@ -3,7 +3,6 @@
 import json
 import logging
 from typing import Dict, List, Optional, Any
-from datetime import datetime
 
 from google.cloud import secretmanager
 from google.api_core import exceptions as google_exceptions

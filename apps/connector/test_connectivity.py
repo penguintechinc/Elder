@@ -24,7 +24,6 @@ async def test_aws():
 
     try:
         import boto3
-        from botocore.exceptions import ClientError, NoCredentialsError
 
         logger.info("Testing AWS connectivity...")
         sts = boto3.client(

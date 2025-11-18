@@ -1,6 +1,6 @@
 """API endpoints for recursive organization tree operations."""
 
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, current_app
 from apps.api.auth.decorators import login_required
 from shared.async_utils import run_in_threadpool
 

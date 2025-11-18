@@ -1,6 +1,6 @@
 """AWS cloud discovery client for Elder."""
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from datetime import datetime
 
 try:
