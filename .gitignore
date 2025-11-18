@@ -441,3 +441,5 @@ vagrant/.TODO
 .PLAN
 .FUTURE
 .TODO
+
+settings.local.json
