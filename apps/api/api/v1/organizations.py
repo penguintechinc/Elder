@@ -48,7 +48,7 @@ def list_organizations():
     search_term = request.args.get("name") or request.args.get("search")
     if search_term:
         # Case-insensitive search using like with wildcards
-        query &= (db.organizations.name.lower().like(f'%{search_term.lower()}%'))
+        query &= (db.organizations.name.like(f'%{search_term}%', case_sensitive=False))
 
     # Get total count
     total = db(query).count()

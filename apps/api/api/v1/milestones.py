@@ -64,10 +64,10 @@ async def list_milestones():
 
         if request.args.get("search"):
             search = request.args.get("search")
-            search_pattern = f'%{search.lower()}%'
+            search_pattern = f'%{search}%'
             query &= (
-                (db.milestones.title.lower().like(search_pattern)) |
-                (db.milestones.description.lower().like(search_pattern))
+                (db.milestones.title.like(search_pattern, case_sensitive=False)) |
+                (db.milestones.description.like(search_pattern, case_sensitive=False))
             )
 
         # Calculate pagination
