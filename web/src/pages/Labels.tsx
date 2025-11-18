@@ -20,8 +20,11 @@ export default function Labels() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteLabel(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['labels'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['labels'],
+        refetchType: 'all'
+      })
       toast.success('Label deleted successfully')
     },
     onError: () => {
@@ -145,9 +148,12 @@ export default function Labels() {
       {showCreateModal && (
         <LabelModal
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['labels'],
+              refetchType: 'all'
+            })
             setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['labels'] })
           }}
         />
       )}
@@ -157,9 +163,12 @@ export default function Labels() {
         <LabelModal
           label={editingLabel}
           onClose={() => setEditingLabel(null)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['labels'],
+              refetchType: 'all'
+            })
             setEditingLabel(null)
-            queryClient.invalidateQueries({ queryKey: ['labels'] })
           }}
         />
       )}

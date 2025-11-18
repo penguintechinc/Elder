@@ -51,8 +51,8 @@ async def list_labels():
         if request.args.get("search"):
             search = request.args.get("search")
             query &= (
-                (db.issue_labels.name.contains(search)) |
-                (db.issue_labels.description.contains(search))
+                (db.issue_labels.name.lower().contains(search.lower())) |
+                (db.issue_labels.description.lower().contains(search.lower()))
             )
 
         # Calculate pagination

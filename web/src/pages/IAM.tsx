@@ -119,8 +119,11 @@ export default function IAM() {
   // Create identity mutation
   const createIdentityMutation = useMutation({
     mutationFn: (data: any) => api.createIdentity(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['identities'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['identities'],
+        refetchType: 'all'
+      })
       toast.success('Identity created successfully')
       setShowCreateModal(false)
       // Reset form
@@ -139,8 +142,11 @@ export default function IAM() {
   // Update identity mutation
   const updateIdentityMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => api.updateIdentity(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['identities'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['identities'],
+        refetchType: 'all'
+      })
       toast.success('Identity updated successfully')
       setShowEditModal(false)
       setSelectedIdentity(null)
@@ -159,8 +165,11 @@ export default function IAM() {
   // Create IAM provider mutation
   const createProviderMutation = useMutation({
     mutationFn: (data: any) => api.createIAMProvider(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['iamProviders'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['iamProviders'],
+        refetchType: 'all'
+      })
       toast.success('Provider created successfully')
       setShowCreateModal(false)
       // Reset form

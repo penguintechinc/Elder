@@ -56,7 +56,7 @@ async def list_entities():
 
     if request.args.get("name"):
         name = request.args.get("name")
-        query &= (db.entities.name.contains(name))
+        query &= (db.entities.name.lower().contains(name.lower()))
 
     if request.args.get("is_active") is not None:
         is_active = request.args.get("is_active", "true").lower() == "true"

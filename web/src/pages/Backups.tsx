@@ -25,17 +25,23 @@ export default function Backups() {
 
   const runJobMutation = useMutation({
     mutationFn: (id: number) => api.runBackupJob(id),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['backups'],
+        refetchType: 'all'
+      })
       toast.success('Backup job started')
-      queryClient.invalidateQueries({ queryKey: ['backups'] })
     },
   })
 
   const deleteJobMutation = useMutation({
     mutationFn: (id: number) => api.deleteBackupJob(id),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['backupJobs'],
+        refetchType: 'all'
+      })
       toast.success('Backup job deleted')
-      queryClient.invalidateQueries({ queryKey: ['backupJobs'] })
     },
   })
 
@@ -165,9 +171,12 @@ export default function Backups() {
       {showCreateJobModal && (
         <CreateJobModal
           onClose={() => setShowCreateJobModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['backupJobs'],
+              refetchType: 'all'
+            })
             setShowCreateJobModal(false)
-            queryClient.invalidateQueries({ queryKey: ['backupJobs'] })
           }}
         />
       )}

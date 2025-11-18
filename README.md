@@ -268,7 +268,7 @@ make db-migrate
 make dev-api
 ```
 
-The Elder API will be available at `http://localhost:5000`
+The Elder API will be available at `http://localhost:4000` and the Web UI at `http://localhost:3005`
 
 ### Docker Deployment
 
@@ -284,9 +284,10 @@ make dev-logs
 ```
 
 Access the services:
-- **Elder API**: http://localhost:5000
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3001 (admin/admin)
+- **Elder Web UI**: http://localhost:3005
+- **Elder API**: http://localhost:4000
+- **Prometheus**: http://localhost:9091
+- **Grafana**: http://localhost:4001 (admin/admin)
 
 ## Configuration
 

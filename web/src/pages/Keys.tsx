@@ -34,9 +34,12 @@ export default function Keys() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteKeyProvider(id),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['keyProviders'],
+        refetchType: 'all'
+      })
       toast.success('Key provider deleted')
-      queryClient.invalidateQueries({ queryKey: ['keyProviders'] })
     },
   })
 
@@ -139,9 +142,12 @@ export default function Keys() {
       {showCreateModal && (
         <CreateProviderModal
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['keyProviders'],
+              refetchType: 'all'
+            })
             setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['keyProviders'] })
           }}
         />
       )}

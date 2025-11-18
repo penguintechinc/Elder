@@ -120,11 +120,11 @@ class SearchService:
         """
         db_query = self.db.entities.id > 0
 
-        # Text search on name and description
+        # Text search on name and description (case-insensitive)
         if query:
             db_query &= (
-                self.db.entities.name.contains(query) |
-                self.db.entities.description.contains(query)
+                self.db.entities.name.lower().contains(query.lower()) |
+                self.db.entities.description.lower().contains(query.lower())
             )
 
         # Entity type filter
@@ -187,11 +187,11 @@ class SearchService:
         """
         db_query = self.db.organizations.id > 0
 
-        # Text search
+        # Text search (case-insensitive)
         if query:
             db_query &= (
-                self.db.organizations.name.contains(query) |
-                self.db.organizations.description.contains(query)
+                self.db.organizations.name.lower().contains(query.lower()) |
+                self.db.organizations.description.lower().contains(query.lower())
             )
 
         # Type filter
@@ -253,11 +253,11 @@ class SearchService:
         """
         db_query = self.db.issues.id > 0
 
-        # Text search
+        # Text search (case-insensitive)
         if query:
             db_query &= (
-                self.db.issues.title.contains(query) |
-                self.db.issues.description.contains(query)
+                self.db.issues.title.lower().contains(query.lower()) |
+                self.db.issues.description.lower().contains(query.lower())
             )
 
         # Status filter

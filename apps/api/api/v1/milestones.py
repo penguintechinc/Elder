@@ -65,8 +65,8 @@ async def list_milestones():
         if request.args.get("search"):
             search = request.args.get("search")
             query &= (
-                (db.milestones.title.contains(search)) |
-                (db.milestones.description.contains(search))
+                (db.milestones.title.lower().contains(search.lower())) |
+                (db.milestones.description.lower().contains(search.lower()))
             )
 
         # Calculate pagination

@@ -29,6 +29,7 @@ async def list_identities():
     Query Parameters:
         - page: Page number (default: 1)
         - per_page: Items per page (default: 50, max: 1000)
+        - search: Search in username, email, or full name (case-insensitive)
         - identity_type: Filter by type (human/service_account)
         - is_active: Filter by active status
         - organization_id: Filter by organization
@@ -46,6 +47,15 @@ async def list_identities():
     query = db.identities.id > 0
 
     # Apply filters
+    # Search filter (case-insensitive search on username, email, full_name)
+    search = request.args.get("search") or request.args.get("name")
+    if search:
+        query &= (
+            (db.identities.username.lower().contains(search.lower())) |
+            (db.identities.email.lower().contains(search.lower())) |
+            (db.identities.full_name.lower().contains(search.lower()))
+        )
+
     identity_type = request.args.get("identity_type")
     if identity_type:
         query &= (db.identities.identity_type == identity_type)

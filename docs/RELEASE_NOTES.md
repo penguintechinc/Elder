@@ -92,6 +92,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 3. `key_providers` - Added hashicorp_vault provider
 4. `discovery_jobs` - Added credential_type, credential_id, credential_mapping fields
 
+### 🐛 Bug Fixes
+
+#### React Query Cache Invalidation (v2.0.0)
+- **Universal Cache Refresh Fix**: Implemented standardized React Query cache invalidation pattern across all 19 UI pages
+  - **Problem**: Resources not appearing in lists after creation without manual page refresh
+  - **Root Cause**: Query cache not invalidating properly, search queries not updating
+  - **Solution**: Applied `refetchType: 'all'` pattern to ALL mutations (52 total)
+  - **Pattern**:
+    ```typescript
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['resource-name'],
+        refetchType: 'all'  // Invalidates ALL matching queries
+      })
+    }
+    ```
+  - **Pages Fixed**: Organizations, Networking, Entities, Issues, Projects, Dependencies, Labels, Webhooks, Secrets, Keys, Milestones, IAM, Backups, Discovery, EntityDetail, IssueDetail, OrganizationDetail, Profile, and all their modals
+  - **Result**: Immediate UI updates for all CRUD operations without manual refresh
+
+#### UI/UX Improvements
+- **Login Page Enhancement**: Added Elder penguin logo (`elder-logo.png`) above login form
+- **Networking Modal Fix**: Added missing organization selector to network creation modal
+  - Previously required organization_id but had no field to select it
+  - Now includes organization dropdown with all available organizations
+
+### 🔧 Configuration Changes
+
+#### Port Configuration Update
+- **WEB_PORT**: Changed from 3000 → 3005 (avoiding common port conflicts)
+- **GRPC_WEB_PORT**: Changed from 8080 → 8085 (avoiding common port conflicts)
+- **CORS_ORIGINS**: Added http://localhost:3005 to allowed origins
+- **Reason**: Default ports 3000 and 8080 frequently conflict with other development services
+
 ### 📊 Technical Improvements
 
 #### Database Architecture

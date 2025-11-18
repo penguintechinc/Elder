@@ -77,8 +77,11 @@ export default function IssueDetail() {
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<any>) => api.updateIssue(parseInt(id!), data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issue', id] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['issue', id],
+        refetchType: 'all'
+      })
       toast.success('Issue updated')
     },
     onError: () => {
@@ -99,8 +102,11 @@ export default function IssueDetail() {
 
   const addCommentMutation = useMutation({
     mutationFn: (body: string) => api.createIssueComment(parseInt(id!), { body }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issue-comments', id] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['issue-comments', id],
+        refetchType: 'all'
+      })
       setNewComment('')
       toast.success('Comment added')
     },
@@ -111,8 +117,11 @@ export default function IssueDetail() {
 
   const addLabelMutation = useMutation({
     mutationFn: (labelId: number) => api.addIssueLabel(parseInt(id!), labelId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issue-labels', id] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['issue-labels', id],
+        refetchType: 'all'
+      })
       toast.success('Label added')
     },
     onError: () => {
@@ -122,8 +131,11 @@ export default function IssueDetail() {
 
   const removeLabelMutation = useMutation({
     mutationFn: (labelId: number) => api.removeIssueLabel(parseInt(id!), labelId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issue-labels', id] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['issue-labels', id],
+        refetchType: 'all'
+      })
       toast.success('Label removed')
     },
     onError: () => {
@@ -133,8 +145,11 @@ export default function IssueDetail() {
 
   const linkEntityMutation = useMutation({
     mutationFn: (entityId: number) => api.linkIssueEntity(parseInt(id!), entityId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issue-entities', id] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['issue-entities', id],
+        refetchType: 'all'
+      })
       toast.success('Entity linked')
     },
     onError: () => {
@@ -144,8 +159,11 @@ export default function IssueDetail() {
 
   const unlinkEntityMutation = useMutation({
     mutationFn: (entityId: number) => api.unlinkIssueEntity(parseInt(id!), entityId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issue-entities', id] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['issue-entities', id],
+        refetchType: 'all'
+      })
       toast.success('Entity unlinked')
     },
     onError: () => {
@@ -155,8 +173,11 @@ export default function IssueDetail() {
 
   const linkProjectMutation = useMutation({
     mutationFn: (projectId: number) => api.linkIssueToProject(parseInt(id!), projectId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issue', id] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['issue', id],
+        refetchType: 'all'
+      })
       setShowAddProject(false)
       toast.success('Project linked')
     },
@@ -167,8 +188,11 @@ export default function IssueDetail() {
 
   const unlinkProjectMutation = useMutation({
     mutationFn: (projectId: number) => api.unlinkIssueFromProject(parseInt(id!), projectId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issue', id] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['issue', id],
+        refetchType: 'all'
+      })
       toast.success('Project unlinked')
     },
     onError: () => {
@@ -178,8 +202,11 @@ export default function IssueDetail() {
 
   const linkMilestoneMutation = useMutation({
     mutationFn: (milestoneId: number) => api.linkIssueToMilestone(parseInt(id!), milestoneId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issue', id] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['issue', id],
+        refetchType: 'all'
+      })
       setShowAddMilestone(false)
       toast.success('Milestone linked')
     },
@@ -190,8 +217,11 @@ export default function IssueDetail() {
 
   const unlinkMilestoneMutation = useMutation({
     mutationFn: (milestoneId: number) => api.unlinkIssueFromMilestone(parseInt(id!), milestoneId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issue', id] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['issue', id],
+        refetchType: 'all'
+      })
       toast.success('Milestone unlinked')
     },
     onError: () => {

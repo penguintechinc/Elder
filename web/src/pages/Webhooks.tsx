@@ -36,9 +36,12 @@ export default function Webhooks() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteWebhook(id),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['webhooks'],
+        refetchType: 'all'
+      })
       toast.success('Webhook deleted')
-      queryClient.invalidateQueries({ queryKey: ['webhooks'] })
     },
   })
 
@@ -111,9 +114,12 @@ export default function Webhooks() {
       {showCreateModal && (
         <CreateWebhookModal
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['webhooks'],
+              refetchType: 'all'
+            })
             setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['webhooks'] })
           }}
         />
       )}

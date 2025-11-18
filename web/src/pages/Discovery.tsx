@@ -34,17 +34,23 @@ export default function Discovery() {
 
   const runJobMutation = useMutation({
     mutationFn: (id: number) => api.runDiscoveryJob(id),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['discoveryHistory'],
+        refetchType: 'all'
+      })
       toast.success('Discovery job started')
-      queryClient.invalidateQueries({ queryKey: ['discoveryHistory'] })
     },
   })
 
   const deleteJobMutation = useMutation({
     mutationFn: (id: number) => api.deleteDiscoveryJob(id),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['discoveryJobs'],
+        refetchType: 'all'
+      })
       toast.success('Discovery job deleted')
-      queryClient.invalidateQueries({ queryKey: ['discoveryJobs'] })
       if (selectedJob) {
         setSelectedJob(null)
       }
@@ -216,9 +222,12 @@ export default function Discovery() {
       {showCreateModal && (
         <CreateJobModal
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['discoveryJobs'],
+              refetchType: 'all'
+            })
             setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['discoveryJobs'] })
           }}
         />
       )}

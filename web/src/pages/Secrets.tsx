@@ -41,9 +41,12 @@ export default function Secrets() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteSecretProvider(id),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['secretProviders'],
+        refetchType: 'all'
+      })
       toast.success('Provider deleted')
-      queryClient.invalidateQueries({ queryKey: ['secretProviders'] })
     },
     onError: () => {
       toast.error('Failed to delete provider')
@@ -142,9 +145,12 @@ export default function Secrets() {
       {showCreateModal && (
         <CreateProviderModal
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['secretProviders'],
+              refetchType: 'all'
+            })
             setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['secretProviders'] })
           }}
         />
       )}
