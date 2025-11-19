@@ -80,6 +80,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    # NOTE: No external services (postgres/redis) - unit tests should use mocks
     strategy:
       matrix:
         python-version: ['3.12', '3.13']
@@ -136,6 +137,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
+    # NOTE: Has postgres/redis services for integration testing
     services:
       postgres:
         image: postgres:15-alpine
