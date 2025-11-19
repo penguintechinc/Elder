@@ -3,9 +3,8 @@
 [![Continuous Integration](https://github.com/penguintechinc/elder/actions/workflows/ci.yml/badge.svg)](https://github.com/penguintechinc/elder/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/penguintechinc/elder/actions/workflows/docker-build.yml/badge.svg)](https://github.com/penguintechinc/elder/actions/workflows/docker-build.yml)
 [![Test Coverage](https://codecov.io/gh/penguintechinc/elder/branch/main/graph/badge.svg)](https://codecov.io/gh/penguintechinc/elder)
-[![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](https://github.com/penguintechinc/elder/releases)
+[![Version](https://img.shields.io/badge/version-2.0.1-green.svg)](https://github.com/penguintechinc/elder/releases)
 [![Python](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
-[![Go](https://img.shields.io/badge/go-1.23-blue.svg)](https://golang.org/)
 [![Node.js](https://img.shields.io/badge/node.js-18+-green.svg)](https://nodejs.org/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)*
 [![Docker](https://img.shields.io/badge/docker-latest-blue.svg)](https://hub.docker.com/r/penguintechinc/elder)
@@ -654,46 +653,50 @@ Elder is licensed under the Limited AGPL v3 with Fair Use Preamble. See [LICENSE
 
 ## Project Status
 
-**Current Version:** 1.2.0 - Enhanced Entity Management 🚀
+**Current Version:** 2.0.1 - Major Architectural Release 🚀
 
-Elder v1.2.0 introduces comprehensive entity type categorization with sub-types, issue type management, webhook integration, and project-based views for improved infrastructure tracking and workflow automation.
+Elder v2.0.0 is a major architectural release introducing unified IAM, dedicated networking resources, enhanced secrets management, and comprehensive project management sync capabilities.
+
+**Major Features in v2.0.0:**
+
+### Unified Identity & Access Management (IAM)
+- **Unified Identity Center**: Single page to manage all identity types (Users, Groups, Service Accounts, API Keys, Roles)
+- **Multi-provider IAM support**: AWS IAM, Azure AD, GCP IAM, Okta, LDAP integration
+- **Kubernetes RBAC** integration for cluster identity management
+
+### Secrets & Credentials Management
+- **Multi-backend secrets storage**: HashiCorp Vault, AWS Secrets Manager, GCP Secret Manager, Infisical, Built-in encrypted storage
+- **Key management**: SSH keys, API keys, certificates with rotation tracking
+
+### Network Topology & Infrastructure
+- **Network resource tracking**: VPCs, Subnets, Firewalls, Load Balancers, NAT Gateways
+- **Network connection mapping**: Peering, VPN, Direct Connect, Transit Gateway relationships
+
+### Project Management Sync
+- **Bi-directional sync** with GitHub Issues, GitLab Issues, Jira, Trello, OpenProject
+- **Webhook support** for real-time updates
+- **Conflict resolution** engine for sync conflicts
+
+### Cloud Connector Expansions
+- **AWS**: EC2, RDS, ElastiCache, SQS, S3, Lambda, EKS
+- **GCP**: Compute Engine, Cloud SQL, GKE, Cloud Functions
+- **Kubernetes**: Namespaces, Pods, Services, Secrets, PVCs, RBAC
+- **Google Workspace**: Users, Groups, Organizational Units
+- **LDAP/Active Directory**: Full directory sync
 
 **Completed Phases:**
-- ✅ Phase 1: Foundation & Core Models
-- ✅ Phase 2: REST API (79 endpoints)
-- ✅ Phase 3: Authentication & Authorization (JWT, SAML, OAuth2, RBAC)
-- ✅ Phase 4: Modern React UI (TypeScript, React Query, ReactFlow)
-- ✅ Phase 5: gRPC API (45 RPC methods, Envoy proxy)
-- ✅ Phase 6: Enterprise Features (Issues, Projects, Milestones, Labels, Resource Roles, Metadata)
-- ✅ Phase 8: Infrastructure & DevOps (CI/CD, Kubernetes, Helm)
-- ✅ Phase 9: Websites & Documentation
-- ✅ Phase 10: Testing & Polish
-- ✅ v1.0.0: Production UI/UX, Enhanced Issue Management, Branding Integration
-- ✅ v1.2.0: Entity Type Categories, Issue Types, Webhook Integration, Project Views
-
-**New in v1.2.0:**
-- **Entity Type Categories with Sub-Types**: 8 main categories (Network, Compute, Storage, Datacenter, Security, Application, Service, Identity) with 30+ sub-types
-- **Default Metadata Templates**: Pre-configured metadata fields for each entity type that appear automatically during creation
-- **Issue Type Management**: Customizable issue types (Bug, Feature Request, Task, Documentation, etc.) with descriptions
-- **Webhook Integration**: HTTP webhook support for real-time event notifications on entity changes, issue updates, and more
-- **Project-Based Views**: Filter and view issues within the context of specific projects
-- **Enhanced Entity Creation**: Category-based entity creation with dynamic sub-type selection and metadata fields
-- **REST API Enhancements**: New endpoints for entity types, issue types, and webhook management
-
-**v1.0.0 Highlights:**
-- Enhanced issue creation with organization/entity assignment and labels
-- Modal-first UI pattern for improved workflow efficiency
-- Clickable dashboard navigation and anchor link scrolling
-- Organization type management (Department, Team, Collection, etc.)
-- Complete Elder branding integration
-- Network graph visualization with ReactFlow
-- Comprehensive project management features
+- ✅ Phase 1-4: Foundation, REST API (79+ endpoints), Auth, Modern React UI
+- ✅ Phase 5-6: gRPC API, Enterprise Features
+- ✅ Phase 7-8: IAM & Networking Backend Services
+- ✅ Phase 9-12: REST API Endpoints, Frontend Implementation
+- ✅ v1.0.0: Production UI/UX, Enhanced Issue Management
+- ✅ v1.1.0-v1.2.1: Project Sync, Cloud Connectors, Entity Sub-Types
+- ✅ v2.0.0: Unified IAM, Networking, Secrets Management
 
 **Optional Future Enhancements:**
-- Phase 6a: Advanced Features (LDAP sync, WebSocket updates, bulk operations)
-- Phase 7: License Integration Refinement
 - Advanced webhook retry logic and delivery tracking
 - Custom entity type definitions
+- Enhanced network topology visualization
 
 See [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) for detailed release history.
 
@@ -705,4 +708,4 @@ Elder is developed and maintained by [Penguin Tech Inc](https://www.penguintech.
 
 **Elder** - Know Your Infrastructure, Understand Your Dependencies
 
-© 2024 Penguin Tech Inc. All rights reserved.
+© 2025 Penguin Tech Inc. All rights reserved.
