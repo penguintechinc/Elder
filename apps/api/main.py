@@ -179,8 +179,6 @@ def _register_blueprints(app: Flask) -> None:
     from apps.api.api.v1 import \
         builtin_secrets  # v2.0.0: Built-in Secrets Storage
     from apps.api.api.v1 import discovery  # Phase 5: Cloud Auto-Discovery
-    from apps.api.api.v1 import \
-        google_workspace  # Phase 7: Google Workspace Integration
     from apps.api.api.v1 import iam  # Phase 4: IAM Integration
     from apps.api.api.v1 import keys  # Phase 3: Keys Management
     from apps.api.api.v1 import \
@@ -189,12 +187,11 @@ def _register_blueprints(app: Flask) -> None:
     from apps.api.api.v1 import secrets  # Phase 2: Secrets Management
     from apps.api.api.v1 import \
         webhooks  # Phase 9: Webhook & Notification System
-    from apps.api.api.v1 import (api_keys, auth, dependencies, entities,
-                                 entity_types, graph, identities, issues,
-                                 labels, lookup, metadata, milestones,
-                                 organization_tree, organizations_pydal,
-                                 profile, projects, resource_roles, sync,
-                                 users)
+    from apps.api.api.v1 import (  # Phase 7: Google Workspace Integration
+        api_keys, auth, dependencies, entities, entity_types, google_workspace,
+        graph, identities, issues, labels, lookup, metadata, milestones,
+        organization_tree, organizations_pydal, profile, projects,
+        resource_roles, sync, users)
     from apps.api.web import routes as web
 
     # Register API v1 blueprints
