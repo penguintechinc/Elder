@@ -660,6 +660,11 @@ docker-compose down -v
   - Include comprehensive commit message describing all changes
   - Follow the commit message format with Claude Code attribution
   - Ensure all files for that phase are staged before committing
+- **UPDATE RELEASE_NOTES.md**: Update `docs/RELEASE_NOTES.md` on every version update or significant feature push
+  - Prepend new entries to the top of the file (newest first)
+  - Follow Keep a Changelog format
+  - Include: New Features, Bug Fixes, Breaking Changes, Security Fixes
+  - Reference related commits or PRs where applicable
 - Always use feature branches for development
 - Require pull request reviews for main branch
 - Automated testing must pass before merge
