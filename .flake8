@@ -24,6 +24,8 @@ ignore =
     W503,
     # W504: Line break after binary operator (conflicts with black)
     W504,
+    # E203: Whitespace before ':' (conflicts with black's slice formatting)
+    E203,
     # E722: Bare except (acceptable for broad error handling in some contexts)
     E722,
     # F541: f-string without placeholders (sometimes used for consistency)
