@@ -71,8 +71,8 @@ func NewRedisFromURL(url string) (*RedisClient, error) {
 	config := DefaultRedisConfig()
 	opts.PoolSize = config.PoolSize
 	opts.MinIdleConns = config.MinIdleConns
-	opts.MaxIdleTime = config.MaxIdleTime
-	opts.MaxConnAge = config.MaxConnAge
+	opts.ConnMaxIdleTime = config.MaxIdleTime
+	opts.ConnMaxLifetime = config.MaxConnAge
 	opts.DialTimeout = config.DialTimeout
 	opts.ReadTimeout = config.ReadTimeout
 	opts.WriteTimeout = config.WriteTimeout
@@ -106,8 +106,8 @@ func NewRedis(config *RedisConfig) (*RedisClient, error) {
 
 		PoolSize:     config.PoolSize,
 		MinIdleConns: config.MinIdleConns,
-		MaxIdleTime:  config.MaxIdleTime,
-		MaxConnAge:   config.MaxConnAge,
+		ConnMaxIdleTime:  config.MaxIdleTime,
+		ConnMaxLifetime:   config.MaxConnAge,
 
 		DialTimeout:  config.DialTimeout,
 		ReadTimeout:  config.ReadTimeout,
