@@ -73,7 +73,7 @@ class KeysService:
         query = self.db.key_providers.id > 0
 
         if enabled_only:
-            query &= self.db.key_providers.enabled == True
+            query &= self.db.key_providers.enabled is True
 
         providers = self.db(query).select(orderby=self.db.key_providers.name)
 

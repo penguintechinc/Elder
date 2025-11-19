@@ -65,7 +65,7 @@ class IAMService:
         query = self.db.iam_providers.id > 0
 
         if enabled_only:
-            query &= self.db.iam_providers.enabled == True
+            query &= self.db.iam_providers.enabled is True
 
         providers = self.db(query).select(orderby=self.db.iam_providers.name)
 

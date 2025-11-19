@@ -455,7 +455,7 @@ class NetworkingService:
             # Get all networks for the organization
             networks = self.db(
                 (self.db.networking_resources.organization_id == organization_id)
-                & (self.db.networking_resources.is_active == True)
+                & (self.db.networking_resources.is_active is True)
             ).select()
 
             # Get all topology connections for these networks
