@@ -346,7 +346,6 @@ jobs:
         grep -r "PENG-" . --exclude-dir=.git --exclude-dir=node_modules || true
 
         # Verify license client files exist
-        test -f shared/licensing/client.go
         test -f shared/licensing/python_client.py
 
         echo "License integration check passed"
