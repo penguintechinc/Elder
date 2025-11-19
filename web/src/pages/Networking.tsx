@@ -10,6 +10,7 @@ import Select from '@/components/Select'
 import NetworkTopologyGraph from '@/components/NetworkTopologyGraph'
 
 const NETWORK_TYPES = [
+  { value: 'vpc', label: 'VPC' },
   { value: 'subnet', label: 'Subnet' },
   { value: 'firewall', label: 'Firewall' },
   { value: 'proxy', label: 'Proxy' },
@@ -25,12 +26,24 @@ const NETWORK_TYPES = [
   { value: 'other', label: 'Other' },
 ]
 
+const CONNECTION_TYPES = [
+  { value: 'peering', label: 'Peering' },
+  { value: 'vpn', label: 'VPN' },
+  { value: 'direct_connect', label: 'Direct Connect' },
+  { value: 'transit_gateway', label: 'Transit Gateway' },
+  { value: 'route', label: 'Route' },
+  { value: 'nat', label: 'NAT' },
+  { value: 'load_balancer', label: 'Load Balancer' },
+  { value: 'other', label: 'Other' },
+]
+
 const TABS = ['Networks', 'Topology', 'Connections'] as const
 type Tab = typeof TABS[number]
 
 export default function Networking() {
   const [activeTab, setActiveTab] = useState<Tab>('Networks')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showCreateConnectionModal, setShowCreateConnectionModal] = useState(false)
   const [showTopologyModal, setShowTopologyModal] = useState(false)
   const [selectedOrg, setSelectedOrg] = useState<number | null>(null)
   const queryClient = useQueryClient()
@@ -201,11 +214,20 @@ export default function Networking() {
 
       {activeTab === 'Connections' && (
         <div className="space-y-3">
+          <div className="flex justify-end mb-4">
+            <Button onClick={() => setShowCreateConnectionModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Connection
+            </Button>
+          </div>
           {connections?.connections?.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
                 <Link2 className="w-12 h-12 text-slate-600 mx-auto mb-4" />
                 <p className="text-slate-400">No network connections configured</p>
+                <Button className="mt-4" onClick={() => setShowCreateConnectionModal(true)}>
+                  Create your first connection
+                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -248,6 +270,15 @@ export default function Networking() {
         <TopologyModal
           organizationId={selectedOrg}
           onClose={() => setShowTopologyModal(false)}
+        />
+      )}
+
+      {showCreateConnectionModal && (
+        <CreateConnectionModal
+          onClose={() => setShowCreateConnectionModal(false)}
+          onSuccess={() => {
+            setShowCreateConnectionModal(false)
+          }}
         />
       )}
     </div>
@@ -376,6 +407,122 @@ function TopologyModal({ organizationId, onClose }: any) {
         </CardHeader>
         <CardContent className="flex-1 p-0">
           <NetworkTopologyGraph organizationId={organizationId} />
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function CreateConnectionModal({ onClose, onSuccess }: any) {
+  const [sourceNetworkId, setSourceNetworkId] = useState('')
+  const [targetNetworkId, setTargetNetworkId] = useState('')
+  const [connectionType, setConnectionType] = useState('')
+  const [bandwidth, setBandwidth] = useState('')
+  const [latency, setLatency] = useState('')
+  const [description, setDescription] = useState('')
+
+  const { data: allNetworks } = useQuery({
+    queryKey: ['allNetworks'],
+    queryFn: () => api.listNetworks({}),
+  })
+
+  const queryClient = useQueryClient()
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => api.createTopologyConnection(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['networkConnections'],
+        refetchType: 'all'
+      })
+      toast.success('Connection created')
+      onSuccess()
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to create connection')
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    createMutation.mutate({
+      source_network_id: parseInt(sourceNetworkId),
+      target_network_id: parseInt(targetNetworkId),
+      connection_type: connectionType,
+      bandwidth: bandwidth || undefined,
+      latency: latency ? parseInt(latency) : undefined,
+      description: description || undefined,
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <CardHeader>
+          <h2 className="text-xl font-semibold text-white">Create Network Connection</h2>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Select
+              label="Source Network"
+              required
+              value={sourceNetworkId}
+              onChange={(e) => setSourceNetworkId(e.target.value)}
+              options={[
+                { value: '', label: 'Select source network' },
+                ...(allNetworks?.networks || []).map((n: any) => ({
+                  value: n.id,
+                  label: `${n.name} (${n.network_type})`
+                })),
+              ]}
+            />
+            <Select
+              label="Target Network"
+              required
+              value={targetNetworkId}
+              onChange={(e) => setTargetNetworkId(e.target.value)}
+              options={[
+                { value: '', label: 'Select target network' },
+                ...(allNetworks?.networks || []).map((n: any) => ({
+                  value: n.id,
+                  label: `${n.name} (${n.network_type})`
+                })),
+              ]}
+            />
+            <Select
+              label="Connection Type"
+              required
+              value={connectionType}
+              onChange={(e) => setConnectionType(e.target.value)}
+              options={[
+                { value: '', label: 'Select connection type' },
+                ...CONNECTION_TYPES,
+              ]}
+            />
+            <Input
+              label="Bandwidth"
+              value={bandwidth}
+              onChange={(e) => setBandwidth(e.target.value)}
+              placeholder="1 Gbps"
+            />
+            <Input
+              label="Latency (ms)"
+              type="number"
+              value={latency}
+              onChange={(e) => setLatency(e.target.value)}
+              placeholder="5"
+            />
+            <Input
+              label="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="VPC peering between prod and staging"
+            />
+            <div className="flex justify-end gap-3 mt-6">
+              <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+              <Button type="submit" isLoading={createMutation.isPending}>Create</Button>
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>
