@@ -23,17 +23,15 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
-      - name: Install system dependencies for python-ldap
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            gcc \
-            libpq-dev \
-            libsasl2-dev \
-            libldap2-dev \
-            libssl-dev
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-lint-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-lint-pip-
 
-      - name: Install dependencies
+      - name: Install linting tools
         run: |
           python -m pip install --upgrade pip
           pip install flake8 black isort mypy
@@ -81,40 +79,39 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     # NOTE: No external services (postgres/redis) - unit tests should use mocks
-    strategy:
-      matrix:
-        python-version: ['3.12', '3.13']
+    # NOTE: Tests temporarily skipped during PyDAL migration, so using single Python version
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
-      - name: Install system dependencies for python-ldap
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            gcc \
-            libpq-dev \
-            libsasl2-dev \
-            libldap2-dev \
-            libssl-dev
+      - name: Cache APT packages
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: gcc libpq-dev libsasl2-dev libldap2-dev libssl-dev
+          version: 1.0
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ env.PYTHON_VERSION }}-
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov pytest-mock
+          pip install -r requirements.txt pytest pytest-cov pytest-mock grpcio-tools
 
       - name: Generate gRPC code
-        run: |
-          pip install grpcio-tools
-          make generate-grpc
+        run: make generate-grpc
 
       - name: Run unit tests
         run: |
@@ -126,18 +123,11 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: test-secret-key
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          token: ${{ secrets.CODECOV_TOKEN }}
-
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
     # NOTE: Has postgres/redis services for integration testing
+    # NOTE: Tests temporarily skipped, but services kept for when tests are re-enabled
     services:
       postgres:
         image: postgres:15-alpine
@@ -173,30 +163,30 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
-      - name: Install system dependencies for python-ldap
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            gcc \
-            libpq-dev \
-            libsasl2-dev \
-            libldap2-dev \
-            libssl-dev
+      - name: Cache APT packages
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: gcc libpq-dev libsasl2-dev libldap2-dev libssl-dev
+          version: 1.0
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ env.PYTHON_VERSION }}-
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov
+          pip install -r requirements.txt pytest pytest-cov grpcio-tools
 
       - name: Generate gRPC code
-        run: |
-          pip install grpcio-tools
-          make generate-grpc
+        run: make generate-grpc
 
       - name: Run database migrations
-        run: |
-          alembic upgrade head
+        run: alembic upgrade head
         env:
           DATABASE_URL: postgresql://elder_test:test_password@localhost:5432/elder_test
 
@@ -210,14 +200,6 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: test-secret-key
           FLASK_ENV: testing
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.xml
-          flags: integration
-          name: codecov-umbrella
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   docker-build-test:
     name: Docker Build Test
@@ -238,6 +220,7 @@ jobs:
           tags: elder-api:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          platforms: linux/amd64  # Single platform for testing
 
       - name: Test Docker image
         run: |

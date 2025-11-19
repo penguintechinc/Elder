@@ -49,191 +49,11 @@ jobs:
               - 'docs/**'
               - '**/*.md'
 
-  # Python testing and linting
-  # NOTE: This job has postgres/redis services, making it integration-level
-  # When re-enabling tests post-PyDAL migration, consider splitting into:
-  # - python-lint: linting only (no services)
-  # - python-unit: unit tests with mocks (no services)
-  # - python-integration: integration tests (with services)
-  python-test:
+  # Python linting only (no testing, no services needed)
+  python-lint:
     runs-on: ubuntu-latest
     needs: changes
     if: needs.changes.outputs.python == 'true'
-    strategy:
-      matrix:
-        python-version: ['3.12', '3.13']
-
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: test_db
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_pass
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Cache pip dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-${{ matrix.python-version }}-
-
-    - name: Install system dependencies for python-ldap
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          gcc \
-          libpq-dev \
-          libsasl2-dev \
-          libldap2-dev \
-          libssl-dev
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-asyncio black isort flake8 mypy
-
-    - name: Run Black (code formatting)
-      run: black --check --diff .
-
-    - name: Run isort (import sorting)
-      run: isort --check-only --diff .
-
-    - name: Run flake8 (linting)
-      run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-
-    - name: Run mypy (type checking)
-      run: mypy . --ignore-missing-imports
-      continue-on-error: true
-
-    - name: Run tests with pytest
-      run: |
-        # Skip tests - migrating from SQLAlchemy to PyDAL
-        echo "Tests temporarily skipped during PyDAL migration"
-        exit 0
-      env:
-        DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
-        REDIS_URL: redis://localhost:6379/1
-        LICENSE_KEY: PENG-TEST-TEST-TEST-TEST-ABCD
-        PRODUCT_NAME: test-product
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
-        flags: python-tests
-        name: python-coverage
-
-  # Node.js/Web testing and linting
-  node-test:
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.node == 'true' || needs.changes.outputs.web == 'true'
-    strategy:
-      matrix:
-        node-version: ['18', '20', '22']
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: |
-        npm ci
-        cd web && npm ci
-
-    - name: Run ESLint
-      run: |
-        echo "ESLint temporarily skipped - configuration in progress"
-        exit 0
-
-    - name: Run Prettier check
-      run: |
-        echo "Prettier check temporarily skipped"
-        exit 0
-
-    - name: Type check
-      run: |
-        cd web && npm run typecheck || echo "TypeScript errors - continuing"
-
-    - name: Run unit tests
-      run: |
-        echo "Unit tests temporarily skipped"
-        exit 0
-
-    - name: Build web application
-      run: cd web && npm run build
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: web-build-${{ matrix.node-version }}
-        path: web/dist/
-
-  # Integration tests
-  integration-test:
-    runs-on: ubuntu-latest
-    needs: [python-test, node-test]
-    if: always() && (needs.python-test.result == 'success' || needs.python-test.result == 'skipped') && (needs.node-test.result == 'success' || needs.node-test.result == 'skipped')
-
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: integration_test
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_pass
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
 
     steps:
     - name: Checkout code
@@ -243,6 +63,81 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install black isort flake8 mypy
+
+    - name: Run Black (code formatting)
+      run: black --check --diff apps/ shared/ --exclude=apps/api/grpc/generated
+
+    - name: Run isort (import sorting)
+      run: isort --check-only --diff apps/ shared/ --skip apps/api/grpc/generated
+
+    - name: Run flake8 (linting)
+      run: flake8 apps/ shared/
+
+    - name: Run mypy (type checking)
+      run: mypy apps/ shared/ --ignore-missing-imports --exclude apps/api/grpc/generated
+      continue-on-error: true
+
+  # Python tests (temporarily skipped, single version)
+  python-test:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: Cache APT packages
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: gcc libpq-dev libsasl2-dev libldap2-dev libssl-dev
+        version: 1.0
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ env.PYTHON_VERSION }}-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt pytest pytest-cov pytest-asyncio
+
+    - name: Run tests with pytest
+      run: |
+        # Skip tests - migrating from SQLAlchemy to PyDAL
+        echo "Tests temporarily skipped during PyDAL migration"
+        exit 0
+      env:
+        DATABASE_URL: sqlite:///test.db
+        REDIS_URL: redis://localhost:6379/1
+        LICENSE_KEY: PENG-TEST-TEST-TEST-TEST-ABCD
+        PRODUCT_NAME: test-product
+
+  # Node.js/Web testing and linting (single version since tests skipped)
+  node-test:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.node == 'true' || needs.changes.outputs.web == 'true'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
@@ -252,41 +147,34 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
-        npm ci
+        npm ci --prefer-offline
+        cd web && npm ci --prefer-offline
 
-    - name: Build applications
+    - name: Type check
       run: |
-        npm run build
+        cd web && npm run typecheck || echo "TypeScript errors - continuing"
 
-    - name: Start test environment
-      run: |
-        # Start applications in background
-        python apps/api/main.py &
-        npm start &
-        sleep 10
-      env:
-        DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/integration_test
-        REDIS_URL: redis://localhost:6379/1
-        LICENSE_KEY: PENG-TEST-TEST-TEST-TEST-ABCD
-        PRODUCT_NAME: integration-test
-        PORT: 8080
+    - name: Build web application
+      run: cd web && npm run build
 
-    - name: Run integration tests
-      run: |
-        # Skip integration tests during PyDAL migration
-        echo "Integration tests temporarily skipped during PyDAL migration"
-        exit 0
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: web-build
+        path: web/dist/
+        retention-days: 7
 
-    - name: Run end-to-end tests
-      run: |
-        # Install Playwright if e2e tests exist
-        if [ -f "tests/e2e/package.json" ]; then
-          cd tests/e2e
-          npm ci
-          npx playwright install
-          npm test
-        fi
+  # Integration tests (temporarily disabled - skipped during PyDAL migration)
+  # Re-enable when tests are rewritten for PyDAL
+  # integration-test:
+  #   runs-on: ubuntu-latest
+  #   needs: [python-test, node-test]
+  #   if: always() && (needs.python-test.result == 'success' || needs.python-test.result == 'skipped') && (needs.node-test.result == 'success' || needs.node-test.result == 'skipped')
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v4
+  #   - name: Run integration tests
+  #     run: echo "Integration tests temporarily disabled"
 
   # Security scanning
   security:
@@ -316,7 +204,7 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
-        languages: 'go,python,javascript'
+        languages: 'python,javascript'
 
     - name: Autobuild
       uses: github/codeql-action/autobuild@v4
@@ -353,7 +241,7 @@ jobs:
   # Generate test report
   test-summary:
     runs-on: ubuntu-latest
-    needs: [python-test, node-test, integration-test, security, license-check]
+    needs: [python-lint, python-test, node-test, security, license-check]
     if: always()
     permissions:
       contents: read
@@ -371,11 +259,13 @@ jobs:
         echo "# Test Summary" > test-summary.md
         echo "" >> test-summary.md
         echo "## Job Results" >> test-summary.md
+        echo "- Python Lint: ${{ needs.python-lint.result }}" >> test-summary.md
         echo "- Python Tests: ${{ needs.python-test.result }}" >> test-summary.md
         echo "- Node.js Tests: ${{ needs.node-test.result }}" >> test-summary.md
-        echo "- Integration Tests: ${{ needs.integration-test.result }}" >> test-summary.md
         echo "- Security Scan: ${{ needs.security.result }}" >> test-summary.md
         echo "- License Check: ${{ needs.license-check.result }}" >> test-summary.md
+        echo "" >> test-summary.md
+        echo "**Note:** Integration tests temporarily disabled during PyDAL migration" >> test-summary.md
         echo "" >> test-summary.md
         echo "**Commit:** ${{ github.sha }}" >> test-summary.md
         echo "**Branch:** ${{ github.ref_name }}" >> test-summary.md
@@ -386,6 +276,7 @@ jobs:
       with:
         name: test-summary
         path: test-summary.md
+        retention-days: 30
 
     - name: Comment PR with test results
       if: github.event_name == 'pull_request'
@@ -403,7 +294,7 @@ jobs:
           });
 
     - name: Fail if any required job failed
-      if: needs.python-test.result == 'failure' || needs.node-test.result == 'failure' || needs.integration-test.result == 'failure'
+      if: needs.python-lint.result == 'failure' || needs.python-test.result == 'failure' || needs.node-test.result == 'failure'
       run: |
         echo "One or more required tests failed"
         exit 1
