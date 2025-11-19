@@ -1,9 +1,14 @@
 """Webhook & Notification System API endpoints for Elder v1.2.0 (Phase 9)."""
 
+import logging
+
 from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import admin_required, login_required
+from apps.api.logging_config import log_error_and_respond
 from apps.api.services.webhooks import WebhookService
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("webhooks", __name__)
 
@@ -49,7 +54,9 @@ def list_webhooks():
         return jsonify({"webhooks": webhooks, "count": len(webhooks)}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("", methods=["POST"])
@@ -101,7 +108,9 @@ def create_webhook():
         return jsonify(webhook), 201
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )
 
 
 @bp.route("/<int:webhook_id>", methods=["GET"])
@@ -121,8 +130,8 @@ def get_webhook(webhook_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:webhook_id>", methods=["PUT"])
@@ -168,8 +177,8 @@ def update_webhook(webhook_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 400
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/<int:webhook_id>", methods=["DELETE"])
@@ -189,8 +198,8 @@ def delete_webhook(webhook_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:webhook_id>/test", methods=["POST"])
@@ -213,8 +222,8 @@ def test_webhook(webhook_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:webhook_id>/deliveries", methods=["GET"])
@@ -249,7 +258,9 @@ def get_webhook_deliveries(webhook_id):
         return jsonify({"deliveries": deliveries, "count": len(deliveries)}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/<int:webhook_id>/deliveries/<int:delivery_id>/redeliver", methods=["POST"])
@@ -271,8 +282,8 @@ def redeliver_webhook(webhook_id, delivery_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # ===========================
@@ -306,7 +317,9 @@ def list_notification_rules():
         return jsonify({"rules": rules, "count": len(rules)}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/notification-rules", methods=["POST"])
@@ -359,7 +372,9 @@ def create_notification_rule():
         return jsonify(rule), 201
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )
 
 
 @bp.route("/notification-rules/<int:rule_id>", methods=["GET"])
@@ -379,8 +394,8 @@ def get_notification_rule(rule_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/notification-rules/<int:rule_id>", methods=["PUT"])
@@ -422,8 +437,8 @@ def update_notification_rule(rule_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 400
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/notification-rules/<int:rule_id>", methods=["DELETE"])
@@ -443,8 +458,8 @@ def delete_notification_rule(rule_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/notification-rules/<int:rule_id>/test", methods=["POST"])
@@ -467,8 +482,8 @@ def test_notification_rule(rule_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # ===========================
@@ -517,4 +532,6 @@ def broadcast_event():
         return jsonify(result), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )

@@ -5,6 +5,7 @@ import logging
 from flask import Blueprint, jsonify, request
 
 from apps.api.auth.decorators import login_required
+from apps.api.logging_config import log_error_and_respond
 from apps.api.services.secrets import SecretsService
 from apps.api.services.secrets.base import (SecretAccessDeniedException,
                                             SecretNotFoundException,
@@ -49,8 +50,9 @@ def list_secrets():
         return jsonify({"secrets": secrets, "total": len(secrets)}), 200
 
     except Exception as e:
-        logger.error(f"Error listing secrets: {str(e)}")
-        return jsonify({"error": "Failed to list secrets", "message": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/<int:secret_id>", methods=["GET"])
@@ -83,17 +85,17 @@ def get_secret(secret_id):
         return jsonify({"secret": secret}), 200
 
     except ValueError as e:
-        return jsonify({"error": "Secret not found", "message": str(e)}), 404
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except SecretNotFoundException as e:
         return (
             jsonify({"error": "Secret not found in provider", "message": str(e)}),
             404,
         )
     except SecretAccessDeniedException as e:
-        return jsonify({"error": "Access denied", "message": str(e)}), 403
+        return log_error_and_respond(logger, e, "Failed to process request", 403)
     except Exception as e:
         logger.error(f"Error retrieving secret {secret_id}: {str(e)}")
-        return jsonify({"error": "Failed to retrieve secret", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:secret_id>/unmask", methods=["POST"])
@@ -124,17 +126,17 @@ def unmask_secret(secret_id):
         return jsonify({"secret": secret}), 200
 
     except ValueError as e:
-        return jsonify({"error": "Secret not found", "message": str(e)}), 404
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except SecretNotFoundException as e:
         return (
             jsonify({"error": "Secret not found in provider", "message": str(e)}),
             404,
         )
     except SecretAccessDeniedException as e:
-        return jsonify({"error": "Access denied", "message": str(e)}), 403
+        return log_error_and_respond(logger, e, "Failed to process request", 403)
     except Exception as e:
         logger.error(f"Error unmasking secret {secret_id}: {str(e)}")
-        return jsonify({"error": "Failed to unmask secret", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("", methods=["POST"])
@@ -203,7 +205,7 @@ def create_secret():
         return jsonify({"secret": secret}), 201
 
     except ValueError as e:
-        return jsonify({"error": "Invalid request", "message": str(e)}), 400
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
     except SecretNotFoundException as e:
         return (
             jsonify({"error": "Secret not found in provider", "message": str(e)}),
@@ -211,7 +213,7 @@ def create_secret():
         )
     except Exception as e:
         logger.error(f"Error creating secret: {str(e)}")
-        return jsonify({"error": "Failed to create secret", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:secret_id>", methods=["PUT"])
@@ -252,10 +254,10 @@ def update_secret(secret_id):
         return jsonify({"secret": secret}), 200
 
     except ValueError as e:
-        return jsonify({"error": "Secret not found", "message": str(e)}), 404
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
         logger.error(f"Error updating secret {secret_id}: {str(e)}")
-        return jsonify({"error": "Failed to update secret", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:secret_id>", methods=["DELETE"])
@@ -278,10 +280,10 @@ def delete_secret(secret_id):
         return "", 204
 
     except ValueError as e:
-        return jsonify({"error": "Secret not found", "message": str(e)}), 404
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
         logger.error(f"Error deleting secret {secret_id}: {str(e)}")
-        return jsonify({"error": "Failed to delete secret", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:secret_id>/sync", methods=["POST"])
@@ -304,17 +306,17 @@ def sync_secret(secret_id):
         return jsonify({"secret": secret}), 200
 
     except ValueError as e:
-        return jsonify({"error": "Secret not found", "message": str(e)}), 404
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except SecretNotFoundException as e:
         return (
             jsonify({"error": "Secret not found in provider", "message": str(e)}),
             404,
         )
     except SecretAccessDeniedException as e:
-        return jsonify({"error": "Access denied", "message": str(e)}), 403
+        return log_error_and_respond(logger, e, "Failed to process request", 403)
     except Exception as e:
         logger.error(f"Error syncing secret {secret_id}: {str(e)}")
-        return jsonify({"error": "Failed to sync secret", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:secret_id>/access-log", methods=["GET"])
@@ -383,7 +385,7 @@ def list_secret_providers():
 
     except Exception as e:
         logger.error(f"Error listing providers: {str(e)}")
-        return jsonify({"error": "Failed to list providers", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers", methods=["POST"])
@@ -440,10 +442,10 @@ def create_secret_provider():
         return jsonify({"provider": provider}), 201
 
     except ValueError as e:
-        return jsonify({"error": "Invalid request", "message": str(e)}), 400
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
     except Exception as e:
         logger.error(f"Error creating provider: {str(e)}")
-        return jsonify({"error": "Failed to create provider", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>", methods=["GET"])
@@ -464,10 +466,10 @@ def get_secret_provider(provider_id):
         return jsonify({"provider": provider}), 200
 
     except ValueError as e:
-        return jsonify({"error": "Provider not found", "message": str(e)}), 404
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
         logger.error(f"Error retrieving provider {provider_id}: {str(e)}")
-        return jsonify({"error": "Failed to retrieve provider", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>", methods=["PUT"])
@@ -505,10 +507,10 @@ def update_secret_provider(provider_id):
         return jsonify({"provider": provider}), 200
 
     except ValueError as e:
-        return jsonify({"error": "Invalid request", "message": str(e)}), 400
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
     except Exception as e:
         logger.error(f"Error updating provider {provider_id}: {str(e)}")
-        return jsonify({"error": "Failed to update provider", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>", methods=["DELETE"])
@@ -536,7 +538,7 @@ def delete_secret_provider(provider_id):
         return jsonify({"error": "Provider not found", "message": error_message}), 404
     except Exception as e:
         logger.error(f"Error deleting provider {provider_id}: {str(e)}")
-        return jsonify({"error": "Failed to delete provider", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/sync", methods=["POST"])
@@ -557,12 +559,12 @@ def sync_secret_provider(provider_id):
         return jsonify(result), 200
 
     except ValueError as e:
-        return jsonify({"error": "Provider not found", "message": str(e)}), 404
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except SecretProviderException as e:
-        return jsonify({"error": "Provider error", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
     except Exception as e:
         logger.error(f"Error syncing provider {provider_id}: {str(e)}")
-        return jsonify({"error": "Failed to sync provider", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/test", methods=["POST"])
@@ -593,7 +595,7 @@ def test_secret_provider(provider_id):
             )
 
     except ValueError as e:
-        return jsonify({"error": "Provider not found", "message": str(e)}), 404
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
         logger.error(f"Error testing provider {provider_id}: {str(e)}")
-        return jsonify({"error": "Failed to test provider", "message": str(e)}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)

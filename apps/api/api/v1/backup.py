@@ -1,5 +1,6 @@
 """Backup & Data Management API endpoints for Elder v1.2.0 (Phase 10)."""
 
+import logging
 import os
 import tempfile
 
@@ -7,7 +8,10 @@ from flask import Blueprint, current_app, jsonify, request, send_file
 from werkzeug.utils import secure_filename
 
 from apps.api.auth.decorators import admin_required
+from apps.api.logging_config import log_error_and_respond
 from apps.api.services.backup import BackupService
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("backup", __name__)
 
@@ -49,7 +53,9 @@ def list_backup_jobs():
         return jsonify({"jobs": jobs, "count": len(jobs)}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/jobs", methods=["POST"])
@@ -104,7 +110,9 @@ def create_backup_job():
         return jsonify(job), 201
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )
 
 
 @bp.route("/jobs/<int:job_id>", methods=["GET"])
@@ -124,8 +132,12 @@ def get_backup_job(job_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(
+                logger, e, "Failed to process request", 404
+            )
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/jobs/<int:job_id>", methods=["PUT"])
@@ -168,8 +180,12 @@ def update_backup_job(job_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 400
+            return log_error_and_respond(
+                logger, e, "Failed to process request", 404
+            )
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )
 
 
 @bp.route("/jobs/<int:job_id>", methods=["DELETE"])
@@ -189,8 +205,12 @@ def delete_backup_job(job_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(
+                logger, e, "Failed to process request", 404
+            )
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/jobs/<int:job_id>/run", methods=["POST"])
@@ -212,8 +232,12 @@ def run_backup_job(job_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(
+                logger, e, "Failed to process request", 404
+            )
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 # ===========================
@@ -245,7 +269,9 @@ def list_backups():
         return jsonify({"backups": backups, "count": len(backups)}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/<int:backup_id>", methods=["GET"])
@@ -265,8 +291,12 @@ def get_backup(backup_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(
+                logger, e, "Failed to process request", 404
+            )
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/<int:backup_id>/download", methods=["GET"])
@@ -289,8 +319,12 @@ def download_backup(backup_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(
+                logger, e, "Failed to process request", 404
+            )
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/<int:backup_id>", methods=["DELETE"])
@@ -310,8 +344,12 @@ def delete_backup(backup_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(
+                logger, e, "Failed to process request", 404
+            )
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 # ===========================
@@ -355,8 +393,12 @@ def restore_backup(backup_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 400
+            return log_error_and_respond(
+                logger, e, "Failed to process request", 404
+            )
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )
 
 
 # ===========================
@@ -406,7 +448,9 @@ def export_data():
         return jsonify(result), 202
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )
 
 
 @bp.route("/export/<path:filename>/download", methods=["GET"])
@@ -430,7 +474,9 @@ def download_export(filename):
         return send_file(filepath, as_attachment=True, download_name=filename)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 # ===========================
@@ -482,7 +528,9 @@ def import_data():
         return jsonify(result), 202
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )
 
 
 # ===========================
@@ -505,4 +553,6 @@ def get_backup_stats():
         return jsonify(stats), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )

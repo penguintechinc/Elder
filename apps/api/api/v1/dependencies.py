@@ -1,14 +1,18 @@
 """Dependency API endpoints using PyDAL with async/await."""
 
 import asyncio
+import logging
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required
+from apps.api.logging_config import log_error_and_respond
 from apps.api.models.dataclasses import (DependencyDTO, PaginatedResponse,
                                          from_pydal_row, from_pydal_rows)
 from shared.async_utils import run_in_threadpool
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("dependencies", __name__)
 
@@ -321,9 +325,13 @@ async def create_bulk_dependencies():
         dependencies = from_pydal_rows(rows, DependencyDTO)
         return jsonify([asdict(d) for d in dependencies]), 201
     except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )
     except Exception as e:
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/bulk", methods=["DELETE"])

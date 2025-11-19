@@ -1,14 +1,18 @@
 """Organization Units (OUs) API endpoints using PyDAL with async/await."""
 
+import logging
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required
+from apps.api.logging_config import log_error_and_respond
 from apps.api.models.dataclasses import (CreateOrganizationRequest,
                                          OrganizationDTO, PaginatedResponse,
                                          from_pydal_row, from_pydal_rows)
 from shared.async_utils import run_in_threadpool
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("organizations", __name__)
 
@@ -125,7 +129,9 @@ async def create_organization():
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/<int:id>", methods=["GET"])
@@ -203,7 +209,9 @@ async def update_organization(id: int):
 
         except Exception as e:
             await run_in_threadpool(lambda: db.rollback())
-            return jsonify({"error": f"Database error: {str(e)}"}), 500
+            return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
     return jsonify({"error": "No fields to update"}), 400
 
@@ -242,7 +250,9 @@ async def delete_organization(id: int):
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/<int:id>/graph", methods=["GET"])

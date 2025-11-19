@@ -1,9 +1,14 @@
 """Google Workspace Integration API endpoints for Elder v1.2.0 (Phase 7)."""
 
+import logging
+
 from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import admin_required, login_required
+from apps.api.logging_config import log_error_and_respond
 from apps.api.services.google_workspace import GoogleWorkspaceService
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("google_workspace", __name__)
 
@@ -40,7 +45,9 @@ def list_providers():
         return jsonify({"providers": providers, "count": len(providers)}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/providers", methods=["POST"])
@@ -97,7 +104,9 @@ def create_provider():
         return jsonify(provider), 201
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )
 
 
 @bp.route("/providers/<int:provider_id>", methods=["GET"])
@@ -117,8 +126,8 @@ def get_provider(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>", methods=["PUT"])
@@ -163,8 +172,8 @@ def update_provider(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 400
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>", methods=["DELETE"])
@@ -184,8 +193,8 @@ def delete_provider(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/test", methods=["POST"])
@@ -207,8 +216,8 @@ def test_provider(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # ===========================
@@ -242,8 +251,8 @@ def list_users(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/users/<path:user_key>", methods=["GET"])
@@ -263,8 +272,8 @@ def get_user(provider_id, user_key):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/users", methods=["POST"])
@@ -316,8 +325,8 @@ def create_user(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 400
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>/users/<path:user_key>", methods=["PUT"])
@@ -359,8 +368,8 @@ def update_user(provider_id, user_key):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 400
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>/users/<path:user_key>", methods=["DELETE"])
@@ -380,8 +389,8 @@ def delete_user(provider_id, user_key):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # ===========================
@@ -417,8 +426,8 @@ def list_groups(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/groups/<path:group_key>", methods=["GET"])
@@ -438,8 +447,8 @@ def get_group(provider_id, group_key):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/groups", methods=["POST"])
@@ -487,8 +496,8 @@ def create_group(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 400
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>/groups/<path:group_key>", methods=["DELETE"])
@@ -508,8 +517,8 @@ def delete_group(provider_id, group_key):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route(
@@ -540,8 +549,8 @@ def list_group_members(provider_id, group_key):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route(
@@ -582,8 +591,8 @@ def add_group_member(provider_id, group_key):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 400
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route(
@@ -610,5 +619,5 @@ def remove_group_member(provider_id, group_key, member_email):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)

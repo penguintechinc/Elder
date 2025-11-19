@@ -5,6 +5,7 @@ import logging
 from flask import Blueprint, jsonify, request
 
 from apps.api.auth.decorators import login_required
+from apps.api.logging_config import log_error_and_respond
 from apps.api.services.secrets import BuiltinSecretsClient
 
 logger = logging.getLogger(__name__)
@@ -31,8 +32,9 @@ def list_secrets():
         return jsonify({"secrets": [s.__dict__ for s in secrets]}), 200
 
     except Exception as e:
-        logger.error(f"List built-in secrets error: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/<path:secret_path>", methods=["GET"])
@@ -54,10 +56,13 @@ def get_secret(secret_path):
         return jsonify(secret.__dict__), 200
 
     except Exception as e:
-        logger.error(f"Get built-in secret error: {str(e)}")
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(
+                logger, e, "Failed to process request", 404
+            )
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("", methods=["POST"])
@@ -99,8 +104,8 @@ def create_secret():
     except Exception as e:
         logger.error(f"Create built-in secret error: {str(e)}")
         if "already exists" in str(e).lower():
-            return jsonify({"error": str(e)}), 409
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 409)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<path:secret_path>", methods=["PUT", "PATCH"])
@@ -134,8 +139,8 @@ def update_secret(secret_path):
     except Exception as e:
         logger.error(f"Update built-in secret error: {str(e)}")
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<path:secret_path>", methods=["DELETE"])
@@ -158,8 +163,8 @@ def delete_secret(secret_path):
     except Exception as e:
         logger.error(f"Delete built-in secret error: {str(e)}")
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/test-connection", methods=["POST"])

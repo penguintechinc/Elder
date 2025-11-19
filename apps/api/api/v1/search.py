@@ -1,11 +1,15 @@
 """Advanced Search API endpoints for Elder v1.2.0 (Phase 10)."""
 
 import json
+import logging
 
 from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required
+from apps.api.logging_config import log_error_and_respond
 from apps.api.services.search import SearchService
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("search", __name__)
 
@@ -67,7 +71,9 @@ def search_all():
     except json.JSONDecodeError:
         return jsonify({"error": "Invalid filters JSON"}), 400
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 # ===========================
@@ -132,7 +138,9 @@ def search_entities():
     except json.JSONDecodeError:
         return jsonify({"error": "Invalid filters JSON"}), 400
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 # ===========================
@@ -176,7 +184,9 @@ def search_organizations():
         return jsonify(results), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 # ===========================
@@ -234,7 +244,9 @@ def search_issues():
         return jsonify(results), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 # ===========================
@@ -279,8 +291,8 @@ def search_graph():
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # ===========================
@@ -310,7 +322,9 @@ def list_saved_searches():
         return jsonify({"searches": searches, "count": len(searches)}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/saved", methods=["POST"])
@@ -360,7 +374,9 @@ def create_saved_search():
         return jsonify(search), 201
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )
 
 
 @bp.route("/saved/<int:search_id>", methods=["GET"])
@@ -382,8 +398,8 @@ def get_saved_search(search_id):
 
     except Exception as e:
         if "not found" in str(e).lower() or "not owned" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/saved/<int:search_id>/execute", methods=["GET"])
@@ -414,8 +430,8 @@ def execute_saved_search(search_id):
 
     except Exception as e:
         if "not found" in str(e).lower() or "not owned" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/saved/<int:search_id>", methods=["PUT"])
@@ -457,8 +473,8 @@ def update_saved_search(search_id):
 
     except Exception as e:
         if "not found" in str(e).lower() or "not owned" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 400
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/saved/<int:search_id>", methods=["DELETE"])
@@ -482,8 +498,8 @@ def delete_saved_search(search_id):
 
     except Exception as e:
         if "not found" in str(e).lower() or "not owned" in str(e).lower():
-            return jsonify({"error": str(e)}), 404
-        return jsonify({"error": str(e)}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # ===========================
@@ -513,7 +529,9 @@ def get_popular_searches():
         return jsonify({"popular_searches": popular, "count": len(popular)}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
 
 
 @bp.route("/suggest", methods=["GET"])
@@ -544,4 +562,6 @@ def search_suggestions():
         return jsonify({"suggestions": suggestions, "count": len(suggestions)}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 500
+        )
