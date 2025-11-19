@@ -54,9 +54,7 @@ def list_discovery_jobs():
         return jsonify({"jobs": jobs, "count": len(jobs)}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/jobs", methods=["POST"])
@@ -111,9 +109,7 @@ def create_discovery_job():
         return jsonify(job), 201
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/jobs/<int:job_id>", methods=["GET"])
@@ -133,12 +129,8 @@ def get_discovery_job(job_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/jobs/<int:job_id>", methods=["PUT"])
@@ -180,12 +172,8 @@ def update_discovery_job(job_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/jobs/<int:job_id>", methods=["DELETE"])
@@ -205,12 +193,8 @@ def delete_discovery_job(job_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/jobs/<int:job_id>/test", methods=["POST"])
@@ -230,12 +214,8 @@ def test_discovery_job(job_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/jobs/<int:job_id>/run", methods=["POST"])
@@ -257,12 +237,8 @@ def run_discovery_job(job_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/jobs/<int:job_id>/history", methods=["GET"])
@@ -287,9 +263,7 @@ def get_discovery_job_history(job_id):
         return jsonify({"history": history, "count": len(history)}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/history", methods=["GET"])
@@ -314,6 +288,4 @@ def get_all_discovery_history():
         return jsonify({"history": history, "count": len(history)}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)

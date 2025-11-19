@@ -325,13 +325,9 @@ async def create_bulk_dependencies():
         dependencies = from_pydal_rows(rows, DependencyDTO)
         return jsonify([asdict(d) for d in dependencies]), 201
     except ValueError as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/bulk", methods=["DELETE"])

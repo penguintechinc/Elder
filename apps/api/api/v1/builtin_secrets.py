@@ -32,9 +32,7 @@ def list_secrets():
         return jsonify({"secrets": [s.__dict__ for s in secrets]}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<path:secret_path>", methods=["GET"])
@@ -57,12 +55,8 @@ def get_secret(secret_path):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("", methods=["POST"])

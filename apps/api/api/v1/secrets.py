@@ -50,9 +50,7 @@ def list_secrets():
         return jsonify({"secrets": secrets, "total": len(secrets)}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:secret_id>", methods=["GET"])

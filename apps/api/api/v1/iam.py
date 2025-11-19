@@ -42,9 +42,7 @@ def list_providers():
         return jsonify({"providers": providers, "count": len(providers)}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>", methods=["GET"])
@@ -64,12 +62,8 @@ def get_provider(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers", methods=["POST"])
@@ -119,9 +113,7 @@ def create_provider():
         return jsonify(provider), 201
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>", methods=["PUT"])
@@ -161,12 +153,8 @@ def update_provider(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>", methods=["DELETE"])
@@ -188,16 +176,10 @@ def delete_provider(provider_id):
     except Exception as e:
         error_msg = str(e).lower()
         if "not found" in error_msg:
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
         if "cannot delete" in error_msg:
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 409
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 409)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/test", methods=["POST"])
@@ -217,12 +199,8 @@ def test_provider(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/sync", methods=["POST"])
@@ -242,12 +220,8 @@ def sync_provider(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # User Management Endpoints
@@ -281,12 +255,8 @@ def list_users(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/users/<user_id>", methods=["GET"])
@@ -306,12 +276,8 @@ def get_user(provider_id, user_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/users", methods=["POST"])
@@ -348,12 +314,8 @@ def create_user(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>/users/<user_id>", methods=["PUT"])
@@ -385,12 +347,8 @@ def update_user(provider_id, user_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>/users/<user_id>", methods=["DELETE"])
@@ -410,12 +368,8 @@ def delete_user(provider_id, user_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # Role Management Endpoints
@@ -449,12 +403,8 @@ def list_roles(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/roles/<role_id>", methods=["GET"])
@@ -474,12 +424,8 @@ def get_role(provider_id, role_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/roles", methods=["POST"])
@@ -517,12 +463,8 @@ def create_role(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>/roles/<role_id>", methods=["PUT"])
@@ -554,12 +496,8 @@ def update_role(provider_id, role_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>/roles/<role_id>", methods=["DELETE"])
@@ -579,12 +517,8 @@ def delete_role(provider_id, role_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # Policy Management Endpoints
@@ -618,12 +552,8 @@ def list_policies(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/policies/<policy_id>", methods=["GET"])
@@ -643,12 +573,8 @@ def get_policy(provider_id, policy_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/policies", methods=["POST"])
@@ -691,12 +617,8 @@ def create_policy(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>/policies/<policy_id>", methods=["DELETE"])
@@ -716,12 +638,8 @@ def delete_policy(provider_id, policy_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # Policy Attachment Endpoints
@@ -747,12 +665,8 @@ def attach_policy_to_user(provider_id, user_id, policy_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route(
@@ -775,12 +689,8 @@ def detach_policy_from_user(provider_id, user_id, policy_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route(
@@ -803,12 +713,8 @@ def attach_policy_to_role(provider_id, role_id, policy_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route(
@@ -831,12 +737,8 @@ def detach_policy_from_role(provider_id, role_id, policy_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>/users/<user_id>/policies", methods=["GET"])
@@ -856,12 +758,8 @@ def list_user_policies(provider_id, user_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/roles/<role_id>/policies", methods=["GET"])
@@ -881,12 +779,8 @@ def list_role_policies(provider_id, role_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # Access Key Management Endpoints
@@ -909,12 +803,8 @@ def create_access_key(provider_id, user_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>/users/<user_id>/access-keys", methods=["GET"])
@@ -934,12 +824,8 @@ def list_access_keys(provider_id, user_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route(
@@ -962,12 +848,8 @@ def delete_access_key(provider_id, user_id, key_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # Group Management Endpoints
@@ -1001,12 +883,8 @@ def list_groups(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>/groups", methods=["POST"])
@@ -1042,12 +920,8 @@ def create_group(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>/groups/<group_id>", methods=["DELETE"])
@@ -1067,12 +941,8 @@ def delete_group(provider_id, group_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route(
@@ -1094,12 +964,8 @@ def add_user_to_group(provider_id, group_id, user_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route(
@@ -1121,9 +987,5 @@ def remove_user_from_group(provider_id, group_id, user_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 400)

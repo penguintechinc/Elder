@@ -39,9 +39,7 @@ def list_retention_policies():
         )
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/retention-policies/<int:policy_id>", methods=["GET"])
@@ -64,9 +62,7 @@ def get_retention_policy(policy_id):
         return jsonify(policy.as_dict()), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/retention-policies", methods=["POST"])
@@ -129,9 +125,7 @@ def create_retention_policy():
         return jsonify(policy.as_dict()), 201
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/retention-policies/<int:policy_id>", methods=["PUT"])
@@ -176,9 +170,7 @@ def update_retention_policy(policy_id):
         return jsonify(policy.as_dict()), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/retention-policies/<int:policy_id>", methods=["DELETE"])
@@ -204,9 +196,7 @@ def delete_retention_policy(policy_id):
         return jsonify({"message": "Retention policy deleted successfully"}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # Audit Log Cleanup (admin operation)
@@ -271,6 +261,4 @@ def cleanup_audit_logs():
         )
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)

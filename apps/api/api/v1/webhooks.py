@@ -54,9 +54,7 @@ def list_webhooks():
         return jsonify({"webhooks": webhooks, "count": len(webhooks)}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("", methods=["POST"])
@@ -108,9 +106,7 @@ def create_webhook():
         return jsonify(webhook), 201
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/<int:webhook_id>", methods=["GET"])
@@ -258,9 +254,7 @@ def get_webhook_deliveries(webhook_id):
         return jsonify({"deliveries": deliveries, "count": len(deliveries)}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:webhook_id>/deliveries/<int:delivery_id>/redeliver", methods=["POST"])
@@ -317,9 +311,7 @@ def list_notification_rules():
         return jsonify({"rules": rules, "count": len(rules)}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/notification-rules", methods=["POST"])
@@ -372,9 +364,7 @@ def create_notification_rule():
         return jsonify(rule), 201
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/notification-rules/<int:rule_id>", methods=["GET"])
@@ -532,6 +522,4 @@ def broadcast_event():
         return jsonify(result), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 400)

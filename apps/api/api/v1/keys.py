@@ -49,9 +49,7 @@ def list_keys():
         return jsonify({"keys": keys, "count": len(keys)}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:key_id>", methods=["GET"])
@@ -71,12 +69,8 @@ def get_key(key_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("", methods=["POST"])
@@ -150,12 +144,8 @@ def enable_key(key_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:key_id>/disable", methods=["POST"])
@@ -175,12 +165,8 @@ def disable_key(key_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:key_id>/rotate", methods=["POST"])
@@ -200,12 +186,8 @@ def rotate_key(key_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:key_id>", methods=["DELETE"])
@@ -230,12 +212,8 @@ def delete_key(key_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # Cryptographic Operations
@@ -272,12 +250,8 @@ def encrypt_data(key_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:key_id>/decrypt", methods=["POST"])
@@ -311,12 +285,8 @@ def decrypt_data(key_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:key_id>/generate-data-key", methods=["POST"])
@@ -349,12 +319,8 @@ def generate_data_key(key_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:key_id>/sign", methods=["POST"])
@@ -483,12 +449,8 @@ def get_key_access_log(key_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # Key Provider endpoints
@@ -515,9 +477,7 @@ def list_key_providers():
         return jsonify({"providers": providers, "count": len(providers)}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers", methods=["POST"])
@@ -568,9 +528,7 @@ def create_key_provider():
         return jsonify(provider), 201
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>", methods=["GET"])
@@ -590,12 +548,8 @@ def get_key_provider(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers/<int:provider_id>", methods=["PUT"])
@@ -681,9 +635,5 @@ def test_key_provider(provider_id):
 
     except Exception as e:
         if "not found" in str(e).lower():
-            return log_error_and_respond(
-                logger, e, "Failed to process request", 404
-            )
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 404)
+        return log_error_and_respond(logger, e, "Failed to process request", 500)

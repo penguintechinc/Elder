@@ -129,9 +129,7 @@ async def create_organization():
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:id>", methods=["GET"])
@@ -209,9 +207,7 @@ async def update_organization(id: int):
 
         except Exception as e:
             await run_in_threadpool(lambda: db.rollback())
-            return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+            return log_error_and_respond(logger, e, "Failed to process request", 500)
 
     return jsonify({"error": "No fields to update"}), 400
 
@@ -250,9 +246,7 @@ async def delete_organization(id: int):
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:id>/graph", methods=["GET"])

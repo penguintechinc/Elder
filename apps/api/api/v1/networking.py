@@ -44,9 +44,7 @@ def list_networks():
         return jsonify(result), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/networks/<int:network_id>", methods=["GET"])
@@ -59,13 +57,9 @@ def get_network(network_id):
         return jsonify(network), 200
 
     except ValueError as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 404
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/networks", methods=["POST"])
@@ -107,9 +101,7 @@ def create_network():
 
     except Exception as e:
         logger.error(f"Create network error: {str(e)}")
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/networks/<int:network_id>", methods=["PUT", "PATCH"])
@@ -140,14 +132,10 @@ def update_network(network_id):
         return jsonify(network), 200
 
     except ValueError as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 404
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
         logger.error(f"Update network error: {str(e)}")
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/networks/<int:network_id>", methods=["DELETE"])
@@ -163,14 +151,10 @@ def delete_network(network_id):
         return jsonify(result), 200
 
     except ValueError as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 404
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
         logger.error(f"Delete network error: {str(e)}")
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # Network Topology Endpoints
@@ -195,9 +179,7 @@ def list_topology_connections():
 
     except Exception as e:
         logger.error(f"List topology connections error: {str(e)}")
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/topology/connections/<int:connection_id>", methods=["GET"])
@@ -210,14 +192,10 @@ def get_topology_connection(connection_id):
         return jsonify(connection), 200
 
     except ValueError as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 404
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
         logger.error(f"Get topology connection error: {str(e)}")
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/topology/connections", methods=["POST"])
@@ -252,14 +230,10 @@ def create_topology_connection():
         return jsonify(connection), 201
 
     except ValueError as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 404
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
         logger.error(f"Create topology connection error: {str(e)}")
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/topology/connections/<int:connection_id>", methods=["DELETE"])
@@ -272,14 +246,10 @@ def delete_topology_connection(connection_id):
         return jsonify(result), 200
 
     except ValueError as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 404
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
         logger.error(f"Delete topology connection error: {str(e)}")
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # Entity-Network Mapping Endpoints
@@ -306,9 +276,7 @@ def list_entity_mappings():
 
     except Exception as e:
         logger.error(f"List entity mappings error: {str(e)}")
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/mappings/<int:mapping_id>", methods=["GET"])
@@ -321,14 +289,10 @@ def get_entity_mapping(mapping_id):
         return jsonify(mapping), 200
 
     except ValueError as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 404
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
         logger.error(f"Get entity mapping error: {str(e)}")
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/mappings", methods=["POST"])
@@ -361,14 +325,10 @@ def create_entity_mapping():
         return jsonify(mapping), 201
 
     except ValueError as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 404
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
         logger.error(f"Create entity mapping error: {str(e)}")
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/mappings/<int:mapping_id>", methods=["DELETE"])
@@ -381,14 +341,10 @@ def delete_entity_mapping(mapping_id):
         return jsonify(result), 200
 
     except ValueError as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 404
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:
         logger.error(f"Delete entity mapping error: {str(e)}")
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 # Topology Visualization Endpoint
@@ -417,6 +373,4 @@ def get_topology_graph():
 
     except Exception as e:
         logger.error(f"Get topology graph error: {str(e)}")
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)

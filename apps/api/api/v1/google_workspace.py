@@ -45,9 +45,7 @@ def list_providers():
         return jsonify({"providers": providers, "count": len(providers)}), 200
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/providers", methods=["POST"])
@@ -104,9 +102,7 @@ def create_provider():
         return jsonify(provider), 201
 
     except Exception as e:
-        return log_error_and_respond(
-            logger, e, "Failed to process request", 400
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
 @bp.route("/providers/<int:provider_id>", methods=["GET"])
