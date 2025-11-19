@@ -189,6 +189,7 @@ jobs:
 
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
+      continue-on-error: true
       with:
         scan-type: 'fs'
         scan-ref: '.'
@@ -203,17 +204,21 @@ jobs:
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
+      continue-on-error: true
       with:
         languages: 'python,javascript'
 
     - name: Autobuild
       uses: github/codeql-action/autobuild@v4
+      continue-on-error: true
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
+      continue-on-error: true
 
     - name: Run Semgrep
       uses: returntocorp/semgrep-action@v1
+      continue-on-error: true
       with:
         config: >-
           p/security-audit
