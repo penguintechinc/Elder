@@ -12,6 +12,7 @@ from flask_wtf.csrf import CSRFProtect
 from prometheus_flask_exporter import PrometheusMetrics
 
 from apps.api.config import get_config
+from apps.api.logging_config import setup_logging
 from shared.database import init_db
 
 # Configure standard library logging
@@ -63,6 +64,9 @@ def create_app(config_name: str = None) -> Flask:
     config = get_config(config_name)
     app.config.from_object(config)
     config.init_app(app)
+
+    # Setup logging (must be after config but before other initializations)
+    setup_logging(app)
 
     # Initialize extensions
     _init_extensions(app)

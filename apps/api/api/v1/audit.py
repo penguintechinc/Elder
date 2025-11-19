@@ -1,10 +1,14 @@
 """Audit System API endpoints for Elder v1.2.0 (Phase 8)."""
 
+import logging
 from datetime import datetime, timedelta
 
 from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import admin_required, login_required
+from apps.api.logging_config import log_error_and_respond
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("audit", __name__)
 
@@ -121,7 +125,9 @@ def create_retention_policy():
         return jsonify(policy.as_dict()), 201
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )
 
 
 @bp.route("/retention-policies/<int:policy_id>", methods=["PUT"])
@@ -166,7 +172,9 @@ def update_retention_policy(policy_id):
         return jsonify(policy.as_dict()), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return log_error_and_respond(
+            logger, e, "Failed to process request", 400
+        )
 
 
 @bp.route("/retention-policies/<int:policy_id>", methods=["DELETE"])
