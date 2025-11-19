@@ -180,22 +180,36 @@ def _register_blueprints(app: Flask) -> None:
     # Import blueprints (async versions where available)
     from apps.api.api.v1 import audit  # Phase 8: Audit System Enhancement
     from apps.api.api.v1 import backup  # Phase 10: Backup & Data Management
-    from apps.api.api.v1 import \
-        builtin_secrets  # v2.0.0: Built-in Secrets Storage
+    from apps.api.api.v1 import builtin_secrets  # v2.0.0: Built-in Secrets Storage
     from apps.api.api.v1 import discovery  # Phase 5: Cloud Auto-Discovery
     from apps.api.api.v1 import iam  # Phase 4: IAM Integration
     from apps.api.api.v1 import keys  # Phase 3: Keys Management
-    from apps.api.api.v1 import \
-        networking  # v2.0.0: Networking Resources & Topology
+    from apps.api.api.v1 import networking  # v2.0.0: Networking Resources & Topology
     from apps.api.api.v1 import search  # Phase 10: Advanced Search
     from apps.api.api.v1 import secrets  # Phase 2: Secrets Management
-    from apps.api.api.v1 import \
-        webhooks  # Phase 9: Webhook & Notification System
+    from apps.api.api.v1 import webhooks  # Phase 9: Webhook & Notification System
     from apps.api.api.v1 import (  # Phase 7: Google Workspace Integration
-        api_keys, auth, dependencies, entities, entity_types, google_workspace,
-        graph, identities, issues, labels, lookup, metadata, milestones,
-        organization_tree, organizations_pydal, profile, projects,
-        resource_roles, sync, users)
+        api_keys,
+        auth,
+        dependencies,
+        entities,
+        entity_types,
+        google_workspace,
+        graph,
+        identities,
+        issues,
+        labels,
+        lookup,
+        metadata,
+        milestones,
+        organization_tree,
+        organizations_pydal,
+        profile,
+        projects,
+        resource_roles,
+        sync,
+        users,
+    )
     from apps.api.web import routes as web
 
     # Register API v1 blueprints

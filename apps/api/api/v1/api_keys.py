@@ -7,8 +7,12 @@ from dataclasses import asdict
 from flask import Blueprint, jsonify, request
 
 from apps.api.auth.decorators import get_current_user, login_required
-from apps.api.models.dataclasses import (APIKeyDTO, CreateAPIKeyResponse,
-                                         PaginatedResponse, from_pydal_rows)
+from apps.api.models.dataclasses import (
+    APIKeyDTO,
+    CreateAPIKeyResponse,
+    PaginatedResponse,
+    from_pydal_rows,
+)
 from shared.async_utils import run_in_threadpool
 from shared.database import db
 

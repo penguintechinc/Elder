@@ -7,9 +7,13 @@ from flask import Blueprint, current_app, g, jsonify, request
 from werkzeug.security import generate_password_hash
 
 from apps.api.auth import login_required, permission_required
-from apps.api.models.dataclasses import (IdentityDTO, IdentityGroupDTO,
-                                         PaginatedResponse, from_pydal_row,
-                                         from_pydal_rows)
+from apps.api.models.dataclasses import (
+    IdentityDTO,
+    IdentityGroupDTO,
+    PaginatedResponse,
+    from_pydal_row,
+    from_pydal_rows,
+)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("identities", __name__)

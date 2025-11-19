@@ -7,9 +7,15 @@ import grpc
 import structlog
 
 from apps.api.grpc.converters import organization_to_proto
-from apps.api.grpc.generated import (auth_pb2, common_pb2, dependency_pb2,
-                                     elder_pb2_grpc, entity_pb2, graph_pb2,
-                                     organization_pb2)
+from apps.api.grpc.generated import (
+    auth_pb2,
+    common_pb2,
+    dependency_pb2,
+    elder_pb2_grpc,
+    entity_pb2,
+    graph_pb2,
+    organization_pb2,
+)
 from apps.api.models import Organization
 from shared.database import db
 

@@ -8,8 +8,7 @@ from apps.api.models.pydal_models import define_all_tables
 from shared.database import db
 
 from .aws_client import AWSSecretsManagerClient
-from .base import (SecretNotFoundException, SecretProviderClient,
-                   SecretProviderException)
+from .base import SecretNotFoundException, SecretProviderClient, SecretProviderException
 from .gcp_client import GCPSecretManagerClient
 from .infisical_client import InfisicalClient
 

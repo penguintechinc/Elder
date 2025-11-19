@@ -7,9 +7,13 @@ from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required
 from apps.api.logging_config import log_error_and_respond
-from apps.api.models.dataclasses import (CreateOrganizationRequest,
-                                         OrganizationDTO, PaginatedResponse,
-                                         from_pydal_row, from_pydal_rows)
+from apps.api.models.dataclasses import (
+    CreateOrganizationRequest,
+    OrganizationDTO,
+    PaginatedResponse,
+    from_pydal_row,
+    from_pydal_rows,
+)
 from shared.async_utils import run_in_threadpool
 
 logger = logging.getLogger(__name__)
