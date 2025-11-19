@@ -282,7 +282,7 @@ class BatchSyncScheduler:
 
         recent_failures = self.db(
             (self.db.sync_history.sync_type == "webhook")
-            & (self.db.sync_history.success == False)
+            & (self.db.sync_history.success is False)
             & (self.db.sync_history.started_at > cutoff_time)
         ).select()
 
@@ -310,8 +310,8 @@ class BatchSyncScheduler:
     def _load_sync_configs(self) -> None:
         """Load sync configurations from database and create batch jobs."""
         configs = self.db(
-            (self.db.sync_configs.enabled == True)
-            & (self.db.sync_configs.batch_fallback_enabled == True)
+            (self.db.sync_configs.enabled is True)
+            & (self.db.sync_configs.batch_fallback_enabled is True)
         ).select()
 
         for config in configs:

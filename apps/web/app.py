@@ -16,7 +16,7 @@ from pydal.validators import IS_EMAIL, IS_IN_SET, IS_NOT_EMPTY
 # Add shared modules to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from shared.licensing.python_client import (
+from shared.licensing.python_client import (  # noqa: E402
     FeatureNotAvailableError,
     LicenseValidationError,
     get_client,
@@ -55,7 +55,8 @@ db.define_table(
 )
 
 # Initialize authentication
-auth = Auth(db, session=session)
+# Note: session is provided by py4web framework at runtime
+auth = Auth(db, session=None)  # Session injected by @action.uses
 
 # Initialize mailer (if needed)
 mailer = Mailer(
@@ -247,7 +248,7 @@ def admin():
     # System statistics
     stats = {
         "total_users": db(db.users).count(),
-        "active_users": db(db.users.is_active == True).count(),
+        "active_users": db(db.users.is_active is True).count(),
         "total_feature_usage": db(db.license_usage).count(),
         "license_tier": license_info.get("tier") if license_info else "Unknown",
     }

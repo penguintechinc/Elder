@@ -210,7 +210,7 @@ async def batch_execute(items: list, func: Callable, batch_size: int = 10) -> li
     """
     results = []
     for i in range(0, len(items), batch_size):
-        batch = items[i : i + batch_size]
+        batch = items[i:i + batch_size]
         batch_results = await asyncio.gather(*[func(item) for item in batch])
         results.extend(batch_results)
     return results

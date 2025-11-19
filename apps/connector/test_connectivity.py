@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 """Test connectivity to external services before running the connector."""
 
+import asyncio
 import os
 import sys
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-import asyncio
-
-from apps.connector.config.settings import settings
-from apps.connector.utils.logger import configure_logging, get_logger
+from apps.connector.config.settings import settings  # noqa: E402
+from apps.connector.utils.logger import configure_logging, get_logger  # noqa: E402
 
 # Configure logging
 configure_logging()

@@ -774,7 +774,7 @@ class WebhookService:
         # Find webhooks subscribed to this event
         webhooks = self.db(
             (self.db.webhooks.organization_id == organization_id)
-            & (self.db.webhooks.enabled == True)
+            & (self.db.webhooks.enabled is True)
         ).select()
 
         webhook_results = []
@@ -792,7 +792,7 @@ class WebhookService:
         # Find notification rules for this event
         rules = self.db(
             (self.db.notification_rules.organization_id == organization_id)
-            & (self.db.notification_rules.enabled == True)
+            & (self.db.notification_rules.enabled is True)
         ).select()
 
         notification_results = []

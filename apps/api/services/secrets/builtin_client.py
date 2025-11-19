@@ -141,7 +141,7 @@ class BuiltinSecretsClient(SecretProviderClient):
         try:
             query = (
                 self.db.builtin_secrets.organization_id == self.organization_id
-            ) & (self.db.builtin_secrets.is_active == True)
+            ) & (self.db.builtin_secrets.is_active is True)
 
             if prefix:
                 query &= self.db.builtin_secrets.name.like(f"{prefix}%")
