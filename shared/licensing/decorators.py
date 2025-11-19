@@ -1,11 +1,9 @@
 """License validation decorators for Elder enterprise features."""
 
-from functools import wraps
-from flask import jsonify, abort
-import structlog
 import inspect
+from functools import wraps
 
-from .client import get_license_client
+import structlog
 
 logger = structlog.get_logger()
 
@@ -50,7 +48,7 @@ def license_required(required_tier: str = "enterprise"):
                 "license_check_bypassed",
                 required_tier=required_tier,
                 endpoint=func.__name__,
-                note="License enforcement temporarily disabled"
+                note="License enforcement temporarily disabled",
             )
 
             # Bypass license check - allow all features
@@ -102,7 +100,7 @@ def feature_required(feature_name: str):
                 "feature_check_bypassed",
                 feature=feature_name,
                 endpoint=func.__name__,
-                note="Feature enforcement temporarily disabled"
+                note="Feature enforcement temporarily disabled",
             )
 
             # Bypass feature check - allow all features

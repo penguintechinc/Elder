@@ -3,16 +3,17 @@
 Using @dataclass(slots=True) provides 30-50% memory reduction and faster attribute access.
 """
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Optional
 
-
 # ==================== Organization Units (OUs) ====================
+
 
 @dataclass(slots=True, frozen=True)
 class OrganizationDTO:
     """Immutable Organization Unit (OU) data transfer object."""
+
     id: int
     name: str
     description: Optional[str]
@@ -29,9 +30,12 @@ class OrganizationDTO:
 @dataclass(slots=True)
 class CreateOrganizationRequest:
     """Request to create a new Organization Unit (OU)."""
+
     name: str
     description: Optional[str] = None
-    organization_type: str = 'organization'  # department, organization, team, collection, other
+    organization_type: str = (
+        "organization"  # department, organization, team, collection, other
+    )
     parent_id: Optional[int] = None
     ldap_dn: Optional[str] = None
     saml_group: Optional[str] = None
@@ -42,9 +46,12 @@ class CreateOrganizationRequest:
 @dataclass(slots=True)
 class UpdateOrganizationRequest:
     """Request to update an Organization Unit (OU)."""
+
     name: Optional[str] = None
     description: Optional[str] = None
-    organization_type: Optional[str] = None  # department, organization, team, collection, other
+    organization_type: Optional[str] = (
+        None  # department, organization, team, collection, other
+    )
     parent_id: Optional[int] = None
     ldap_dn: Optional[str] = None
     saml_group: Optional[str] = None
@@ -54,18 +61,23 @@ class UpdateOrganizationRequest:
 
 # ==================== Entities ====================
 
+
 @dataclass(slots=True, frozen=True)
 class EntityDTO:
     """Immutable Entity data transfer object."""
+
     id: int
     name: str
     description: Optional[str]
     entity_type: str
+    sub_type: Optional[str]
     organization_id: int
     parent_id: Optional[int]
     attributes: Optional[dict]
     tags: Optional[list[str]]
     is_active: bool
+    default_metadata: Optional[dict]
+    status_metadata: Optional[dict]
     created_at: datetime
     updated_at: datetime
 
@@ -73,33 +85,41 @@ class EntityDTO:
 @dataclass(slots=True)
 class CreateEntityRequest:
     """Request to create a new Entity."""
+
     name: str
     entity_type: str
     organization_id: int
     description: Optional[str] = None
+    sub_type: Optional[str] = None
     parent_id: Optional[int] = None
     attributes: Optional[dict] = None
     tags: Optional[list[str]] = field(default_factory=list)
+    default_metadata: Optional[dict] = None
     is_active: bool = True
 
 
 @dataclass(slots=True)
 class UpdateEntityRequest:
     """Request to update an Entity."""
+
     name: Optional[str] = None
     description: Optional[str] = None
     entity_type: Optional[str] = None
+    sub_type: Optional[str] = None
     parent_id: Optional[int] = None
     attributes: Optional[dict] = None
     tags: Optional[list[str]] = None
+    default_metadata: Optional[dict] = None
     is_active: Optional[bool] = None
 
 
 # ==================== Dependencies ====================
 
+
 @dataclass(slots=True, frozen=True)
 class DependencyDTO:
     """Immutable Dependency data transfer object."""
+
     id: int
     source_entity_id: int
     target_entity_id: int
@@ -112,6 +132,7 @@ class DependencyDTO:
 @dataclass(slots=True)
 class CreateDependencyRequest:
     """Request to create a new Dependency."""
+
     source_entity_id: int
     target_entity_id: int
     dependency_type: str
@@ -120,9 +141,11 @@ class CreateDependencyRequest:
 
 # ==================== Identities ====================
 
-@dataclass(slots=True, frozen=True)
+
+@dataclass(slots=True)
 class IdentityDTO:
     """Immutable Identity data transfer object."""
+
     id: int
     identity_type: str
     username: str
@@ -138,11 +161,14 @@ class IdentityDTO:
     last_login_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
+    password_hash: Optional[str] = None  # Stored password hash (never expose to client)
+    mfa_secret: Optional[str] = None  # MFA secret (never expose to client)
 
 
 @dataclass(slots=True)
 class CreateIdentityRequest:
     """Request to create a new Identity."""
+
     username: str
     identity_type: str
     auth_provider: str
@@ -158,6 +184,7 @@ class CreateIdentityRequest:
 @dataclass(slots=True)
 class UpdateIdentityRequest:
     """Request to update an Identity."""
+
     email: Optional[str] = None
     full_name: Optional[str] = None
     password: Optional[str] = None  # Will be hashed
@@ -167,9 +194,11 @@ class UpdateIdentityRequest:
 
 # ==================== Identity Groups ====================
 
+
 @dataclass(slots=True, frozen=True)
 class IdentityGroupDTO:
     """Immutable Identity Group data transfer object."""
+
     id: int
     name: str
     description: Optional[str]
@@ -183,6 +212,7 @@ class IdentityGroupDTO:
 @dataclass(slots=True)
 class CreateIdentityGroupRequest:
     """Request to create a new Identity Group."""
+
     name: str
     description: Optional[str] = None
     ldap_dn: Optional[str] = None
@@ -192,9 +222,11 @@ class CreateIdentityGroupRequest:
 
 # ==================== Roles & Permissions ====================
 
+
 @dataclass(slots=True, frozen=True)
 class RoleDTO:
     """Immutable Role data transfer object."""
+
     id: int
     name: str
     description: Optional[str]
@@ -205,6 +237,7 @@ class RoleDTO:
 @dataclass(slots=True, frozen=True)
 class PermissionDTO:
     """Immutable Permission data transfer object."""
+
     id: int
     name: str
     resource_type: str
@@ -216,9 +249,11 @@ class PermissionDTO:
 
 # ==================== Resource Roles (Enterprise) ====================
 
+
 @dataclass(slots=True, frozen=True)
 class ResourceRoleDTO:
     """Immutable Resource Role data transfer object."""
+
     id: int
     identity_id: Optional[int]
     group_id: Optional[int]
@@ -232,6 +267,7 @@ class ResourceRoleDTO:
 @dataclass(slots=True)
 class CreateResourceRoleRequest:
     """Request to create a Resource Role assignment."""
+
     role: str
     resource_type: str
     identity_id: Optional[int] = None
@@ -241,9 +277,11 @@ class CreateResourceRoleRequest:
 
 # ==================== Issues (Enterprise) ====================
 
+
 @dataclass(slots=True, frozen=True)
 class IssueDTO:
     """Immutable Issue data transfer object."""
+
     id: int
     title: str
     description: Optional[str]
@@ -262,6 +300,7 @@ class IssueDTO:
 @dataclass(slots=True)
 class CreateIssueRequest:
     """Request to create a new Issue."""
+
     title: str
     reporter_id: int
     description: Optional[str] = None
@@ -276,6 +315,7 @@ class CreateIssueRequest:
 @dataclass(slots=True)
 class UpdateIssueRequest:
     """Request to update an Issue."""
+
     title: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
@@ -288,6 +328,7 @@ class UpdateIssueRequest:
 @dataclass(slots=True, frozen=True)
 class IssueLabelDTO:
     """Immutable Issue Label data transfer object."""
+
     id: int
     name: str
     color: str
@@ -298,6 +339,7 @@ class IssueLabelDTO:
 @dataclass(slots=True, frozen=True)
 class IssueCommentDTO:
     """Immutable Issue Comment data transfer object."""
+
     id: int
     issue_id: int
     author_id: int
@@ -309,6 +351,7 @@ class IssueCommentDTO:
 @dataclass(slots=True)
 class CreateIssueCommentRequest:
     """Request to create an Issue Comment."""
+
     issue_id: int
     author_id: int
     content: str
@@ -317,14 +360,16 @@ class CreateIssueCommentRequest:
 @dataclass(slots=True)
 class CreateLabelRequest:
     """Request to create a Label."""
+
     name: str
     description: Optional[str] = None
-    color: Optional[str] = '#cccccc'
+    color: Optional[str] = "#cccccc"
 
 
 @dataclass(slots=True)
 class UpdateLabelRequest:
     """Request to update a Label."""
+
     name: Optional[str] = None
     description: Optional[str] = None
     color: Optional[str] = None
@@ -332,9 +377,11 @@ class UpdateLabelRequest:
 
 # ==================== Projects ====================
 
+
 @dataclass(slots=True, frozen=True)
 class ProjectDTO:
     """Immutable Project data transfer object."""
+
     id: int
     name: str
     description: Optional[str]
@@ -349,10 +396,11 @@ class ProjectDTO:
 @dataclass(slots=True)
 class CreateProjectRequest:
     """Request to create a new Project."""
+
     name: str
     organization_id: int
     description: Optional[str] = None
-    status: str = 'active'
+    status: str = "active"
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
@@ -360,6 +408,7 @@ class CreateProjectRequest:
 @dataclass(slots=True)
 class UpdateProjectRequest:
     """Request to update a Project."""
+
     name: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
@@ -369,9 +418,11 @@ class UpdateProjectRequest:
 
 # ==================== Milestones ====================
 
+
 @dataclass(slots=True, frozen=True)
 class MilestoneDTO:
     """Immutable Milestone data transfer object."""
+
     id: int
     title: str
     description: Optional[str]
@@ -387,10 +438,11 @@ class MilestoneDTO:
 @dataclass(slots=True)
 class CreateMilestoneRequest:
     """Request to create a new Milestone."""
+
     title: str
     organization_id: int
     description: Optional[str] = None
-    status: str = 'open'
+    status: str = "open"
     project_id: Optional[int] = None
     due_date: Optional[datetime] = None
 
@@ -398,6 +450,7 @@ class CreateMilestoneRequest:
 @dataclass(slots=True)
 class UpdateMilestoneRequest:
     """Request to update a Milestone."""
+
     title: Optional[str] = None
     description: Optional[str] = None
     status: Optional[str] = None
@@ -408,9 +461,11 @@ class UpdateMilestoneRequest:
 
 # ==================== Metadata (Enterprise) ====================
 
+
 @dataclass(slots=True, frozen=True)
 class MetadataFieldDTO:
     """Immutable Metadata Field data transfer object."""
+
     id: int
     key: str
     value: Optional[str]
@@ -425,6 +480,7 @@ class MetadataFieldDTO:
 @dataclass(slots=True)
 class CreateMetadataFieldRequest:
     """Request to create a Metadata Field."""
+
     key: str
     value: Optional[str]
     field_type: str
@@ -435,9 +491,11 @@ class CreateMetadataFieldRequest:
 
 # ==================== API Keys ====================
 
+
 @dataclass(slots=True, frozen=True)
 class APIKeyDTO:
     """Immutable API Key data transfer object."""
+
     id: int
     identity_id: int
     name: str
@@ -452,6 +510,7 @@ class APIKeyDTO:
 @dataclass(slots=True)
 class CreateAPIKeyRequest:
     """Request to create a new API Key."""
+
     name: str
     expires_at: Optional[datetime] = None
 
@@ -459,6 +518,7 @@ class CreateAPIKeyRequest:
 @dataclass(slots=True, frozen=True)
 class CreateAPIKeyResponse:
     """Response when creating a new API Key (includes full key once)."""
+
     id: int
     name: str
     api_key: str  # Full key - shown only once!
@@ -469,9 +529,11 @@ class CreateAPIKeyResponse:
 
 # ==================== Auth Requests/Responses ====================
 
+
 @dataclass(slots=True)
 class LoginRequest:
     """Login request with username and password."""
+
     username: str
     password: str
     mfa_code: Optional[str] = None
@@ -480,6 +542,7 @@ class LoginRequest:
 @dataclass(slots=True, frozen=True)
 class LoginResponse:
     """Login response with access token."""
+
     access_token: str
     token_type: str
     expires_in: int
@@ -489,6 +552,7 @@ class LoginResponse:
 @dataclass(slots=True)
 class RegisterRequest:
     """User registration request."""
+
     username: str
     email: str
     password: str
@@ -497,9 +561,11 @@ class RegisterRequest:
 
 # ==================== Audit Logs ====================
 
+
 @dataclass(slots=True, frozen=True)
 class AuditLogDTO:
     """Immutable Audit Log data transfer object."""
+
     id: int
     identity_id: Optional[int]
     action: str
@@ -514,9 +580,11 @@ class AuditLogDTO:
 
 # ==================== Pagination ====================
 
+
 @dataclass(slots=True, frozen=True)
 class PaginatedResponse:
     """Generic paginated response wrapper."""
+
     items: list
     total: int
     page: int
@@ -525,6 +593,7 @@ class PaginatedResponse:
 
 
 # ==================== Helper Functions ====================
+
 
 def to_dict(obj) -> dict:
     """Convert dataclass to dictionary (handles nested objects)."""

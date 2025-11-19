@@ -1,15 +1,13 @@
 """Milestones management API endpoints for Elder using PyDAL with async/await."""
 
-import asyncio
-from flask import Blueprint, jsonify, request, current_app, g
-from datetime import datetime, timezone
 from dataclasses import asdict
+from datetime import datetime, timezone
+
+from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required, resource_role_required
 from apps.api.models.dataclasses import (
     MilestoneDTO,
-    CreateMilestoneRequest,
-    UpdateMilestoneRequest,
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,
@@ -43,8 +41,8 @@ async def list_milestones():
     db = current_app.db
 
     # Get pagination params
-    page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 50, type=int), 1000)
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 50, type=int), 1000)
 
     # Build query
     def get_milestones():
@@ -53,20 +51,20 @@ async def list_milestones():
         # Apply filters
         if request.args.get("organization_id"):
             org_id = request.args.get("organization_id", type=int)
-            query &= (db.milestones.organization_id == org_id)
+            query &= db.milestones.organization_id == org_id
 
         if request.args.get("project_id"):
             project_id = request.args.get("project_id", type=int)
-            query &= (db.milestones.project_id == project_id)
+            query &= db.milestones.project_id == project_id
 
         if request.args.get("status"):
-            query &= (db.milestones.status == request.args.get("status"))
+            query &= db.milestones.status == request.args.get("status")
 
         if request.args.get("search"):
             search = request.args.get("search")
-            query &= (
-                (db.milestones.title.contains(search)) |
-                (db.milestones.description.contains(search))
+            search_pattern = f"%{search}%"
+            query &= (db.milestones.title.ilike(search_pattern)) | (
+                db.milestones.description.ilike(search_pattern)
             )
 
         # Calculate pagination
@@ -75,8 +73,7 @@ async def list_milestones():
         # Get count and rows
         total = db(query).count()
         rows = db(query).select(
-            orderby=~db.milestones.created_at,
-            limitby=(offset, offset + per_page)
+            orderby=~db.milestones.created_at, limitby=(offset, offset + per_page)
         )
 
         return total, rows
@@ -95,7 +92,7 @@ async def list_milestones():
         total=total,
         page=page,
         per_page=per_page,
-        pages=pages
+        pages=pages,
     )
 
     return jsonify(asdict(response)), 200
@@ -285,7 +282,7 @@ async def delete_milestone(id: int):
         if not milestone:
             return False
 
-        del db.milestones[milestone_id]
+        del db.milestones[id]
         db.commit()
         return True
 
@@ -337,6 +334,7 @@ async def get_milestone_issues(id: int):
         return jsonify({"error": "Milestone not found"}), 404
 
     from apps.api.models.dataclasses import IssueDTO
+
     issues_dto = from_pydal_rows(issues, IssueDTO)
 
     return jsonify({"issues": [asdict(issue) for issue in issues_dto]}), 200

@@ -1,8 +1,9 @@
 """Web UI routes for Elder."""
 
 import os
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session
-from flask_login import login_user, logout_user, login_required, current_user
+
+from flask import Blueprint, flash, redirect, render_template, url_for
+from flask_login import current_user, login_required, logout_user
 
 from shared.licensing import get_license_client
 
@@ -108,21 +109,27 @@ def organizations():
 @login_required
 def create_organization():
     """Create organization page."""
-    return render_template("organizations/form.html", mode="create", **get_template_context())
+    return render_template(
+        "organizations/form.html", mode="create", **get_template_context()
+    )
 
 
 @bp.route("/organizations/<int:id>")
 @login_required
 def view_organization(id):
     """View organization details."""
-    return render_template("organizations/view.html", org_id=id, **get_template_context())
+    return render_template(
+        "organizations/view.html", org_id=id, **get_template_context()
+    )
 
 
 @bp.route("/organizations/<int:id>/edit")
 @login_required
 def edit_organization(id):
     """Edit organization page."""
-    return render_template("organizations/form.html", mode="edit", org_id=id, **get_template_context())
+    return render_template(
+        "organizations/form.html", mode="edit", org_id=id, **get_template_context()
+    )
 
 
 # ============================================================================
@@ -141,7 +148,9 @@ def entities():
 @login_required
 def create_entity():
     """Create entity page."""
-    return render_template("entities/form.html", mode="create", **get_template_context())
+    return render_template(
+        "entities/form.html", mode="create", **get_template_context()
+    )
 
 
 @bp.route("/entities/<int:id>")
@@ -155,7 +164,9 @@ def view_entity(id):
 @login_required
 def edit_entity(id):
     """Edit entity page."""
-    return render_template("entities/form.html", mode="edit", entity_id=id, **get_template_context())
+    return render_template(
+        "entities/form.html", mode="edit", entity_id=id, **get_template_context()
+    )
 
 
 # ============================================================================

@@ -1,20 +1,19 @@
 """Identity and User management API endpoints using PyDAL with async/await."""
 
-from flask import Blueprint, request, jsonify, current_app, g
-from werkzeug.security import generate_password_hash
+import asyncio
 from dataclasses import asdict
 
+from flask import Blueprint, current_app, g, jsonify, request
+from werkzeug.security import generate_password_hash
+
+from apps.api.auth import login_required, permission_required
 from apps.api.models.dataclasses import (
     IdentityDTO,
     IdentityGroupDTO,
-    CreateIdentityRequest,
-    UpdateIdentityRequest,
-    CreateIdentityGroupRequest,
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,
 )
-from apps.api.auth import login_required, permission_required
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("identities", __name__)
@@ -29,6 +28,7 @@ async def list_identities():
     Query Parameters:
         - page: Page number (default: 1)
         - per_page: Items per page (default: 50, max: 1000)
+        - search: Search in username, email, or full name (case-insensitive)
         - identity_type: Filter by type (human/service_account)
         - is_active: Filter by active status
         - organization_id: Filter by organization
@@ -39,24 +39,34 @@ async def list_identities():
     db = current_app.db
 
     # Get pagination params
-    page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 50, type=int), 1000)
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 50, type=int), 1000)
 
     # Build query
     query = db.identities.id > 0
 
     # Apply filters
+    # Search filter (case-insensitive search on username, email, full_name)
+    search = request.args.get("search") or request.args.get("name")
+    if search:
+        search_pattern = f"%{search}%"
+        query &= (
+            (db.identities.username.ilike(search_pattern))
+            | (db.identities.email.ilike(search_pattern))
+            | (db.identities.full_name.ilike(search_pattern))
+        )
+
     identity_type = request.args.get("identity_type")
     if identity_type:
-        query &= (db.identities.identity_type == identity_type)
+        query &= db.identities.identity_type == identity_type
 
     is_active = request.args.get("is_active")
     if is_active is not None:
-        query &= (db.identities.is_active == (is_active.lower() == "true"))
+        query &= db.identities.is_active == (is_active.lower() == "true")
 
     organization_id = request.args.get("organization_id", type=int)
     if organization_id is not None:
-        query &= (db.identities.organization_id == organization_id)
+        query &= db.identities.organization_id == organization_id
 
     # Calculate pagination
     offset = (page - 1) * per_page
@@ -82,7 +92,7 @@ async def list_identities():
             db.identities.created_at,
             db.identities.updated_at,
             orderby=db.identities.username,
-            limitby=(offset, offset + per_page)
+            limitby=(offset, offset + per_page),
         )
         return total, rows
 
@@ -100,7 +110,7 @@ async def list_identities():
         total=total,
         page=page,
         per_page=per_page,
-        pages=pages
+        pages=pages,
     )
 
     return jsonify(asdict(response)), 200
@@ -314,6 +324,7 @@ async def delete_identity(id: int):
 
 # Identity Groups endpoints
 
+
 @bp.route("/groups", methods=["GET"])
 @login_required
 @permission_required("view_users")
@@ -331,8 +342,8 @@ async def list_groups():
     db = current_app.db
 
     # Get pagination params
-    page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 50, type=int), 1000)
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 50, type=int), 1000)
 
     # Build query
     query = db.identity_groups.id > 0
@@ -342,14 +353,13 @@ async def list_groups():
 
     # Use asyncio TaskGroup for concurrent queries (Python 3.12)
     async with asyncio.TaskGroup() as tg:
-        count_task = tg.create_task(
-            run_in_threadpool(lambda: db(query).count())
-        )
+        count_task = tg.create_task(run_in_threadpool(lambda: db(query).count()))
         rows_task = tg.create_task(
-            run_in_threadpool(lambda: db(query).select(
-                orderby=db.identity_groups.name,
-                limitby=(offset, offset + per_page)
-            ))
+            run_in_threadpool(
+                lambda: db(query).select(
+                    orderby=db.identity_groups.name, limitby=(offset, offset + per_page)
+                )
+            )
         )
 
     total = count_task.result()
@@ -367,7 +377,7 @@ async def list_groups():
         total=total,
         page=page,
         per_page=per_page,
-        pages=pages
+        pages=pages,
     )
 
     return jsonify(asdict(response)), 200
@@ -500,10 +510,9 @@ async def delete_group(id: int):
         return jsonify({"error": "Group not found"}), 404
 
     # Delete group
-    await run_in_threadpool(lambda: (
-        db(db.identity_groups.id == id).delete(),
-        db.commit()
-    ))
+    await run_in_threadpool(
+        lambda: (db(db.identity_groups.id == id).delete(), db.commit())
+    )
 
     return "", 204
 
@@ -538,10 +547,14 @@ async def add_group_member(group_id: int, identity_id: int):
             return None, "Identity not found", 404
 
         # Check if already a member
-        existing = db(
-            (db.identity_group_members.group_id == group_id) &
-            (db.identity_group_members.identity_id == identity_id)
-        ).select().first()
+        existing = (
+            db(
+                (db.identity_group_members.group_id == group_id)
+                & (db.identity_group_members.identity_id == identity_id)
+            )
+            .select()
+            .first()
+        )
 
         if existing:
             return None, "Identity is already a member of this group", 400
@@ -578,18 +591,22 @@ async def remove_group_member(group_id: int, identity_id: int):
 
     # Check and remove membership
     def remove_member():
-        membership = db(
-            (db.identity_group_members.group_id == group_id) &
-            (db.identity_group_members.identity_id == identity_id)
-        ).select().first()
+        membership = (
+            db(
+                (db.identity_group_members.group_id == group_id)
+                & (db.identity_group_members.identity_id == identity_id)
+            )
+            .select()
+            .first()
+        )
 
         if not membership:
             return None, "Identity is not a member of this group", 404
 
         # Delete membership
         db(
-            (db.identity_group_members.group_id == group_id) &
-            (db.identity_group_members.identity_id == identity_id)
+            (db.identity_group_members.group_id == group_id)
+            & (db.identity_group_members.identity_id == identity_id)
         ).delete()
         db.commit()
 

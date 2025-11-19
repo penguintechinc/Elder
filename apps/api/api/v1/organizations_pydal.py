@@ -1,19 +1,22 @@
 """Organization Units (OUs) API endpoints using PyDAL with async/await."""
 
-from flask import Blueprint, request, jsonify, current_app
-from datetime import datetime, timezone
+import logging
 from dataclasses import asdict
 
+from flask import Blueprint, current_app, jsonify, request
+
+from apps.api.auth.decorators import login_required
+from apps.api.logging_config import log_error_and_respond
 from apps.api.models.dataclasses import (
-    OrganizationDTO,
     CreateOrganizationRequest,
-    UpdateOrganizationRequest,
+    OrganizationDTO,
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,
 )
-from apps.api.auth.decorators import login_required
 from shared.async_utils import run_in_threadpool
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("organizations", __name__)
 
@@ -36,8 +39,8 @@ async def list_organizations():
     db = current_app.db
 
     # Get pagination params
-    page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 50, type=int), 1000)
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 50, type=int), 1000)
 
     # Build query
     query = db.organizations.id > 0
@@ -45,11 +48,13 @@ async def list_organizations():
     # Apply filters
     if request.args.get("parent_id"):
         parent_id = request.args.get("parent_id", type=int)
-        query &= (db.organizations.parent_id == parent_id)
+        query &= db.organizations.parent_id == parent_id
 
-    if request.args.get("name"):
-        name = request.args.get("name")
-        query &= (db.organizations.name.contains(name))
+    # Support both 'name' and 'search' parameters for name filtering
+    search_term = request.args.get("name") or request.args.get("search")
+    if search_term:
+        # Case-insensitive search using PostgreSQL ILIKE
+        query &= db.organizations.name.ilike(f"%{search_term}%")
 
     # Calculate pagination
     offset = (page - 1) * per_page
@@ -58,8 +63,7 @@ async def list_organizations():
     def get_orgs():
         total = db(query).count()
         rows = db(query).select(
-            orderby=db.organizations.name,
-            limitby=(offset, offset + per_page)
+            orderby=db.organizations.name, limitby=(offset, offset + per_page)
         )
         return total, rows
 
@@ -77,7 +81,7 @@ async def list_organizations():
         total=total,
         page=page,
         per_page=per_page,
-        pages=pages
+        pages=pages,
     )
 
     return jsonify(asdict(response)), 200
@@ -99,19 +103,19 @@ async def create_organization():
     data = request.get_json() or {}
 
     # Validate required fields
-    if not data.get('name'):
-        return jsonify({'error': 'Name is required'}), 400
+    if not data.get("name"):
+        return jsonify({"error": "Name is required"}), 400
 
     # Create request DTO
     create_req = CreateOrganizationRequest(
-        name=data.get('name'),
-        description=data.get('description'),
-        organization_type=data.get('organization_type', 'organization'),
-        parent_id=data.get('parent_id'),
-        ldap_dn=data.get('ldap_dn'),
-        saml_group=data.get('saml_group'),
-        owner_identity_id=data.get('owner_identity_id'),
-        owner_group_id=data.get('owner_group_id'),
+        name=data.get("name"),
+        description=data.get("description"),
+        organization_type=data.get("organization_type", "organization"),
+        parent_id=data.get("parent_id"),
+        ldap_dn=data.get("ldap_dn"),
+        saml_group=data.get("saml_group"),
+        owner_identity_id=data.get("owner_identity_id"),
+        owner_group_id=data.get("owner_group_id"),
     )
 
     # Insert organization in thread pool
@@ -129,7 +133,7 @@ async def create_organization():
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
-        return jsonify({'error': f'Database error: {str(e)}'}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:id>", methods=["GET"])
@@ -149,7 +153,7 @@ async def get_organization(id: int):
 
     org_row = await run_in_threadpool(lambda: db.organizations[id])
     if not org_row:
-        return jsonify({'error': 'Organization Unit not found'}), 404
+        return jsonify({"error": "Organization Unit not found"}), 404
 
     org_dto = from_pydal_row(org_row, OrganizationDTO)
     return jsonify(asdict(org_dto)), 200
@@ -174,13 +178,22 @@ async def update_organization(id: int):
 
     org_row = await run_in_threadpool(lambda: db.organizations[id])
     if not org_row:
-        return jsonify({'error': 'Organization Unit not found'}), 404
+        return jsonify({"error": "Organization Unit not found"}), 404
 
     data = request.get_json() or {}
 
     # Build update DTO with only provided fields
     update_fields = {}
-    for field in ['name', 'description', 'organization_type', 'parent_id', 'ldap_dn', 'saml_group', 'owner_identity_id', 'owner_group_id']:
+    for field in [
+        "name",
+        "description",
+        "organization_type",
+        "parent_id",
+        "ldap_dn",
+        "saml_group",
+        "owner_identity_id",
+        "owner_group_id",
+    ]:
         if field in data:
             update_fields[field] = data[field]
 
@@ -198,9 +211,9 @@ async def update_organization(id: int):
 
         except Exception as e:
             await run_in_threadpool(lambda: db.rollback())
-            return jsonify({'error': f'Database error: {str(e)}'}), 500
+            return log_error_and_respond(logger, e, "Failed to process request", 500)
 
-    return jsonify({'error': 'No fields to update'}), 400
+    return jsonify({"error": "No fields to update"}), 400
 
 
 @bp.route("/<int:id>", methods=["DELETE"])
@@ -220,7 +233,7 @@ async def delete_organization(id: int):
 
     org_row = await run_in_threadpool(lambda: db.organizations[id])
     if not org_row:
-        return jsonify({'error': 'Organization Unit not found'}), 404
+        return jsonify({"error": "Organization Unit not found"}), 404
 
     # Check if OU has children (concurrent check in TaskGroup)
     children_count = await run_in_threadpool(
@@ -228,16 +241,16 @@ async def delete_organization(id: int):
     )
 
     if children_count > 0:
-        return jsonify({'error': 'Cannot delete Organization Unit with child OUs'}), 400
+        return jsonify({"error": "Cannot delete Organization Unit with child OUs"}), 400
 
     try:
         await run_in_threadpool(lambda: db.organizations.__delitem__(id))
         await run_in_threadpool(lambda: db.commit())
-        return '', 204
+        return "", 204
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
-        return jsonify({'error': f'Database error: {str(e)}'}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:id>/graph", methods=["GET"])
@@ -262,9 +275,9 @@ async def get_organization_graph(id: int):
     try:
         org_row = await run_in_threadpool(lambda: db.organizations[id])
         if org_row is None:
-            return jsonify({'error': 'Organization Unit not found'}), 404
+            return jsonify({"error": "Organization Unit not found"}), 404
     except Exception:
-        return jsonify({'error': 'Organization Unit not found'}), 404
+        return jsonify({"error": "Organization Unit not found"}), 404
 
     # Get depth parameter
     depth = min(request.args.get("depth", 3, type=int), 10)
@@ -283,16 +296,18 @@ async def get_organization_graph(id: int):
         if not org:
             return
         visited_orgs.add(org_id)
-        nodes.append({
-            "id": f"org-{org_id}",
-            "label": org.name,
-            "type": "organization",
-            "metadata": {
-                "id": org_id,
-                "description": org.description,
-                "parent_id": org.parent_id,
+        nodes.append(
+            {
+                "id": f"org-{org_id}",
+                "label": org.name,
+                "type": "organization",
+                "metadata": {
+                    "id": org_id,
+                    "description": org.description,
+                    "parent_id": org.parent_id,
+                },
             }
-        })
+        )
         return org
 
     # Helper to add entity node
@@ -303,16 +318,18 @@ async def get_organization_graph(id: int):
         if not entity:
             return
         visited_entities.add(entity_id)
-        nodes.append({
-            "id": f"entity-{entity_id}",
-            "label": entity.name,
-            "type": entity.entity_type or "default",
-            "metadata": {
-                "id": entity_id,
-                "entity_type": entity.entity_type,
-                "organization_id": entity.organization_id,
+        nodes.append(
+            {
+                "id": f"entity-{entity_id}",
+                "label": entity.name,
+                "type": entity.entity_type or "default",
+                "metadata": {
+                    "id": entity_id,
+                    "entity_type": entity.entity_type,
+                    "organization_id": entity.organization_id,
+                },
             }
-        })
+        )
 
     # Add current organization
     add_org_node(id)
@@ -325,17 +342,19 @@ async def get_organization_graph(id: int):
         all_children = list(children)
         for child in children:
             all_children.extend(get_children_recursive(child.id, current_depth + 1))
-        return all_children[:depth * 10]
+        return all_children[: depth * 10]
 
     all_children = await run_in_threadpool(lambda: get_children_recursive(id))
     for child in all_children:
         add_org_node(child.id)
         if child.parent_id:
-            edges.append({
-                "from": f"org-{child.parent_id}",
-                "to": f"org-{child.id}",
-                "label": "parent"
-            })
+            edges.append(
+                {
+                    "from": f"org-{child.parent_id}",
+                    "to": f"org-{child.id}",
+                    "label": "parent",
+                }
+            )
 
     # Get parent hierarchy up to depth
     current_org = org_row
@@ -344,11 +363,13 @@ async def get_organization_graph(id: int):
             parent = db.organizations[current_org.parent_id]
             if parent:
                 add_org_node(parent.id)
-                edges.append({
-                    "from": f"org-{parent.id}",
-                    "to": f"org-{current_org.id}",
-                    "label": "parent"
-                })
+                edges.append(
+                    {
+                        "from": f"org-{parent.id}",
+                        "to": f"org-{current_org.id}",
+                        "label": "parent",
+                    }
+                )
                 current_org = parent
             else:
                 break
@@ -358,36 +379,47 @@ async def get_organization_graph(id: int):
     # Get entities for all visited organizations
     org_ids = list(visited_orgs)
     entities = await run_in_threadpool(
-        lambda: db(db.entities.organization_id.belongs(org_ids)).select(limitby=(0, 100))
+        lambda: db(db.entities.organization_id.belongs(org_ids)).select(
+            limitby=(0, 100)
+        )
     )
 
     for entity in entities:
         add_entity_node(entity.id)
-        edges.append({
-            "from": f"org-{entity.organization_id}",
-            "to": f"entity-{entity.id}",
-            "label": "contains"
-        })
+        edges.append(
+            {
+                "from": f"org-{entity.organization_id}",
+                "to": f"entity-{entity.id}",
+                "label": "contains",
+            }
+        )
 
     # Get dependencies between entities
     entity_ids = list(visited_entities)
     dependencies = await run_in_threadpool(
         lambda: db(
-            (db.dependencies.source_entity_id.belongs(entity_ids)) &
-            (db.dependencies.target_entity_id.belongs(entity_ids))
+            (db.dependencies.source_entity_id.belongs(entity_ids))
+            & (db.dependencies.target_entity_id.belongs(entity_ids))
         ).select()
     )
 
     for dep in dependencies:
-        edges.append({
-            "from": f"entity-{dep.source_entity_id}",
-            "to": f"entity-{dep.target_entity_id}",
-            "label": dep.dependency_type or "depends"
-        })
+        edges.append(
+            {
+                "from": f"entity-{dep.source_entity_id}",
+                "to": f"entity-{dep.target_entity_id}",
+                "label": dep.dependency_type or "depends",
+            }
+        )
 
-    return jsonify({
-        "nodes": nodes,
-        "edges": edges,
-        "center_node": f"org-{id}",
-        "depth": depth,
-    }), 200
+    return (
+        jsonify(
+            {
+                "nodes": nodes,
+                "edges": edges,
+                "center_node": f"org-{id}",
+                "depth": depth,
+            }
+        ),
+        200,
+    )

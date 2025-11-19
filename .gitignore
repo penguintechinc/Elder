@@ -289,7 +289,11 @@ grafana_data/
 *.pgp
 ssl/
 certs/
-*secret*
+# Secret files (but not directories named secrets)
+*.secret
+**/secret.json
+**/secret.yaml
+**/secret.yml
 id_rsa*
 password.txt
 
@@ -303,7 +307,12 @@ password.txt
 *.kubeconfig
 
 # Secrets and Keys
-secrets/
+# Actual secret files
+*.secret
+*.key
+*.pem
+credentials.json
+service-account.json
 *.secret
 *.token
 
@@ -434,3 +443,8 @@ tramp
 .vagrant/
 vagrant/.TODO
 .PLAN
+.FUTURE
+.TODO
+
+*.local.json
+.claude/

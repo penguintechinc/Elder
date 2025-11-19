@@ -1,7 +1,7 @@
 """Configuration settings for Elder Connector Service."""
 
-import os
-from typing import Optional, Dict, Any
+from typing import Optional
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -28,9 +28,15 @@ class Settings(BaseSettings):
 
     # AWS Configuration
     aws_enabled: bool = Field(default=False, description="Enable AWS connector")
-    aws_access_key_id: Optional[str] = Field(default=None, description="AWS Access Key ID")
-    aws_secret_access_key: Optional[str] = Field(default=None, description="AWS Secret Access Key")
-    aws_default_region: str = Field(default="us-east-1", description="Default AWS region")
+    aws_access_key_id: Optional[str] = Field(
+        default=None, description="AWS Access Key ID"
+    )
+    aws_secret_access_key: Optional[str] = Field(
+        default=None, description="AWS Secret Access Key"
+    )
+    aws_default_region: str = Field(
+        default="us-east-1", description="Default AWS region"
+    )
     aws_regions: str = Field(
         default="us-east-1,us-west-2",
         description="Comma-separated list of AWS regions to scan",
@@ -139,6 +145,52 @@ class Settings(BaseSettings):
     sync_max_retries: int = Field(
         default=3,
         description="Maximum number of retries for failed sync operations",
+    )
+
+    # Sync Batch Fallback Configuration (v1.1.0)
+    sync_batch_fallback_enabled: bool = Field(
+        default=True,
+        description="Enable batch sync fallback when webhooks fail or timeout",
+    )
+    sync_batch_interval: int = Field(
+        default=3600,
+        description="Interval in seconds for batch sync fallback (default: 1 hour)",
+    )
+    sync_batch_fallback_size: int = Field(
+        default=100,
+        description="Number of items to sync per batch in fallback mode",
+    )
+
+    # Syslog Configuration
+    syslog_enabled: bool = Field(
+        default=False,
+        description="Enable UDP syslog logging",
+    )
+    syslog_host: str = Field(
+        default="localhost",
+        description="Syslog server hostname or IP",
+    )
+    syslog_port: int = Field(
+        default=514,
+        description="Syslog server UDP port",
+    )
+
+    # KillKrill Configuration (HTTP3/QUIC Logging)
+    killkrill_enabled: bool = Field(
+        default=False,
+        description="Enable KillKrill HTTP3/QUIC logging",
+    )
+    killkrill_url: str = Field(
+        default="https://killkrill.penguintech.io",
+        description="KillKrill server URL",
+    )
+    killkrill_api_key: Optional[str] = Field(
+        default=None,
+        description="KillKrill API authentication key",
+    )
+    killkrill_use_http3: bool = Field(
+        default=True,
+        description="Use HTTP3/QUIC for KillKrill (fallback to HTTP/2 if False)",
     )
 
     # Health Check & Monitoring

@@ -14,7 +14,6 @@ from apps.api.grpc.generated import elder_pb2, elder_pb2_grpc
 from apps.api.grpc.servicers.elder_servicer import ElderServicer
 from shared.licensing import get_license_client
 
-
 logger = structlog.get_logger(__name__)
 
 
@@ -22,7 +21,7 @@ def serve(
     host: str = "0.0.0.0",
     port: int = 50051,
     max_workers: int = 10,
-    require_license: bool = True
+    require_license: bool = True,
 ):
     """
     Start the gRPC server.
@@ -41,22 +40,20 @@ def serve(
 
             if not validation.get("valid"):
                 logger.error(
-                    "grpc_server_license_invalid",
-                    message=validation.get("message")
+                    "grpc_server_license_invalid", message=validation.get("message")
                 )
                 sys.exit(1)
 
             if validation.get("tier") != "enterprise":
                 logger.error(
-                    "grpc_server_requires_enterprise",
-                    tier=validation.get("tier")
+                    "grpc_server_requires_enterprise", tier=validation.get("tier")
                 )
                 sys.exit(1)
 
             logger.info(
                 "grpc_server_license_validated",
                 tier=validation.get("tier"),
-                customer=validation.get("customer")
+                customer=validation.get("customer"),
             )
         except Exception as e:
             logger.error("grpc_server_license_error", error=str(e))
@@ -72,7 +69,7 @@ def serve(
             ("grpc.keepalive_timeout_ms", 10000),  # 10 seconds
             ("grpc.http2.max_pings_without_data", 0),
             ("grpc.http2.min_time_between_pings_ms", 10000),
-        ]
+        ],
     )
 
     # Add servicer to server
@@ -95,7 +92,7 @@ def serve(
         "grpc_server_started",
         address=server_address,
         max_workers=max_workers,
-        enterprise_only=require_license
+        enterprise_only=require_license,
     )
 
     # Graceful shutdown handler
@@ -123,4 +120,6 @@ if __name__ == "__main__":
     max_workers = int(os.getenv("GRPC_MAX_WORKERS", "10"))
     require_license = os.getenv("GRPC_REQUIRE_LICENSE", "true").lower() == "true"
 
-    serve(host=host, port=port, max_workers=max_workers, require_license=require_license)
+    serve(
+        host=host, port=port, max_workers=max_workers, require_license=require_license
+    )

@@ -32,8 +32,11 @@ export default function Dependencies() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteDependency(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dependencies'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['dependencies'],
+        refetchType: 'all'
+      })
       toast.success('Dependency deleted successfully')
     },
     onError: () => {
@@ -193,9 +196,12 @@ export default function Dependencies() {
         <CreateDependencyModal
           entities={entities?.items || []}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['dependencies'],
+              refetchType: 'all'
+            })
             setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['dependencies'] })
           }}
         />
       )}

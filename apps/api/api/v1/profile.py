@@ -1,14 +1,7 @@
 """User Profile API endpoints using PyDAL with async/await."""
 
-import asyncio
-from flask import Blueprint, request, jsonify, current_app, g
-from datetime import datetime, timezone
-from dataclasses import asdict
+from flask import Blueprint, current_app, g, jsonify, request
 
-from apps.api.models.dataclasses import (
-    IdentityDTO,
-    from_pydal_row,
-)
 from apps.api.auth.decorators import login_required
 from shared.async_utils import run_in_threadpool
 
@@ -47,7 +40,7 @@ async def get_profile():
 
         # Get organization name if user has organization_id
         org_name = None
-        if hasattr(user, 'organization_id') and user.organization_id:
+        if hasattr(user, "organization_id") and user.organization_id:
             org = db.organizations[user.organization_id]
             if org:
                 org_name = org.name
@@ -58,14 +51,18 @@ async def get_profile():
             "username": user.username,
             "email": user.email,
             "full_name": user.full_name,
-            "organization_id": user.organization_id if hasattr(user, 'organization_id') else None,
+            "organization_id": (
+                user.organization_id if hasattr(user, "organization_id") else None
+            ),
             "organization_name": org_name,
             "is_superuser": user.is_superuser,
             "is_active": user.is_active,
             "identity_type": user.identity_type,
             "auth_provider": user.auth_provider,
             "mfa_enabled": user.mfa_enabled,
-            "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
+            "last_login_at": (
+                user.last_login_at.isoformat() if user.last_login_at else None
+            ),
             "created_at": user.created_at.isoformat() if user.created_at else None,
         }
 
@@ -126,7 +123,14 @@ async def update_profile():
             if len(data["email"]) > 255:
                 return None, "email must be 255 characters or less", 400
             # Check if email is already in use by another user
-            existing = db((db.identities.email == data["email"]) & (db.identities.id != user.id)).select().first()
+            existing = (
+                db(
+                    (db.identities.email == data["email"])
+                    & (db.identities.id != user.id)
+                )
+                .select()
+                .first()
+            )
             if existing:
                 return None, "Email already in use", 400
             update_data["email"] = data["email"]
@@ -139,13 +143,13 @@ async def update_profile():
                 if not org:
                     return None, "Organization not found", 404
             # Only update organization_id if the field exists in the table
-            if hasattr(db.identities, 'organization_id'):
+            if hasattr(db.identities, "organization_id"):
                 update_data["organization_id"] = data["organization_id"]
 
         # If no valid fields to update, return current profile
         if not update_data:
             org_name = None
-            if hasattr(user, 'organization_id') and user.organization_id:
+            if hasattr(user, "organization_id") and user.organization_id:
                 org = db.organizations[user.organization_id]
                 if org:
                     org_name = org.name
@@ -155,14 +159,18 @@ async def update_profile():
                 "username": user.username,
                 "email": user.email,
                 "full_name": user.full_name,
-                "organization_id": user.organization_id if hasattr(user, 'organization_id') else None,
+                "organization_id": (
+                    user.organization_id if hasattr(user, "organization_id") else None
+                ),
                 "organization_name": org_name,
                 "is_superuser": user.is_superuser,
                 "is_active": user.is_active,
                 "identity_type": user.identity_type,
                 "auth_provider": user.auth_provider,
                 "mfa_enabled": user.mfa_enabled,
-                "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
+                "last_login_at": (
+                    user.last_login_at.isoformat() if user.last_login_at else None
+                ),
                 "created_at": user.created_at.isoformat() if user.created_at else None,
             }
             return profile_data, None, None
@@ -176,7 +184,7 @@ async def update_profile():
 
         # Get organization name if user has organization_id
         org_name = None
-        if hasattr(updated_user, 'organization_id') and updated_user.organization_id:
+        if hasattr(updated_user, "organization_id") and updated_user.organization_id:
             org = db.organizations[updated_user.organization_id]
             if org:
                 org_name = org.name
@@ -187,15 +195,25 @@ async def update_profile():
             "username": updated_user.username,
             "email": updated_user.email,
             "full_name": updated_user.full_name,
-            "organization_id": updated_user.organization_id if hasattr(updated_user, 'organization_id') else None,
+            "organization_id": (
+                updated_user.organization_id
+                if hasattr(updated_user, "organization_id")
+                else None
+            ),
             "organization_name": org_name,
             "is_superuser": updated_user.is_superuser,
             "is_active": updated_user.is_active,
             "identity_type": updated_user.identity_type,
             "auth_provider": updated_user.auth_provider,
             "mfa_enabled": updated_user.mfa_enabled,
-            "last_login_at": updated_user.last_login_at.isoformat() if updated_user.last_login_at else None,
-            "created_at": updated_user.created_at.isoformat() if updated_user.created_at else None,
+            "last_login_at": (
+                updated_user.last_login_at.isoformat()
+                if updated_user.last_login_at
+                else None
+            ),
+            "created_at": (
+                updated_user.created_at.isoformat() if updated_user.created_at else None
+            ),
         }
 
         return profile_data, None, None

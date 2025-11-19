@@ -3,7 +3,7 @@
 from typing import List, Optional
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy.orm import Mapped, relationship
 
 from apps.api.models.base import Base, IDMixin, TimestampMixin
 
@@ -31,8 +31,12 @@ class Organization(Base, IDMixin, TimestampMixin):
     )
 
     # LDAP/SAML integration
-    ldap_dn = Column(String(512), nullable=True, index=True, comment="LDAP Distinguished Name")
-    saml_group = Column(String(255), nullable=True, index=True, comment="SAML group identifier")
+    ldap_dn = Column(
+        String(512), nullable=True, index=True, comment="LDAP Distinguished Name"
+    )
+    saml_group = Column(
+        String(255), nullable=True, index=True, comment="SAML group identifier"
+    )
 
     # Ownership
     owner_identity_id = Column(

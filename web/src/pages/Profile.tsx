@@ -29,9 +29,12 @@ export default function Profile() {
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<typeof formData>) => api.updateProfile(data),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['profile'],
+        refetchType: 'all'
+      })
       toast.success('Profile updated successfully')
-      queryClient.invalidateQueries({ queryKey: ['profile'] })
       setIsEditing(false)
     },
     onError: (error: any) => {

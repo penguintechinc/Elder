@@ -1,13 +1,12 @@
 """Dependency model for tracking relationships between entities."""
 
 import enum
-from typing import Optional
+from datetime import datetime, timezone
 
-from sqlalchemy import Column, Enum, ForeignKey, Integer, JSON, DateTime
-from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, Integer
+from sqlalchemy.orm import Mapped, relationship
 
 from apps.api.models.base import Base, IDMixin
-from datetime import datetime, timezone
 
 
 class DependencyType(enum.Enum):

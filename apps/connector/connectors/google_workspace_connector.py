@@ -1,14 +1,14 @@
 """Google Workspace connector for syncing users, groups, and org units to Elder."""
 
-import asyncio
-from typing import List, Dict, Any, Optional
+from typing import Dict, Optional
+
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from apps.connector.connectors.base import BaseConnector, SyncResult
 from apps.connector.config.settings import settings
-from apps.connector.utils.elder_client import ElderAPIClient, Organization, Entity
+from apps.connector.connectors.base import BaseConnector, SyncResult
+from apps.connector.utils.elder_client import ElderAPIClient, Entity, Organization
 
 
 class GoogleWorkspaceConnector(BaseConnector):
@@ -127,7 +127,9 @@ class GoogleWorkspaceConnector(BaseConnector):
                 f"Organization '{name}' not found and auto-creation disabled"
             )
 
-    async def _sync_organizational_units(self, workspace_org_id: int) -> tuple[int, int]:
+    async def _sync_organizational_units(
+        self, workspace_org_id: int
+    ) -> tuple[int, int]:
         """
         Sync Google Workspace organizational units.
 
@@ -142,9 +144,13 @@ class GoogleWorkspaceConnector(BaseConnector):
 
         try:
             # List all organizational units
-            orgunits_result = self.admin_service.orgunits().list(
-                customerId=settings.google_workspace_customer_id,
-            ).execute()
+            orgunits_result = (
+                self.admin_service.orgunits()
+                .list(
+                    customerId=settings.google_workspace_customer_id,
+                )
+                .execute()
+            )
 
             orgunits = orgunits_result.get("organizationUnits", [])
 
@@ -161,19 +167,27 @@ class GoogleWorkspaceConnector(BaseConnector):
                 if parent_path == "/":
                     parent_org_id = workspace_org_id
                 else:
-                    parent_org_id = self.orgunit_cache.get(parent_path, workspace_org_id)
+                    parent_org_id = self.orgunit_cache.get(
+                        parent_path, workspace_org_id
+                    )
 
                 # Create or get organization in Elder
                 org_id = await self._get_or_create_organization(
                     name=ou_name,
-                    description=ou_description or f"Google Workspace organizational unit: {ou_path}",
+                    description=ou_description
+                    or f"Google Workspace organizational unit: {ou_path}",
                     parent_id=parent_org_id,
                 )
 
                 # Cache the mapping
                 self.orgunit_cache[ou_path] = org_id
 
-                if org_id not in [org["id"] for org in (await self.elder_client.list_organizations()).get("items", [])]:
+                if org_id not in [
+                    org["id"]
+                    for org in (await self.elder_client.list_organizations()).get(
+                        "items", []
+                    )
+                ]:
                     created += 1
                 else:
                     updated += 1
@@ -200,11 +214,15 @@ class GoogleWorkspaceConnector(BaseConnector):
             # List all users
             page_token = None
             while True:
-                users_result = self.admin_service.users().list(
-                    customer=settings.google_workspace_customer_id,
-                    maxResults=500,
-                    pageToken=page_token,
-                ).execute()
+                users_result = (
+                    self.admin_service.users()
+                    .list(
+                        customer=settings.google_workspace_customer_id,
+                        maxResults=500,
+                        pageToken=page_token,
+                    )
+                    .execute()
+                )
 
                 users = users_result.get("users", [])
 
@@ -283,11 +301,15 @@ class GoogleWorkspaceConnector(BaseConnector):
             # List all groups
             page_token = None
             while True:
-                groups_result = self.admin_service.groups().list(
-                    customer=settings.google_workspace_customer_id,
-                    maxResults=200,
-                    pageToken=page_token,
-                ).execute()
+                groups_result = (
+                    self.admin_service.groups()
+                    .list(
+                        customer=settings.google_workspace_customer_id,
+                        maxResults=200,
+                        pageToken=page_token,
+                    )
+                    .execute()
+                )
 
                 groups = groups_result.get("groups", [])
 
@@ -360,7 +382,9 @@ class GoogleWorkspaceConnector(BaseConnector):
             result.organizations_created += 1
 
             # Sync organizational units (this creates organizations in Elder)
-            ou_created, ou_updated = await self._sync_organizational_units(workspace_org_id)
+            ou_created, ou_updated = await self._sync_organizational_units(
+                workspace_org_id
+            )
             result.organizations_created += ou_created
             result.organizations_updated += ou_updated
 

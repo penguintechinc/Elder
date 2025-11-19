@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Plus, Search, MessageSquare, Tag, User } from 'lucide-react'
+import { Plus, Search, MessageSquare, Tag, User, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
@@ -38,8 +38,11 @@ export default function Issues() {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: IssueStatus }) =>
       api.updateIssue(id, { status }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['issues'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['issues'],
+        refetchType: 'all'
+      })
       toast.success('Issue status updated')
     },
     onError: () => {
@@ -150,7 +153,11 @@ export default function Issues() {
                 <div className="flex items-start gap-4">
                   {/* Issue Icon */}
                   <div className="flex-shrink-0 mt-1">
-                    <MessageSquare className="w-5 h-5 text-primary-400" />
+                    {issue.is_incident ? (
+                      <AlertTriangle className="w-5 h-5 text-red-500" />
+                    ) : (
+                      <MessageSquare className="w-5 h-5 text-primary-400" />
+                    )}
                   </div>
 
                   {/* Issue Content */}
@@ -167,6 +174,11 @@ export default function Issues() {
                         )}
                         <div className="flex flex-wrap items-center gap-3">
                           <span className="text-xs text-slate-500">#{issue.id}</span>
+                          {issue.is_incident === 1 && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 font-semibold">
+                              INCIDENT
+                            </span>
+                          )}
                           <span className={`text-xs px-2 py-0.5 rounded ${getStatusColor(issue.status)}`}>
                             {issue.status.replace('_', ' ')}
                           </span>
@@ -218,9 +230,12 @@ export default function Issues() {
       {showCreateModal && (
         <CreateIssueModal
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['issues'],
+              refetchType: 'all'
+            })
             setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['issues'] })
           }}
           defaultOrganizationId={organizationId ? parseInt(organizationId) : undefined}
           defaultEntityId={entityId ? parseInt(entityId) : undefined}
@@ -245,6 +260,7 @@ function CreateIssueModal({ onClose, onSuccess, defaultOrganizationId, defaultEn
   const [organizationId, setOrganizationId] = useState<number | undefined>(defaultOrganizationId)
   const [selectedEntities, setSelectedEntities] = useState<number[]>(defaultEntityId ? [defaultEntityId] : [])
   const [selectedLabels, setSelectedLabels] = useState<number[]>([])
+  const [isIncident, setIsIncident] = useState(false)
 
   const { data: organizations } = useQuery({
     queryKey: ['organizations-all'],
@@ -269,6 +285,7 @@ function CreateIssueModal({ onClose, onSuccess, defaultOrganizationId, defaultEn
       organization_id?: number
       entity_ids?: number[]
       label_ids?: number[]
+      is_incident?: number
     }) => api.createIssue(data),
     onSuccess: () => {
       toast.success('Issue created successfully')
@@ -288,6 +305,7 @@ function CreateIssueModal({ onClose, onSuccess, defaultOrganizationId, defaultEn
       organization_id: assignmentType === 'organization' ? organizationId : undefined,
       entity_ids: assignmentType === 'entity' && selectedEntities.length > 0 ? selectedEntities : undefined,
       label_ids: selectedLabels.length > 0 ? selectedLabels : undefined,
+      is_incident: isIncident ? 1 : 0,
     })
   }
 
@@ -433,6 +451,20 @@ function CreateIssueModal({ onClose, onSuccess, defaultOrganizationId, defaultEn
                   <p className="text-sm text-slate-500 p-2">No labels available</p>
                 )}
               </div>
+            </div>
+
+            {/* Incident Checkbox */}
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="is-incident"
+                checked={isIncident}
+                onChange={(e) => setIsIncident(e.target.checked)}
+                className="mr-2 h-4 w-4 text-yellow-500 bg-slate-900 border-slate-700 rounded focus:ring-2 focus:ring-yellow-500"
+              />
+              <label htmlFor="is-incident" className="text-sm font-medium text-slate-300 cursor-pointer">
+                Mark as Incident
+              </label>
             </div>
 
             <div className="flex justify-end gap-3 mt-6">

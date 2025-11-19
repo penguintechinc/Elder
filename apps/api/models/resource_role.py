@@ -3,8 +3,8 @@
 import enum
 from typing import List, Optional
 
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy import Column, Enum, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy.orm import Mapped, relationship
 
 from apps.api.models.base import Base, IDMixin, TimestampMixin
 
@@ -175,7 +175,10 @@ class ResourceRole(Base, IDMixin, TimestampMixin):
 
     @classmethod
     def get_users_with_role(
-        cls, resource_type: ResourceType, resource_id: int, role_type: Optional[ResourceRoleType] = None
+        cls,
+        resource_type: ResourceType,
+        resource_id: int,
+        role_type: Optional[ResourceRoleType] = None,
     ) -> List["ResourceRole"]:
         """
         Get all users with roles on a specific resource.
@@ -203,19 +206,28 @@ class ResourceRole(Base, IDMixin, TimestampMixin):
 
 # Extension methods for Entity and Organization models
 
+
 def get_entity_role(entity_id: int, identity_id: int) -> Optional[ResourceRole]:
     """Get user's role for an entity."""
     return ResourceRole.get_user_role(identity_id, ResourceType.ENTITY, entity_id)
 
 
-def get_organization_role(organization_id: int, identity_id: int) -> Optional[ResourceRole]:
+def get_organization_role(
+    organization_id: int, identity_id: int
+) -> Optional[ResourceRole]:
     """Get user's role for an organization."""
-    return ResourceRole.get_user_role(identity_id, ResourceType.ORGANIZATION, organization_id)
+    return ResourceRole.get_user_role(
+        identity_id, ResourceType.ORGANIZATION, organization_id
+    )
 
 
-def check_entity_permission(entity_id: int, identity_id: int, required_role: ResourceRoleType) -> bool:
+def check_entity_permission(
+    entity_id: int, identity_id: int, required_role: ResourceRoleType
+) -> bool:
     """Check if user has required role on entity."""
-    return ResourceRole.check_permission(identity_id, ResourceType.ENTITY, entity_id, required_role)
+    return ResourceRole.check_permission(
+        identity_id, ResourceType.ENTITY, entity_id, required_role
+    )
 
 
 def check_organization_permission(
@@ -227,7 +239,9 @@ def check_organization_permission(
     )
 
 
-def get_entity_users_with_role(entity_id: int, role_type: Optional[ResourceRoleType] = None) -> List[ResourceRole]:
+def get_entity_users_with_role(
+    entity_id: int, role_type: Optional[ResourceRoleType] = None
+) -> List[ResourceRole]:
     """Get all users with roles on an entity."""
     return ResourceRole.get_users_with_role(ResourceType.ENTITY, entity_id, role_type)
 
@@ -236,4 +250,6 @@ def get_organization_users_with_role(
     organization_id: int, role_type: Optional[ResourceRoleType] = None
 ) -> List[ResourceRole]:
     """Get all users with roles on an organization."""
-    return ResourceRole.get_users_with_role(ResourceType.ORGANIZATION, organization_id, role_type)
+    return ResourceRole.get_users_with_role(
+        ResourceType.ORGANIZATION, organization_id, role_type
+    )

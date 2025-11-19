@@ -7,10 +7,11 @@ Python 3.12 optimizations with asyncio TaskGroups for structured concurrency.
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
-from typing import Callable, Any, TypeVar, ParamSpec
+from typing import Any, Callable, ParamSpec, TypeVar
 
 try:
-    from flask import has_request_context, copy_current_request_context
+    from flask import copy_current_request_context, has_request_context
+
     FLASK_AVAILABLE = True
 except ImportError:
     FLASK_AVAILABLE = False
@@ -19,11 +20,13 @@ except ImportError:
 _executor = ThreadPoolExecutor(max_workers=20, thread_name_prefix="pydal_")
 
 # Type hints for better IDE support
-P = ParamSpec('P')
-T = TypeVar('T')
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
-async def run_in_threadpool(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
+async def run_in_threadpool(
+    func: Callable[P, T], *args: P.args, **kwargs: P.kwargs
+) -> T:
     """
     Run a blocking function in the thread pool with Flask context support.
 
@@ -60,22 +63,26 @@ async def run_in_threadpool(func: Callable[P, T], *args: P.args, **kwargs: P.kwa
                 error_msg = str(e).lower()
 
                 # Check if it's a database connection error
-                is_connection_error = any(msg in error_msg for msg in [
-                    'cursor already closed',
-                    'connection already closed',
-                    'server closed the connection',
-                    'connection refused',
-                    'can\'t connect to',
-                    'lost connection',
-                    'connection reset',
-                    'interfaceerror'
-                ])
+                is_connection_error = any(
+                    msg in error_msg
+                    for msg in [
+                        "cursor already closed",
+                        "connection already closed",
+                        "server closed the connection",
+                        "connection refused",
+                        "can't connect to",
+                        "lost connection",
+                        "connection reset",
+                        "interfaceerror",
+                    ]
+                )
 
                 if is_connection_error and retry_count < max_retries:
                     # Try to reconnect
                     try:
                         from flask import current_app
-                        if hasattr(current_app, 'db'):
+
+                        if hasattr(current_app, "db"):
                             # Force PyDAL to create new connection by closing old one
                             try:
                                 current_app.db._adapter.close()
@@ -93,7 +100,8 @@ async def run_in_threadpool(func: Callable[P, T], *args: P.args, **kwargs: P.kwa
                 # On any error (including after retries), ensure we rollback
                 try:
                     from flask import current_app
-                    if hasattr(current_app, 'db'):
+
+                    if hasattr(current_app, "db"):
                         current_app.db.rollback()
                 except:
                     pass
@@ -122,9 +130,11 @@ def to_thread(func: Callable[P, T]) -> Callable[P, asyncio.Task[T]]:
         >>>
         >>> count = await get_user_count(db)
     """
+
     @wraps(func)
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         return await run_in_threadpool(func, *args, **kwargs)
+
     return wrapper
 
 
@@ -200,7 +210,7 @@ async def batch_execute(items: list, func: Callable, batch_size: int = 10) -> li
     """
     results = []
     for i in range(0, len(items), batch_size):
-        batch = items[i:i + batch_size]
+        batch = items[i : i + batch_size]
         batch_results = await asyncio.gather(*[func(item) for item in batch])
         results.extend(batch_results)
     return results

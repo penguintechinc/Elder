@@ -2,19 +2,19 @@
 
 import hashlib
 import secrets
-from datetime import datetime, timezone
 from dataclasses import asdict
-from flask import Blueprint, request, jsonify
-from apps.api.auth.decorators import login_required, get_current_user
+
+from flask import Blueprint, jsonify, request
+
+from apps.api.auth.decorators import get_current_user, login_required
 from apps.api.models.dataclasses import (
     APIKeyDTO,
-    CreateAPIKeyRequest,
     CreateAPIKeyResponse,
     PaginatedResponse,
-    from_pydal_rows
+    from_pydal_rows,
 )
-from shared.database import db
 from shared.async_utils import run_in_threadpool
+from shared.database import db
 
 bp = Blueprint("api_keys", __name__)
 
@@ -57,7 +57,7 @@ async def list_api_keys():
     offset = (page - 1) * per_page
 
     # Build query for user's API keys
-    query = (db.api_keys.identity_id == user.id)
+    query = db.api_keys.identity_id == user.id
 
     # Execute database queries
     def get_api_keys():
@@ -73,7 +73,7 @@ async def list_api_keys():
             db.api_keys.created_at,
             db.api_keys.updated_at,
             orderby=~db.api_keys.created_at,  # Most recent first
-            limitby=(offset, offset + per_page)
+            limitby=(offset, offset + per_page),
         )
         return total, rows
 
@@ -91,7 +91,7 @@ async def list_api_keys():
         total=total,
         page=page,
         per_page=per_page,
-        pages=pages
+        pages=pages,
     )
 
     return jsonify(asdict(response)), 200
@@ -143,7 +143,7 @@ async def create_api_key():
         api_key=full_key,  # Full key - only shown once!
         prefix=api_key_row.prefix,
         expires_at=api_key_row.expires_at,
-        created_at=api_key_row.created_at
+        created_at=api_key_row.created_at,
     )
 
     return jsonify(asdict(response)), 201

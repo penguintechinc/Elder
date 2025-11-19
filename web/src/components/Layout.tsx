@@ -4,15 +4,19 @@ import {
   Building2,
   Box,
   GitBranch,
-  Users,
   AlertCircle,
   Tag,
   Search as SearchIcon,
   FolderKanban,
   Flag,
-  Settings,
   User,
   LogOut,
+  Key,
+  Shield,
+  Compass,
+  Webhook,
+  Database,
+  Network,
 } from 'lucide-react'
 
 const navigation = [
@@ -21,11 +25,17 @@ const navigation = [
   { name: 'Organizations', href: '/organizations', icon: Building2 },
   { name: 'Entities', href: '/entities', icon: Box },
   { name: 'Dependencies', href: '/dependencies', icon: GitBranch },
-  { name: 'Identities', href: '/identities', icon: Users },
   { name: 'Issues', href: '/issues', icon: AlertCircle },
   { name: 'Projects', href: '/projects', icon: FolderKanban },
   { name: 'Milestones', href: '/milestones', icon: Flag },
   { name: 'Labels', href: '/labels', icon: Tag },
+  { name: 'Secrets', href: '/secrets', icon: Key },
+  { name: 'Keys', href: '/keys', icon: Key },
+  { name: 'Identity Center', href: '/iam', icon: Shield },
+  { name: 'Networking', href: '/networking', icon: Network },
+  { name: 'Discovery', href: '/discovery', icon: Compass },
+  { name: 'Webhooks', href: '/webhooks', icon: Webhook },
+  { name: 'Backups', href: '/backups', icon: Database },
 ]
 
 export default function Layout() {

@@ -31,6 +31,10 @@ RUN pip install --user --no-cache-dir -r requirements.txt
 # Runtime stage
 FROM python:3.12-slim
 
+# Build arguments for JWT token expiration
+ARG JWT_ACCESS_TOKEN_HOURS=4
+ARG JWT_REFRESH_TOKEN_DAYS=30
+
 # Set working directory
 WORKDIR /app
 
@@ -78,6 +82,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 ENV FLASK_APP=apps.api.main:create_app
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV JWT_ACCESS_TOKEN_HOURS=${JWT_ACCESS_TOKEN_HOURS}
+ENV JWT_REFRESH_TOKEN_DAYS=${JWT_REFRESH_TOKEN_DAYS}
 
 # Run application with uvicorn ASGI server for async Flask support
 CMD ["uvicorn", \

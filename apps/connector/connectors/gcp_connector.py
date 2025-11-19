@@ -1,14 +1,14 @@
 """GCP connector for syncing Google Cloud Platform resources to Elder."""
 
-import asyncio
-from typing import List, Dict, Any, Optional
-from google.cloud import compute_v1, storage, resourcemanager_v3
-from google.auth import load_credentials_from_file
-from google.api_core.exceptions import GoogleAPIError
+from typing import Dict, Optional
 
-from apps.connector.connectors.base import BaseConnector, SyncResult
+from google.api_core.exceptions import GoogleAPIError
+from google.auth import load_credentials_from_file
+from google.cloud import compute_v1, storage
+
 from apps.connector.config.settings import settings
-from apps.connector.utils.elder_client import ElderAPIClient, Organization, Entity
+from apps.connector.connectors.base import BaseConnector, SyncResult
+from apps.connector.utils.elder_client import ElderAPIClient, Entity, Organization
 
 
 class GCPConnector(BaseConnector):
@@ -46,6 +46,7 @@ class GCPConnector(BaseConnector):
         else:
             # Use default credentials
             from google.auth import default
+
             self.credentials, _ = default()
             self.logger.info("Using GCP default credentials")
 
@@ -136,8 +137,14 @@ class GCPConnector(BaseConnector):
                     zone_name = instance.zone.split("/")[-1]
 
                     # Get first network interface for IP
-                    network_interface = instance.network_interfaces[0] if instance.network_interfaces else None
-                    internal_ip = network_interface.network_i_p if network_interface else None
+                    network_interface = (
+                        instance.network_interfaces[0]
+                        if instance.network_interfaces
+                        else None
+                    )
+                    internal_ip = (
+                        network_interface.network_i_p if network_interface else None
+                    )
                     external_ip = None
                     if network_interface and network_interface.access_configs:
                         external_ip = network_interface.access_configs[0].nat_i_p
@@ -171,7 +178,9 @@ class GCPConnector(BaseConnector):
 
                     found = None
                     for item in existing.get("items", []):
-                        if item.get("attributes", {}).get("instance_id") == str(instance.id):
+                        if item.get("attributes", {}).get("instance_id") == str(
+                            instance.id
+                        ):
                             found = item
                             break
 
@@ -214,7 +223,11 @@ class GCPConnector(BaseConnector):
                         "network_id": str(network.id),
                         "network_name": network.name,
                         "auto_create_subnetworks": network.auto_create_subnetworks,
-                        "routing_mode": network.routing_config.routing_mode if network.routing_config else None,
+                        "routing_mode": (
+                            network.routing_config.routing_mode
+                            if network.routing_config
+                            else None
+                        ),
                         "provider": "gcp",
                         "project_id": self.project_id,
                         "creation_timestamp": network.creation_timestamp,
@@ -279,7 +292,11 @@ class GCPConnector(BaseConnector):
                         "provider": "gcp",
                         "service": "gcs",
                         "project_id": self.project_id,
-                        "time_created": bucket.time_created.isoformat() if bucket.time_created else None,
+                        "time_created": (
+                            bucket.time_created.isoformat()
+                            if bucket.time_created
+                            else None
+                        ),
                     },
                     tags=["gcp", "gcs", "storage", bucket.location.lower()],
                 )
@@ -335,7 +352,9 @@ class GCPConnector(BaseConnector):
             result.organizations_created += 1
 
             # Sync compute instances
-            compute_created, compute_updated = await self._sync_compute_instances(project_org_id)
+            compute_created, compute_updated = await self._sync_compute_instances(
+                project_org_id
+            )
             result.entities_created += compute_created
             result.entities_updated += compute_updated
 
@@ -345,7 +364,9 @@ class GCPConnector(BaseConnector):
             result.entities_updated += vpc_updated
 
             # Sync storage buckets
-            storage_created, storage_updated = await self._sync_storage_buckets(project_org_id)
+            storage_created, storage_updated = await self._sync_storage_buckets(
+                project_org_id
+            )
             result.entities_created += storage_created
             result.entities_updated += storage_updated
 

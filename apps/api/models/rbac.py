@@ -4,7 +4,7 @@ import enum
 from typing import List, Optional
 
 from sqlalchemy import Column, Enum, ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy.orm import Mapped, relationship
 
 from apps.api.models.base import Base, IDMixin, TimestampMixin
 
@@ -147,7 +147,9 @@ class RolePermission(Base, IDMixin, TimestampMixin):
     )
 
     # Unique constraint to prevent duplicate role-permission pairs
-    __table_args__ = (UniqueConstraint("role_id", "permission_id", name="uix_role_permission"),)
+    __table_args__ = (
+        UniqueConstraint("role_id", "permission_id", name="uix_role_permission"),
+    )
 
     # Relationships
     role: Mapped["Role"] = relationship(

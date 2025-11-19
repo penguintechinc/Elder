@@ -1,15 +1,11 @@
 """Resource Role management API endpoints using PyDAL with async/await."""
 
-from flask import Blueprint, jsonify, request, current_app, g
 from dataclasses import asdict
 
-from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.dataclasses import (
-    ResourceRoleDTO,
-    CreateResourceRoleRequest,
-    from_pydal_row,
-    from_pydal_rows,
-)
+from flask import Blueprint, current_app, g, jsonify, request
+
+from apps.api.auth.decorators import login_required
+from apps.api.models.dataclasses import ResourceRoleDTO, from_pydal_row, from_pydal_rows
 from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
 
@@ -59,23 +55,23 @@ async def list_resource_roles():
         # Apply filters from query params
         if request.args.get("identity_id"):
             identity_id = request.args.get("identity_id", type=int)
-            query &= (db.resource_roles.identity_id == identity_id)
+            query &= db.resource_roles.identity_id == identity_id
 
         if request.args.get("group_id"):
             group_id = request.args.get("group_id", type=int)
-            query &= (db.resource_roles.group_id == group_id)
+            query &= db.resource_roles.group_id == group_id
 
         if request.args.get("resource_type"):
             resource_type = request.args.get("resource_type")
-            query &= (db.resource_roles.resource_type == resource_type)
+            query &= db.resource_roles.resource_type == resource_type
 
         if request.args.get("resource_id"):
             resource_id = request.args.get("resource_id", type=int)
-            query &= (db.resource_roles.resource_id == resource_id)
+            query &= db.resource_roles.resource_id == resource_id
 
         if request.args.get("role"):
             role = request.args.get("role")
-            query &= (db.resource_roles.role == role)
+            query &= db.resource_roles.role == role
 
         roles = db(query).select()
         return roles
@@ -85,10 +81,10 @@ async def list_resource_roles():
     # Convert to DTOs
     items = from_pydal_rows(rows, ResourceRoleDTO)
 
-    return jsonify({
-        "items": [asdict(item) for item in items],
-        "total": len(items)
-    }), 200
+    return (
+        jsonify({"items": [asdict(item) for item in items], "total": len(items)}),
+        200,
+    )
 
 
 @bp.route("", methods=["POST"])
@@ -159,32 +155,52 @@ async def create_resource_role():
         # Superusers can grant any role
         if not g.current_user.is_superuser:
             # Check if current user has maintainer role
-            has_maintainer = db(
-                (db.resource_roles.identity_id == g.current_user.id) &
-                (db.resource_roles.resource_type == resource_type) &
-                (db.resource_roles.resource_id == resource_id) &
-                (db.resource_roles.role == "maintainer")
-            ).select().first()
+            has_maintainer = (
+                db(
+                    (db.resource_roles.identity_id == g.current_user.id)
+                    & (db.resource_roles.resource_type == resource_type)
+                    & (db.resource_roles.resource_id == resource_id)
+                    & (db.resource_roles.role == "maintainer")
+                )
+                .select()
+                .first()
+            )
 
             if not has_maintainer:
-                return None, "Insufficient permissions - only maintainers can grant resource roles", 403
+                return (
+                    None,
+                    "Insufficient permissions - only maintainers can grant resource roles",
+                    403,
+                )
 
         # Check if role already exists
         if data.get("identity_id"):
-            existing_role = db(
-                (db.resource_roles.identity_id == data["identity_id"]) &
-                (db.resource_roles.resource_type == resource_type) &
-                (db.resource_roles.resource_id == resource_id)
-            ).select().first()
+            existing_role = (
+                db(
+                    (db.resource_roles.identity_id == data["identity_id"])
+                    & (db.resource_roles.resource_type == resource_type)
+                    & (db.resource_roles.resource_id == resource_id)
+                )
+                .select()
+                .first()
+            )
         else:
-            existing_role = db(
-                (db.resource_roles.group_id == data["group_id"]) &
-                (db.resource_roles.resource_type == resource_type) &
-                (db.resource_roles.resource_id == resource_id)
-            ).select().first()
+            existing_role = (
+                db(
+                    (db.resource_roles.group_id == data["group_id"])
+                    & (db.resource_roles.resource_type == resource_type)
+                    & (db.resource_roles.resource_id == resource_id)
+                )
+                .select()
+                .first()
+            )
 
         if existing_role:
-            return None, f"Role already exists for this identity/group on this resource", 409
+            return (
+                None,
+                f"Role already exists for this identity/group on this resource",
+                409,
+            )
 
         # Create resource role
         role_id = db.resource_roles.insert(
@@ -238,15 +254,23 @@ async def revoke_resource_role(id: int):
         # Check if current user has maintainer role on this resource
         # Superusers can revoke any role
         if not g.current_user.is_superuser:
-            has_maintainer = db(
-                (db.resource_roles.identity_id == g.current_user.id) &
-                (db.resource_roles.resource_type == role.resource_type) &
-                (db.resource_roles.resource_id == role.resource_id) &
-                (db.resource_roles.role == "maintainer")
-            ).select().first()
+            has_maintainer = (
+                db(
+                    (db.resource_roles.identity_id == g.current_user.id)
+                    & (db.resource_roles.resource_type == role.resource_type)
+                    & (db.resource_roles.resource_id == role.resource_id)
+                    & (db.resource_roles.role == "maintainer")
+                )
+                .select()
+                .first()
+            )
 
             if not has_maintainer:
-                return None, "Insufficient permissions - only maintainers can revoke resource roles", 403
+                return (
+                    None,
+                    "Insufficient permissions - only maintainers can revoke resource roles",
+                    403,
+                )
 
         # Delete role
         db(db.resource_roles.id == id).delete()
@@ -300,8 +324,8 @@ async def list_entity_roles(id: int):
 
         # Get all roles for this entity
         roles = db(
-            (db.resource_roles.resource_type == "entity") &
-            (db.resource_roles.resource_id == id)
+            (db.resource_roles.resource_type == "entity")
+            & (db.resource_roles.resource_id == id)
         ).select()
 
         return roles, None, None
@@ -314,10 +338,10 @@ async def list_entity_roles(id: int):
     # Convert to DTOs
     items = from_pydal_rows(result, ResourceRoleDTO)
 
-    return jsonify({
-        "items": [asdict(item) for item in items],
-        "total": len(items)
-    }), 200
+    return (
+        jsonify({"items": [asdict(item) for item in items], "total": len(items)}),
+        200,
+    )
 
 
 @bp.route("/organizations/<int:id>/roles", methods=["GET"])
@@ -358,8 +382,8 @@ async def list_organization_roles(id: int):
 
         # Get all roles for this organization
         roles = db(
-            (db.resource_roles.resource_type == "organization") &
-            (db.resource_roles.resource_id == id)
+            (db.resource_roles.resource_type == "organization")
+            & (db.resource_roles.resource_id == id)
         ).select()
 
         return roles, None, None
@@ -372,10 +396,10 @@ async def list_organization_roles(id: int):
     # Convert to DTOs
     items = from_pydal_rows(result, ResourceRoleDTO)
 
-    return jsonify({
-        "items": [asdict(item) for item in items],
-        "total": len(items)
-    }), 200
+    return (
+        jsonify({"items": [asdict(item) for item in items], "total": len(items)}),
+        200,
+    )
 
 
 @bp.route("/identities/<int:id>/resource-roles", methods=["GET"])
@@ -434,7 +458,7 @@ async def list_identity_resource_roles(id: int):
     # Convert to DTOs
     items = from_pydal_rows(result, ResourceRoleDTO)
 
-    return jsonify({
-        "items": [asdict(item) for item in items],
-        "total": len(items)
-    }), 200
+    return (
+        jsonify({"items": [asdict(item) for item in items], "total": len(items)}),
+        200,
+    )

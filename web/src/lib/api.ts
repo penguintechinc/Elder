@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { AxiosInstance, AxiosError } from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
 class ApiClient {
   private client: AxiosInstance
@@ -150,6 +150,7 @@ class ApiClient {
     name: string
     description?: string
     entity_type: string
+    entity_sub_type?: string
     organization_id: number
     metadata?: any
   }) {
@@ -173,6 +174,42 @@ class ApiClient {
 
   async lookupEntity(uniqueId: string) {
     const response = await this.client.get(`/lookup/${uniqueId}`)
+    return response.data
+  }
+
+  // Entity Types
+  async getEntityTypes(params?: { category?: string }) {
+    const response = await this.client.get('/entity-types/', { params })
+    return response.data
+  }
+
+  async getEntityType(id: number) {
+    const response = await this.client.get(`/entity-types/${id}`)
+    return response.data
+  }
+
+  async createEntityType(data: {
+    name: string
+    category: string
+    sub_type?: string
+    description?: string
+    default_metadata?: any
+  }) {
+    const response = await this.client.post('/entity-types', data)
+    return response.data
+  }
+
+  async updateEntityType(id: number, data: Partial<{
+    name: string
+    description: string
+    default_metadata: any
+  }>) {
+    const response = await this.client.put(`/entity-types/${id}`, data)
+    return response.data
+  }
+
+  async deleteEntityType(id: number) {
+    const response = await this.client.delete(`/entity-types/${id}`)
     return response.data
   }
 
@@ -525,6 +562,495 @@ class ApiClient {
 
   async deleteEntityMetadata(id: number, key: string) {
     const response = await this.client.delete(`/metadata/entities/${id}/metadata/${key}`)
+    return response.data
+  }
+
+  // ===========================
+  // v1.2.0 Features
+  // ===========================
+
+  // Secrets Management
+  async getSecretProviders(params?: { organization_id?: number }) {
+    const response = await this.client.get('/secrets/providers', { params })
+    return response.data
+  }
+
+  async getSecretProvider(id: number) {
+    const response = await this.client.get(`/secrets/providers/${id}`)
+    return response.data
+  }
+
+  async createSecretProvider(data: {
+    name: string
+    provider_type: string
+    organization_id: number
+    config: any
+    description?: string
+  }) {
+    const response = await this.client.post('/secrets/providers', data)
+    return response.data
+  }
+
+  async updateSecretProvider(id: number, data: Partial<{ name: string; config: any; description: string; enabled: boolean }>) {
+    const response = await this.client.put(`/secrets/providers/${id}`, data)
+    return response.data
+  }
+
+  async deleteSecretProvider(id: number) {
+    const response = await this.client.delete(`/secrets/providers/${id}`)
+    return response.data
+  }
+
+  async testSecretProvider(id: number) {
+    const response = await this.client.post(`/secrets/providers/${id}/test`)
+    return response.data
+  }
+
+  async getSecret(providerId: number, secretName: string, params?: { version?: string }) {
+    const response = await this.client.get(`/secrets/providers/${providerId}/secrets/${secretName}`, { params })
+    return response.data
+  }
+
+  async listSecrets(providerId: number) {
+    const response = await this.client.get(`/secrets/providers/${providerId}/secrets`)
+    return response.data
+  }
+
+  // Keys Management
+  async getKeyProviders(params?: { organization_id?: number }) {
+    const response = await this.client.get('/keys/providers', { params })
+    return response.data
+  }
+
+  async getKeyProvider(id: number) {
+    const response = await this.client.get(`/keys/providers/${id}`)
+    return response.data
+  }
+
+  async createKeyProvider(data: {
+    name: string
+    provider_type: string
+    organization_id: number
+    config: any
+    description?: string
+  }) {
+    const response = await this.client.post('/keys/providers', data)
+    return response.data
+  }
+
+  async updateKeyProvider(id: number, data: Partial<{ name: string; config: any; description: string; enabled: boolean }>) {
+    const response = await this.client.put(`/keys/providers/${id}`, data)
+    return response.data
+  }
+
+  async deleteKeyProvider(id: number) {
+    const response = await this.client.delete(`/keys/providers/${id}`)
+    return response.data
+  }
+
+  async testKeyProvider(id: number) {
+    const response = await this.client.post(`/keys/providers/${id}/test`)
+    return response.data
+  }
+
+  async encryptData(providerId: number, keyId: string, data: { plaintext: string; context?: any }) {
+    const response = await this.client.post(`/keys/providers/${providerId}/keys/${keyId}/encrypt`, data)
+    return response.data
+  }
+
+  async decryptData(providerId: number, keyId: string, data: { ciphertext: string; context?: any }) {
+    const response = await this.client.post(`/keys/providers/${providerId}/keys/${keyId}/decrypt`, data)
+    return response.data
+  }
+
+  // IAM Integration
+  async getIAMProviders(params?: { organization_id?: number }) {
+    const response = await this.client.get('/iam/providers', { params })
+    return response.data
+  }
+
+  async getIAMProvider(id: number) {
+    const response = await this.client.get(`/iam/providers/${id}`)
+    return response.data
+  }
+
+  async createIAMProvider(data: {
+    name: string
+    provider_type: string
+    organization_id: number
+    config: any
+    description?: string
+  }) {
+    const response = await this.client.post('/iam/providers', data)
+    return response.data
+  }
+
+  async updateIAMProvider(id: number, data: Partial<{ name: string; config: any; description: string; enabled: boolean }>) {
+    const response = await this.client.put(`/iam/providers/${id}`, data)
+    return response.data
+  }
+
+  async deleteIAMProvider(id: number) {
+    const response = await this.client.delete(`/iam/providers/${id}`)
+    return response.data
+  }
+
+  async listIAMUsers(providerId: number) {
+    const response = await this.client.get(`/iam/providers/${providerId}/users`)
+    return response.data
+  }
+
+  async listIAMRoles(providerId: number) {
+    const response = await this.client.get(`/iam/providers/${providerId}/roles`)
+    return response.data
+  }
+
+  async listIAMPolicies(providerId: number) {
+    const response = await this.client.get(`/iam/providers/${providerId}/policies`)
+    return response.data
+  }
+
+  // Cloud Discovery
+  async getDiscoveryJobs(params?: { organization_id?: number; status?: string }) {
+    const response = await this.client.get('/discovery/jobs', { params })
+    return response.data
+  }
+
+  async getDiscoveryJob(id: number) {
+    const response = await this.client.get(`/discovery/jobs/${id}`)
+    return response.data
+  }
+
+  async createDiscoveryJob(data: {
+    name: string
+    provider_type: string
+    organization_id: number
+    config: any
+    schedule?: string
+    enabled?: boolean
+  }) {
+    const response = await this.client.post('/discovery/jobs', data)
+    return response.data
+  }
+
+  async updateDiscoveryJob(id: number, data: Partial<{ name: string; config: any; schedule: string; enabled: boolean }>) {
+    const response = await this.client.put(`/discovery/jobs/${id}`, data)
+    return response.data
+  }
+
+  async deleteDiscoveryJob(id: number) {
+    const response = await this.client.delete(`/discovery/jobs/${id}`)
+    return response.data
+  }
+
+  async runDiscoveryJob(id: number) {
+    const response = await this.client.post(`/discovery/jobs/${id}/run`)
+    return response.data
+  }
+
+  async getDiscoveryJobHistory(jobId: number) {
+    const response = await this.client.get(`/discovery/jobs/${jobId}/history`)
+    return response.data
+  }
+
+  // Google Workspace
+  async getGoogleWorkspaceProviders(params?: { organization_id?: number }) {
+    const response = await this.client.get('/google-workspace/providers', { params })
+    return response.data
+  }
+
+  async getGoogleWorkspaceProvider(id: number) {
+    const response = await this.client.get(`/google-workspace/providers/${id}`)
+    return response.data
+  }
+
+  async createGoogleWorkspaceProvider(data: {
+    name: string
+    organization_id: number
+    customer_id: string
+    admin_email: string
+    service_account_json: any
+    description?: string
+  }) {
+    const response = await this.client.post('/google-workspace/providers', data)
+    return response.data
+  }
+
+  async updateGoogleWorkspaceProvider(id: number, data: Partial<{
+    name: string
+    customer_id: string
+    admin_email: string
+    service_account_json: any
+    description: string
+    enabled: boolean
+  }>) {
+    const response = await this.client.put(`/google-workspace/providers/${id}`, data)
+    return response.data
+  }
+
+  async deleteGoogleWorkspaceProvider(id: number) {
+    const response = await this.client.delete(`/google-workspace/providers/${id}`)
+    return response.data
+  }
+
+  async testGoogleWorkspaceProvider(id: number) {
+    const response = await this.client.post(`/google-workspace/providers/${id}/test`)
+    return response.data
+  }
+
+  async listGoogleWorkspaceUsers(providerId: number, params?: { domain?: string; limit?: number }) {
+    const response = await this.client.get(`/google-workspace/providers/${providerId}/users`, { params })
+    return response.data
+  }
+
+  async listGoogleWorkspaceGroups(providerId: number, params?: { domain?: string; limit?: number }) {
+    const response = await this.client.get(`/google-workspace/providers/${providerId}/groups`, { params })
+    return response.data
+  }
+
+  // Webhooks
+  async getWebhooks(params?: { organization_id?: number }) {
+    const response = await this.client.get('/webhooks', { params })
+    return response.data
+  }
+
+  async getWebhook(id: number) {
+    const response = await this.client.get(`/webhooks/${id}`)
+    return response.data
+  }
+
+  async createWebhook(data: {
+    name: string
+    url: string
+    organization_id: number
+    events: string[]
+    secret?: string
+    enabled?: boolean
+  }) {
+    const response = await this.client.post('/webhooks', data)
+    return response.data
+  }
+
+  async updateWebhook(id: number, data: Partial<{ name: string; url: string; events: string[]; secret: string; enabled: boolean }>) {
+    const response = await this.client.put(`/webhooks/${id}`, data)
+    return response.data
+  }
+
+  async deleteWebhook(id: number) {
+    const response = await this.client.delete(`/webhooks/${id}`)
+    return response.data
+  }
+
+  async testWebhook(id: number) {
+    const response = await this.client.post(`/webhooks/${id}/test`)
+    return response.data
+  }
+
+  async getWebhookDeliveries(webhookId: number) {
+    const response = await this.client.get(`/webhooks/${webhookId}/deliveries`)
+    return response.data
+  }
+
+  // Backup Management
+  async getBackupJobs(params?: { organization_id?: number }) {
+    const response = await this.client.get('/backup/jobs', { params })
+    return response.data
+  }
+
+  async getBackupJob(id: number) {
+    const response = await this.client.get(`/backup/jobs/${id}`)
+    return response.data
+  }
+
+  async createBackupJob(data: {
+    name: string
+    schedule: string
+    organization_id?: number
+    retention_days: number
+    enabled?: boolean
+  }) {
+    const response = await this.client.post('/backup/jobs', data)
+    return response.data
+  }
+
+  async updateBackupJob(id: number, data: Partial<{ name: string; schedule: string; retention_days: number; enabled: boolean }>) {
+    const response = await this.client.put(`/backup/jobs/${id}`, data)
+    return response.data
+  }
+
+  async deleteBackupJob(id: number) {
+    const response = await this.client.delete(`/backup/jobs/${id}`)
+    return response.data
+  }
+
+  async runBackupJob(id: number) {
+    const response = await this.client.post(`/backup/jobs/${id}/run`)
+    return response.data
+  }
+
+  async getBackups(params?: { job_id?: number }) {
+    const response = await this.client.get('/backup/backups', { params })
+    return response.data
+  }
+
+  async getBackup(id: number) {
+    const response = await this.client.get(`/backup/backups/${id}`)
+    return response.data
+  }
+
+  async deleteBackup(id: number) {
+    const response = await this.client.delete(`/backup/backups/${id}`)
+    return response.data
+  }
+
+  async restoreBackup(id: number, data?: { dry_run?: boolean }) {
+    const response = await this.client.post(`/backup/backups/${id}/restore`, data)
+    return response.data
+  }
+
+  // v2.0.0 Networking Resources & Topology
+  async listNetworks(params?: { organization_id?: number; network_type?: string; region?: string }) {
+    const response = await this.client.get('/networking/networks', { params })
+    return response.data
+  }
+
+  async getNetwork(id: number) {
+    const response = await this.client.get(`/networking/networks/${id}`)
+    return response.data
+  }
+
+  async createNetwork(data: {
+    name: string
+    network_type: string
+    organization_id: number
+    description?: string
+    region?: string
+    location?: string
+    parent_id?: number
+    poc?: string
+    organizational_unit?: string
+    attributes?: any
+    tags?: string[]
+  }) {
+    const response = await this.client.post('/networking/networks', data)
+    return response.data
+  }
+
+  async updateNetwork(id: number, data: Partial<{
+    name: string
+    description: string
+    region: string
+    location: string
+    attributes: any
+    tags: string[]
+  }>) {
+    const response = await this.client.put(`/networking/networks/${id}`, data)
+    return response.data
+  }
+
+  async deleteNetwork(id: number, hard?: boolean) {
+    const response = await this.client.delete(`/networking/networks/${id}`, { params: { hard } })
+    return response.data
+  }
+
+  async listTopologyConnections(params?: { network_id?: number; connection_type?: string }) {
+    const response = await this.client.get('/networking/topology/connections', { params })
+    return response.data
+  }
+
+  async getTopologyConnection(id: number) {
+    const response = await this.client.get(`/networking/topology/connections/${id}`)
+    return response.data
+  }
+
+  async createTopologyConnection(data: {
+    source_network_id: number
+    target_network_id: number
+    connection_type: string
+    bandwidth?: string
+    latency?: number
+    metadata?: any
+  }) {
+    const response = await this.client.post('/networking/topology/connections', data)
+    return response.data
+  }
+
+  async deleteTopologyConnection(id: number) {
+    const response = await this.client.delete(`/networking/topology/connections/${id}`)
+    return response.data
+  }
+
+  async listEntityMappings(params?: { network_id?: number; entity_id?: number }) {
+    const response = await this.client.get('/networking/mappings', { params })
+    return response.data
+  }
+
+  async createEntityMapping(data: {
+    network_id: number
+    entity_id: number
+    relationship_type: string
+    metadata?: any
+  }) {
+    const response = await this.client.post('/networking/mappings', data)
+    return response.data
+  }
+
+  async deleteEntityMapping(id: number) {
+    const response = await this.client.delete(`/networking/mappings/${id}`)
+    return response.data
+  }
+
+  async getNetworkTopologyGraph(organizationId: number, includeEntities: boolean = false) {
+    const response = await this.client.get('/networking/topology/graph', {
+      params: { organization_id: organizationId, include_entities: includeEntities }
+    })
+    return response.data
+  }
+
+  // v2.0.0 Built-in Secrets
+  async listBuiltinSecrets(params: { organization_id: number; prefix?: string }) {
+    const response = await this.client.get('/builtin-secrets', { params })
+    return response.data
+  }
+
+  async getBuiltinSecret(path: string, organizationId: number) {
+    const response = await this.client.get(`/builtin-secrets/${path}`, {
+      params: { organization_id: organizationId }
+    })
+    return response.data
+  }
+
+  async createBuiltinSecret(data: {
+    name: string
+    value: string
+    organization_id: number
+    description?: string
+    secret_type?: string
+    tags?: string[]
+    expires_at?: string
+  }) {
+    const response = await this.client.post('/builtin-secrets', data)
+    return response.data
+  }
+
+  async updateBuiltinSecret(path: string, organizationId: number, data: { value: string }) {
+    const response = await this.client.put(`/builtin-secrets/${path}`, data, {
+      params: { organization_id: organizationId }
+    })
+    return response.data
+  }
+
+  async deleteBuiltinSecret(path: string, organizationId: number) {
+    const response = await this.client.delete(`/builtin-secrets/${path}`, {
+      params: { organization_id: organizationId }
+    })
+    return response.data
+  }
+
+  async testBuiltinSecretsConnection(organizationId: number) {
+    const response = await this.client.post('/builtin-secrets/test-connection', {
+      organization_id: organizationId
+    })
     return response.data
   }
 }

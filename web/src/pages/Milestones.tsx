@@ -37,8 +37,11 @@ export default function Milestones() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteMilestone(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['milestones'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['milestones'],
+        refetchType: 'all'
+      })
       toast.success('Milestone deleted successfully')
     },
     onError: () => {
@@ -212,9 +215,12 @@ export default function Milestones() {
       {showCreateModal && (
         <MilestoneModal
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['milestones'],
+              refetchType: 'all'
+            })
             setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['milestones'] })
           }}
         />
       )}
@@ -224,9 +230,12 @@ export default function Milestones() {
         <MilestoneModal
           milestone={editingMilestone}
           onClose={() => setEditingMilestone(null)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['milestones'],
+              refetchType: 'all'
+            })
             setEditingMilestone(null)
-            queryClient.invalidateQueries({ queryKey: ['milestones'] })
           }}
         />
       )}

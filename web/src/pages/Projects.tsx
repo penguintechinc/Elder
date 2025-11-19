@@ -31,8 +31,11 @@ export default function Projects() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteProject(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['projects'],
+        refetchType: 'all'
+      })
       toast.success('Project deleted successfully')
     },
     onError: () => {
@@ -187,9 +190,12 @@ export default function Projects() {
       {showCreateModal && (
         <ProjectModal
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['projects'],
+              refetchType: 'all'
+            })
             setShowCreateModal(false)
-            queryClient.invalidateQueries({ queryKey: ['projects'] })
           }}
         />
       )}
@@ -199,9 +205,12 @@ export default function Projects() {
         <ProjectModal
           project={editingProject}
           onClose={() => setEditingProject(null)}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['projects'],
+              refetchType: 'all'
+            })
             setEditingProject(null)
-            queryClient.invalidateQueries({ queryKey: ['projects'] })
           }}
         />
       )}

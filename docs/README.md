@@ -30,6 +30,11 @@ Welcome to the Elder infrastructure management platform documentation.
 
 ### Services & Features
 
+#### Backup & Data Management
+The Elder Backup system provides comprehensive backup, restore, and data export capabilities with S3-compatible storage support.
+
+- **[S3 Backup Configuration](S3_BACKUP_CONFIGURATION.md)** - Configure S3-compatible storage for backups (AWS S3, MinIO, Wasabi, Backblaze B2, etc.)
+
 #### Connector Service
 The Elder Connector Service synchronizes data from external sources into Elder.
 
@@ -59,6 +64,8 @@ docs/
 ├── DATABASE.md                  # Database documentation
 ├── LICENSE.md                   # License information
 ├── RELEASE_NOTES.md            # Version history
+├── S3_BACKUP_CONFIGURATION.md  # S3 backup configuration guide
+├── SYNC.md                     # External sync documentation
 ├── api/                        # API documentation
 ├── architecture/               # Architecture docs
 ├── connector/                  # Connector service docs

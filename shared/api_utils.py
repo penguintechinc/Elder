@@ -2,12 +2,15 @@
 
 import math
 from typing import Any, Dict, List, Tuple
-from flask import request, jsonify
-from sqlalchemy.orm import Query
+
+from flask import request
 from marshmallow import ValidationError
+from sqlalchemy.orm import Query
 
 
-def paginate(query: Query, page: int = 1, per_page: int = 50) -> Tuple[List, Dict[str, Any]]:
+def paginate(
+    query: Query, page: int = 1, per_page: int = 50
+) -> Tuple[List, Dict[str, Any]]:
     """
     Paginate a SQLAlchemy query.
 
@@ -80,7 +83,9 @@ def validate_request(schema_class: Any, data: Dict = None) -> Dict[str, Any]:
     return schema.load(data)
 
 
-def make_error_response(message: str, status_code: int = 400, **kwargs) -> Tuple[Dict, int]:
+def make_error_response(
+    message: str, status_code: int = 400, **kwargs
+) -> Tuple[Dict, int]:
     """
     Create a standardized error response.
 
@@ -101,7 +106,9 @@ def make_error_response(message: str, status_code: int = 400, **kwargs) -> Tuple
     return response, status_code
 
 
-def make_success_response(data: Any = None, message: str = None, status_code: int = 200) -> Tuple[Dict, int]:
+def make_success_response(
+    data: Any = None, message: str = None, status_code: int = 200
+) -> Tuple[Dict, int]:
     """
     Create a standardized success response.
 
@@ -176,6 +183,7 @@ def get_or_404(model: Any, id: int, error_message: str = None):
     if instance is None:
         message = error_message or f"{model.__name__} with id {id} not found"
         from flask import abort
+
         abort(404, description=message)
 
     return instance

@@ -1,9 +1,10 @@
 """Configuration management for Elder application."""
 
 import os
-from typing import Any, Dict
-from decouple import config
 from datetime import timedelta
+from typing import Any, Dict
+
+from decouple import config
 
 
 class Config:
@@ -45,14 +46,31 @@ class Config:
 
     # JWT
     JWT_SECRET_KEY = config("JWT_SECRET_KEY", default=None)
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=4)  # Extended to 4 hours for development
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(
+        hours=config("JWT_ACCESS_TOKEN_HOURS", default=4, cast=int)
+    )
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(
+        days=config("JWT_REFRESH_TOKEN_DAYS", default=30, cast=int)
+    )
     JWT_ALGORITHM = "HS256"
 
     # CORS
-    CORS_ORIGINS = config("CORS_ORIGINS", default="*")
+    CORS_ORIGINS = config(
+        "CORS_ORIGINS",
+        default="http://localhost:3000,http://localhost:3001,http://localhost:3002",
+    ).split(",")
     CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
-    CORS_ALLOW_HEADERS = ["Content-Type", "Authorization"]
+    CORS_ALLOW_HEADERS = [
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers",
+    ]
+    CORS_SUPPORTS_CREDENTIALS = True
+    CORS_EXPOSE_HEADERS = ["Content-Type", "Authorization"]
 
     # Rate Limiting
     RATELIMIT_ENABLED = config("RATELIMIT_ENABLED", default=True, cast=bool)
@@ -63,7 +81,9 @@ class Config:
     SAML_ENABLED = config("SAML_ENABLED", default=False, cast=bool)
     SAML_METADATA_URL = config("SAML_METADATA_URL", default=None)
     SAML_ENTITY_ID = config("SAML_ENTITY_ID", default="elder")
-    SAML_ACS_URL = config("SAML_ACS_URL", default="http://localhost:5000/api/v1/auth/saml/acs")
+    SAML_ACS_URL = config(
+        "SAML_ACS_URL", default="http://localhost:5000/api/v1/auth/saml/acs"
+    )
 
     # OAuth2 Authentication
     OAUTH2_ENABLED = config("OAUTH2_ENABLED", default=False, cast=bool)
@@ -89,7 +109,9 @@ class Config:
 
     # License Server
     LICENSE_KEY = config("LICENSE_KEY", default=None)
-    LICENSE_SERVER_URL = config("LICENSE_SERVER_URL", default="https://license.penguintech.io")
+    LICENSE_SERVER_URL = config(
+        "LICENSE_SERVER_URL", default="https://license.penguintech.io"
+    )
     PRODUCT_NAME = "elder"
 
     # Logging
@@ -113,7 +135,6 @@ class Config:
     @staticmethod
     def init_app(app: Any) -> None:
         """Initialize application with configuration."""
-        pass
 
 
 class DevelopmentConfig(Config):

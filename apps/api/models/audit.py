@@ -1,13 +1,13 @@
 """Audit log model for tracking all system changes."""
 
 import enum
+from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import Column, Enum, ForeignKey, Integer, JSON, String, DateTime
-from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, relationship
 
 from apps.api.models.base import Base, IDMixin
-from datetime import datetime, timezone
 
 
 class AuditAction(enum.Enum):

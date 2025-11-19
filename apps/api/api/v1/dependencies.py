@@ -1,19 +1,22 @@
 """Dependency API endpoints using PyDAL with async/await."""
 
 import asyncio
-from flask import Blueprint, request, jsonify, current_app
-from datetime import datetime, timezone
+import logging
 from dataclasses import asdict
 
+from flask import Blueprint, current_app, jsonify, request
+
+from apps.api.auth.decorators import login_required
+from apps.api.logging_config import log_error_and_respond
 from apps.api.models.dataclasses import (
     DependencyDTO,
-    CreateDependencyRequest,
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,
 )
-from apps.api.auth.decorators import login_required
 from shared.async_utils import run_in_threadpool
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("dependencies", __name__)
 
@@ -37,8 +40,8 @@ async def list_dependencies():
     db = current_app.db
 
     # Get pagination params
-    page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 50, type=int), 1000)
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 50, type=int), 1000)
 
     # Build query
     query = db.dependencies.id > 0
@@ -46,29 +49,29 @@ async def list_dependencies():
     # Apply filters
     if request.args.get("source_entity_id"):
         source_id = request.args.get("source_entity_id", type=int)
-        query &= (db.dependencies.source_entity_id == source_id)
+        query &= db.dependencies.source_entity_id == source_id
 
     if request.args.get("target_entity_id"):
         target_id = request.args.get("target_entity_id", type=int)
-        query &= (db.dependencies.target_entity_id == target_id)
+        query &= db.dependencies.target_entity_id == target_id
 
     if request.args.get("dependency_type"):
         dep_type = request.args.get("dependency_type")
-        query &= (db.dependencies.dependency_type == dep_type)
+        query &= db.dependencies.dependency_type == dep_type
 
     # Calculate pagination
     offset = (page - 1) * per_page
 
     # Use asyncio TaskGroup for concurrent queries (Python 3.12)
     async with asyncio.TaskGroup() as tg:
-        count_task = tg.create_task(
-            run_in_threadpool(lambda: db(query).count())
-        )
+        count_task = tg.create_task(run_in_threadpool(lambda: db(query).count()))
         rows_task = tg.create_task(
-            run_in_threadpool(lambda: db(query).select(
-                orderby=~db.dependencies.created_at,
-                limitby=(offset, offset + per_page)
-            ))
+            run_in_threadpool(
+                lambda: db(query).select(
+                    orderby=~db.dependencies.created_at,
+                    limitby=(offset, offset + per_page),
+                )
+            )
         )
 
     total = count_task.result()
@@ -86,7 +89,7 @@ async def list_dependencies():
         total=total,
         page=page,
         per_page=per_page,
-        pages=pages
+        pages=pages,
     )
 
     return jsonify(asdict(response)), 200
@@ -139,14 +142,22 @@ async def create_dependency():
             return {"error": f"Target entity {target_id} not found"}, 400, None
 
         # Check if dependency already exists
-        existing = db(
-            (db.dependencies.source_entity_id == source_id) &
-            (db.dependencies.target_entity_id == target_id) &
-            (db.dependencies.dependency_type == data["dependency_type"])
-        ).select().first()
+        existing = (
+            db(
+                (db.dependencies.source_entity_id == source_id)
+                & (db.dependencies.target_entity_id == target_id)
+                & (db.dependencies.dependency_type == data["dependency_type"])
+            )
+            .select()
+            .first()
+        )
 
         if existing:
-            return {"error": "Dependency already exists", "dependency_id": existing.id}, 409, None
+            return (
+                {"error": "Dependency already exists", "dependency_id": existing.id},
+                409,
+                None,
+            )
 
         # Create dependency
         dep_id = db.dependencies.insert(
@@ -256,10 +267,9 @@ async def delete_dependency(id: int):
         return jsonify({"error": "Dependency not found"}), 404
 
     # Delete dependency
-    await run_in_threadpool(lambda: (
-        db(db.dependencies.id == id).delete(),
-        db.commit()
-    ))
+    await run_in_threadpool(
+        lambda: (db(db.dependencies.id == id).delete(), db.commit())
+    )
 
     return "", 204
 
@@ -319,9 +329,9 @@ async def create_bulk_dependencies():
         dependencies = from_pydal_rows(rows, DependencyDTO)
         return jsonify([asdict(d) for d in dependencies]), 201
     except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+        return log_error_and_respond(logger, e, "Failed to process request", 400)
     except Exception as e:
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/bulk", methods=["DELETE"])

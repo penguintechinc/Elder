@@ -6,7 +6,6 @@ import OrganizationDetail from './pages/OrganizationDetail'
 import Entities from './pages/Entities'
 import EntityDetail from './pages/EntityDetail'
 import Dependencies from './pages/Dependencies'
-import Identities from './pages/Identities'
 import Issues from './pages/Issues'
 import IssueDetail from './pages/IssueDetail'
 import Projects from './pages/Projects'
@@ -18,6 +17,15 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import RelationshipGraph from './pages/RelationshipGraph'
 import Profile from './pages/Profile'
+// v1.2.0 Pages
+import Secrets from './pages/Secrets'
+import Keys from './pages/Keys'
+import IAM from './pages/IAM'
+import Discovery from './pages/Discovery'
+import Webhooks from './pages/Webhooks'
+import Backups from './pages/Backups'
+// v2.0.0 Pages
+import Networking from './pages/Networking'
 
 // Protected route wrapper component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -45,13 +53,19 @@ export default function App() {
         <Route path="entities" element={<Entities />} />
         <Route path="entities/:id" element={<EntityDetail />} />
         <Route path="dependencies" element={<Dependencies />} />
-        <Route path="identities" element={<Identities />} />
         <Route path="issues" element={<Issues />} />
         <Route path="issues/:id" element={<IssueDetail />} />
         <Route path="projects" element={<Projects />} />
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="milestones" element={<Milestones />} />
         <Route path="labels" element={<Labels />} />
+        <Route path="secrets" element={<Secrets />} />
+        <Route path="keys" element={<Keys />} />
+        <Route path="iam" element={<IAM />} />
+        <Route path="discovery" element={<Discovery />} />
+        <Route path="webhooks" element={<Webhooks />} />
+        <Route path="backups" element={<Backups />} />
+        <Route path="networking" element={<Networking />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

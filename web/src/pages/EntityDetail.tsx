@@ -64,8 +64,11 @@ export default function EntityDetail() {
 
   const deleteDependencyMutation = useMutation({
     mutationFn: (depId: number) => api.deleteDependency(depId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dependencies'] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['dependencies'],
+        refetchType: 'all'
+      })
       toast.success('Dependency removed successfully')
     },
     onError: () => {

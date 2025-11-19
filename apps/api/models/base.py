@@ -4,14 +4,11 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 
 from sqlalchemy import Column, DateTime, Integer
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
     """Base class for all database models."""
-
-    pass
 
 
 class TimestampMixin:

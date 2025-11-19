@@ -1,15 +1,12 @@
 """Labels management API endpoints for Elder using PyDAL with async/await."""
 
-import asyncio
-from flask import Blueprint, jsonify, request, current_app
-from datetime import datetime, timezone
 from dataclasses import asdict
+
+from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required
 from apps.api.models.dataclasses import (
     IssueLabelDTO,
-    CreateLabelRequest,
-    UpdateLabelRequest,
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,
@@ -40,8 +37,8 @@ async def list_labels():
     db = current_app.db
 
     # Get pagination params
-    page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 50, type=int), 1000)
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 50, type=int), 1000)
 
     # Build query
     def get_labels():
@@ -50,9 +47,9 @@ async def list_labels():
         # Apply search filter
         if request.args.get("search"):
             search = request.args.get("search")
-            query &= (
-                (db.issue_labels.name.contains(search)) |
-                (db.issue_labels.description.contains(search))
+            search_pattern = f"%{search}%"
+            query &= (db.issue_labels.name.ilike(search_pattern)) | (
+                db.issue_labels.description.ilike(search_pattern)
             )
 
         # Calculate pagination
@@ -61,8 +58,7 @@ async def list_labels():
         # Get count and rows
         total = db(query).count()
         rows = db(query).select(
-            orderby=db.issue_labels.name,
-            limitby=(offset, offset + per_page)
+            orderby=db.issue_labels.name, limitby=(offset, offset + per_page)
         )
 
         return total, rows
@@ -81,7 +77,7 @@ async def list_labels():
         total=total,
         page=page,
         per_page=per_page,
-        pages=pages
+        pages=pages,
     )
 
     return jsonify(asdict(response)), 200

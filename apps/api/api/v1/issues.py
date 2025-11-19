@@ -1,18 +1,16 @@
 """Issues management API endpoints for Elder enterprise features using PyDAL with async/await."""
 
 import asyncio
-from flask import Blueprint, jsonify, request, current_app, g
-from datetime import datetime, timezone
 from dataclasses import asdict
+from datetime import datetime, timezone
 
-from apps.api.auth.decorators import login_required, resource_role_required
+from flask import Blueprint, current_app, g, jsonify, request
+
+from apps.api.auth.decorators import login_required
 from apps.api.models.dataclasses import (
+    IssueCommentDTO,
     IssueDTO,
     IssueLabelDTO,
-    IssueCommentDTO,
-    CreateIssueRequest,
-    UpdateIssueRequest,
-    CreateIssueCommentRequest,
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,
@@ -50,8 +48,8 @@ async def list_issues():
     db = current_app.db
 
     # Get pagination params
-    page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 50, type=int), 1000)
+    page = request.args.get("page", 1, type=int)
+    per_page = min(request.args.get("per_page", 50, type=int), 1000)
 
     # Build query
     def get_issues():
@@ -60,21 +58,21 @@ async def list_issues():
         # Apply filters
         if request.args.get("organization_id"):
             org_id = request.args.get("organization_id", type=int)
-            query &= (db.issues.organization_id == org_id)
+            query &= db.issues.organization_id == org_id
 
         if request.args.get("status"):
-            query &= (db.issues.status == request.args.get("status"))
+            query &= db.issues.status == request.args.get("status")
 
         if request.args.get("priority"):
-            query &= (db.issues.priority == request.args.get("priority"))
+            query &= db.issues.priority == request.args.get("priority")
 
         if request.args.get("assignee_id"):
             assignee_id = request.args.get("assignee_id", type=int)
-            query &= (db.issues.assignee_id == assignee_id)
+            query &= db.issues.assignee_id == assignee_id
 
         if request.args.get("reporter_id"):
             reporter_id = request.args.get("reporter_id", type=int)
-            query &= (db.issues.reporter_id == reporter_id)
+            query &= db.issues.reporter_id == reporter_id
 
         # Calculate pagination
         offset = (page - 1) * per_page
@@ -82,8 +80,7 @@ async def list_issues():
         # Get count and rows
         total = db(query).count()
         rows = db(query).select(
-            orderby=~db.issues.created_at,
-            limitby=(offset, offset + per_page)
+            orderby=~db.issues.created_at, limitby=(offset, offset + per_page)
         )
 
         return total, rows
@@ -102,7 +99,7 @@ async def list_issues():
         total=total,
         page=page,
         per_page=per_page,
-        pages=pages
+        pages=pages,
     )
 
     return jsonify(asdict(response)), 200
@@ -143,6 +140,9 @@ async def create_issue():
     if not data.get("title"):
         return jsonify({"error": "title is required"}), 400
 
+    # Capture current_user before thread pool (Flask g doesn't propagate to threads)
+    current_user_id = g.current_user.id
+
     def create():
         # Create issue
         issue_id = db.issues.insert(
@@ -151,14 +151,15 @@ async def create_issue():
             status=data.get("status", "open"),
             priority=data.get("priority", "medium"),
             issue_type=data.get("issue_type", "other"),
-            reporter_id=g.current_user.id,
+            reporter_id=current_user_id,
             assignee_id=data.get("assignee_id"),
             organization_id=data.get("organization_id"),
             is_incident=data.get("is_incident", 0),
         )
         db.commit()
 
-        return db.issues[issue_id]
+        # Explicitly select the row to get all fields
+        return db(db.issues.id == issue_id).select().first()
 
     issue = await run_in_threadpool(create)
 
@@ -170,9 +171,9 @@ async def create_issue():
                 issue_id=issue.id,
                 issue_title=issue.title,
                 issue_type=issue.issue_type,
-                is_incident=issue.is_incident if hasattr(issue, 'is_incident') else 0,
+                is_incident=issue.is_incident if hasattr(issue, "is_incident") else 0,
                 organization_id=issue.organization_id,
-                web_url_base=current_app.config.get("WEB_URL", "http://localhost:3000")
+                web_url_base=current_app.config.get("WEB_URL", "http://localhost:3000"),
             )
         )
 
@@ -370,10 +371,10 @@ async def list_issue_comments(id: int):
     # Convert to DTOs
     items = from_pydal_rows(result, IssueCommentDTO)
 
-    return jsonify({
-        "items": [asdict(item) for item in items],
-        "total": len(items)
-    }), 200
+    return (
+        jsonify({"items": [asdict(item) for item in items], "total": len(items)}),
+        200,
+    )
 
 
 @bp.route("/<int:id>/comments", methods=["POST"])
@@ -505,17 +506,17 @@ async def list_issue_labels():
     """
     db = current_app.db
 
-    labels = await run_in_threadpool(lambda: db(db.issue_labels).select(
-        orderby=db.issue_labels.name
-    ))
+    labels = await run_in_threadpool(
+        lambda: db(db.issue_labels).select(orderby=db.issue_labels.name)
+    )
 
     # Convert to DTOs
     items = from_pydal_rows(labels, IssueLabelDTO)
 
-    return jsonify({
-        "items": [asdict(item) for item in items],
-        "total": len(items)
-    }), 200
+    return (
+        jsonify({"items": [asdict(item) for item in items], "total": len(items)}),
+        200,
+    )
 
 
 @bp.route("/labels", methods=["POST"])
@@ -624,10 +625,14 @@ async def add_issue_label(id: int):
             return None, "Label not found", 404
 
         # Check if already assigned
-        existing = db(
-            (db.issue_label_assignments.issue_id == id) &
-            (db.issue_label_assignments.label_id == label_id)
-        ).select().first()
+        existing = (
+            db(
+                (db.issue_label_assignments.issue_id == id)
+                & (db.issue_label_assignments.label_id == label_id)
+            )
+            .select()
+            .first()
+        )
 
         if existing:
             return None, "Label already assigned to this issue", 409
@@ -678,8 +683,8 @@ async def remove_issue_label(id: int, label_id: int):
 
         # Remove label assignment
         deleted = db(
-            (db.issue_label_assignments.issue_id == id) &
-            (db.issue_label_assignments.label_id == label_id)
+            (db.issue_label_assignments.issue_id == id)
+            & (db.issue_label_assignments.label_id == label_id)
         ).delete()
 
         db.commit()
@@ -735,12 +740,14 @@ async def list_issue_entity_links(id: int):
         link_list = []
         for link in links:
             entity = db.entities[link.entity_id]
-            link_list.append({
-                "id": link.id,
-                "entity_id": link.entity_id,
-                "entity_name": entity.name if entity else None,
-                "created_at": link.created_at,
-            })
+            link_list.append(
+                {
+                    "id": link.id,
+                    "entity_id": link.entity_id,
+                    "entity_name": entity.name if entity else None,
+                    "created_at": link.created_at,
+                }
+            )
 
         return link_list, None, None
 
@@ -749,10 +756,7 @@ async def list_issue_entity_links(id: int):
     if error:
         return jsonify({"error": error}), status
 
-    return jsonify({
-        "items": result,
-        "total": len(result)
-    }), 200
+    return jsonify({"items": result, "total": len(result)}), 200
 
 
 @bp.route("/<int:id>/links", methods=["POST"])
@@ -803,10 +807,14 @@ async def create_issue_entity_link(id: int):
             return None, "Entity not found", 404
 
         # Check if link already exists
-        existing = db(
-            (db.issue_entity_links.issue_id == id) &
-            (db.issue_entity_links.entity_id == entity_id)
-        ).select().first()
+        existing = (
+            db(
+                (db.issue_entity_links.issue_id == id)
+                & (db.issue_entity_links.entity_id == entity_id)
+            )
+            .select()
+            .first()
+        )
 
         if existing:
             return None, "Entity already linked to this issue", 409
@@ -820,12 +828,16 @@ async def create_issue_entity_link(id: int):
 
         link = db.issue_entity_links[link_id]
 
-        return {
-            "id": link.id,
-            "entity_id": link.entity_id,
-            "entity_name": entity.name,
-            "created_at": link.created_at,
-        }, None, None
+        return (
+            {
+                "id": link.id,
+                "entity_id": link.entity_id,
+                "entity_name": entity.name,
+                "created_at": link.created_at,
+            },
+            None,
+            None,
+        )
 
     result, error, status = await run_in_threadpool(create_link)
 
@@ -925,18 +937,21 @@ async def link_issue_to_project(id: int):
             return None, "Project not found", 404
 
         # Check if link already exists
-        existing = db(
-            (db.issue_project_links.issue_id == id)
-            & (db.issue_project_links.project_id == data["project_id"])
-        ).select().first()
+        existing = (
+            db(
+                (db.issue_project_links.issue_id == id)
+                & (db.issue_project_links.project_id == data["project_id"])
+            )
+            .select()
+            .first()
+        )
 
         if existing:
             return None, "Issue is already linked to this project", 400
 
         # Create link
         link_id = db.issue_project_links.insert(
-            issue_id=id,
-            project_id=data["project_id"]
+            issue_id=id, project_id=data["project_id"]
         )
         db.commit()
 
@@ -948,7 +963,12 @@ async def link_issue_to_project(id: int):
     if error:
         return jsonify({"error": error}), status
 
-    return jsonify({"id": link.id, "issue_id": link.issue_id, "project_id": link.project_id}), 201
+    return (
+        jsonify(
+            {"id": link.id, "issue_id": link.issue_id, "project_id": link.project_id}
+        ),
+        201,
+    )
 
 
 @bp.route("/<int:id>/projects/<int:project_id>", methods=["DELETE"])
@@ -1040,18 +1060,21 @@ async def link_issue_to_milestone(id: int):
             return None, "Milestone not found", 404
 
         # Check if link already exists
-        existing = db(
-            (db.issue_milestone_links.issue_id == id)
-            & (db.issue_milestone_links.milestone_id == data["milestone_id"])
-        ).select().first()
+        existing = (
+            db(
+                (db.issue_milestone_links.issue_id == id)
+                & (db.issue_milestone_links.milestone_id == data["milestone_id"])
+            )
+            .select()
+            .first()
+        )
 
         if existing:
             return None, "Issue is already linked to this milestone", 400
 
         # Create link
         link_id = db.issue_milestone_links.insert(
-            issue_id=id,
-            milestone_id=data["milestone_id"]
+            issue_id=id, milestone_id=data["milestone_id"]
         )
         db.commit()
 
@@ -1063,7 +1086,16 @@ async def link_issue_to_milestone(id: int):
     if error:
         return jsonify({"error": error}), status
 
-    return jsonify({"id": link.id, "issue_id": link.issue_id, "milestone_id": link.milestone_id}), 201
+    return (
+        jsonify(
+            {
+                "id": link.id,
+                "issue_id": link.issue_id,
+                "milestone_id": link.milestone_id,
+            }
+        ),
+        201,
+    )
 
 
 @bp.route("/<int:id>/milestones/<int:milestone_id>", methods=["DELETE"])

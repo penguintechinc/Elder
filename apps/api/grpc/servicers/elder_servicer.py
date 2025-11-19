@@ -1,33 +1,22 @@
 """Elder gRPC servicer implementation."""
 
-import grpc
-import structlog
 from datetime import datetime
 from typing import Optional
 
-from apps.api.grpc.generated import (
-    elder_pb2,
-    elder_pb2_grpc,
-    common_pb2,
-    organization_pb2,
-    entity_pb2,
-    dependency_pb2,
-    graph_pb2,
-    auth_pb2,
-)
+import grpc
+import structlog
 
-from apps.api.models import (
-    Organization,
-    Entity,
-    Dependency,
-    Identity,
+from apps.api.grpc.converters import organization_to_proto
+from apps.api.grpc.generated import (
+    auth_pb2,
+    common_pb2,
+    dependency_pb2,
+    elder_pb2_grpc,
+    entity_pb2,
+    graph_pb2,
+    organization_pb2,
 )
-from apps.api.grpc.converters import (
-    organization_to_proto,
-    entity_to_proto,
-    dependency_to_proto,
-    identity_to_proto,
-)
+from apps.api.models import Organization
 from shared.database import db
 
 logger = structlog.get_logger(__name__)
@@ -259,8 +248,12 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
                 description=request.description,
                 ldap_dn=request.ldap_dn if request.ldap_dn else None,
                 saml_group=request.saml_group if request.saml_group else None,
-                owner_identity_id=request.owner_identity_id if request.owner_identity_id else None,
-                owner_group_id=request.owner_group_id if request.owner_group_id else None,
+                owner_identity_id=(
+                    request.owner_identity_id if request.owner_identity_id else None
+                ),
+                owner_group_id=(
+                    request.owner_group_id if request.owner_group_id else None
+                ),
                 metadata=dict(request.metadata) if request.metadata else {},
             )
 
@@ -298,9 +291,13 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             if request.HasField("saml_group"):
                 org.saml_group = request.saml_group if request.saml_group else None
             if request.HasField("owner_identity_id"):
-                org.owner_identity_id = request.owner_identity_id if request.owner_identity_id else None
+                org.owner_identity_id = (
+                    request.owner_identity_id if request.owner_identity_id else None
+                )
             if request.HasField("owner_group_id"):
-                org.owner_group_id = request.owner_group_id if request.owner_group_id else None
+                org.owner_group_id = (
+                    request.owner_group_id if request.owner_group_id else None
+                )
             if request.metadata:
                 org.metadata = dict(request.metadata)
 
@@ -333,7 +330,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             return organization_pb2.DeleteOrganizationResponse(
                 status=self._create_status_response(
                     success=True,
-                    message=f"Organization {request.id} deleted successfully"
+                    message=f"Organization {request.id} deleted successfully",
                 )
             )
         except Exception as e:
@@ -563,11 +560,10 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             return self._create_status_response(
                 success=True,
                 message="Elder gRPC server is healthy",
-                details={"version": "0.1.0", "service": "elder-grpc"}
+                details={"version": "0.1.0", "service": "elder-grpc"},
             )
         except Exception as e:
             self._handle_exception(context, e, "health_check")
             return self._create_status_response(
-                success=False,
-                message=f"Health check failed: {str(e)}"
+                success=False, message=f"Health check failed: {str(e)}"
             )
