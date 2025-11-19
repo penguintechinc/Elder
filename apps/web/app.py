@@ -16,10 +16,13 @@ from pydal.validators import IS_EMAIL, IS_IN_SET, IS_NOT_EMPTY
 # Add shared modules to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from shared.licensing.python_client import (FeatureNotAvailableError,
-                                            LicenseValidationError, get_client,
-                                            initialize_licensing,
-                                            requires_feature)
+from shared.licensing.python_client import (
+    FeatureNotAvailableError,
+    LicenseValidationError,
+    get_client,
+    initialize_licensing,
+    requires_feature,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

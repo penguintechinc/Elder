@@ -82,7 +82,8 @@ def setup_logging(app: Flask) -> None:
             file_handler.setFormatter(formatter)
             root_logger.addHandler(file_handler)
             app.logger.warning(
-                f"Could not write to {log_file}: {e}. " f"Logging to {FALLBACK_LOG_FILE}"
+                f"Could not write to {log_file}: {e}. "
+                f"Logging to {FALLBACK_LOG_FILE}"
             )
         except Exception as fallback_error:
             app.logger.error(
