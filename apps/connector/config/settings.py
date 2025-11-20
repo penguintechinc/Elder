@@ -123,6 +123,71 @@ class Settings(BaseSettings):
         description="LDAP sync interval in seconds (default: 1 hour)",
     )
 
+    # iBoss Configuration
+    iboss_enabled: bool = Field(default=False, description="Enable iBoss connector")
+    iboss_api_url: str = Field(
+        default="https://api.iboss.com",
+        description="iBoss API base URL",
+    )
+    iboss_api_key: Optional[str] = Field(
+        default=None,
+        description="iBoss API key for authentication",
+    )
+    iboss_tenant_id: Optional[str] = Field(
+        default=None,
+        description="iBoss tenant ID",
+    )
+    iboss_sync_interval: int = Field(
+        default=3600,
+        description="iBoss sync interval in seconds (default: 1 hour)",
+    )
+
+    # VMware vCenter Configuration
+    vcenter_enabled: bool = Field(
+        default=False, description="Enable vCenter connector"
+    )
+    vcenter_host: Optional[str] = Field(
+        default=None,
+        description="vCenter server hostname or IP",
+    )
+    vcenter_port: int = Field(
+        default=443,
+        description="vCenter server port",
+    )
+    vcenter_username: Optional[str] = Field(
+        default=None,
+        description="vCenter username",
+    )
+    vcenter_password: Optional[str] = Field(
+        default=None,
+        description="vCenter password",
+    )
+    vcenter_verify_ssl: bool = Field(
+        default=True,
+        description="Verify SSL certificate for vCenter",
+    )
+    vcenter_sync_interval: int = Field(
+        default=3600,
+        description="vCenter sync interval in seconds (default: 1 hour)",
+    )
+
+    # FleetDM Configuration
+    fleetdm_enabled: bool = Field(
+        default=False, description="Enable FleetDM connector"
+    )
+    fleetdm_url: str = Field(
+        default="https://fleet.example.com",
+        description="FleetDM server URL",
+    )
+    fleetdm_api_token: Optional[str] = Field(
+        default=None,
+        description="FleetDM API token for authentication",
+    )
+    fleetdm_sync_interval: int = Field(
+        default=3600,
+        description="FleetDM sync interval in seconds (default: 1 hour)",
+    )
+
     # Elder Organization Mapping
     default_organization_id: Optional[int] = Field(
         default=None,

@@ -7,6 +7,172 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2025-11-19
+
+### 🚀 Connector Expansion Release - iBoss, vCenter, FleetDM
+
+Major expansion of Elder's connector ecosystem with three new integrations for enterprise security, virtualization, and endpoint management platforms.
+
+### ✨ New Features
+
+#### iBoss Cloud Security Connector
+- **Users & Groups Discovery**: Sync users and groups from iBoss cloud security platform
+- **Application Usage Visibility**: Track applications users access with usage metrics
+- **Web Filtering Policies**: Discover and track security policies with categories and actions
+- **Cloud Connectors/Gateways**: Monitor iBoss connectors with status, version, and location
+- **Automatic Relationships**: Creates dependencies linking users→groups, users→applications
+- **Entity Types**: identity (users/groups), security (policies), network (connectors), compute (applications)
+- **Configuration**: API URL, API key, tenant ID, sync interval
+
+#### VMware vCenter Connector
+- **Virtual Infrastructure Discovery**: Complete vCenter infrastructure visibility
+- **Resources Synced**:
+  - Datacenters and Clusters (as organizations)
+  - ESXi hosts with hardware specs
+  - Virtual machines with CPU, memory, disk details
+  - Datastores with capacity metrics
+  - Networks and distributed port groups
+- **Hierarchical Organization**: vCenter → Datacenter → Cluster structure
+- **Entity Types**: compute (hosts/VMs), storage (datastores), network (networks)
+- **pyVmomi Integration**: Uses official VMware Python SDK
+- **Configuration**: Host, port, username, password, SSL verification, sync interval
+
+#### FleetDM Endpoint Management Connector
+- **Endpoint Discovery**: Sync managed hosts with detailed hardware/software inventory
+- **Software Inventory**: Track all installed software across fleet with version info
+- **Vulnerability Tracking**: CVE discovery with CVSS-based severity mapping
+  - Critical: CVSS >= 9.0
+  - High: CVSS >= 7.0
+  - Medium: CVSS >= 4.0
+  - Low: CVSS < 4.0
+- **Policy Compliance**: Track policy pass/fail rates across fleet
+- **Team Support**: FleetDM teams synced as sub-organizations
+- **Automatic Relationships**: Creates dependencies linking vulnerabilities→hosts, software→hosts
+- **Entity Types**: compute (hosts/software), security (vulnerabilities/policies)
+- **Configuration**: URL, API token, sync interval
+
+### 📖 Documentation
+
+#### New Documentation
+- **docs/CONNECTORS.md**: Comprehensive connector documentation (460+ lines)
+  - All 8 connectors documented (AWS, GCP, Google Workspace, Kubernetes, LDAP, iBoss, vCenter, FleetDM)
+  - Configuration examples with environment variables
+  - Resources synced per connector
+  - Required permissions and IAM policies
+  - Entity type mappings
+  - Troubleshooting guide
+  - Prometheus metrics reference
+
+### 🔧 Configuration
+
+#### New Environment Variables
+
+**iBoss Connector**:
+```bash
+IBOSS_ENABLED=true
+IBOSS_API_URL=https://api.iboss.com
+IBOSS_API_KEY=<api-key>
+IBOSS_TENANT_ID=<tenant-id>
+IBOSS_SYNC_INTERVAL=3600
+```
+
+**vCenter Connector**:
+```bash
+VCENTER_ENABLED=true
+VCENTER_HOST=vcenter.example.com
+VCENTER_PORT=443
+VCENTER_USERNAME=administrator@vsphere.local
+VCENTER_PASSWORD=<password>
+VCENTER_VERIFY_SSL=true
+VCENTER_SYNC_INTERVAL=3600
+```
+
+**FleetDM Connector**:
+```bash
+FLEETDM_ENABLED=true
+FLEETDM_URL=https://fleet.example.com
+FLEETDM_API_TOKEN=<api-token>
+FLEETDM_SYNC_INTERVAL=3600
+```
+
+### 📊 Technical Details
+
+#### Connector Architecture
+- All connectors follow `BaseConnector` pattern with:
+  - `connect()` - Establish API/service connection
+  - `disconnect()` - Clean up resources
+  - `sync()` - Synchronize resources to Elder
+  - `health_check()` - Verify connectivity
+- Async/await throughout for performance
+- `ElderAPIClient` for entity/organization management
+- Organization caching to reduce API calls
+- Comprehensive error handling and logging
+
+#### Entity Classification
+
+| Connector | Resource | Entity Type | Sub-Type |
+|-----------|----------|-------------|----------|
+| iBoss | Users | identity | employee |
+| iBoss | Groups | identity | group |
+| iBoss | Policies | security | - |
+| iBoss | Connectors | network | - |
+| vCenter | VMs | compute | virtual_machine |
+| vCenter | Hosts | compute | physical_machine |
+| vCenter | Datastores | storage | block_storage |
+| vCenter | Networks | network | - |
+| FleetDM | Hosts | compute | - |
+| FleetDM | Vulnerabilities | security | - |
+| FleetDM | Policies | security | - |
+
+### 📦 Dependencies
+
+**New Optional Requirements**:
+- `pyVmomi` - VMware vSphere API Python bindings (for vCenter connector)
+
+**Existing Dependencies** (already present):
+- `httpx` - Async HTTP client (for iBoss, FleetDM)
+
+### 📝 Files Added/Modified
+
+**New Files**:
+- `apps/connector/connectors/iboss_connector.py` (454 lines)
+- `apps/connector/connectors/vcenter_connector.py` (500+ lines)
+- `apps/connector/connectors/fleetdm_connector.py` (489 lines)
+- `docs/CONNECTORS.md` (460+ lines)
+
+**Modified Files**:
+- `apps/connector/config/settings.py` - Added 15 new configuration fields
+- `.version` - Updated to 2.1.0
+
+### 🔍 Breaking Changes
+
+None. All changes are backward compatible:
+- New connectors are disabled by default
+- Existing connectors continue to work unchanged
+- No database schema changes required
+
+### 🎯 Connector Summary
+
+Elder now supports **8 connectors** for comprehensive infrastructure discovery:
+
+| Connector | Platform | Primary Resources |
+|-----------|----------|-------------------|
+| AWS | Amazon Web Services | EC2, RDS, ElastiCache, SQS, S3, Lambda, EKS |
+| GCP | Google Cloud Platform | Compute Engine, Cloud SQL, GKE, Cloud Functions |
+| Google Workspace | Google Workspace | Users, Groups, OUs |
+| Kubernetes | Kubernetes | Namespaces, Pods, Services, Secrets, PVCs, RBAC |
+| LDAP | LDAP/Active Directory | Users, Groups, OUs |
+| **iBoss** | iBoss Cloud Security | Users, Groups, Policies, Connectors |
+| **vCenter** | VMware vCenter | VMs, Hosts, Datastores, Clusters, Networks |
+| **FleetDM** | FleetDM | Hosts, Vulnerabilities, Policies |
+
+### 🙏 Acknowledgments
+
+**Development Timeline**: November 19, 2025
+**Major Focus**: Enterprise connector expansion, security platform integration, endpoint management
+
+---
+
 ## [2.0.0] - 2025-10-30
 
 ### 🚀 Major Architectural Release - IAM Unification, Dedicated Networking, Enhanced Security
