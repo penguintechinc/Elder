@@ -179,13 +179,17 @@ def _register_blueprints(app: Flask) -> None:
     """
     # Import blueprints (async versions where available)
     from apps.api.api.v1 import audit  # Phase 8: Audit System Enhancement
+    from apps.api.api.v1 import audit_enterprise  # v2.2.0: Enhanced Audit & Compliance
     from apps.api.api.v1 import backup  # Phase 10: Backup & Data Management
     from apps.api.api.v1 import builtin_secrets  # v2.0.0: Built-in Secrets Storage
     from apps.api.api.v1 import discovery  # Phase 5: Cloud Auto-Discovery
     from apps.api.api.v1 import iam  # Phase 4: IAM Integration
     from apps.api.api.v1 import keys  # Phase 3: Keys Management
     from apps.api.api.v1 import networking  # v2.0.0: Networking Resources & Topology
+    from apps.api.api.v1 import portal_auth  # v2.2.0: Portal User Authentication
     from apps.api.api.v1 import search  # Phase 10: Advanced Search
+    from apps.api.api.v1 import sso  # v2.2.0: SSO/SAML/SCIM
+    from apps.api.api.v1 import tenants  # v2.2.0: Tenant Management
     from apps.api.api.v1 import secrets  # Phase 2: Secrets Management
     from apps.api.api.v1 import webhooks  # Phase 9: Webhook & Notification System
     from apps.api.api.v1 import (  # Phase 7: Google Workspace Integration
@@ -261,6 +265,20 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(
         builtin_secrets.bp
     )  # Built-in secrets already has /api/v1/builtin-secrets prefix
+
+    # v2.2.0 Enterprise Edition blueprints
+    app.register_blueprint(
+        portal_auth.bp, url_prefix=f"{api_prefix}/portal-auth"
+    )  # Portal user authentication
+    app.register_blueprint(
+        sso.bp, url_prefix=f"{api_prefix}/sso"
+    )  # SSO/SAML/SCIM
+    app.register_blueprint(
+        audit_enterprise.bp, url_prefix=f"{api_prefix}/audit-enterprise"
+    )  # Enhanced audit & compliance
+    app.register_blueprint(
+        tenants.bp, url_prefix=f"{api_prefix}/tenants"
+    )  # Tenant management
 
     # Public lookup endpoint (no /api/v1 prefix for cleaner URLs)
     app.register_blueprint(lookup.bp, url_prefix="/lookup")

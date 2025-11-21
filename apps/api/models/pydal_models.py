@@ -13,12 +13,50 @@ def define_all_tables(db):
     """
 
     # ==========================================
+    # LEVEL 0: Tenant table (foundation for multi-tenancy)
+    # ==========================================
+
+    # Tenants table - v2.2.0: Enterprise multi-tenancy foundation
+    db.define_table(
+        "tenants",
+        Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field("slug", "string", length=100, notnull=True, unique=True),
+        Field("domain", "string", length=255),  # Custom domain for tenant
+        Field(
+            "subscription_tier",
+            "string",
+            length=50,
+            default="community",
+            requires=IS_IN_SET(["community", "professional", "enterprise"]),
+        ),
+        Field("license_key", "string", length=255),
+        Field("settings", "json"),  # Tenant-specific settings
+        Field("feature_flags", "json"),  # Feature flag overrides
+        Field("data_retention_days", "integer", default=90),
+        Field("storage_quota_gb", "integer", default=10),
+        Field("is_active", "boolean", default=True, notnull=True),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
+    # ==========================================
     # LEVEL 1: Base tables with no dependencies
     # ==========================================
 
     # Identities table - must be first (referenced by many tables)
     db.define_table(
         "identities",
+        # v2.2.0: Multi-tenancy support
+        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
         # v2.0.0: Identity type validation for IAM unification
         Field(
             "identity_type",
@@ -66,6 +104,110 @@ def define_all_tables(db):
         Field("mfa_enabled", "boolean", default=False, notnull=True),
         Field("mfa_secret", "string", length=255),
         Field("last_login_at", "datetime"),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
+    # Portal Users table - v2.2.0: Enterprise portal user management
+    db.define_table(
+        "portal_users",
+        Field("tenant_id", "reference tenants", notnull=True, ondelete="CASCADE"),
+        Field("email", "string", length=255, notnull=True, requires=IS_EMAIL()),
+        Field("password_hash", "string", length=255),
+        Field("mfa_secret", "string", length=255),
+        Field("mfa_backup_codes", "json"),  # Encrypted backup codes
+        Field(
+            "global_role",
+            "string",
+            length=50,
+            requires=IS_EMPTY_OR(IS_IN_SET(["admin", "support"])),
+        ),  # Platform-wide role
+        Field(
+            "tenant_role",
+            "string",
+            length=50,
+            requires=IS_EMPTY_OR(IS_IN_SET(["admin", "maintainer", "reader"])),
+        ),  # Tenant-wide role
+        Field("full_name", "string", length=255),
+        Field("is_active", "boolean", default=True, notnull=True),
+        Field("email_verified", "boolean", default=False, notnull=True),
+        Field("last_login_at", "datetime"),
+        Field("failed_login_attempts", "integer", default=0),
+        Field("locked_until", "datetime"),
+        Field("password_changed_at", "datetime"),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
+    # IdP Configurations table - v2.2.0: SSO/SAML configuration
+    db.define_table(
+        "idp_configurations",
+        Field(
+            "tenant_id", "reference tenants", ondelete="CASCADE"
+        ),  # NULL for global IdP
+        Field(
+            "idp_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(["saml", "oidc"]),
+        ),
+        Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field("entity_id", "string", length=512),  # SAML Entity ID
+        Field("metadata_url", "string", length=1024),  # IdP metadata URL
+        Field("sso_url", "string", length=1024),  # SSO endpoint
+        Field("slo_url", "string", length=1024),  # Single Logout endpoint
+        Field("certificate", "text"),  # X.509 certificate
+        Field("attribute_mappings", "json"),  # Map IdP attributes to user fields
+        Field("jit_provisioning_enabled", "boolean", default=True, notnull=True),
+        Field(
+            "default_role",
+            "string",
+            length=50,
+            default="reader",
+            requires=IS_IN_SET(["admin", "maintainer", "reader"]),
+        ),
+        Field("is_active", "boolean", default=True, notnull=True),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
+    # SCIM Configurations table - v2.2.0: SCIM provisioning
+    db.define_table(
+        "scim_configurations",
+        Field("tenant_id", "reference tenants", notnull=True, ondelete="CASCADE"),
+        Field("endpoint_url", "string", length=1024, notnull=True),
+        Field("bearer_token", "string", length=512, notnull=True),
+        Field("sync_groups", "boolean", default=True, notnull=True),
+        Field("is_active", "boolean", default=True, notnull=True),
+        Field("last_sync_at", "datetime"),
         Field(
             "created_at",
             "datetime",
@@ -295,6 +437,29 @@ def define_all_tables(db):
     # LEVEL 2: Tables with Level 1 dependencies
     # ==========================================
 
+    # Portal User Org Assignments table (depends on: portal_users) - v2.2.0
+    # Note: organization_id is integer to avoid circular reference, will be validated in app
+    db.define_table(
+        "portal_user_org_assignments",
+        Field(
+            "portal_user_id", "reference portal_users", notnull=True, ondelete="CASCADE"
+        ),
+        Field("organization_id", "integer", notnull=True),  # Reference to organizations
+        Field(
+            "role",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(["admin", "maintainer", "reader"]),
+        ),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
     # Backups table (depends on: backup_jobs) - Phase 10: Advanced Search & Data Management
     db.define_table(
         "backups",
@@ -523,9 +688,11 @@ def define_all_tables(db):
         migrate=False,
     )
 
-    # Organizations table (depends on: identities, identity_groups)
+    # Organizations table (depends on: identities, identity_groups, tenants)
     db.define_table(
         "organizations",
+        # v2.2.0: Multi-tenancy support
+        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
         Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
         Field("description", "text"),
         Field(
