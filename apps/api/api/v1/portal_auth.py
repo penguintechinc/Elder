@@ -10,7 +10,7 @@ from flask import Blueprint, request, jsonify, current_app
 from functools import wraps
 
 from apps.api.services.portal_auth import PortalAuthService
-from shared.database import db
+import shared.database.connection as database
 
 bp = Blueprint("portal_auth", __name__)
 
@@ -79,7 +79,8 @@ def register():
     """Register a new portal user.
 
     Request body:
-        tenant_id: int - Tenant to register in
+        tenant_id: int - Tenant to register in (or use tenant slug)
+        tenant: str - Tenant slug (alternative to tenant_id)
         email: str - Email address
         password: str - Password
         full_name: str (optional) - Full name
@@ -92,15 +93,22 @@ def register():
         return jsonify({"error": "No data provided"}), 400
 
     tenant_id = data.get("tenant_id")
+    tenant_slug = data.get("tenant")
     email = data.get("email")
     password = data.get("password")
     full_name = data.get("full_name")
 
+    # Resolve tenant_id from slug if not provided
+    if not tenant_id and tenant_slug:
+        tenant_record = database.db(database.db.tenants.slug == tenant_slug).select().first()
+        if tenant_record:
+            tenant_id = tenant_record.id
+
     if not all([tenant_id, email, password]):
-        return jsonify({"error": "tenant_id, email, and password are required"}), 400
+        return jsonify({"error": "tenant (or tenant_id), email, and password are required"}), 400
 
     # Verify tenant exists
-    tenant = db.tenants[tenant_id]
+    tenant = database.db.tenants[tenant_id]
     if not tenant or not tenant.is_active:
         return jsonify({"error": "Invalid tenant"}), 400
 
@@ -129,7 +137,8 @@ def login():
     """Authenticate a portal user.
 
     Request body:
-        tenant_id: int - Tenant context
+        tenant_id: int - Tenant context (or use tenant slug)
+        tenant: str - Tenant slug (alternative to tenant_id)
         email: str - Email address
         password: str - Password
 
@@ -141,11 +150,18 @@ def login():
         return jsonify({"error": "No data provided"}), 400
 
     tenant_id = data.get("tenant_id")
+    tenant_slug = data.get("tenant")
     email = data.get("email")
     password = data.get("password")
 
+    # Resolve tenant_id from slug if not provided
+    if not tenant_id and tenant_slug:
+        tenant = database.db(database.db.tenants.slug == tenant_slug).select().first()
+        if tenant:
+            tenant_id = tenant.id
+
     if not all([tenant_id, email, password]):
-        return jsonify({"error": "tenant_id, email, and password are required"}), 400
+        return jsonify({"error": "tenant (or tenant_id), email, and password are required"}), 400
 
     result = PortalAuthService.authenticate(tenant_id, email, password)
 
@@ -317,7 +333,7 @@ def refresh_token():
 
         # Get user
         user_id = int(payload["sub"])
-        user = db.portal_users[user_id]
+        user = database.db.portal_users[user_id]
 
         if not user or not user.is_active:
             return jsonify({"error": "User not found or inactive"}), 401
@@ -349,7 +365,7 @@ def get_current_user():
         User info and permissions
     """
     user_id = int(request.portal_user["sub"])
-    user = db.portal_users[user_id]
+    user = database.db.portal_users[user_id]
 
     if not user:
         return jsonify({"error": "User not found"}), 404

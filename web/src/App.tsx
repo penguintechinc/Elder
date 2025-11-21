@@ -26,6 +26,12 @@ import Webhooks from './pages/Webhooks'
 import Backups from './pages/Backups'
 // v2.0.0 Pages
 import Networking from './pages/Networking'
+// v2.2.0 Enterprise Admin Pages
+import Tenants from './pages/Tenants'
+import TenantDetail from './pages/TenantDetail'
+import SSOConfiguration from './pages/SSOConfiguration'
+import AuditLogs from './pages/AuditLogs'
+import AdminSettings from './pages/AdminSettings'
 
 // Protected route wrapper component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -66,6 +72,12 @@ export default function App() {
         <Route path="webhooks" element={<Webhooks />} />
         <Route path="backups" element={<Backups />} />
         <Route path="networking" element={<Networking />} />
+        {/* v2.2.0 Enterprise Admin Routes */}
+        <Route path="admin/tenants" element={<Tenants />} />
+        <Route path="admin/tenants/:id" element={<TenantDetail />} />
+        <Route path="admin/sso" element={<SSOConfiguration />} />
+        <Route path="admin/audit-logs" element={<AuditLogs />} />
+        <Route path="admin/settings" element={<AdminSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

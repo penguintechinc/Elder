@@ -1,6 +1,26 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Network, Trash2, Link2, Activity } from 'lucide-react'
+import {
+  Plus,
+  Network,
+  Trash2,
+  Link2,
+  Activity,
+  Cloud,
+  LayoutGrid,
+  Shield,
+  Globe,
+  Router,
+  ToggleLeft,
+  Circle,
+  Waypoints,
+  Table,
+  Layers,
+  Box,
+  Server,
+  HelpCircle,
+  LucideIcon
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
@@ -8,6 +28,24 @@ import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
 import NetworkTopologyGraph from '@/components/NetworkTopologyGraph'
+
+// Icon mapping for network types
+const NETWORK_TYPE_ICONS: Record<string, LucideIcon> = {
+  vpc: Cloud,
+  subnet: LayoutGrid,
+  firewall: Shield,
+  proxy: Globe,
+  router: Router,
+  switch: ToggleLeft,
+  hub: Circle,
+  tunnel: Waypoints,
+  route_table: Table,
+  vrrf: Layers,
+  vxlan: Box,
+  vlan: Server,
+  namespace: Box,
+  other: HelpCircle,
+}
 
 const NETWORK_TYPES = [
   { value: 'vpc', label: 'VPC' },
@@ -42,6 +80,7 @@ type Tab = typeof TABS[number]
 
 export default function Networking() {
   const [activeTab, setActiveTab] = useState<Tab>('Networks')
+  const [selectedNetworkType, setSelectedNetworkType] = useState<string>('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showCreateConnectionModal, setShowCreateConnectionModal] = useState(false)
   const [showTopologyModal, setShowTopologyModal] = useState(false)
@@ -149,13 +188,49 @@ export default function Networking() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {networks?.networks?.map((network: any) => (
+            <>
+              {/* Network Type Filter */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                <button
+                  onClick={() => setSelectedNetworkType('all')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    selectedNetworkType === 'all'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  All ({networks?.networks?.length || 0})
+                </button>
+                {NETWORK_TYPES.map((type) => {
+                  const count = networks?.networks?.filter((n: any) => n.network_type === type.value).length || 0
+                  if (count === 0) return null
+                  return (
+                    <button
+                      key={type.value}
+                      onClick={() => setSelectedNetworkType(type.value)}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        selectedNetworkType === type.value
+                          ? 'bg-primary-600 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {type.label} ({count})
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {networks?.networks
+                  ?.filter((network: any) => selectedNetworkType === 'all' || network.network_type === selectedNetworkType)
+                  .map((network: any) => (
                 <Card key={network.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Network className="w-5 h-5 text-primary-400" />
+                        {(() => {
+                          const TypeIcon = NETWORK_TYPE_ICONS[network.network_type] || Network
+                          return <TypeIcon className="w-5 h-5 text-primary-400" />
+                        })()}
                         <div>
                           <h3 className="text-lg font-semibold text-white">{network.name}</h3>
                           <p className="text-sm text-slate-400">
@@ -188,7 +263,8 @@ export default function Networking() {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+            </>
           )}
         </div>
       )}

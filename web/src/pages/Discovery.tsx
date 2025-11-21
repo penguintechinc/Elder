@@ -346,7 +346,8 @@ function CreateJobModal({ onClose, onSuccess }: any) {
               placeholder="0 2 * * *"
             />
 
-            {/* v2.0.0: Credential Selection */}
+            {/* v2.0.0: Credential Selection - Not needed for network scans */}
+            {discoveryType !== 'network' && (
             <div className="pt-4 border-t border-slate-700">
               <h3 className="text-sm font-semibold text-white mb-3">Credentials (v2.0.0)</h3>
               <Select

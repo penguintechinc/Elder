@@ -25,6 +25,7 @@ class OrganizationDTO:
     owner_group_id: Optional[int]
     created_at: datetime
     updated_at: datetime
+    tenant_id: Optional[int] = None
 
 
 @dataclass(slots=True)

@@ -446,6 +446,19 @@ def _init_default_data(db: DAL) -> None:
                     scope="global",
                 )
 
+        # Also create portal user with global_role='admin' for v2.2.0+ web UI
+        admin_email = os.getenv("ADMIN_EMAIL", f"{admin_username}@localhost")
+        existing_portal_admin = db(db.portal_users.email == admin_email).select().first()
+        if not existing_portal_admin:
+            db.portal_users.insert(
+                tenant_id=1,  # System tenant
+                email=admin_email,
+                password_hash=generate_password_hash(admin_password),
+                global_role='admin',
+                full_name='System Administrator',
+                is_active=True,
+            )
+
     # Create guest user if enabled (idempotent)
     enable_guest_login = os.getenv("ENABLE_GUEST_LOGIN", "false").lower() == "true"
     guest_username = os.getenv("GUEST_USERNAME", "guest")

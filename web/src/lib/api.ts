@@ -729,7 +729,16 @@ class ApiClient {
     schedule?: string
     enabled?: boolean
   }) {
-    const response = await this.client.post('/discovery/jobs', data)
+    // Map frontend field names to backend field names
+    const payload = {
+      name: data.name,
+      provider: data.provider_type,  // Backend expects 'provider' not 'provider_type'
+      organization_id: data.organization_id,
+      config: data.config,
+      schedule_interval: data.schedule ? parseInt(data.schedule) : undefined,
+      description: data.name,  // Use name as description if not provided
+    }
+    const response = await this.client.post('/discovery/jobs', payload)
     return response.data
   }
 
@@ -1051,6 +1060,260 @@ class ApiClient {
     const response = await this.client.post('/builtin-secrets/test-connection', {
       organization_id: organizationId
     })
+    return response.data
+  }
+
+  // v2.2.0 Enterprise Edition - Portal Authentication
+  async portalLogin(email: string, password: string, tenant?: string) {
+    const response = await this.client.post('/portal-auth/login', {
+      email,
+      password,
+      tenant: tenant || 'system'
+    })
+    if (response.data.access_token) {
+      localStorage.setItem('elder_token', response.data.access_token)
+      if (response.data.refresh_token) {
+        localStorage.setItem('elder_refresh_token', response.data.refresh_token)
+      }
+    }
+    return response.data
+  }
+
+  async portalRegister(data: {
+    email: string
+    password: string
+    full_name?: string
+    tenant?: string
+  }) {
+    const response = await this.client.post('/portal-auth/register', {
+      ...data,
+      tenant: data.tenant || 'system'
+    })
+    return response.data
+  }
+
+  async portalMfaVerify(code: string) {
+    const response = await this.client.post('/portal-auth/mfa/verify', { code })
+    return response.data
+  }
+
+  async portalMfaEnable() {
+    const response = await this.client.post('/portal-auth/mfa/enable')
+    return response.data
+  }
+
+  async portalMfaDisable(code: string) {
+    const response = await this.client.post('/portal-auth/mfa/disable', { code })
+    return response.data
+  }
+
+  async portalRefreshToken() {
+    const refreshToken = localStorage.getItem('elder_refresh_token')
+    const response = await this.client.post('/portal-auth/refresh', { refresh_token: refreshToken })
+    if (response.data.access_token) {
+      localStorage.setItem('elder_token', response.data.access_token)
+    }
+    return response.data
+  }
+
+  async getPortalProfile() {
+    const response = await this.client.get('/portal-auth/me')
+    return response.data
+  }
+
+  // v2.2.0 Enterprise Edition - Tenant Management
+  async getTenants(params?: { is_active?: boolean; subscription_tier?: string }) {
+    const response = await this.client.get('/tenants', { params })
+    return response.data
+  }
+
+  async getTenant(id: number) {
+    const response = await this.client.get(`/tenants/${id}`)
+    return response.data
+  }
+
+  async createTenant(data: {
+    name: string
+    slug: string
+    domain?: string
+    subscription_tier?: string
+    license_key?: string
+    settings?: Record<string, any>
+    feature_flags?: Record<string, boolean>
+    data_retention_days?: number
+    storage_quota_gb?: number
+  }) {
+    const response = await this.client.post('/tenants', data)
+    return response.data
+  }
+
+  async updateTenant(id: number, data: Partial<{
+    name: string
+    slug: string
+    domain: string
+    subscription_tier: string
+    license_key: string
+    settings: Record<string, any>
+    feature_flags: Record<string, boolean>
+    data_retention_days: number
+    storage_quota_gb: number
+    is_active: boolean
+  }>) {
+    const response = await this.client.put(`/tenants/${id}`, data)
+    return response.data
+  }
+
+  async deleteTenant(id: number) {
+    const response = await this.client.delete(`/tenants/${id}`)
+    return response.data
+  }
+
+  async getTenantUsers(tenantId: number) {
+    const response = await this.client.get(`/tenants/${tenantId}/users`)
+    return response.data
+  }
+
+  async updateTenantUser(tenantId: number, userId: number, data: Partial<{
+    full_name: string
+    tenant_role: string
+    global_role: string
+    is_active: boolean
+  }>) {
+    const response = await this.client.put(`/tenants/${tenantId}/users/${userId}`, data)
+    return response.data
+  }
+
+  async deleteTenantUser(tenantId: number, userId: number) {
+    const response = await this.client.delete(`/tenants/${tenantId}/users/${userId}`)
+    return response.data
+  }
+
+  async getTenantStats(tenantId: number) {
+    const response = await this.client.get(`/tenants/${tenantId}/stats`)
+    return response.data
+  }
+
+  // v2.2.0 Enterprise Edition - SSO/SAML/SCIM Configuration
+  async getIdPConfigs(tenantId?: number) {
+    const response = await this.client.get('/sso/idp-configs', {
+      params: tenantId ? { tenant_id: tenantId } : undefined
+    })
+    return response.data
+  }
+
+  async getIdPConfig(id: number) {
+    const response = await this.client.get(`/sso/idp-configs/${id}`)
+    return response.data
+  }
+
+  async createIdPConfig(data: {
+    name: string
+    idp_type?: string
+    tenant_id?: number
+    entity_id?: string
+    metadata_url?: string
+    sso_url?: string
+    slo_url?: string
+    certificate?: string
+    attribute_mappings?: Record<string, string>
+    jit_provisioning_enabled?: boolean
+    default_role?: string
+  }) {
+    const response = await this.client.post('/sso/idp-configs', data)
+    return response.data
+  }
+
+  async updateIdPConfig(id: number, data: Partial<{
+    name: string
+    entity_id: string
+    metadata_url: string
+    sso_url: string
+    slo_url: string
+    certificate: string
+    attribute_mappings: Record<string, string>
+    jit_provisioning_enabled: boolean
+    default_role: string
+    is_active: boolean
+  }>) {
+    const response = await this.client.put(`/sso/idp-configs/${id}`, data)
+    return response.data
+  }
+
+  async deleteIdPConfig(id: number) {
+    const response = await this.client.delete(`/sso/idp-configs/${id}`)
+    return response.data
+  }
+
+  async getSCIMConfig(tenantId: number) {
+    const response = await this.client.get(`/sso/scim/${tenantId}`)
+    return response.data
+  }
+
+  async createSCIMConfig(tenantId: number, endpointUrl?: string) {
+    const response = await this.client.post(`/sso/scim/${tenantId}`, { endpoint_url: endpointUrl })
+    return response.data
+  }
+
+  async regenerateSCIMToken(tenantId: number) {
+    const response = await this.client.post(`/sso/scim/${tenantId}/regenerate-token`)
+    return response.data
+  }
+
+  async getSPMetadata(tenantId?: number) {
+    const response = await this.client.get('/sso/saml/metadata', {
+      params: tenantId ? { tenant_id: tenantId } : undefined
+    })
+    return response.data
+  }
+
+  // v2.2.0 Enterprise Edition - Audit Logs & Compliance
+  async getAuditLogs(params?: {
+    tenant_id?: number
+    resource_type?: string
+    resource_id?: number
+    action?: string
+    category?: string
+    identity_id?: number
+    portal_user_id?: number
+    start_date?: string
+    end_date?: string
+    success?: boolean
+    limit?: number
+    offset?: number
+  }) {
+    const response = await this.client.get('/audit/logs', { params })
+    return response.data
+  }
+
+  async getComplianceReport(tenantId: number, reportType: string, startDate: string, endDate: string) {
+    const response = await this.client.get('/audit/reports', {
+      params: {
+        tenant_id: tenantId,
+        report_type: reportType,
+        start_date: startDate,
+        end_date: endDate
+      }
+    })
+    return response.data
+  }
+
+  async getAuditRetentionPolicy(tenantId: number) {
+    const response = await this.client.get(`/audit/retention/${tenantId}`)
+    return response.data
+  }
+
+  async cleanupAuditLogs(tenantId: number) {
+    const response = await this.client.post(`/audit/cleanup/${tenantId}`)
+    return response.data
+  }
+
+  async exportAuditLogs(params: {
+    tenant_id?: number
+    start_date?: string
+    end_date?: string
+    format?: 'json' | 'csv'
+  }) {
+    const response = await this.client.get('/audit/export', { params })
     return response.data
   }
 }
