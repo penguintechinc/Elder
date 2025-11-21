@@ -8,16 +8,25 @@ import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
 
-const DISCOVERY_TYPES = [
+// Authenticated integration discovery (requires credentials)
+const INTEGRATION_DISCOVERY_TYPES = [
   { value: 'aws', label: 'AWS Discovery' },
   { value: 'gcp', label: 'GCP Discovery' },
   { value: 'azure', label: 'Azure Discovery' },
   { value: 'kubernetes', label: 'Kubernetes Discovery' },
+]
+
+// Simple unauthenticated scans
+const SCAN_TYPES = [
   { value: 'network', label: 'Network Scan' },
 ]
 
+// Combined for display purposes
+const DISCOVERY_TYPES = [...INTEGRATION_DISCOVERY_TYPES, ...SCAN_TYPES]
+
 export default function Discovery() {
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showIntegrationModal, setShowIntegrationModal] = useState(false)
+  const [showScanModal, setShowScanModal] = useState(false)
   const [selectedJob, setSelectedJob] = useState<number | null>(null)
   const queryClient = useQueryClient()
 
@@ -90,10 +99,16 @@ export default function Discovery() {
           <h1 className="text-3xl font-bold text-white">Cloud Discovery</h1>
           <p className="mt-2 text-slate-400">Automatically discover and track cloud resources</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Discovery Job
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={() => setShowScanModal(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Local Scan
+          </Button>
+          <Button onClick={() => setShowIntegrationModal(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Integration Scan
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -109,9 +124,16 @@ export default function Discovery() {
               <CardContent className="text-center py-12">
                 <Compass className="w-12 h-12 text-slate-600 mx-auto mb-4" />
                 <p className="text-slate-400">No discovery jobs configured</p>
-                <Button className="mt-4" onClick={() => setShowCreateModal(true)}>
-                  Create your first discovery job
-                </Button>
+                <div className="flex justify-center gap-3 mt-4">
+                  <Button variant="secondary" onClick={() => setShowScanModal(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Local Scan
+                  </Button>
+                  <Button onClick={() => setShowIntegrationModal(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Integration Scan
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : (
@@ -219,15 +241,28 @@ export default function Discovery() {
         </div>
       </div>
 
-      {showCreateModal && (
-        <CreateJobModal
-          onClose={() => setShowCreateModal(false)}
+      {showIntegrationModal && (
+        <IntegrationDiscoveryModal
+          onClose={() => setShowIntegrationModal(false)}
           onSuccess={async () => {
             await queryClient.invalidateQueries({
               queryKey: ['discoveryJobs'],
               refetchType: 'all'
             })
-            setShowCreateModal(false)
+            setShowIntegrationModal(false)
+          }}
+        />
+      )}
+
+      {showScanModal && (
+        <ScanModal
+          onClose={() => setShowScanModal(false)}
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['discoveryJobs'],
+              refetchType: 'all'
+            })
+            setShowScanModal(false)
           }}
         />
       )}
@@ -235,7 +270,7 @@ export default function Discovery() {
   )
 }
 
-function CreateJobModal({ onClose, onSuccess }: any) {
+function IntegrationDiscoveryModal({ onClose, onSuccess }: any) {
   const [name, setName] = useState('')
   const [discoveryType, setDiscoveryType] = useState('')
   const [schedule, setSchedule] = useState('')
@@ -308,7 +343,7 @@ function CreateJobModal({ onClose, onSuccess }: any) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Create Discovery Job</h2>
+          <h2 className="text-xl font-semibold text-white">Create Integration Discovery</h2>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -320,13 +355,13 @@ function CreateJobModal({ onClose, onSuccess }: any) {
               placeholder="AWS Production Discovery"
             />
             <Select
-              label="Discovery Type"
+              label="Integration Type"
               required
               value={discoveryType}
               onChange={(e) => setDiscoveryType(e.target.value)}
               options={[
-                { value: '', label: 'Select discovery type' },
-                ...DISCOVERY_TYPES,
+                { value: '', label: 'Select integration type' },
+                ...INTEGRATION_DISCOVERY_TYPES,
               ]}
             />
             <Select
@@ -346,10 +381,9 @@ function CreateJobModal({ onClose, onSuccess }: any) {
               placeholder="0 2 * * *"
             />
 
-            {/* v2.0.0: Credential Selection - Not needed for network scans */}
-            {discoveryType !== 'network' && (
+            {/* v2.0.0: Credential Selection */}
             <div className="pt-4 border-t border-slate-700">
-              <h3 className="text-sm font-semibold text-white mb-3">Credentials (v2.0.0)</h3>
+              <h3 className="text-sm font-semibold text-white mb-3">Credentials</h3>
               <Select
                 label="Credential Type"
                 value={credentialType}
@@ -418,6 +452,126 @@ function CreateJobModal({ onClose, onSuccess }: any) {
                 className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-sm"
                 rows={8}
                 placeholder='{"region": "us-east-1", "services": ["ec2", "rds", "s3"]}'
+              />
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+              <Button type="submit" isLoading={createMutation.isPending}>Create</Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function ScanModal({ onClose, onSuccess }: any) {
+  const [name, setName] = useState('')
+  const [scanType, setScanType] = useState('')
+  const [schedule, setSchedule] = useState('')
+  const [config, setConfig] = useState('{}')
+  const [orgId, setOrgId] = useState('')
+
+  const { data: orgs } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: () => api.getOrganizations(),
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => api.createDiscoveryJob(data),
+    onSuccess: () => {
+      toast.success('Scan job created')
+      onSuccess()
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to create scan')
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const configObj = JSON.parse(config)
+      const data = {
+        name,
+        provider_type: scanType,
+        organization_id: parseInt(orgId),
+        config: configObj,
+        schedule: schedule || undefined,
+        enabled: true,
+      }
+
+      createMutation.mutate(data)
+    } catch (err) {
+      toast.error('Invalid JSON configuration')
+    }
+  }
+
+  // Get default config based on scan type
+  const getDefaultConfig = (type: string) => {
+    switch (type) {
+      case 'network':
+        return '{\n  "targets": ["192.168.1.0/24"],\n  "ports": "1-1024",\n  "scan_type": "tcp_syn"\n}'
+      default:
+        return '{}'
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <CardHeader>
+          <h2 className="text-xl font-semibold text-white">Create Scan</h2>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Local Network Scan"
+            />
+            <Select
+              label="Scan Type"
+              required
+              value={scanType}
+              onChange={(e) => {
+                setScanType(e.target.value)
+                setConfig(getDefaultConfig(e.target.value))
+              }}
+              options={[
+                { value: '', label: 'Select scan type' },
+                ...SCAN_TYPES,
+              ]}
+            />
+            <Select
+              label="Organization"
+              required
+              value={orgId}
+              onChange={(e) => setOrgId(e.target.value)}
+              options={[
+                { value: '', label: 'Select organization' },
+                ...(orgs?.items || []).map((o: any) => ({ value: o.id, label: o.name })),
+              ]}
+            />
+            <Input
+              label="Schedule (Cron, optional)"
+              value={schedule}
+              onChange={(e) => setSchedule(e.target.value)}
+              placeholder="0 2 * * *"
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Configuration (JSON)
+              </label>
+              <textarea
+                value={config}
+                onChange={(e) => setConfig(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-sm"
+                rows={6}
+                placeholder='{"targets": ["192.168.1.0/24"]}'
               />
             </div>
             <div className="flex justify-end gap-3 mt-6">
