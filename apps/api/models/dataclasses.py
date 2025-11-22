@@ -4,7 +4,7 @@ Using @dataclass(slots=True) provides 30-50% memory reduction and faster attribu
 """
 
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 # ==================== Organization Units (OUs) ====================
@@ -26,6 +26,8 @@ class OrganizationDTO:
     created_at: datetime
     updated_at: datetime
     tenant_id: Optional[int] = None
+    village_id: Optional[str] = None
+    village_segment: Optional[str] = None
 
 
 @dataclass(slots=True)
@@ -81,6 +83,7 @@ class EntityDTO:
     status_metadata: Optional[dict]
     created_at: datetime
     updated_at: datetime
+    village_id: Optional[str] = None
 
 
 @dataclass(slots=True)
@@ -131,6 +134,7 @@ class DependencyDTO:
     metadata: Optional[dict]
     created_at: datetime
     updated_at: datetime
+    village_id: Optional[str] = None
 
 
 @dataclass(slots=True)
@@ -170,6 +174,7 @@ class IdentityDTO:
     password_hash: Optional[str] = None  # Stored password hash (never expose to client)
     mfa_secret: Optional[str] = None  # MFA secret (never expose to client)
     tenant_id: Optional[int] = None  # Link to tenant
+    village_id: Optional[str] = None
 
 
 @dataclass(slots=True)
@@ -302,6 +307,8 @@ class IssueDTO:
     closed_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
+    tenant_id: Optional[int] = None
+    village_id: Optional[str] = None
 
 
 @dataclass(slots=True)
@@ -564,6 +571,69 @@ class RegisterRequest:
     email: str
     password: str
     full_name: Optional[str] = None
+
+
+# ==================== Software (v2.3.0) ====================
+
+
+@dataclass(slots=True, frozen=True)
+class SoftwareDTO:
+    """Immutable Software data transfer object."""
+
+    id: int
+    tenant_id: int
+    name: str
+    description: Optional[str]
+    organization_id: int
+    purchasing_poc_id: Optional[int]
+    license_url: Optional[str]
+    version: Optional[str]
+    business_purpose: Optional[str]
+    software_type: str
+    seats: Optional[int]
+    cost_monthly: Optional[float]
+    renewal_date: Optional[date]
+    vendor: Optional[str]
+    support_contact: Optional[str]
+    notes: Optional[str]
+    tags: Optional[list]
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime]
+    village_id: Optional[str]
+
+
+# ==================== Services (v2.3.0) ====================
+
+
+@dataclass(slots=True, frozen=True)
+class ServiceDTO:
+    """Immutable Service data transfer object."""
+
+    id: int
+    tenant_id: int
+    name: str
+    description: Optional[str]
+    organization_id: int
+    domains: Optional[list]
+    paths: Optional[list]
+    poc_identity_id: Optional[int]
+    language: Optional[str]
+    deployment_method: Optional[str]
+    deployment_type: Optional[str]
+    is_public: bool
+    port: Optional[int]
+    health_endpoint: Optional[str]
+    repository_url: Optional[str]
+    documentation_url: Optional[str]
+    sla_uptime: Optional[float]
+    sla_response_time_ms: Optional[int]
+    notes: Optional[str]
+    tags: Optional[list]
+    status: str
+    created_at: datetime
+    updated_at: Optional[datetime]
+    village_id: Optional[str]
 
 
 # ==================== Audit Logs ====================
