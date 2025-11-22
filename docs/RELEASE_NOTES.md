@@ -9,11 +9,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.3.0] - 2025-11-22
 
-### 🚀 Polymorphic Dependencies & Resource Map
+### 🚀 Resource Tracking, Village ID & Infrastructure Management
 
-Major release adding polymorphic dependencies that link ANY resource types together, and a new interactive Map page for visualizing all resources and their relationships in a Visio-style network diagram.
+Major release adding Software tracking, Services tracking, IP Address Management (IPAM), Village ID universal identifiers, polymorphic dependencies, and interactive Resource Map visualization.
 
 ### ✨ New Features
+
+#### Village ID System
+- **Hierarchical Resource Identifier**: Every trackable item gets a unique 64-bit hex code
+  - Format: `TTTT-OOOO-IIIIIIII` (18 chars with dashes)
+  - `TTTT`: 16-bit tenant segment (randomized, prevents enumeration)
+  - `OOOO`: 16-bit organization segment (randomized)
+  - `IIIIIIII`: 32-bit item segment (~4.3 billion items per org)
+  - Tenants: `a1b2-0000-00000000`
+  - Organizations: `a1b2-c3d4-00000000`
+  - Items: `a1b2-c3d4-e5f67890`
+- **Instant Hierarchy Visibility**: See tenant/org ownership from the ID itself
+- **URL Resolution**: Access any resource via `/id/{village_id}`
+  - API returns resource type, ID, and redirect URL
+  - Web UI redirects to appropriate detail page
+- **UI Integration**: VillageIdBadge component shows ID with copy button
+- **Tables Updated**: tenants, organizations, entities, identities, software, services, ipam_prefixes, ipam_addresses, ipam_vlans, issues, projects, milestones, metadata_fields, resource_roles, dependencies
+- **New Columns**: `village_segment` added to tenants and organizations for hierarchy building
+
+#### Software Tracking
+- **Track software licenses and purchases** across your organization
+  - Name, description, version, vendor, support contact
+  - Software type (SaaS, On-Premise, Open Source, etc.)
+  - License URL and business purpose
+  - Seats, monthly cost, renewal dates
+  - Purchasing POC (linked to Identity)
+- **API Endpoints**: Full CRUD at `/api/v1/software`
+- **Web UI**: Dedicated Software page with filtering and search
+
+#### Services Tracking
+- **Track microservices and applications** in your infrastructure
+  - Domains, paths, port, health endpoint
+  - Language, deployment method/type
+  - Repository and documentation URLs
+  - SLA uptime and response time targets
+  - POC Identity for service ownership
+  - Public/private visibility
+- **API Endpoints**: Full CRUD at `/api/v1/services`
+- **Web UI**: Services page with language/deployment filters
+
+#### IP Address Management (IPAM)
+- **Hierarchical CIDR Management**:
+  - Prefixes with parent-child relationships for CIDR tree
+  - Individual addresses assigned to prefixes
+  - VLANs with VID, name, and role
+- **Prefix Features**: VRF, VLAN ID, status, role, site, region, pool flag
+- **Address Features**: DNS name, status, NAT inside reference, assigned object linking
+- **VLAN Features**: VID, status, role, site
+- **API Endpoints**:
+  - `/api/v1/ipam/prefixes` with `/tree` endpoint for hierarchical view
+  - `/api/v1/ipam/addresses`
+  - `/api/v1/ipam/vlans`
+- **Web UI**: Three-tab IPAM page with collapsible CIDR tree view
 
 #### Polymorphic Dependencies System
 - **Universal Resource Linking**: Dependencies now connect ANY resource types to each other
@@ -53,11 +105,29 @@ Major release adding polymorphic dependencies that link ANY resource types toget
 
 ### 🔧 Database Schema Changes
 
-#### Updated Tables (1)
+#### New Tables (5)
+- `software` - Software license and purchase tracking
+- `services` - Microservice and application tracking
+- `ipam_prefixes` - IP address prefixes/subnets with hierarchy
+- `ipam_addresses` - Individual IP address management
+- `ipam_vlans` - VLAN management
+
+#### Updated Tables (16)
 - `dependencies` - Converted to polymorphic structure
   - Removed: `source_entity_id`, `target_entity_id`
   - Added: `tenant_id`, `source_type`, `source_id`, `target_type`, `target_id`
   - Migration: `002_polymorphic_dependencies.sql`
+- **Village ID added to 15 tables**: `village_id VARCHAR(18) UNIQUE` (hierarchical format)
+  - tenants, organizations, entities, identities, software, services
+  - ipam_prefixes, ipam_addresses, ipam_vlans, issues, projects
+  - milestones, metadata_fields, resource_roles, dependencies
+  - `village_segment VARCHAR(4)` added to tenants and organizations
+  - Migration: `004_add_village_id.sql`
+
+#### Migrations
+- `002_polymorphic_dependencies.sql` - Polymorphic dependency structure
+- `003_v230_software_services_ipam.sql` - Software, Services, IPAM tables
+- `004_add_village_id.sql` - Village ID column additions
 
 ### 📊 Technical Details
 
@@ -65,7 +135,9 @@ Major release adding polymorphic dependencies that link ANY resource types toget
 ```python
 VALID_RESOURCE_TYPES = [
     "organization", "entity", "identity",
-    "project", "milestone", "issue"
+    "project", "milestone", "issue",
+    "software", "service", "ipam_prefix",
+    "ipam_address", "ipam_vlan"
 ]
 ```
 
@@ -83,20 +155,36 @@ VALID_RESOURCE_TYPES = [
 ### 📝 Files Added/Modified
 
 **Backend**:
+- `apps/api/api/v1/software.py` - NEW: Software tracking CRUD endpoints
+- `apps/api/api/v1/services.py` - NEW: Services tracking CRUD endpoints
+- `apps/api/api/v1/ipam.py` - NEW: IPAM prefixes, addresses, VLANs endpoints
+- `apps/api/api/v1/lookup_village_id.py` - NEW: Village ID resolution endpoint
+- `apps/api/utils/village_id.py` - NEW: Village ID generation utility
 - `apps/api/api/v1/dependencies.py` - Complete rewrite for polymorphic dependencies
 - `apps/api/api/v1/graph.py` - Added `/map` endpoint with `_get_node_style_by_resource()`
+- `apps/api/models/pydal_models.py` - Added software, services, IPAM tables, village_id fields
 - `apps/api/models/dataclasses.py` - Updated `DependencyDTO` with polymorphic fields
+- `apps/api/main.py` - Registered new blueprints (software, services, ipam, lookup_village_id)
 - `apps/api/migrations/002_polymorphic_dependencies.sql` - Schema migration
+- `apps/api/migrations/003_v230_software_services_ipam.sql` - NEW: v2.3.0 tables
+- `apps/api/migrations/004_add_village_id.sql` - NEW: Village ID columns
 
 **Frontend**:
+- `web/src/pages/Software.tsx` - NEW: Software tracking page with filters
+- `web/src/pages/Services.tsx` - NEW: Services tracking page with filters
+- `web/src/pages/IPAM.tsx` - NEW: Three-tab IPAM page with CIDR tree
 - `web/src/pages/Map.tsx` - NEW: Full map page with filters and visualization
 - `web/src/pages/Dependencies.tsx` - Updated for polymorphic dependencies
-- `web/src/lib/api.ts` - Added `getMap()` function
-- `web/src/components/Layout.tsx` - Added Map to navigation
-- `web/src/App.tsx` - Added `/map` route
+- `web/src/pages/Entities.tsx` - Added VillageIdBadge display
+- `web/src/components/VillageIdBadge.tsx` - NEW: Village ID display with copy
+- `web/src/components/VillageIdRedirect.tsx` - NEW: Village ID resolution redirect
+- `web/src/lib/api.ts` - Added software, services, IPAM, village_id functions
+- `web/src/components/Layout.tsx` - Added Software, Services, IPAM, Map to navigation
+- `web/src/App.tsx` - Added routes for new pages and village_id redirect
 
 **Documentation**:
-- `CLAUDE.md` - Updated to Docker Compose V2 syntax and installation
+- `CLAUDE.md` - Added Elder Terminology section, Docker Compose V2 syntax
+- `docs/RELEASE_NOTES.md` - Updated with v2.3.0 features
 
 ### 🔍 Breaking Changes
 

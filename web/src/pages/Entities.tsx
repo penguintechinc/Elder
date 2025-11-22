@@ -8,6 +8,7 @@ import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
+import VillageIdBadge from '@/components/VillageIdBadge'
 
 export default function Entities() {
   const [search, setSearch] = useState('')
@@ -93,6 +94,9 @@ export default function Entities() {
                 )}
                 <div className="flex items-center justify-between text-xs text-slate-500 mt-4">
                   <span>ID: {entity.id}</span>
+                  {entity.village_id && (
+                    <VillageIdBadge villageId={entity.village_id} />
+                  )}
                 </div>
               </CardContent>
             </Card>

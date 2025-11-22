@@ -25,6 +25,9 @@ import {
   Users,
   ChevronDown,
   ChevronRight,
+  Package,
+  Server,
+  Globe,
 } from 'lucide-react'
 import api from '@/lib/api'
 
@@ -43,6 +46,8 @@ const navigationCategories = [
     items: [
       { name: 'Entities', href: '/entities', icon: Box },
       { name: 'Organizations', href: '/organizations', icon: Building2 },
+      { name: 'Software', href: '/software', icon: Package },
+      { name: 'Services', href: '/services', icon: Server },
     ],
   },
   {
@@ -71,6 +76,7 @@ const navigationCategories = [
       { name: 'Dependencies', href: '/dependencies', icon: GitBranch },
       { name: 'Discovery', href: '/discovery', icon: Compass },
       { name: 'Networking', href: '/networking', icon: Network },
+      { name: 'IPAM', href: '/ipam', icon: Globe },
     ],
   },
   {

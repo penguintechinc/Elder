@@ -5,6 +5,8 @@ import datetime
 from pydal import Field
 from pydal.validators import *
 
+from apps.api.utils.village_id import generate_village_id
+
 
 def define_all_tables(db):
     """Define all database tables using PyDAL.
@@ -45,6 +47,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -114,6 +117,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -721,6 +725,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -742,6 +747,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -872,6 +878,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -900,6 +907,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -948,6 +956,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -976,6 +985,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -1382,6 +1392,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -1512,6 +1523,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -1667,5 +1679,284 @@ def define_all_tables(db):
             default=lambda: datetime.datetime.now(datetime.timezone.utc),
             notnull=True,
         ),
+        migrate=False,
+    )
+
+    # ==========================================
+    # v2.3.0: Software, Services, and IPAM tables
+    # ==========================================
+
+    # Software table (depends on: organizations, identities) - v2.3.0: Software tracking
+    db.define_table(
+        "software",
+        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field("description", "text"),
+        Field(
+            "organization_id",
+            "reference organizations",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field("purchasing_poc_id", "reference identities", ondelete="SET NULL"),  # Who bought it
+        Field(
+            "license_url",
+            "string",
+            length=1024,
+            default="https://www.gnu.org/licenses/agpl-3.0.html",
+        ),  # License or contract link
+        Field("version", "string", length=100),
+        Field("business_purpose", "text"),  # Why we use this software
+        Field(
+            "software_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(
+                [
+                    "saas",
+                    "paas",
+                    "iaas",
+                    "productivity",
+                    "software",
+                    "administrative",
+                    "security",
+                    "development",
+                    "monitoring",
+                    "database",
+                    "communication",
+                    "other",
+                ]
+            ),
+        ),
+        Field("seats", "integer", requires=IS_INT_IN_RANGE(0, None)),  # Number of seats/licenses
+        Field("cost_monthly", "decimal(10,2)"),  # Monthly cost
+        Field("renewal_date", "date"),  # When license renews
+        Field("vendor", "string", length=255),  # Software vendor
+        Field("support_contact", "string", length=255),  # Vendor support contact
+        Field("notes", "text"),
+        Field("tags", "list:string"),
+        Field("is_active", "boolean", default=True, notnull=True),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        migrate=False,
+    )
+
+    # Services table (depends on: organizations, identities) - v2.3.0: Microservice tracking
+    db.define_table(
+        "services",
+        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field("description", "text"),
+        Field(
+            "organization_id",
+            "reference organizations",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field("domains", "list:string"),  # Domain associations (app.example.com, etc.)
+        Field("paths", "list:string"),  # API paths (/api/v1/users, etc.)
+        Field("poc_identity_id", "reference identities", ondelete="SET NULL"),  # Point of contact
+        Field(
+            "language",
+            "string",
+            length=50,
+            requires=IS_EMPTY_OR(
+                IS_IN_SET(
+                    [
+                        "rust",
+                        "go",
+                        "python",
+                        "python2",
+                        "python3",
+                        "nodejs",
+                        "typescript",
+                        "react",
+                        "vue",
+                        "angular",
+                        "java",
+                        "kotlin",
+                        "scala",
+                        "c",
+                        "cpp",
+                        "csharp",
+                        "php",
+                        "ruby",
+                        "swift",
+                        "elixir",
+                        "haskell",
+                        "other",
+                    ]
+                )
+            ),
+        ),
+        Field(
+            "deployment_method",
+            "string",
+            length=50,
+            requires=IS_EMPTY_OR(
+                IS_IN_SET(
+                    [
+                        "serverless",
+                        "kubernetes",
+                        "docker",
+                        "docker_compose",
+                        "os_local",
+                        "function",
+                        "vm",
+                        "bare_metal",
+                        "other",
+                    ]
+                )
+            ),
+        ),
+        Field("deployment_type", "string", length=100),  # e.g., "blue-green", "canary", "rolling"
+        Field("is_public", "boolean", default=False, notnull=True),
+        Field("port", "integer"),  # Service port
+        Field("health_endpoint", "string", length=255),  # e.g., /healthz
+        Field("repository_url", "string", length=1024),  # Git repo URL
+        Field("documentation_url", "string", length=1024),  # Docs URL
+        Field("sla_uptime", "decimal(5,2)"),  # SLA uptime percentage (e.g., 99.99)
+        Field("sla_response_time_ms", "integer"),  # SLA response time in ms
+        Field("notes", "text"),
+        Field("tags", "list:string"),
+        Field(
+            "status",
+            "string",
+            length=50,
+            default="active",
+            requires=IS_IN_SET(["active", "deprecated", "maintenance", "inactive"]),
+        ),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        migrate=False,
+    )
+
+    # IPAM Prefixes table (depends on: organizations) - v2.3.0: IP Address Management
+    db.define_table(
+        "ipam_prefixes",
+        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field("prefix", "string", length=50, notnull=True, requires=IS_NOT_EMPTY()),  # CIDR notation
+        Field("description", "text"),
+        Field(
+            "organization_id",
+            "reference organizations",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field("parent_id", "reference ipam_prefixes", ondelete="CASCADE"),  # Hierarchical CIDR
+        Field("vlan_id", "integer"),
+        Field("vrf", "string", length=100),  # VRF name
+        Field(
+            "status",
+            "string",
+            length=50,
+            default="active",
+            requires=IS_IN_SET(["active", "reserved", "deprecated", "container"]),
+        ),
+        Field("role", "string", length=100),  # e.g., "production", "development", "management"
+        Field("is_pool", "boolean", default=False, notnull=True),  # Is this a pool for allocation?
+        Field("site", "string", length=255),  # Physical site/location
+        Field("region", "string", length=100),  # Cloud region
+        Field("tags", "list:string"),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        migrate=False,
+    )
+
+    # IPAM IP Addresses table (depends on: ipam_prefixes) - v2.3.0: Individual IP tracking
+    db.define_table(
+        "ipam_addresses",
+        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field("address", "string", length=50, notnull=True, requires=IS_NOT_EMPTY()),  # IP address
+        Field("prefix_id", "reference ipam_prefixes", notnull=True, ondelete="CASCADE"),
+        Field("dns_name", "string", length=255),  # FQDN
+        Field("description", "text"),
+        Field(
+            "status",
+            "string",
+            length=50,
+            default="active",
+            requires=IS_IN_SET(["active", "reserved", "deprecated", "dhcp", "slaac"]),
+        ),
+        Field("assigned_object_type", "string", length=50),  # entity, service, etc.
+        Field("assigned_object_id", "integer"),  # ID of assigned object
+        Field("nat_inside_id", "reference ipam_addresses", ondelete="SET NULL"),  # NAT mapping
+        Field("tags", "list:string"),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        migrate=False,
+    )
+
+    # IPAM VLANs table (depends on: organizations) - v2.3.0: VLAN management
+    db.define_table(
+        "ipam_vlans",
+        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field("vid", "integer", notnull=True, requires=IS_INT_IN_RANGE(1, 4095)),  # VLAN ID
+        Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field("description", "text"),
+        Field(
+            "organization_id",
+            "reference organizations",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "status",
+            "string",
+            length=50,
+            default="active",
+            requires=IS_IN_SET(["active", "reserved", "deprecated"]),
+        ),
+        Field("role", "string", length=100),
+        Field("site", "string", length=255),
+        Field("tags", "list:string"),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
         migrate=False,
     )

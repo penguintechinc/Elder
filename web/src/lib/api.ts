@@ -489,6 +489,57 @@ class ApiClient {
     return response.data
   }
 
+  // Software
+  async getSoftware(params?: {
+    page?: number
+    per_page?: number
+    organization_id?: number
+    software_type?: string
+    search?: string
+  }) {
+    const response = await this.client.get('/software', { params })
+    return response.data
+  }
+
+  async getSoftwareById(id: number) {
+    const response = await this.client.get(`/software/${id}`)
+    return response.data
+  }
+
+  async createSoftware(data: {
+    name: string
+    vendor?: string
+    software_type: string
+    version?: string
+    seats?: number
+    cost_monthly?: number
+    renewal_date?: string
+    license_url?: string
+    organization_id: number
+  }) {
+    const response = await this.client.post('/software', data)
+    return response.data
+  }
+
+  async updateSoftware(id: number, data: Partial<{
+    name: string
+    vendor: string
+    software_type: string
+    version: string
+    seats: number
+    cost_monthly: number
+    renewal_date: string
+    license_url: string
+  }>) {
+    const response = await this.client.put(`/software/${id}`, data)
+    return response.data
+  }
+
+  async deleteSoftware(id: number) {
+    const response = await this.client.delete(`/software/${id}`)
+    return response.data
+  }
+
   // Issue-Project Linking
   async linkIssueToProject(issueId: number, projectId: number) {
     const response = await this.client.post(`/issues/${issueId}/projects`, { project_id: projectId })
@@ -1327,6 +1378,213 @@ class ApiClient {
     format?: 'json' | 'csv'
   }) {
     const response = await this.client.get('/audit/export', { params })
+    return response.data
+  }
+
+  // IPAM - IP Address Management
+  async getIpamPrefixes(params?: {
+    organization_id?: number
+    parent_id?: number
+    status?: string
+    is_pool?: boolean
+    vrf_id?: number
+  }) {
+    const response = await this.client.get('/ipam/prefixes', { params })
+    return response.data
+  }
+
+  async getIpamPrefixTree(id: number) {
+    const response = await this.client.get(`/ipam/prefixes/${id}/tree`)
+    return response.data
+  }
+
+  async getIpamPrefix(id: number) {
+    const response = await this.client.get(`/ipam/prefixes/${id}`)
+    return response.data
+  }
+
+  async createIpamPrefix(data: {
+    prefix: string
+    organization_id: number
+    description?: string
+    status?: string
+    is_pool?: boolean
+    parent_id?: number
+    vrf_id?: number
+    vlan_id?: number
+    role?: string
+    tenant_id?: number
+  }) {
+    const response = await this.client.post('/ipam/prefixes', data)
+    return response.data
+  }
+
+  async updateIpamPrefix(id: number, data: Partial<{
+    prefix: string
+    description: string
+    status: string
+    is_pool: boolean
+    parent_id: number
+    vrf_id: number
+    vlan_id: number
+    role: string
+  }>) {
+    const response = await this.client.put(`/ipam/prefixes/${id}`, data)
+    return response.data
+  }
+
+  async deleteIpamPrefix(id: number) {
+    const response = await this.client.delete(`/ipam/prefixes/${id}`)
+    return response.data
+  }
+
+  async getIpamAddresses(params?: {
+    organization_id?: number
+    prefix_id?: number
+    status?: string
+    dns_name?: string
+  }) {
+    const response = await this.client.get('/ipam/addresses', { params })
+    return response.data
+  }
+
+  async getIpamAddress(id: number) {
+    const response = await this.client.get(`/ipam/addresses/${id}`)
+    return response.data
+  }
+
+  async createIpamAddress(data: {
+    address: string
+    organization_id: number
+    prefix_id?: number
+    description?: string
+    status?: string
+    dns_name?: string
+    tenant_id?: number
+  }) {
+    const response = await this.client.post('/ipam/addresses', data)
+    return response.data
+  }
+
+  async updateIpamAddress(id: number, data: Partial<{
+    address: string
+    description: string
+    status: string
+    dns_name: string
+    prefix_id: number
+  }>) {
+    const response = await this.client.put(`/ipam/addresses/${id}`, data)
+    return response.data
+  }
+
+  async deleteIpamAddress(id: number) {
+    const response = await this.client.delete(`/ipam/addresses/${id}`)
+    return response.data
+  }
+
+  async getIpamVlans(params?: {
+    organization_id?: number
+    vid?: number
+    name?: string
+    status?: string
+    group_id?: number
+  }) {
+    const response = await this.client.get('/ipam/vlans', { params })
+    return response.data
+  }
+
+  async getIpamVlan(id: number) {
+    const response = await this.client.get(`/ipam/vlans/${id}`)
+    return response.data
+  }
+
+  async createIpamVlan(data: {
+    vid: number
+    name: string
+    organization_id: number
+    description?: string
+    status?: string
+    group_id?: number
+    tenant_id?: number
+  }) {
+    const response = await this.client.post('/ipam/vlans', data)
+    return response.data
+  }
+
+  async updateIpamVlan(id: number, data: Partial<{
+    vid: number
+    name: string
+    description: string
+    status: string
+    group_id: number
+  }>) {
+    const response = await this.client.put(`/ipam/vlans/${id}`, data)
+    return response.data
+  }
+
+  async deleteIpamVlan(id: number) {
+    const response = await this.client.delete(`/ipam/vlans/${id}`)
+    return response.data
+  }
+
+  // Services (Microservice Tracking)
+  async getServices(params?: {
+    page?: number
+    per_page?: number
+    organization_id?: number
+    language?: string
+    deployment_method?: string
+    status?: string
+    search?: string
+  }) {
+    const response = await this.client.get('/services', { params })
+    return response.data
+  }
+
+  async getServiceById(id: number) {
+    const response = await this.client.get(`/services/${id}`)
+    return response.data
+  }
+
+  async createService(data: {
+    name: string
+    organization_id: number
+    description?: string
+    language?: string
+    deployment_method?: string
+    is_public?: boolean
+    domains?: string[]
+    paths?: string[]
+    port?: number
+    status?: string
+  }) {
+    const response = await this.client.post('/services', data)
+    return response.data
+  }
+
+  async updateService(id: number, data: Partial<{
+    name: string
+    description: string
+    language: string
+    deployment_method: string
+    is_public: boolean
+    domains: string[]
+    paths: string[]
+    port: number
+    status: string
+  }>) {
+    const response = await this.client.put(`/services/${id}`, data)
+    return response.data
+  }
+
+  async deleteService(id: number) {
+    const response = await this.client.delete(`/services/${id}`)
+    return response.data
+  }
+
+  // Village ID Resolution
+  async resolveVillageId(villageId: string) {
+    const response = await this.client.get(`/id/${villageId}`)
     return response.data
   }
 }

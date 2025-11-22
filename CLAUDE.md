@@ -13,6 +13,32 @@ This is a comprehensive project template incorporating best practices and patter
 - Version management system
 - PenguinTech License Server integration
 
+## Elder Terminology
+
+Elder uses specific terminology for organizing tracked items:
+
+- **Resources**: Items with dedicated database models and specialized schemas (Identity, Software, Services, Network objects, IPAM entries). These are structured data types with type-specific fields and relationships. Resources are gradually replacing generic Entities for better data modeling.
+
+- **Entities**: Items stored in the generic `entities` table with a basic, flexible structure. These represent infrastructure components that don't yet have dedicated Resource models. Over time, common entity types may be promoted to Resources.
+
+- **Elements**: Supporting items that provide context and metadata for Resources and Entities. Examples include:
+  - Issues (tracking problems/tasks)
+  - Labels (categorization)
+  - Metadata fields (custom properties)
+  - Dependencies (relationships between items)
+  - Comments and attachments
+
+- **Village ID**: A unique 64-bit hierarchical hexadecimal identifier assigned to all trackable items.
+  - Format: `TTTT-OOOO-IIIIIIII` (18 chars with dashes)
+  - `TTTT`: 16-bit tenant segment (4 hex chars) - randomized, unique per tenant
+  - `OOOO`: 16-bit organization segment (4 hex chars) - randomized, unique per org
+  - `IIIIIIII`: 32-bit item segment (8 hex chars) - randomized
+  - Tenants: `a1b2-0000-00000000` (org and item zeroed)
+  - Organizations: `a1b2-c3d4-00000000` (item zeroed)
+  - Items: `a1b2-c3d4-e5f67890` (full hierarchy)
+  - Enables sharing/referencing any item via `/id/{village_id}` without knowing its type
+  - Instantly shows tenant/org ownership from the ID itself
+
 ## Technology Stack
 
 ### Languages & Frameworks

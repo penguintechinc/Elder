@@ -192,6 +192,9 @@ def _register_blueprints(app: Flask) -> None:
     from apps.api.api.v1 import tenants  # v2.2.0: Tenant Management
     from apps.api.api.v1 import secrets  # Phase 2: Secrets Management
     from apps.api.api.v1 import webhooks  # Phase 9: Webhook & Notification System
+    from apps.api.api.v1 import software  # v2.3.0: Software Tracking
+    from apps.api.api.v1 import services  # v2.3.0: Services Tracking
+    from apps.api.api.v1 import ipam  # v2.3.0: IP Address Management
     from apps.api.api.v1 import (  # Phase 7: Google Workspace Integration
         api_keys,
         auth,
@@ -204,6 +207,7 @@ def _register_blueprints(app: Flask) -> None:
         issues,
         labels,
         lookup,
+        lookup_village_id,
         metadata,
         milestones,
         organization_tree,
@@ -280,8 +284,22 @@ def _register_blueprints(app: Flask) -> None:
         tenants.bp, url_prefix=f"{api_prefix}/tenants"
     )  # Tenant management
 
+    # v2.3.0 Feature blueprints
+    app.register_blueprint(
+        software.bp, url_prefix=f"{api_prefix}/software"
+    )  # Software tracking
+    app.register_blueprint(
+        services.bp, url_prefix=f"{api_prefix}/services"
+    )  # Services tracking
+    app.register_blueprint(
+        ipam.bp, url_prefix=f"{api_prefix}/ipam"
+    )  # IP Address Management
+
     # Public lookup endpoint (no /api/v1 prefix for cleaner URLs)
     app.register_blueprint(lookup.bp, url_prefix="/lookup")
+
+    # Village ID lookup endpoint (no prefix - accessible at /id/{village_id})
+    app.register_blueprint(lookup_village_id.bp, url_prefix="")
 
     # Web UI blueprint (root routes)
     app.register_blueprint(web.bp, url_prefix="")
