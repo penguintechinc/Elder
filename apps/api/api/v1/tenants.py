@@ -4,9 +4,8 @@ Provides REST endpoints for tenant CRUD operations, configuration,
 and usage statistics for the Super Admin Console.
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 
-from shared.database import db
 from apps.api.api.v1.portal_auth import portal_token_required
 
 bp = Blueprint("tenants", __name__)
@@ -43,6 +42,7 @@ def list_tenants():
     if request.portal_user.get("global_role") not in ["admin", "support"]:
         return jsonify({"error": "Global admin or support role required"}), 403
 
+    db = current_app.db
     query = db.tenants.id > 0
 
     if request.args.get("is_active") is not None:
@@ -87,6 +87,7 @@ def get_tenant(tenant_id):
            request.portal_user.get("tenant_role") != "admin":
             return jsonify({"error": "Permission denied"}), 403
 
+    db = current_app.db
     tenant = db.tenants[tenant_id]
     if not tenant:
         return jsonify({"error": "Tenant not found"}), 404
@@ -150,6 +151,7 @@ def create_tenant():
     if not name or not slug:
         return jsonify({"error": "name and slug are required"}), 400
 
+    db = current_app.db
     # Check if slug already exists
     existing = db(db.tenants.slug == slug).select().first()
     if existing:
@@ -197,6 +199,7 @@ def update_tenant(tenant_id):
     if not is_global_admin and not is_tenant_admin:
         return jsonify({"error": "Permission denied"}), 403
 
+    db = current_app.db
     tenant = db.tenants[tenant_id]
     if not tenant:
         return jsonify({"error": "Tenant not found"}), 404
@@ -246,6 +249,7 @@ def delete_tenant(tenant_id):
     if tenant_id == 1:
         return jsonify({"error": "Cannot delete system tenant"}), 400
 
+    db = current_app.db
     tenant = db.tenants[tenant_id]
     if not tenant:
         return jsonify({"error": "Tenant not found"}), 404
@@ -274,6 +278,7 @@ def list_tenant_users(tenant_id):
            request.portal_user.get("tenant_role") != "admin":
             return jsonify({"error": "Permission denied"}), 403
 
+    db = current_app.db
     users = db(db.portal_users.tenant_id == tenant_id).select(
         orderby=db.portal_users.email
     )
@@ -317,6 +322,7 @@ def update_tenant_user(tenant_id, user_id):
     if not is_global_admin and not is_tenant_admin:
         return jsonify({"error": "Permission denied"}), 403
 
+    db = current_app.db
     user = db(
         (db.portal_users.id == user_id)
         & (db.portal_users.tenant_id == tenant_id)
@@ -365,6 +371,7 @@ def delete_tenant_user(tenant_id, user_id):
     if not is_global_admin and not is_tenant_admin:
         return jsonify({"error": "Permission denied"}), 403
 
+    db = current_app.db
     user = db(
         (db.portal_users.id == user_id)
         & (db.portal_users.tenant_id == tenant_id)
@@ -397,6 +404,7 @@ def get_tenant_stats(tenant_id):
            request.portal_user.get("tenant_role") != "admin":
             return jsonify({"error": "Permission denied"}), 403
 
+    db = current_app.db
     tenant = db.tenants[tenant_id]
     if not tenant:
         return jsonify({"error": "Tenant not found"}), 404
