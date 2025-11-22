@@ -250,6 +250,19 @@ class ApiClient {
     return response.data
   }
 
+  async getMap(params?: {
+    tenant_id?: number
+    organization_id?: number
+    resource_types?: string
+    entity_types?: string
+    include_hierarchical?: boolean
+    include_dependencies?: boolean
+    limit?: number
+  }) {
+    const response = await this.client.get('/graph/map', { params })
+    return response.data
+  }
+
   // Identities
   async getIdentities(params?: { page?: number; per_page?: number; search?: string; organization_id?: number }) {
     const response = await this.client.get('/identities', { params })

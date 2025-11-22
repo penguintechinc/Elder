@@ -13,6 +13,7 @@ import ProjectDetail from './pages/ProjectDetail'
 import Milestones from './pages/Milestones'
 import Labels from './pages/Labels'
 import Search from './pages/Search'
+import Map from './pages/Map'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import RelationshipGraph from './pages/RelationshipGraph'
@@ -52,6 +53,7 @@ export default function App() {
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="search" element={<Search />} />
+        <Route path="map" element={<Map />} />
         <Route path="profile" element={<Profile />} />
         <Route path="organizations" element={<Organizations />} />
         <Route path="organizations/:id" element={<OrganizationDetail />} />

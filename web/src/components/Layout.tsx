@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Tag,
   Search as SearchIcon,
+  Map as MapIcon,
   FolderKanban,
   Flag,
   User,
@@ -33,6 +34,7 @@ const navigationCategories = [
     items: [
       { name: 'Dashboard', href: '/', icon: LayoutDashboard },
       { name: 'Search', href: '/search', icon: SearchIcon },
+      { name: 'Map', href: '/map', icon: MapIcon },
     ],
   },
   {
