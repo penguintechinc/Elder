@@ -105,7 +105,7 @@ class DiscoveryService:
     ) -> Dict[str, Any]:
         """Create a new discovery job."""
         # Validate provider type
-        valid_providers = ["aws", "gcp", "azure", "kubernetes"]
+        valid_providers = ["aws", "gcp", "azure", "kubernetes", "network", "http_screenshot", "banner"]
         if provider.lower() not in valid_providers:
             raise Exception(
                 f"Invalid provider: {provider}. Must be one of {valid_providers}"
@@ -357,3 +357,142 @@ class DiscoveryService:
             sanitized["config_json"] = config
 
         return sanitized
+
+    # Scanner service methods
+
+    def get_pending_jobs(self) -> List[Dict[str, Any]]:
+        """
+        Get jobs that are ready to be picked up by the scanner.
+
+        A job is pending if:
+        - It's enabled
+        - It's a local scan type (network, http_screenshot, banner)
+        - Either: schedule_interval=0 (one-time) and never run, or scheduled and due
+
+        Returns:
+            List of pending job dictionaries
+        """
+        # Get local scan providers
+        local_providers = ["network", "http_screenshot", "banner"]
+
+        # Find pending one-time jobs (never run)
+        pending_jobs = self.db(
+            (self.db.discovery_jobs.enabled == True)
+            & (self.db.discovery_jobs.provider.belongs(local_providers))
+            & (self.db.discovery_jobs.schedule_interval == 0)
+            & (self.db.discovery_jobs.last_run_at == None)
+        ).select()
+
+        # Also get scheduled jobs that are due
+        now = datetime.utcnow()
+        scheduled_jobs = self.db(
+            (self.db.discovery_jobs.enabled == True)
+            & (self.db.discovery_jobs.provider.belongs(local_providers))
+            & (self.db.discovery_jobs.schedule_interval > 0)
+            & (
+                (self.db.discovery_jobs.next_run_at == None)
+                | (self.db.discovery_jobs.next_run_at <= now)
+            )
+        ).select()
+
+        all_jobs = list(pending_jobs) + list(scheduled_jobs)
+
+        return [self._sanitize_job(job.as_dict()) for job in all_jobs]
+
+    def mark_job_running(self, job_id: int) -> Dict[str, Any]:
+        """
+        Mark a job as currently running.
+
+        Args:
+            job_id: Job ID
+
+        Returns:
+            Updated job info
+
+        Raises:
+            Exception: If job not found
+        """
+        job = self.db.discovery_jobs[job_id]
+        if not job:
+            raise Exception(f"Job not found: {job_id}")
+
+        # Update job status
+        self.db(self.db.discovery_jobs.id == job_id).update(
+            last_run_at=datetime.utcnow(),
+        )
+
+        # Create history entry
+        self.db.discovery_history.insert(
+            job_id=job_id,
+            started_at=datetime.utcnow(),
+            status="running",
+            entities_discovered=0,
+            entities_updated=0,
+            entities_created=0,
+        )
+
+        self.db.commit()
+
+        return {"success": True, "message": "Job marked as running", "job_id": job_id}
+
+    def complete_job(
+        self,
+        job_id: int,
+        success: bool,
+        results: Dict[str, Any],
+        error_message: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Complete a job and record results.
+
+        Args:
+            job_id: Job ID
+            success: Whether the scan succeeded
+            results: Scan results
+            error_message: Error message if failed
+
+        Returns:
+            Completion status
+
+        Raises:
+            Exception: If job not found
+        """
+        job = self.db.discovery_jobs[job_id]
+        if not job:
+            raise Exception(f"Job not found: {job_id}")
+
+        # Find the running history entry
+        history_entry = (
+            self.db(
+                (self.db.discovery_history.job_id == job_id)
+                & (self.db.discovery_history.status == "running")
+            )
+            .select(orderby=~self.db.discovery_history.started_at)
+            .first()
+        )
+
+        if history_entry:
+            # Update history entry
+            status = "completed" if success else "failed"
+            self.db(self.db.discovery_history.id == history_entry.id).update(
+                completed_at=datetime.utcnow(),
+                status=status,
+                error_message=error_message,
+                results_json=results,
+            )
+
+        # Update next_run_at for scheduled jobs
+        if job.schedule_interval and job.schedule_interval > 0:
+            from datetime import timedelta
+
+            next_run = datetime.utcnow() + timedelta(seconds=job.schedule_interval)
+            self.db(self.db.discovery_jobs.id == job_id).update(next_run_at=next_run)
+
+        self.db.commit()
+
+        return {
+            "success": True,
+            "message": "Job completed",
+            "job_id": job_id,
+            "status": "completed" if success else "failed",
+        }

@@ -346,7 +346,7 @@ def define_all_tables(db):
             "string",
             length=50,
             notnull=True,
-            requires=IS_IN_SET(["aws", "gcp", "azure", "kubernetes"]),
+            requires=IS_IN_SET(["aws", "gcp", "azure", "kubernetes", "network", "http_screenshot", "banner"]),
         ),
         Field("config_json", "json", notnull=True),  # Provider-specific configuration
         Field("schedule_interval", "integer", default=3600, notnull=True),  # seconds
@@ -664,12 +664,13 @@ def define_all_tables(db):
             length=50,
             notnull=True,
             default="running",
-            requires=IS_IN_SET(["running", "success", "failed", "partial"]),
+            requires=IS_IN_SET(["running", "completed", "success", "failed", "partial"]),
         ),
         Field("entities_discovered", "integer", default=0, notnull=True),
         Field("entities_created", "integer", default=0, notnull=True),
         Field("entities_updated", "integer", default=0, notnull=True),
         Field("error_message", "text"),
+        Field("results_json", "json"),  # Scan results (for local scans)
         migrate=False,
     )
 

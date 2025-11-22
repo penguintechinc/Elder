@@ -19,6 +19,8 @@ const INTEGRATION_DISCOVERY_TYPES = [
 // Simple unauthenticated scans
 const SCAN_TYPES = [
   { value: 'network', label: 'Network Scan' },
+  { value: 'http_screenshot', label: 'HTTP Screenshot' },
+  { value: 'banner', label: 'Banner Grab' },
 ]
 
 // Combined for display purposes
@@ -497,7 +499,7 @@ function ScanModal({ onClose, onSuccess }: any) {
         provider_type: scanType,
         organization_id: parseInt(orgId),
         config: configObj,
-        schedule: schedule || undefined,
+        schedule: schedule || '0',  // Default to 0 (no schedule) if not provided
         enabled: true,
       }
 
@@ -511,7 +513,11 @@ function ScanModal({ onClose, onSuccess }: any) {
   const getDefaultConfig = (type: string) => {
     switch (type) {
       case 'network':
-        return '{\n  "targets": ["192.168.1.0/24"],\n  "ports": "1-1024",\n  "scan_type": "tcp_syn"\n}'
+        return '{\n  "targets": ["192.168.1.0/24"],\n  "ports": "1-1024",\n  "scan_type": "tcp_syn",\n  "rate": 1000\n}'
+      case 'http_screenshot':
+        return '{\n  "targets": ["https://example.com"],\n  "timeout": 30000,\n  "viewport_width": 1920,\n  "viewport_height": 1080\n}'
+      case 'banner':
+        return '{\n  "targets": ["192.168.1.1"],\n  "ports": [22, 80, 443, 3306, 5432],\n  "timeout": 5\n}'
       default:
         return '{}'
     }
