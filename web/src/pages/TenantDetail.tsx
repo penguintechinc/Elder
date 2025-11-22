@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Building2, Users, Database, Shield, Edit, Trash2 } from 'lucide-react'
+import { ArrowLeft, Building2, Users, Database, Shield, Edit, Trash2, Copy } from 'lucide-react'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
@@ -201,6 +201,54 @@ export default function TenantDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Tenant Details */}
+      <Card className="mb-6">
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-white">Tenant Details</h2>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <dt className="text-sm font-medium text-slate-400">Slug</dt>
+              <dd className="mt-1 text-sm text-white">{tenant.slug}</dd>
+            </div>
+            {tenant.domain && (
+              <div>
+                <dt className="text-sm font-medium text-slate-400">Domain</dt>
+                <dd className="mt-1 text-sm text-white">{tenant.domain}</dd>
+              </div>
+            )}
+            <div>
+              <dt className="text-sm font-medium text-slate-400">Created</dt>
+              <dd className="mt-1 text-sm text-white">{new Date(tenant.created_at).toLocaleDateString()}</dd>
+            </div>
+            {tenant.village_id && (
+              <div>
+                <dt className="text-sm font-medium text-slate-400">Village ID</dt>
+                <dd className="mt-1 flex items-center gap-2">
+                  <a
+                    href={`/id/${tenant.village_id}`}
+                    className="text-sm text-primary-400 hover:text-primary-300 font-mono"
+                  >
+                    {tenant.village_id}
+                  </a>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/id/${tenant.village_id}`)
+                      toast.success('Village ID URL copied to clipboard')
+                    }}
+                    className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                    title="Copy shareable link"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </dd>
+              </div>
+            )}
+          </dl>
+        </CardContent>
+      </Card>
 
       {/* Users List */}
       <Card>

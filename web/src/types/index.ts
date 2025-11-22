@@ -5,6 +5,9 @@ export interface Organization {
   organization_type?: string
   parent_id?: number
   metadata?: Record<string, any>
+  village_id?: string
+  village_segment?: string
+  tenant_id?: number
   created_at: string
   updated_at: string
 }
@@ -20,6 +23,7 @@ export interface Entity {
   organization_id: number
   owner_identity_id?: number
   metadata?: Record<string, any>
+  village_id?: string
   created_at: string
   updated_at: string
   organization?: Organization
@@ -77,6 +81,8 @@ export interface Issue {
   organization_id?: number
   assigned_to?: number
   created_by: number
+  village_id?: string
+  tenant_id?: number
   created_at: string
   updated_at: string
   closed_at?: string
@@ -160,6 +166,7 @@ export interface Tenant {
   data_retention_days: number
   storage_quota_gb: number
   is_active: boolean
+  village_id?: string
   created_at: string
   updated_at?: string
   usage?: {
