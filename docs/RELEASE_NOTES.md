@@ -7,6 +7,120 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.0] - 2025-11-22
+
+### 🚀 Polymorphic Dependencies & Resource Map
+
+Major release adding polymorphic dependencies that link ANY resource types together, and a new interactive Map page for visualizing all resources and their relationships in a Visio-style network diagram.
+
+### ✨ New Features
+
+#### Polymorphic Dependencies System
+- **Universal Resource Linking**: Dependencies now connect ANY resource types to each other
+  - Organizations, Entities, Identities, Projects, Milestones, Issues
+  - Replaces old entity-to-entity only dependencies
+  - Enables tracking relationships like "Identity manages Entity" or "Issue affects Project"
+- **Database Schema**: New polymorphic structure
+  - `source_type` / `source_id` - Source resource
+  - `target_type` / `target_id` - Target resource
+  - `dependency_type` - Relationship type (manages, depends_on, related_to, etc.)
+  - `tenant_id` - Multi-tenant isolation
+- **Migration**: Automatic conversion of existing entity-entity dependencies
+- **API Endpoints**: Full CRUD with filtering by resource type
+  - `GET /api/v1/dependencies/resource/<type>/<id>` - Get all dependencies for a resource
+
+#### Interactive Resource Map
+- **New Map Page**: Full-page network visualization at `/map`
+  - Visio-style graph showing all resources and relationships
+  - Hierarchical and dependency edges visualized
+  - Click nodes to view details
+- **Comprehensive Filters**:
+  - Organization scope (global or specific org with children)
+  - Resource types (Organization, Entity, Identity, Project, Milestone, Issue)
+  - Entity subtypes (Network, Compute, Storage, etc.)
+  - Toggle hierarchical vs dependency links
+  - Node limit slider (50-1000)
+- **Visual Legend**: Color-coded by resource and entity types
+- **Statistics**: Node/edge counts with truncation indicator
+- **API Endpoint**: `GET /api/v1/graph/map` with full filtering support
+
+#### Docker Compose V2 Upgrade
+- **Updated to Docker Compose V2** (v2.40.3)
+  - Faster builds and better error handling
+  - Fixes `ContainerConfig` KeyError issues from v1
+- **New syntax**: `docker compose` (with space) instead of `docker-compose`
+- **Installation instructions** added to CLAUDE.md
+
+### 🔧 Database Schema Changes
+
+#### Updated Tables (1)
+- `dependencies` - Converted to polymorphic structure
+  - Removed: `source_entity_id`, `target_entity_id`
+  - Added: `tenant_id`, `source_type`, `source_id`, `target_type`, `target_id`
+  - Migration: `002_polymorphic_dependencies.sql`
+
+### 📊 Technical Details
+
+#### Valid Resource Types
+```python
+VALID_RESOURCE_TYPES = [
+    "organization", "entity", "identity",
+    "project", "milestone", "issue"
+]
+```
+
+#### Map API Parameters
+| Parameter | Description |
+|-----------|-------------|
+| `tenant_id` | Filter by tenant |
+| `organization_id` | Filter by org (includes children) |
+| `resource_types` | Comma-separated list |
+| `entity_types` | Comma-separated entity subtypes |
+| `include_hierarchical` | Include parent-child edges |
+| `include_dependencies` | Include dependency edges |
+| `limit` | Max nodes (default: 500) |
+
+### 📝 Files Added/Modified
+
+**Backend**:
+- `apps/api/api/v1/dependencies.py` - Complete rewrite for polymorphic dependencies
+- `apps/api/api/v1/graph.py` - Added `/map` endpoint with `_get_node_style_by_resource()`
+- `apps/api/models/dataclasses.py` - Updated `DependencyDTO` with polymorphic fields
+- `apps/api/migrations/002_polymorphic_dependencies.sql` - Schema migration
+
+**Frontend**:
+- `web/src/pages/Map.tsx` - NEW: Full map page with filters and visualization
+- `web/src/pages/Dependencies.tsx` - Updated for polymorphic dependencies
+- `web/src/lib/api.ts` - Added `getMap()` function
+- `web/src/components/Layout.tsx` - Added Map to navigation
+- `web/src/App.tsx` - Added `/map` route
+
+**Documentation**:
+- `CLAUDE.md` - Updated to Docker Compose V2 syntax and installation
+
+### 🔍 Breaking Changes
+
+**None for end users.** Existing dependencies are automatically migrated to polymorphic format.
+
+**For developers**:
+- Dependencies API now uses `source_type`/`source_id` instead of `source_entity_id`
+- Use `docker compose` (V2) instead of `docker-compose` (V1)
+
+### 🎯 Use Cases
+
+The polymorphic dependency system enables tracking relationships like:
+- **Identity → Entity**: "John manages Server-01"
+- **Issue → Entity**: "Bug #42 affects Database-Prod"
+- **Project → Organization**: "Migration Project belongs to IT Dept"
+- **Entity → Entity**: "App-Server depends on Load-Balancer"
+
+### 🙏 Acknowledgments
+
+**Development Timeline**: November 22, 2025
+**Major Focus**: Polymorphic dependencies, resource map visualization, Docker Compose V2
+
+---
+
 ## [2.2.0] - 2025-11-20
 
 ### 🚀 Enterprise Edition - Multi-Tenancy Foundation
