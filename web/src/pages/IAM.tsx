@@ -59,6 +59,9 @@ export default function IAM() {
   const [identityType, setIdentityType] = useState('employee')
   const [identityAuthProvider, setIdentityAuthProvider] = useState('local')
   const [identityPassword, setIdentityPassword] = useState('')
+  const [identityOrganizationId, setIdentityOrganizationId] = useState<number | ''>('')
+  const [identityIsPortalUser, setIdentityIsPortalUser] = useState(false)
+  const [identityPortalRole, setIdentityPortalRole] = useState('viewer')
 
   // Edit form state
   const [editEmail, setEditEmail] = useState('')
@@ -66,6 +69,7 @@ export default function IAM() {
   const [editPassword, setEditPassword] = useState('')
   const [editIsActive, setEditIsActive] = useState(true)
   const [editMfaEnabled, setEditMfaEnabled] = useState(false)
+  const [editOrganizationId, setEditOrganizationId] = useState<number | ''>('')
 
   // Provider form state
   const [providerName, setProviderName] = useState('')
@@ -95,6 +99,13 @@ export default function IAM() {
   const [k8sApiServer, setK8sApiServer] = useState('')
   const [k8sToken, setK8sToken] = useState('')
   const [k8sCaCert, setK8sCaCert] = useState('')
+
+  // Fetch organizations for dropdown
+  const { data: organizations } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: () => api.getOrganizations(),
+  })
+
 
   // Fetch all identity sources
   const { data: localIdentities } = useQuery({
@@ -133,6 +144,9 @@ export default function IAM() {
       setIdentityType('employee')
       setIdentityAuthProvider('local')
       setIdentityPassword('')
+      setIdentityOrganizationId('')
+      setIdentityIsPortalUser(false)
+      setIdentityPortalRole('viewer')
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to create identity')
@@ -156,6 +170,7 @@ export default function IAM() {
       setEditPassword('')
       setEditIsActive(true)
       setEditMfaEnabled(false)
+      setEditOrganizationId('')
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to update identity')
@@ -197,6 +212,22 @@ export default function IAM() {
       identityData.password = identityPassword
     }
 
+    // Include organization and derive tenant_id from it
+    if (identityOrganizationId) {
+      identityData.organization_id = identityOrganizationId
+      // Get tenant_id from the selected organization
+      const selectedOrg = organizations?.items?.find((org: any) => org.id === identityOrganizationId)
+      if (selectedOrg?.tenant_id) {
+        identityData.tenant_id = selectedOrg.tenant_id
+      }
+    }
+
+    // Include portal user fields if enabled
+    if (identityIsPortalUser) {
+      identityData.is_portal_user = true
+      identityData.portal_role = identityPortalRole
+    }
+
     createIdentityMutation.mutate(identityData)
   }
 
@@ -221,6 +252,19 @@ export default function IAM() {
     }
     if (editMfaEnabled !== (selectedIdentity.mfa_enabled || false)) {
       updateData.mfa_enabled = editMfaEnabled
+    }
+
+    // Check if organization changed
+    const currentOrgId = selectedIdentity.organization_id || ''
+    if (editOrganizationId !== currentOrgId) {
+      updateData.organization_id = editOrganizationId || null
+      // Derive tenant_id from the selected organization
+      if (editOrganizationId) {
+        const selectedOrg = organizations?.items?.find((org: any) => org.id === editOrganizationId)
+        if (selectedOrg?.tenant_id) {
+          updateData.tenant_id = selectedOrg.tenant_id
+        }
+      }
     }
 
     // Only submit if there are changes
@@ -569,6 +613,7 @@ export default function IAM() {
                             setEditPassword('')
                             setEditIsActive(identity.is_active !== false)
                             setEditMfaEnabled(identity.mfa_enabled || false)
+                            setEditOrganizationId(identity.organization_id || '')
                             setShowEditModal(true)
                           }}
                         >
@@ -816,6 +861,43 @@ export default function IAM() {
                       </Button>
                     </div>
                   </div>
+                )}
+                <Select
+                  label="Organization"
+                  required
+                  value={identityOrganizationId}
+                  onChange={(e) => setIdentityOrganizationId(e.target.value ? Number(e.target.value) : '')}
+                >
+                  <option value="">Select organization</option>
+                  {organizations?.items?.map((org: any) => (
+                    <option key={org.id} value={org.id}>{org.name}</option>
+                  ))}
+                </Select>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={identityIsPortalUser}
+                      onChange={(e) => setIdentityIsPortalUser(e.target.checked)}
+                      className="rounded border-slate-600 bg-slate-700 text-primary-500 focus:ring-primary-500"
+                    />
+                    Create as Portal User
+                  </label>
+                  <p className="text-xs text-slate-500 ml-6">
+                    Portal users can log in to the Elder web interface
+                  </p>
+                </div>
+                {identityIsPortalUser && (
+                  <Select
+                    label="Portal Role"
+                    required
+                    value={identityPortalRole}
+                    onChange={(e) => setIdentityPortalRole(e.target.value)}
+                  >
+                    <option value="viewer">Viewer - Read-only access</option>
+                    <option value="editor">Editor - Can modify data</option>
+                    <option value="admin">Admin - Full access</option>
+                  </Select>
                 )}
                 <div className="flex gap-3 pt-4">
                   <Button
@@ -1156,6 +1238,18 @@ export default function IAM() {
                   placeholder="John Doe"
                 />
 
+                <Select
+                  label="Organization"
+                  required
+                  value={editOrganizationId}
+                  onChange={(e) => setEditOrganizationId(e.target.value ? Number(e.target.value) : '')}
+                >
+                  <option value="">Select organization</option>
+                  {organizations?.items?.map((org: any) => (
+                    <option key={org.id} value={org.id}>{org.name}</option>
+                  ))}
+                </Select>
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-300">New Password (leave blank to keep current)</label>
                   <div className="flex gap-2">
@@ -1217,6 +1311,7 @@ export default function IAM() {
                       setEditPassword('')
                       setEditIsActive(true)
                       setEditMfaEnabled(false)
+                      setEditOrganizationId('')
                     }}
                     className="flex-1"
                   >

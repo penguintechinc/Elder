@@ -268,6 +268,27 @@ def _init_default_data(db: DAL) -> None:
     # Only create roles/permissions/org if they don't exist
     roles = {}
     root_org_id = None
+    system_tenant_id = None
+
+    # Create system tenant if it doesn't exist (needed for portal_users and organizations)
+    try:
+        existing_tenant = db(db.tenants.id == 1).select().first()
+        if not existing_tenant:
+            system_tenant_id = db.tenants.insert(
+                name="System",
+                slug="system",
+                subscription_tier="enterprise",
+                is_active=True,
+                data_retention_days=365,
+                storage_quota_gb=1000,
+            )
+        else:
+            system_tenant_id = existing_tenant.id
+    except Exception:
+        # Tables don't exist yet (first run), rollback and continue
+        db.rollback()
+        # Will create tenant after tables are created
+        system_tenant_id = 1
 
     if not roles_exist:
         # Create default roles
@@ -395,6 +416,7 @@ def _init_default_data(db: DAL) -> None:
             description="Root organization for system administrators",
             organization_type="organization",
             parent_id=None,
+            tenant_id=system_tenant_id,
         )
     else:
         # Roles exist, fetch them for admin user creation
@@ -414,6 +436,7 @@ def _init_default_data(db: DAL) -> None:
                 description="Root organization for system administrators",
                 organization_type="organization",
                 parent_id=None,
+                tenant_id=system_tenant_id,
             )
 
     # Create default admin user if specified in environment (idempotent)

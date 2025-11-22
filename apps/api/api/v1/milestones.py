@@ -137,6 +137,16 @@ async def create_milestone():
     if not data.get("organization_id"):
         return jsonify({"error": "organization_id is required"}), 400
 
+    # Get organization to derive tenant_id
+    def get_org():
+        return db.organizations[data["organization_id"]]
+
+    org = await run_in_threadpool(get_org)
+    if not org:
+        return jsonify({"error": "Organization not found"}), 404
+    if not org.tenant_id:
+        return jsonify({"error": "Organization must have a tenant"}), 400
+
     def create():
         # Create milestone
         milestone_id = db.milestones.insert(
@@ -144,6 +154,7 @@ async def create_milestone():
             description=data.get("description"),
             status=data.get("status", "open"),
             organization_id=data["organization_id"],
+            tenant_id=org.tenant_id,
             project_id=data.get("project_id"),
             due_date=data.get("due_date"),
         )
@@ -217,6 +228,18 @@ async def update_milestone(id: int):
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
+    # If organization is being changed, validate and get tenant
+    org_tenant_id = None
+    if "organization_id" in data:
+        def get_org():
+            return db.organizations[data["organization_id"]]
+        org = await run_in_threadpool(get_org)
+        if not org:
+            return jsonify({"error": "Organization not found"}), 404
+        if not org.tenant_id:
+            return jsonify({"error": "Organization must have a tenant"}), 400
+        org_tenant_id = org.tenant_id
+
     def update():
         milestone = db.milestones[id]
         if not milestone:
@@ -239,6 +262,9 @@ async def update_milestone(id: int):
             update_dict["due_date"] = data["due_date"]
         if "closed_at" in data:
             update_dict["closed_at"] = data["closed_at"]
+        if "organization_id" in data:
+            update_dict["organization_id"] = data["organization_id"]
+            update_dict["tenant_id"] = org_tenant_id
 
         if update_dict:
             db(db.milestones.id == id).update(**update_dict)

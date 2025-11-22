@@ -8,6 +8,7 @@ import type { Organization } from '@/types'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
+import Select from '@/components/Select'
 
 export default function Organizations() {
   const [search, setSearch] = useState('')
@@ -175,11 +176,18 @@ interface CreateOrganizationModalProps {
 function CreateOrganizationModal({ initialParentId, onClose, onSuccess }: CreateOrganizationModalProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [tenantId, setTenantId] = useState<number>(1) // Default to System tenant
 
   const queryClient = useQueryClient()
 
+  // Fetch tenants for dropdown
+  const { data: tenants } = useQuery({
+    queryKey: ['tenants'],
+    queryFn: () => api.getTenants(),
+  })
+
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; description?: string; parent_id?: number }) =>
+    mutationFn: (data: { name: string; description?: string; parent_id?: number; tenant_id: number }) =>
       api.createOrganization(data),
     onSuccess: async (newOrg) => {
       // Invalidate all organization queries to force refetch
@@ -197,9 +205,10 @@ function CreateOrganizationModal({ initialParentId, onClose, onSuccess }: Create
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const data: { name: string; description?: string; parent_id?: number } = {
+    const data: { name: string; description?: string; parent_id?: number; tenant_id: number } = {
       name,
-      description: description || undefined
+      description: description || undefined,
+      tenant_id: tenantId,
     }
     if (initialParentId) {
       data.parent_id = parseInt(initialParentId)
@@ -234,6 +243,18 @@ function CreateOrganizationModal({ initialParentId, onClose, onSuccess }: Create
                 className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
+            <Select
+              label="Tenant"
+              required
+              value={tenantId}
+              onChange={(e) => setTenantId(Number(e.target.value))}
+            >
+              {tenants?.map((tenant: any) => (
+                <option key={tenant.id} value={tenant.id}>
+                  {tenant.name} {tenant.id === 1 ? '(Global)' : ''}
+                </option>
+              ))}
+            </Select>
             <div className="flex justify-end gap-3 mt-6">
               <Button type="button" variant="ghost" onClick={onClose}>
                 Cancel
@@ -258,10 +279,17 @@ interface EditOrganizationModalProps {
 function EditOrganizationModal({ organization, onClose, onSuccess }: EditOrganizationModalProps) {
   const [name, setName] = useState(organization.name)
   const [description, setDescription] = useState(organization.description || '')
+  const [tenantId, setTenantId] = useState<number>(organization.tenant_id || 1)
   const queryClient = useQueryClient()
 
+  // Fetch tenants for dropdown
+  const { data: tenants } = useQuery({
+    queryKey: ['tenants'],
+    queryFn: () => api.getTenants(),
+  })
+
   const updateMutation = useMutation({
-    mutationFn: (data: { name: string; description?: string }) =>
+    mutationFn: (data: { name: string; description?: string; tenant_id?: number }) =>
       api.updateOrganization(organization.id, data),
     onSuccess: async (updatedOrg) => {
       // Invalidate all organization queries to force refetch
@@ -279,7 +307,11 @@ function EditOrganizationModal({ organization, onClose, onSuccess }: EditOrganiz
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    updateMutation.mutate({ name, description: description || undefined })
+    updateMutation.mutate({
+      name,
+      description: description || undefined,
+      tenant_id: tenantId,
+    })
   }
 
   return (
@@ -309,6 +341,18 @@ function EditOrganizationModal({ organization, onClose, onSuccess }: EditOrganiz
                 className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
+            <Select
+              label="Tenant"
+              required
+              value={tenantId}
+              onChange={(e) => setTenantId(Number(e.target.value))}
+            >
+              {tenants?.map((tenant: any) => (
+                <option key={tenant.id} value={tenant.id}>
+                  {tenant.name} {tenant.id === 1 ? '(Global)' : ''}
+                </option>
+              ))}
+            </Select>
             <div className="flex justify-end gap-3 mt-6">
               <Button type="button" variant="ghost" onClick={onClose}>
                 Cancel

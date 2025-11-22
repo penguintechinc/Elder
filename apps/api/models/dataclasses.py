@@ -122,8 +122,11 @@ class DependencyDTO:
     """Immutable Dependency data transfer object."""
 
     id: int
-    source_entity_id: int
-    target_entity_id: int
+    tenant_id: int
+    source_type: str
+    source_id: int
+    target_type: str
+    target_id: int
     dependency_type: str
     metadata: Optional[dict]
     created_at: datetime
@@ -134,8 +137,10 @@ class DependencyDTO:
 class CreateDependencyRequest:
     """Request to create a new Dependency."""
 
-    source_entity_id: int
-    target_entity_id: int
+    source_type: str
+    source_id: int
+    target_type: str
+    target_id: int
     dependency_type: str
     metadata: Optional[dict] = None
 
@@ -164,6 +169,7 @@ class IdentityDTO:
     updated_at: datetime
     password_hash: Optional[str] = None  # Stored password hash (never expose to client)
     mfa_secret: Optional[str] = None  # MFA secret (never expose to client)
+    tenant_id: Optional[int] = None  # Link to tenant
 
 
 @dataclass(slots=True)

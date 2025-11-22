@@ -121,6 +121,16 @@ async def create_entity():
     if not data.get("organization_id"):
         return jsonify({"error": "organization_id is required"}), 400
 
+    # Get organization to derive tenant_id
+    def get_org():
+        return db.organizations[data["organization_id"]]
+
+    org = await run_in_threadpool(get_org)
+    if not org:
+        return jsonify({"error": "Organization not found"}), 404
+    if not org.tenant_id:
+        return jsonify({"error": "Organization must have a tenant"}), 400
+
     # Create entity in database
     def create_in_db():
         entity_id = db.entities.insert(
@@ -128,6 +138,7 @@ async def create_entity():
             description=data.get("description"),
             entity_type=data["entity_type"],
             organization_id=data["organization_id"],
+            tenant_id=org.tenant_id,
             parent_id=data.get("parent_id"),
             attributes=data.get("attributes"),
             tags=data.get("tags", []),
@@ -195,6 +206,18 @@ async def update_entity(id: int):
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
+    # If organization is being changed, validate and get tenant
+    org_tenant_id = None
+    if "organization_id" in data:
+        def get_org():
+            return db.organizations[data["organization_id"]]
+        org = await run_in_threadpool(get_org)
+        if not org:
+            return jsonify({"error": "Organization not found"}), 404
+        if not org.tenant_id:
+            return jsonify({"error": "Organization must have a tenant"}), 400
+        org_tenant_id = org.tenant_id
+
     # Update entity
     def update_in_db():
         update_fields = {}
@@ -206,6 +229,7 @@ async def update_entity(id: int):
             update_fields["entity_type"] = data["entity_type"]
         if "organization_id" in data:
             update_fields["organization_id"] = data["organization_id"]
+            update_fields["tenant_id"] = org_tenant_id
         if "parent_id" in data:
             update_fields["parent_id"] = data["parent_id"]
         if "attributes" in data:

@@ -514,46 +514,60 @@ make license-check-features  # Check available features
 
 ### Docker Compose Usage
 
-**IMPORTANT**: Always use `docker-compose` commands for managing containers, NOT direct `docker` commands. This ensures proper service orchestration, network configuration, and dependency management.
+**IMPORTANT**: Use Docker Compose V2 (`docker compose` with a space) for managing containers. V2 is faster, has better error handling, and avoids compatibility issues with newer Docker images.
+
+**Note**: The legacy `docker-compose` (with hyphen) v1.29.2 has known issues like `ContainerConfig` KeyError. Always use the V2 plugin syntax.
+
+**Installing Docker Compose V2** (if not already installed):
+```bash
+# Install as Docker CLI plugin
+mkdir -p ~/.docker/cli-plugins
+curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
+chmod +x ~/.docker/cli-plugins/docker-compose
+
+# Verify installation
+docker compose version
+```
 
 ```bash
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # Start specific services
-docker-compose up -d postgres redis
-docker-compose up -d api web
+docker compose up -d postgres redis
+docker compose up -d api web
 
 # Stop all services
-docker-compose down
+docker compose down
 
 # Stop specific services
-docker-compose stop api web
+docker compose stop api web
 
 # Restart services
-docker-compose restart api
+docker compose restart api
 
 # View logs
-docker-compose logs -f api
-docker-compose logs -f postgres
+docker compose logs -f api
+docker compose logs -f postgres
 
 # Check running services
-docker-compose ps
+docker compose ps
 
 # Rebuild and restart services
-docker-compose up -d --build api web
+docker compose up -d --build api web
 
 # Remove all containers and volumes (DESTRUCTIVE)
-docker-compose down -v
+docker compose down -v
 ```
 
 **Never use these commands**:
-- ❌ `docker run -d --name elder-api ...` (Use `docker-compose up -d api` instead)
-- ❌ `docker stop elder-api` (Use `docker-compose stop api` instead)
-- ❌ `docker rm elder-api` (Use `docker-compose down` instead)
-- ❌ `docker ps` for Elder services (Use `docker-compose ps` instead)
+- ❌ `docker run -d --name elder-api ...` (Use `docker compose up -d api` instead)
+- ❌ `docker stop elder-api` (Use `docker compose stop api` instead)
+- ❌ `docker rm elder-api` (Use `docker compose down` instead)
+- ❌ `docker ps` for Elder services (Use `docker compose ps` instead)
+- ❌ `docker-compose` (legacy v1 with hyphen - use `docker compose` v2 instead)
 
-**Service Names** (use these with docker-compose):
+**Service Names** (use these with docker compose):
 - `postgres` - PostgreSQL database
 - `redis` - Redis cache
 - `api` - Flask REST API
@@ -707,21 +721,21 @@ docker-compose down -v
 
 **CRITICAL: ALWAYS use `--no-cache` flag for production rebuilds**
 
-All docker-compose builds MUST use the `--no-cache` flag to prevent stale build artifacts and ensure reproducible builds:
+All builds MUST use the `--no-cache` flag to prevent stale build artifacts and ensure reproducible builds:
 
 ```bash
-# CORRECT: Always rebuild with --no-cache
-docker-compose build --no-cache api
-docker-compose build --no-cache web
-docker-compose build --no-cache grpc-server
+# CORRECT: Always rebuild with --no-cache (using Docker Compose V2)
+docker compose build --no-cache api
+docker compose build --no-cache web
+docker compose build --no-cache grpc-server
 
 # WRONG: Never use cached builds for production changes
-docker-compose build api  # ❌ BAD - May use stale cached layers
-docker-compose build web  # ❌ BAD - May serve old frontend code
+docker compose build api  # ❌ BAD - May use stale cached layers
+docker compose build web  # ❌ BAD - May serve old frontend code
 
 # Complete rebuild and restart workflow
-docker-compose build --no-cache api && docker-compose restart api
-docker-compose build --no-cache web && docker-compose restart web
+docker compose build --no-cache api && docker compose restart api
+docker compose build --no-cache web && docker compose restart web
 ```
 
 **Why `--no-cache` is mandatory:**

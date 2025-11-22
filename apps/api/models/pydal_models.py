@@ -1346,15 +1346,30 @@ def define_all_tables(db):
         migrate=False,
     )
 
-    # Dependencies table (depends on: entities)
+    # Dependencies table - polymorphic links between any resource types
     db.define_table(
         "dependencies",
+        Field("tenant_id", "reference tenants", notnull=True, ondelete="CASCADE"),
         Field(
-            "source_entity_id", "reference entities", notnull=True, ondelete="CASCADE"
+            "source_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(
+                ["entity", "identity", "project", "milestone", "issue", "organization"]
+            ),
         ),
+        Field("source_id", "integer", notnull=True),
         Field(
-            "target_entity_id", "reference entities", notnull=True, ondelete="CASCADE"
+            "target_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(
+                ["entity", "identity", "project", "milestone", "issue", "organization"]
+            ),
         ),
+        Field("target_id", "integer", notnull=True),
         Field("dependency_type", "string", length=50, notnull=True),
         Field("metadata", "json"),
         Field(

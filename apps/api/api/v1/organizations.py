@@ -155,7 +155,35 @@ def update_organization(id: int):
 
     # Update organization using PyDAL
     try:
+        # Check if tenant_id is changing
+        old_tenant_id = org.tenant_id
+        new_tenant_id = data.get('tenant_id')
+        tenant_changed = new_tenant_id is not None and new_tenant_id != old_tenant_id
+
+        # Update organization
         db(db.organizations.id == id).update(**data)
+
+        # If tenant changed, cascade to associated resources
+        if tenant_changed:
+            # Update all entities belonging to this organization
+            db(db.entities.organization_id == id).update(tenant_id=new_tenant_id)
+
+            # Update all identities linked to this organization
+            db(db.identities.organization_id == id).update(tenant_id=new_tenant_id)
+
+            # Update child organizations recursively
+            def update_children_tenant(parent_id, tenant_id):
+                children = db(db.organizations.parent_id == parent_id).select()
+                for child in children:
+                    db(db.organizations.id == child.id).update(tenant_id=tenant_id)
+                    # Update entities and identities of child org
+                    db(db.entities.organization_id == child.id).update(tenant_id=tenant_id)
+                    db(db.identities.organization_id == child.id).update(tenant_id=tenant_id)
+                    # Recurse to grandchildren
+                    update_children_tenant(child.id, tenant_id)
+
+            update_children_tenant(id, new_tenant_id)
+
         db.commit()
 
         # Fetch updated organization
