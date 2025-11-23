@@ -47,39 +47,125 @@ Elder provides visibility into your infrastructure and organizational relationsh
 
 ## Screenshots
 
-### Organization Network Map
-
-<a href="docs/screenshots/elder-organization-map.png" target="_blank">
-  <img src="docs/screenshots/elder-organization-map.png" alt="Organization Network Map" style="max-width: 100%; cursor: pointer;">
-</a>
-
-*Interactive network visualization showing organizational relationships with React Flow.*
-
-### Dashboard & Core Features
+### Login & Dashboard
 
 <table>
 <tr>
 <td width="50%">
-<a href="docs/screenshots/elder-organizationunits.png" target="_blank">
-  <img src="docs/screenshots/elder-organizationunits.png" alt="Organizations" style="max-width: 100%;">
+<a href="docs/screenshots/login.png" target="_blank">
+  <img src="docs/screenshots/login.png" alt="Login" style="max-width: 100%;">
 </a>
+<p align="center"><em>Login</em></p>
 </td>
 <td width="50%">
-<a href="docs/screenshots/elder-entities.png" target="_blank">
-  <img src="docs/screenshots/elder-entities.png" alt="Entities" style="max-width: 100%;">
+<a href="docs/screenshots/dashboard.png" target="_blank">
+  <img src="docs/screenshots/dashboard.png" alt="Dashboard" style="max-width: 100%;">
 </a>
+<p align="center"><em>Dashboard</em></p>
+</td>
+</tr>
+</table>
+
+### Asset Management
+
+<table>
+<tr>
+<td width="50%">
+<a href="docs/screenshots/organizations.png" target="_blank">
+  <img src="docs/screenshots/organizations.png" alt="Organizations" style="max-width: 100%;">
+</a>
+<p align="center"><em>Organizations</em></p>
+</td>
+<td width="50%">
+<a href="docs/screenshots/entities.png" target="_blank">
+  <img src="docs/screenshots/entities.png" alt="Entities" style="max-width: 100%;">
+</a>
+<p align="center"><em>Entities</em></p>
 </td>
 </tr>
 <tr>
 <td width="50%">
-<a href="docs/screenshots/Elder-IAM.png" target="_blank">
-  <img src="docs/screenshots/Elder-IAM.png" alt="IAM Integration" style="max-width: 100%;">
+<a href="docs/screenshots/software.png" target="_blank">
+  <img src="docs/screenshots/software.png" alt="Software" style="max-width: 100%;">
 </a>
+<p align="center"><em>Software</em></p>
 </td>
 <td width="50%">
-<a href="docs/screenshots/Elder-Secrets.png" target="_blank">
-  <img src="docs/screenshots/Elder-Secrets.png" alt="Secrets Management" style="max-width: 100%;">
+<a href="docs/screenshots/services.png" target="_blank">
+  <img src="docs/screenshots/services.png" alt="Services" style="max-width: 100%;">
 </a>
+<p align="center"><em>Services</em></p>
+</td>
+</tr>
+</table>
+
+### Project Tracking
+
+<table>
+<tr>
+<td width="50%">
+<a href="docs/screenshots/projects.png" target="_blank">
+  <img src="docs/screenshots/projects.png" alt="Projects" style="max-width: 100%;">
+</a>
+<p align="center"><em>Projects</em></p>
+</td>
+<td width="50%">
+<a href="docs/screenshots/issues.png" target="_blank">
+  <img src="docs/screenshots/issues.png" alt="Issues" style="max-width: 100%;">
+</a>
+<p align="center"><em>Issues</em></p>
+</td>
+</tr>
+</table>
+
+### Security & Identity
+
+<table>
+<tr>
+<td width="50%">
+<a href="docs/screenshots/identities.png" target="_blank">
+  <img src="docs/screenshots/identities.png" alt="Identity Center" style="max-width: 100%;">
+</a>
+<p align="center"><em>Identity Center</em></p>
+</td>
+<td width="50%">
+<a href="docs/screenshots/secrets.png" target="_blank">
+  <img src="docs/screenshots/secrets.png" alt="Secrets Management" style="max-width: 100%;">
+</a>
+<p align="center"><em>Secrets Management</em></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<a href="docs/screenshots/keys.png" target="_blank">
+  <img src="docs/screenshots/keys.png" alt="API Keys" style="max-width: 100%;">
+</a>
+<p align="center"><em>API Keys</em></p>
+</td>
+<td width="50%">
+<a href="docs/screenshots/dependencies.png" target="_blank">
+  <img src="docs/screenshots/dependencies.png" alt="Dependencies" style="max-width: 100%;">
+</a>
+<p align="center"><em>Dependencies</em></p>
+</td>
+</tr>
+</table>
+
+### Discovery & Profile
+
+<table>
+<tr>
+<td width="50%">
+<a href="docs/screenshots/discovery.png" target="_blank">
+  <img src="docs/screenshots/discovery.png" alt="Discovery" style="max-width: 100%;">
+</a>
+<p align="center"><em>Discovery</em></p>
+</td>
+<td width="50%">
+<a href="docs/screenshots/profile.png" target="_blank">
+  <img src="docs/screenshots/profile.png" alt="Profile" style="max-width: 100%;">
+</a>
+<p align="center"><em>Profile</em></p>
 </td>
 </tr>
 </table>
