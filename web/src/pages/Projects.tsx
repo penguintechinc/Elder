@@ -5,9 +5,11 @@ import { Plus, Search, Edit, Trash2, FolderKanban, Calendar } from 'lucide-react
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
-import Card, { CardHeader, CardContent } from '@/components/Card'
+import Card, { CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import { FormConfig } from '@/types/form'
 
 const PROJECT_STATUSES = [
   { value: 'active', label: 'Active' },
@@ -29,6 +31,11 @@ export default function Projects() {
     queryFn: () => api.getProjects({ search, status: statusFilter || undefined }),
   })
 
+  const { data: organizations, isLoading: orgsLoading } = useQuery({
+    queryKey: ['organizations-all'],
+    queryFn: () => api.getOrganizations({ per_page: 1000 }),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteProject(id),
     onSuccess: async () => {
@@ -43,10 +50,58 @@ export default function Projects() {
     },
   })
 
+  const createMutation = useMutation({
+    mutationFn: (data: any) => api.createProject(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['projects'],
+        refetchType: 'all'
+      })
+      toast.success('Project created successfully')
+      setShowCreateModal(false)
+    },
+    onError: () => {
+      toast.error('Failed to create project')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: any) => api.updateProject(editingProject.id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['projects'],
+        refetchType: 'all'
+      })
+      toast.success('Project updated successfully')
+      setEditingProject(null)
+    },
+    onError: () => {
+      toast.error('Failed to update project')
+    },
+  })
+
   const handleDelete = (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete project "${name}"?`)) {
       deleteMutation.mutate(id)
     }
+  }
+
+  const handleCreate = (data: Record<string, any>) => {
+    createMutation.mutate({
+      ...data,
+      organization_id: parseInt(data.organization_id),
+      start_date: data.start_date || undefined,
+      end_date: data.end_date || undefined,
+    })
+  }
+
+  const handleUpdate = (data: Record<string, any>) => {
+    updateMutation.mutate({
+      ...data,
+      organization_id: parseInt(data.organization_id),
+      start_date: data.start_date || undefined,
+      end_date: data.end_date || undefined,
+    })
   }
 
   const getStatusColor = (status: string) => {
@@ -62,6 +117,60 @@ export default function Projects() {
       default:
         return 'bg-slate-500/20 text-slate-400'
     }
+  }
+
+  const projectFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Q1 2024 Infrastructure Upgrade',
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'Project description (optional)',
+        rows: 3,
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: orgsLoading
+          ? [{ value: '', label: 'Loading...' }]
+          : organizations?.items?.length
+          ? [
+              { value: '', label: 'Select organization' },
+              ...organizations.items.map((org: any) => ({
+                value: org.id.toString(),
+                label: org.name,
+              })),
+            ]
+          : [{ value: '', label: 'No organizations found - create one first' }],
+      },
+      {
+        name: 'status',
+        label: 'Status',
+        type: 'select',
+        defaultValue: 'active',
+        options: PROJECT_STATUSES,
+      },
+      {
+        name: 'start_date',
+        label: 'Start Date',
+        type: 'date',
+      },
+      {
+        name: 'end_date',
+        label: 'End Date',
+        type: 'date',
+      },
+    ],
+    submitLabel: editingProject ? 'Update' : 'Create',
   }
 
   return (
@@ -187,160 +296,32 @@ export default function Projects() {
       )}
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <ProjectModal
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['projects'],
-              refetchType: 'all'
-            })
-            setShowCreateModal(false)
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create Project"
+        config={projectFormConfig}
+        onSubmit={handleCreate}
+        isLoading={createMutation.isPending}
+      />
 
       {/* Edit Modal */}
-      {editingProject && (
-        <ProjectModal
-          project={editingProject}
-          onClose={() => setEditingProject(null)}
-          onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['projects'],
-              refetchType: 'all'
-            })
-            setEditingProject(null)
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-interface ProjectModalProps {
-  project?: any
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function ProjectModal({ project, onClose, onSuccess }: ProjectModalProps) {
-  const [name, setName] = useState(project?.name || '')
-  const [description, setDescription] = useState(project?.description || '')
-  const [status, setStatus] = useState(project?.status || 'active')
-  const [organizationId, setOrganizationId] = useState(project?.organization_id || '')
-  const [startDate, setStartDate] = useState(project?.start_date || '')
-  const [endDate, setEndDate] = useState(project?.end_date || '')
-
-  const { data: organizations, isLoading: orgsLoading } = useQuery({
-    queryKey: ['organizations-all'],
-    queryFn: () => api.getOrganizations({ per_page: 1000 }),
-  })
-
-  const mutation = useMutation({
-    mutationFn: (data: any) =>
-      project
-        ? api.updateProject(project.id, data)
-        : api.createProject(data),
-    onSuccess: () => {
-      toast.success(project ? 'Project updated successfully' : 'Project created successfully')
-      onSuccess()
-    },
-    onError: () => {
-      toast.error(project ? 'Failed to update project' : 'Failed to create project')
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    mutation.mutate({
-      name,
-      description: description || undefined,
-      status,
-      organization_id: parseInt(organizationId),
-      start_date: startDate || undefined,
-      end_date: endDate || undefined,
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">
-            {project ? 'Edit Project' : 'Create Project'}
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Q1 2024 Infrastructure Upgrade"
-            />
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Project description (optional)"
-                rows={3}
-                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <Select
-              label="Organization"
-              required
-              value={organizationId}
-              onChange={(e) => setOrganizationId(e.target.value)}
-            >
-              <option value="">
-                {orgsLoading ? 'Loading...' : organizations?.items?.length ? 'Select organization' : 'No organizations found - create one first'}
-              </option>
-              {organizations?.items?.map((org: any) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </Select>
-            <Select
-              label="Status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              {PROJECT_STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </Select>
-            <Input
-              label="Start Date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <Input
-              label="End Date"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={mutation.isPending}>
-                {project ? 'Update' : 'Create'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <ModalFormBuilder
+        isOpen={!!editingProject}
+        onClose={() => setEditingProject(null)}
+        title="Edit Project"
+        config={projectFormConfig}
+        initialValues={editingProject ? {
+          name: editingProject.name,
+          description: editingProject.description || '',
+          status: editingProject.status,
+          organization_id: editingProject.organization_id?.toString() || '',
+          start_date: editingProject.start_date || '',
+          end_date: editingProject.end_date || '',
+        } : undefined}
+        onSubmit={handleUpdate}
+        isLoading={updateMutation.isPending}
+      />
     </div>
   )
 }

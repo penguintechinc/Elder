@@ -238,7 +238,7 @@ export default function IssueDetail() {
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault()
     if (newComment.trim()) {
-      addCommentMutation.mutate(newComment)
+      addCommentMutation.mutate(newComment.trim())
     }
   }
 

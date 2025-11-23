@@ -7,6 +7,8 @@ import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import { FormConfig } from '@/types/form'
 
 // Types
 interface IpamPrefix {
@@ -61,6 +63,26 @@ const STATUS_COLORS: Record<string, string> = {
   available: 'bg-slate-500/20 text-slate-400',
 }
 
+// Status options for forms
+const prefixStatusOptions = [
+  { value: 'active', label: 'Active' },
+  { value: 'reserved', label: 'Reserved' },
+  { value: 'deprecated', label: 'Deprecated' },
+  { value: 'container', label: 'Container' },
+]
+
+const addressStatusOptions = [
+  { value: 'active', label: 'Active' },
+  { value: 'reserved', label: 'Reserved' },
+  { value: 'deprecated', label: 'Deprecated' },
+]
+
+const vlanStatusOptions = [
+  { value: 'active', label: 'Active' },
+  { value: 'reserved', label: 'Reserved' },
+  { value: 'deprecated', label: 'Deprecated' },
+]
+
 export default function IPAM() {
   const [activeTab, setActiveTab] = useState<TabType>('prefixes')
   const [search, setSearch] = useState('')
@@ -104,6 +126,68 @@ export default function IPAM() {
     enabled: activeTab === 'vlans',
   })
 
+  // Create mutations
+  const createPrefixMutation = useMutation({
+    mutationFn: (data: any) => api.createIpamPrefix(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ipam-prefixes'] })
+      setShowCreatePrefixModal(false)
+      toast.success('Prefix created successfully')
+    },
+    onError: () => toast.error('Failed to create prefix'),
+  })
+
+  const createAddressMutation = useMutation({
+    mutationFn: (data: any) => api.createIpamAddress(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ipam-addresses'] })
+      setShowCreateAddressModal(false)
+      toast.success('Address created successfully')
+    },
+    onError: () => toast.error('Failed to create address'),
+  })
+
+  const createVlanMutation = useMutation({
+    mutationFn: (data: any) => api.createIpamVlan(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ipam-vlans'] })
+      setShowCreateVlanModal(false)
+      toast.success('VLAN created successfully')
+    },
+    onError: () => toast.error('Failed to create VLAN'),
+  })
+
+  // Update mutations
+  const updatePrefixMutation = useMutation({
+    mutationFn: (data: any) => api.updateIpamPrefix(editingPrefix!.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ipam-prefixes'] })
+      setEditingPrefix(null)
+      toast.success('Prefix updated successfully')
+    },
+    onError: () => toast.error('Failed to update prefix'),
+  })
+
+  const updateAddressMutation = useMutation({
+    mutationFn: (data: any) => api.updateIpamAddress(editingAddress!.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ipam-addresses'] })
+      setEditingAddress(null)
+      toast.success('Address updated successfully')
+    },
+    onError: () => toast.error('Failed to update address'),
+  })
+
+  const updateVlanMutation = useMutation({
+    mutationFn: (data: any) => api.updateIpamVlan(editingVlan!.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ipam-vlans'] })
+      setEditingVlan(null)
+      toast.success('VLAN updated successfully')
+    },
+    onError: () => toast.error('Failed to update VLAN'),
+  })
+
   // Delete mutations
   const deletePrefixMutation = useMutation({
     mutationFn: (id: number) => api.deleteIpamPrefix(id),
@@ -138,6 +222,223 @@ export default function IPAM() {
       else if (type === 'address') deleteAddressMutation.mutate(id)
       else if (type === 'vlan') deleteVlanMutation.mutate(id)
     }
+  }
+
+  // Form configs
+  const organizationOptions = organizations?.items?.map((org: any) => ({
+    value: org.id,
+    label: org.name,
+  })) || []
+
+  const createPrefixConfig: FormConfig = {
+    fields: [
+      {
+        name: 'prefix',
+        label: 'Prefix (CIDR)',
+        type: 'ip',
+        required: true,
+        placeholder: 'e.g., 192.168.1.0/24',
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: [{ value: '', label: 'Select organization...' }, ...organizationOptions],
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'Enter description (optional)',
+      },
+      {
+        name: 'status',
+        label: 'Status',
+        type: 'select',
+        defaultValue: 'active',
+        options: prefixStatusOptions,
+      },
+      {
+        name: 'is_pool',
+        label: 'Is Pool (can allocate from this prefix)',
+        type: 'checkbox',
+        defaultValue: false,
+      },
+    ],
+    submitLabel: 'Create',
+  }
+
+  const editPrefixConfig: FormConfig = {
+    fields: [
+      {
+        name: 'prefix',
+        label: 'Prefix (CIDR)',
+        type: 'ip',
+        required: true,
+        placeholder: 'e.g., 192.168.1.0/24',
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'Enter description (optional)',
+      },
+      {
+        name: 'status',
+        label: 'Status',
+        type: 'select',
+        options: prefixStatusOptions,
+      },
+      {
+        name: 'is_pool',
+        label: 'Is Pool',
+        type: 'checkbox',
+      },
+    ],
+    submitLabel: 'Update',
+  }
+
+  const createAddressConfig: FormConfig = {
+    fields: [
+      {
+        name: 'address',
+        label: 'IP Address',
+        type: 'ip',
+        required: true,
+        placeholder: 'e.g., 192.168.1.1/32',
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: [{ value: '', label: 'Select organization...' }, ...organizationOptions],
+      },
+      {
+        name: 'dns_name',
+        label: 'DNS Name',
+        type: 'domain',
+        placeholder: 'e.g., server1.example.com',
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'Enter description (optional)',
+      },
+      {
+        name: 'status',
+        label: 'Status',
+        type: 'select',
+        defaultValue: 'active',
+        options: addressStatusOptions,
+      },
+    ],
+    submitLabel: 'Create',
+  }
+
+  const editAddressConfig: FormConfig = {
+    fields: [
+      {
+        name: 'address',
+        label: 'IP Address',
+        type: 'ip',
+        required: true,
+        placeholder: 'e.g., 192.168.1.1/32',
+      },
+      {
+        name: 'dns_name',
+        label: 'DNS Name',
+        type: 'domain',
+        placeholder: 'e.g., server1.example.com',
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'Enter description (optional)',
+      },
+      {
+        name: 'status',
+        label: 'Status',
+        type: 'select',
+        options: addressStatusOptions,
+      },
+    ],
+    submitLabel: 'Update',
+  }
+
+  const createVlanConfig: FormConfig = {
+    fields: [
+      {
+        name: 'vid',
+        label: 'VLAN ID',
+        type: 'number',
+        required: true,
+        placeholder: 'e.g., 100',
+      },
+      {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+        placeholder: 'e.g., Production',
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: [{ value: '', label: 'Select organization...' }, ...organizationOptions],
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'Enter description (optional)',
+      },
+      {
+        name: 'status',
+        label: 'Status',
+        type: 'select',
+        defaultValue: 'active',
+        options: vlanStatusOptions,
+      },
+    ],
+    submitLabel: 'Create',
+  }
+
+  const editVlanConfig: FormConfig = {
+    fields: [
+      {
+        name: 'vid',
+        label: 'VLAN ID',
+        type: 'number',
+        required: true,
+        placeholder: 'e.g., 100',
+      },
+      {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+        placeholder: 'e.g., Production',
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'Enter description (optional)',
+      },
+      {
+        name: 'status',
+        label: 'Status',
+        type: 'select',
+        options: vlanStatusOptions,
+      },
+    ],
+    submitLabel: 'Update',
   }
 
   const tabs = [
@@ -255,68 +556,77 @@ export default function IPAM() {
       )}
 
       {/* Modals */}
-      {showCreatePrefixModal && (
-        <CreatePrefixModal
-          onClose={() => setShowCreatePrefixModal(false)}
-          onSuccess={() => {
-            setShowCreatePrefixModal(false)
-            toast.success('Prefix created successfully')
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={showCreatePrefixModal}
+        onClose={() => setShowCreatePrefixModal(false)}
+        title="Create Prefix"
+        config={createPrefixConfig}
+        onSubmit={(data) => createPrefixMutation.mutate(data)}
+        isLoading={createPrefixMutation.isPending}
+      />
 
-      {showCreateAddressModal && (
-        <CreateAddressModal
-          onClose={() => setShowCreateAddressModal(false)}
-          onSuccess={() => {
-            setShowCreateAddressModal(false)
-            toast.success('Address created successfully')
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={showCreateAddressModal}
+        onClose={() => setShowCreateAddressModal(false)}
+        title="Create Address"
+        config={createAddressConfig}
+        onSubmit={(data) => createAddressMutation.mutate(data)}
+        isLoading={createAddressMutation.isPending}
+      />
 
-      {showCreateVlanModal && (
-        <CreateVlanModal
-          onClose={() => setShowCreateVlanModal(false)}
-          onSuccess={() => {
-            setShowCreateVlanModal(false)
-            toast.success('VLAN created successfully')
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={showCreateVlanModal}
+        onClose={() => setShowCreateVlanModal(false)}
+        title="Create VLAN"
+        config={createVlanConfig}
+        onSubmit={(data) => createVlanMutation.mutate(data)}
+        isLoading={createVlanMutation.isPending}
+      />
 
-      {editingPrefix && (
-        <EditPrefixModal
-          prefix={editingPrefix}
-          onClose={() => setEditingPrefix(null)}
-          onSuccess={() => {
-            setEditingPrefix(null)
-            toast.success('Prefix updated successfully')
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={!!editingPrefix}
+        onClose={() => setEditingPrefix(null)}
+        title="Edit Prefix"
+        config={editPrefixConfig}
+        initialValues={editingPrefix ? {
+          prefix: editingPrefix.prefix,
+          description: editingPrefix.description || '',
+          status: editingPrefix.status,
+          is_pool: editingPrefix.is_pool,
+        } : undefined}
+        onSubmit={(data) => updatePrefixMutation.mutate(data)}
+        isLoading={updatePrefixMutation.isPending}
+      />
 
-      {editingAddress && (
-        <EditAddressModal
-          address={editingAddress}
-          onClose={() => setEditingAddress(null)}
-          onSuccess={() => {
-            setEditingAddress(null)
-            toast.success('Address updated successfully')
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={!!editingAddress}
+        onClose={() => setEditingAddress(null)}
+        title="Edit Address"
+        config={editAddressConfig}
+        initialValues={editingAddress ? {
+          address: editingAddress.address,
+          dns_name: editingAddress.dns_name || '',
+          description: editingAddress.description || '',
+          status: editingAddress.status,
+        } : undefined}
+        onSubmit={(data) => updateAddressMutation.mutate(data)}
+        isLoading={updateAddressMutation.isPending}
+      />
 
-      {editingVlan && (
-        <EditVlanModal
-          vlan={editingVlan}
-          onClose={() => setEditingVlan(null)}
-          onSuccess={() => {
-            setEditingVlan(null)
-            toast.success('VLAN updated successfully')
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={!!editingVlan}
+        onClose={() => setEditingVlan(null)}
+        title="Edit VLAN"
+        config={editVlanConfig}
+        initialValues={editingVlan ? {
+          vid: editingVlan.vid,
+          name: editingVlan.name,
+          description: editingVlan.description || '',
+          status: editingVlan.status,
+        } : undefined}
+        onSubmit={(data) => updateVlanMutation.mutate(data)}
+        isLoading={updateVlanMutation.isPending}
+      />
     </div>
   )
 }
@@ -671,584 +981,5 @@ function VlansTab({ data, isLoading, search, onEdit, onDelete, onCreate }: Vlans
         </table>
       </CardContent>
     </Card>
-  )
-}
-
-// Create/Edit Modals
-
-interface CreatePrefixModalProps {
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function CreatePrefixModal({ onClose, onSuccess }: CreatePrefixModalProps) {
-  const [prefix, setPrefix] = useState('')
-  const [description, setDescription] = useState('')
-  const [status, setStatus] = useState('active')
-  const [isPool, setIsPool] = useState(false)
-  const [organizationId, setOrganizationId] = useState<number>(0)
-
-  const queryClient = useQueryClient()
-
-  const { data: organizations } = useQuery({
-    queryKey: ['organizations'],
-    queryFn: () => api.getOrganizations(),
-  })
-
-  const createMutation = useMutation({
-    mutationFn: (data: any) => api.createIpamPrefix(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ipam-prefixes'] })
-      onSuccess()
-    },
-    onError: () => toast.error('Failed to create prefix'),
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    createMutation.mutate({
-      prefix,
-      description: description || undefined,
-      status,
-      is_pool: isPool,
-      organization_id: organizationId,
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Create Prefix</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Prefix (CIDR)"
-              required
-              value={prefix}
-              onChange={(e) => setPrefix(e.target.value)}
-              placeholder="e.g., 192.168.1.0/24"
-            />
-            <Select
-              label="Organization"
-              required
-              value={organizationId}
-              onChange={(e) => setOrganizationId(Number(e.target.value))}
-            >
-              <option value={0}>Select organization...</option>
-              {organizations?.items?.map((org: any) => (
-                <option key={org.id} value={org.id}>{org.name}</option>
-              ))}
-            </Select>
-            <Input
-              label="Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter description (optional)"
-            />
-            <Select
-              label="Status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="active">Active</option>
-              <option value="reserved">Reserved</option>
-              <option value="deprecated">Deprecated</option>
-              <option value="container">Container</option>
-            </Select>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="isPool"
-                checked={isPool}
-                onChange={(e) => setIsPool(e.target.checked)}
-                className="rounded border-slate-600 bg-slate-800 text-primary-600"
-              />
-              <label htmlFor="isPool" className="text-sm text-slate-300">
-                Is Pool (can allocate from this prefix)
-              </label>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={createMutation.isPending} disabled={!organizationId}>
-                Create
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-interface EditPrefixModalProps {
-  prefix: IpamPrefix
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function EditPrefixModal({ prefix: prefixData, onClose, onSuccess }: EditPrefixModalProps) {
-  const [prefix, setPrefix] = useState(prefixData.prefix)
-  const [description, setDescription] = useState(prefixData.description || '')
-  const [status, setStatus] = useState(prefixData.status)
-  const [isPool, setIsPool] = useState(prefixData.is_pool)
-
-  const queryClient = useQueryClient()
-
-  const updateMutation = useMutation({
-    mutationFn: (data: any) => api.updateIpamPrefix(prefixData.id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ipam-prefixes'] })
-      onSuccess()
-    },
-    onError: () => toast.error('Failed to update prefix'),
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    updateMutation.mutate({
-      prefix,
-      description: description || undefined,
-      status,
-      is_pool: isPool,
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Edit Prefix</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Prefix (CIDR)"
-              required
-              value={prefix}
-              onChange={(e) => setPrefix(e.target.value)}
-              placeholder="e.g., 192.168.1.0/24"
-            />
-            <Input
-              label="Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter description (optional)"
-            />
-            <Select
-              label="Status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="active">Active</option>
-              <option value="reserved">Reserved</option>
-              <option value="deprecated">Deprecated</option>
-              <option value="container">Container</option>
-            </Select>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="isPoolEdit"
-                checked={isPool}
-                onChange={(e) => setIsPool(e.target.checked)}
-                className="rounded border-slate-600 bg-slate-800 text-primary-600"
-              />
-              <label htmlFor="isPoolEdit" className="text-sm text-slate-300">
-                Is Pool
-              </label>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={updateMutation.isPending}>
-                Update
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-interface CreateAddressModalProps {
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function CreateAddressModal({ onClose, onSuccess }: CreateAddressModalProps) {
-  const [address, setAddress] = useState('')
-  const [description, setDescription] = useState('')
-  const [status, setStatus] = useState('active')
-  const [dnsName, setDnsName] = useState('')
-  const [organizationId, setOrganizationId] = useState<number>(0)
-
-  const queryClient = useQueryClient()
-
-  const { data: organizations } = useQuery({
-    queryKey: ['organizations'],
-    queryFn: () => api.getOrganizations(),
-  })
-
-  const createMutation = useMutation({
-    mutationFn: (data: any) => api.createIpamAddress(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ipam-addresses'] })
-      onSuccess()
-    },
-    onError: () => toast.error('Failed to create address'),
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    createMutation.mutate({
-      address,
-      description: description || undefined,
-      status,
-      dns_name: dnsName || undefined,
-      organization_id: organizationId,
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Create Address</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="IP Address"
-              required
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="e.g., 192.168.1.1/32"
-            />
-            <Select
-              label="Organization"
-              required
-              value={organizationId}
-              onChange={(e) => setOrganizationId(Number(e.target.value))}
-            >
-              <option value={0}>Select organization...</option>
-              {organizations?.items?.map((org: any) => (
-                <option key={org.id} value={org.id}>{org.name}</option>
-              ))}
-            </Select>
-            <Input
-              label="DNS Name"
-              value={dnsName}
-              onChange={(e) => setDnsName(e.target.value)}
-              placeholder="e.g., server1.example.com"
-            />
-            <Input
-              label="Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter description (optional)"
-            />
-            <Select
-              label="Status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="active">Active</option>
-              <option value="reserved">Reserved</option>
-              <option value="deprecated">Deprecated</option>
-            </Select>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={createMutation.isPending} disabled={!organizationId}>
-                Create
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-interface EditAddressModalProps {
-  address: IpamAddress
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function EditAddressModal({ address: addressData, onClose, onSuccess }: EditAddressModalProps) {
-  const [address, setAddress] = useState(addressData.address)
-  const [description, setDescription] = useState(addressData.description || '')
-  const [status, setStatus] = useState(addressData.status)
-  const [dnsName, setDnsName] = useState(addressData.dns_name || '')
-
-  const queryClient = useQueryClient()
-
-  const updateMutation = useMutation({
-    mutationFn: (data: any) => api.updateIpamAddress(addressData.id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ipam-addresses'] })
-      onSuccess()
-    },
-    onError: () => toast.error('Failed to update address'),
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    updateMutation.mutate({
-      address,
-      description: description || undefined,
-      status,
-      dns_name: dnsName || undefined,
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Edit Address</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="IP Address"
-              required
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="e.g., 192.168.1.1/32"
-            />
-            <Input
-              label="DNS Name"
-              value={dnsName}
-              onChange={(e) => setDnsName(e.target.value)}
-              placeholder="e.g., server1.example.com"
-            />
-            <Input
-              label="Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter description (optional)"
-            />
-            <Select
-              label="Status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="active">Active</option>
-              <option value="reserved">Reserved</option>
-              <option value="deprecated">Deprecated</option>
-            </Select>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={updateMutation.isPending}>
-                Update
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-interface CreateVlanModalProps {
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function CreateVlanModal({ onClose, onSuccess }: CreateVlanModalProps) {
-  const [vid, setVid] = useState('')
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [status, setStatus] = useState('active')
-  const [organizationId, setOrganizationId] = useState<number>(0)
-
-  const queryClient = useQueryClient()
-
-  const { data: organizations } = useQuery({
-    queryKey: ['organizations'],
-    queryFn: () => api.getOrganizations(),
-  })
-
-  const createMutation = useMutation({
-    mutationFn: (data: any) => api.createIpamVlan(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ipam-vlans'] })
-      onSuccess()
-    },
-    onError: () => toast.error('Failed to create VLAN'),
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    createMutation.mutate({
-      vid: parseInt(vid),
-      name,
-      description: description || undefined,
-      status,
-      organization_id: organizationId,
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Create VLAN</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="VLAN ID"
-              type="number"
-              required
-              value={vid}
-              onChange={(e) => setVid(e.target.value)}
-              placeholder="e.g., 100"
-              min={1}
-              max={4094}
-            />
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Production"
-            />
-            <Select
-              label="Organization"
-              required
-              value={organizationId}
-              onChange={(e) => setOrganizationId(Number(e.target.value))}
-            >
-              <option value={0}>Select organization...</option>
-              {organizations?.items?.map((org: any) => (
-                <option key={org.id} value={org.id}>{org.name}</option>
-              ))}
-            </Select>
-            <Input
-              label="Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter description (optional)"
-            />
-            <Select
-              label="Status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="active">Active</option>
-              <option value="reserved">Reserved</option>
-              <option value="deprecated">Deprecated</option>
-            </Select>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={createMutation.isPending} disabled={!organizationId}>
-                Create
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-interface EditVlanModalProps {
-  vlan: IpamVlan
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function EditVlanModal({ vlan, onClose, onSuccess }: EditVlanModalProps) {
-  const [vid, setVid] = useState(vlan.vid.toString())
-  const [name, setName] = useState(vlan.name)
-  const [description, setDescription] = useState(vlan.description || '')
-  const [status, setStatus] = useState(vlan.status)
-
-  const queryClient = useQueryClient()
-
-  const updateMutation = useMutation({
-    mutationFn: (data: any) => api.updateIpamVlan(vlan.id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ipam-vlans'] })
-      onSuccess()
-    },
-    onError: () => toast.error('Failed to update VLAN'),
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    updateMutation.mutate({
-      vid: parseInt(vid),
-      name,
-      description: description || undefined,
-      status,
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Edit VLAN</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="VLAN ID"
-              type="number"
-              required
-              value={vid}
-              onChange={(e) => setVid(e.target.value)}
-              placeholder="e.g., 100"
-              min={1}
-              max={4094}
-            />
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Production"
-            />
-            <Input
-              label="Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter description (optional)"
-            />
-            <Select
-              label="Status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="active">Active</option>
-              <option value="reserved">Reserved</option>
-              <option value="deprecated">Deprecated</option>
-            </Select>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={updateMutation.isPending}>
-                Update
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
   )
 }

@@ -187,6 +187,7 @@ async def create_identity():
             "is_superuser": data.get("is_superuser", False),
             "mfa_enabled": data.get("mfa_enabled", False),
             "portal_role": data.get("portal_role", "viewer"),
+            "must_change_password": data.get("must_change_password", False),
         }
 
         # Hash password if provided (for local auth)

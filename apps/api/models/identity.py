@@ -70,6 +70,14 @@ class Identity(Base, IDMixin, TimestampMixin):
     mfa_enabled = Column(Boolean, default=False, nullable=False)
     mfa_secret = Column(String(255), nullable=True, comment="TOTP secret for MFA")
 
+    # Password management
+    must_change_password = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+        comment="Requires password change on next login"
+    )
+
     # Last activity
     last_login_at = Column(
         String(255),  # Using String for ISO format datetime

@@ -25,9 +25,10 @@ import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
-import Input from '@/components/Input'
 import Select from '@/components/Select'
 import NetworkTopologyGraph from '@/components/NetworkTopologyGraph'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import { FormConfig } from '@/types/form'
 
 // Icon mapping for network types
 const NETWORK_TYPE_ICONS: Record<string, LucideIcon> = {
@@ -104,6 +105,12 @@ export default function Networking() {
     queryFn: () => api.getOrganizations(),
   })
 
+  const { data: allNetworks } = useQuery({
+    queryKey: ['allNetworks'],
+    queryFn: () => api.listNetworks({}),
+    enabled: showCreateConnectionModal,
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteNetwork(id),
     onSuccess: async () => {
@@ -114,6 +121,169 @@ export default function Networking() {
       toast.success('Network deleted')
     },
   })
+
+  const createNetworkMutation = useMutation({
+    mutationFn: (data: any) => api.createNetwork(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['networks'],
+        refetchType: 'all'
+      })
+      toast.success('Network created')
+      setShowCreateModal(false)
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to create network')
+    },
+  })
+
+  const createConnectionMutation = useMutation({
+    mutationFn: (data: any) => api.createTopologyConnection(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['networkConnections'],
+        refetchType: 'all'
+      })
+      toast.success('Connection created')
+      setShowCreateConnectionModal(false)
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to create connection')
+    },
+  })
+
+  // Form config for creating networks
+  const networkFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select organization' },
+          ...(orgs?.items || []).map((o: any) => ({ value: o.id, label: o.name })),
+        ],
+      },
+      {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Production VPC',
+      },
+      {
+        name: 'network_type',
+        label: 'Network Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select network type' },
+          ...NETWORK_TYPES,
+        ],
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'Main production network',
+      },
+      {
+        name: 'region',
+        label: 'Region',
+        type: 'text',
+        placeholder: 'us-east-1',
+      },
+      {
+        name: 'location',
+        label: 'Location',
+        type: 'text',
+        placeholder: 'AWS Virginia',
+      },
+    ],
+    submitLabel: 'Create',
+  }
+
+  // Form config for creating connections
+  const connectionFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'source_network_id',
+        label: 'Source Network',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select source network' },
+          ...(allNetworks?.networks || []).map((n: any) => ({
+            value: n.id,
+            label: `${n.name} (${n.network_type})`
+          })),
+        ],
+      },
+      {
+        name: 'target_network_id',
+        label: 'Target Network',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select target network' },
+          ...(allNetworks?.networks || []).map((n: any) => ({
+            value: n.id,
+            label: `${n.name} (${n.network_type})`
+          })),
+        ],
+      },
+      {
+        name: 'connection_type',
+        label: 'Connection Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select connection type' },
+          ...CONNECTION_TYPES,
+        ],
+      },
+      {
+        name: 'bandwidth',
+        label: 'Bandwidth',
+        type: 'text',
+        placeholder: '1 Gbps',
+      },
+      {
+        name: 'latency',
+        label: 'Latency (ms)',
+        type: 'number',
+        placeholder: '5',
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'VPC peering between prod and staging',
+      },
+    ],
+    submitLabel: 'Create',
+  }
+
+  const handleCreateNetwork = (data: Record<string, any>) => {
+    if (!data.organization_id) {
+      toast.error('Please select an organization first')
+      return
+    }
+    createNetworkMutation.mutate({
+      ...data,
+      organization_id: parseInt(data.organization_id),
+    })
+  }
+
+  const handleCreateConnection = (data: Record<string, any>) => {
+    createConnectionMutation.mutate({
+      ...data,
+      source_network_id: parseInt(data.source_network_id),
+      target_network_id: parseInt(data.target_network_id),
+      latency: data.latency ? parseInt(data.latency) : undefined,
+    })
+  }
 
   return (
     <div className="p-8">
@@ -332,15 +502,15 @@ export default function Networking() {
         </div>
       )}
 
-      {showCreateModal && (
-        <CreateNetworkModal
-          organizationId={selectedOrg}
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false)
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Add Network Resource"
+        config={networkFormConfig}
+        initialValues={{ organization_id: selectedOrg?.toString() || '' }}
+        onSubmit={handleCreateNetwork}
+        isLoading={createNetworkMutation.isPending}
+      />
 
       {showTopologyModal && selectedOrg && (
         <TopologyModal
@@ -349,124 +519,14 @@ export default function Networking() {
         />
       )}
 
-      {showCreateConnectionModal && (
-        <CreateConnectionModal
-          onClose={() => setShowCreateConnectionModal(false)}
-          onSuccess={() => {
-            setShowCreateConnectionModal(false)
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-function CreateNetworkModal({ organizationId: initialOrgId, onClose, onSuccess }: any) {
-  const [name, setName] = useState('')
-  const [networkType, setNetworkType] = useState('')
-  const [description, setDescription] = useState('')
-  const [region, setRegion] = useState('')
-  const [location, setLocation] = useState('')
-  const [organizationId, setOrganizationId] = useState(initialOrgId || '')
-
-  const { data: orgs } = useQuery({
-    queryKey: ['organizations'],
-    queryFn: () => api.getOrganizations(),
-  })
-
-  const queryClient = useQueryClient()
-
-  const createMutation = useMutation({
-    mutationFn: (data: any) => api.createNetwork(data),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['networks'],
-        refetchType: 'all'
-      })
-      toast.success('Network created')
-      onSuccess()
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to create network')
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!organizationId) {
-      toast.error('Please select an organization first')
-      return
-    }
-    createMutation.mutate({
-      name,
-      network_type: networkType,
-      organization_id: parseInt(organizationId),
-      description,
-      region,
-      location,
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Add Network Resource</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Select
-              label="Organization"
-              required
-              value={organizationId}
-              onChange={(e) => setOrganizationId(e.target.value)}
-              options={[
-                { value: '', label: 'Select organization' },
-                ...(orgs?.items || []).map((o: any) => ({ value: o.id, label: o.name })),
-              ]}
-            />
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Production VPC"
-            />
-            <Select
-              label="Network Type"
-              required
-              value={networkType}
-              onChange={(e) => setNetworkType(e.target.value)}
-              options={[
-                { value: '', label: 'Select network type' },
-                ...NETWORK_TYPES,
-              ]}
-            />
-            <Input
-              label="Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Main production network"
-            />
-            <Input
-              label="Region"
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-              placeholder="us-east-1"
-            />
-            <Input
-              label="Location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="AWS Virginia"
-            />
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-              <Button type="submit" isLoading={createMutation.isPending}>Create</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <ModalFormBuilder
+        isOpen={showCreateConnectionModal}
+        onClose={() => setShowCreateConnectionModal(false)}
+        title="Create Network Connection"
+        config={connectionFormConfig}
+        onSubmit={handleCreateConnection}
+        isLoading={createConnectionMutation.isPending}
+      />
     </div>
   )
 }
@@ -483,122 +543,6 @@ function TopologyModal({ organizationId, onClose }: any) {
         </CardHeader>
         <CardContent className="flex-1 p-0">
           <NetworkTopologyGraph organizationId={organizationId} />
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function CreateConnectionModal({ onClose, onSuccess }: any) {
-  const [sourceNetworkId, setSourceNetworkId] = useState('')
-  const [targetNetworkId, setTargetNetworkId] = useState('')
-  const [connectionType, setConnectionType] = useState('')
-  const [bandwidth, setBandwidth] = useState('')
-  const [latency, setLatency] = useState('')
-  const [description, setDescription] = useState('')
-
-  const { data: allNetworks } = useQuery({
-    queryKey: ['allNetworks'],
-    queryFn: () => api.listNetworks({}),
-  })
-
-  const queryClient = useQueryClient()
-
-  const createMutation = useMutation({
-    mutationFn: (data: any) => api.createTopologyConnection(data),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['networkConnections'],
-        refetchType: 'all'
-      })
-      toast.success('Connection created')
-      onSuccess()
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to create connection')
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    createMutation.mutate({
-      source_network_id: parseInt(sourceNetworkId),
-      target_network_id: parseInt(targetNetworkId),
-      connection_type: connectionType,
-      bandwidth: bandwidth || undefined,
-      latency: latency ? parseInt(latency) : undefined,
-      description: description || undefined,
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Create Network Connection</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Select
-              label="Source Network"
-              required
-              value={sourceNetworkId}
-              onChange={(e) => setSourceNetworkId(e.target.value)}
-              options={[
-                { value: '', label: 'Select source network' },
-                ...(allNetworks?.networks || []).map((n: any) => ({
-                  value: n.id,
-                  label: `${n.name} (${n.network_type})`
-                })),
-              ]}
-            />
-            <Select
-              label="Target Network"
-              required
-              value={targetNetworkId}
-              onChange={(e) => setTargetNetworkId(e.target.value)}
-              options={[
-                { value: '', label: 'Select target network' },
-                ...(allNetworks?.networks || []).map((n: any) => ({
-                  value: n.id,
-                  label: `${n.name} (${n.network_type})`
-                })),
-              ]}
-            />
-            <Select
-              label="Connection Type"
-              required
-              value={connectionType}
-              onChange={(e) => setConnectionType(e.target.value)}
-              options={[
-                { value: '', label: 'Select connection type' },
-                ...CONNECTION_TYPES,
-              ]}
-            />
-            <Input
-              label="Bandwidth"
-              value={bandwidth}
-              onChange={(e) => setBandwidth(e.target.value)}
-              placeholder="1 Gbps"
-            />
-            <Input
-              label="Latency (ms)"
-              type="number"
-              value={latency}
-              onChange={(e) => setLatency(e.target.value)}
-              placeholder="5"
-            />
-            <Input
-              label="Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="VPC peering between prod and staging"
-            />
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-              <Button type="submit" isLoading={createMutation.isPending}>Create</Button>
-            </div>
-          </form>
         </CardContent>
       </Card>
     </div>

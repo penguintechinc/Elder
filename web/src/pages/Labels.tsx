@@ -4,8 +4,36 @@ import { Plus, Search, Edit, Trash2, Tag } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
-import Card, { CardHeader, CardContent } from '@/components/Card'
+import Card, { CardContent } from '@/components/Card'
 import Input from '@/components/Input'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import { FormConfig } from '@/types/form'
+
+const labelFormConfig: FormConfig = {
+  fields: [
+    {
+      name: 'name',
+      label: 'Name',
+      type: 'text',
+      required: true,
+      placeholder: 'Enter label name',
+    },
+    {
+      name: 'description',
+      label: 'Description',
+      type: 'textarea',
+      placeholder: 'Enter description (optional)',
+      rows: 3,
+    },
+    {
+      name: 'color',
+      label: 'Color',
+      type: 'color',
+      defaultValue: '#3b82f6',
+    },
+  ],
+  submitLabel: 'Create',
+}
 
 export default function Labels() {
   const [search, setSearch] = useState('')
@@ -16,6 +44,38 @@ export default function Labels() {
   const { data, isLoading } = useQuery({
     queryKey: ['labels', { search }],
     queryFn: () => api.getLabels({ search }),
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (data: { name: string; description?: string; color?: string }) =>
+      api.createLabel(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['labels'],
+        refetchType: 'all'
+      })
+      toast.success('Label created successfully')
+      setShowCreateModal(false)
+    },
+    onError: () => {
+      toast.error('Failed to create label')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { name: string; description?: string; color?: string } }) =>
+      api.updateLabel(id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['labels'],
+        refetchType: 'all'
+      })
+      toast.success('Label updated successfully')
+      setEditingLabel(null)
+    },
+    onError: () => {
+      toast.error('Failed to update label')
+    },
   })
 
   const deleteMutation = useMutation({
@@ -38,11 +98,29 @@ export default function Labels() {
     }
   }
 
+  const handleCreate = (formData: Record<string, any>) => {
+    createMutation.mutate(formData as { name: string; description?: string; color?: string })
+  }
+
+  const handleUpdate = (formData: Record<string, any>) => {
+    if (editingLabel) {
+      updateMutation.mutate({
+        id: editingLabel.id,
+        data: formData as { name: string; description?: string; color?: string }
+      })
+    }
+  }
+
   const filteredLabels = data?.items?.filter((label: any) => {
     if (!search) return true
     return label.name.toLowerCase().includes(search.toLowerCase()) ||
            label.description?.toLowerCase().includes(search.toLowerCase())
   })
+
+  const editFormConfig: FormConfig = {
+    ...labelFormConfig,
+    submitLabel: 'Update',
+  }
 
   return (
     <div className="p-8">
@@ -145,165 +223,29 @@ export default function Labels() {
       )}
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <LabelModal
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['labels'],
-              refetchType: 'all'
-            })
-            setShowCreateModal(false)
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create Label"
+        config={labelFormConfig}
+        onSubmit={handleCreate}
+        isLoading={createMutation.isPending}
+      />
 
       {/* Edit Modal */}
-      {editingLabel && (
-        <LabelModal
-          label={editingLabel}
-          onClose={() => setEditingLabel(null)}
-          onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['labels'],
-              refetchType: 'all'
-            })
-            setEditingLabel(null)
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-interface LabelModalProps {
-  label?: any
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function LabelModal({ label, onClose, onSuccess }: LabelModalProps) {
-  const [name, setName] = useState(label?.name || '')
-  const [description, setDescription] = useState(label?.description || '')
-  const [color, setColor] = useState(label?.color || '#3b82f6')
-
-  const mutation = useMutation({
-    mutationFn: (data: { name: string; description?: string; color?: string }) =>
-      label
-        ? api.updateLabel(label.id, data)
-        : api.createLabel(data),
-    onSuccess: () => {
-      toast.success(label ? 'Label updated successfully' : 'Label created successfully')
-      onSuccess()
-    },
-    onError: () => {
-      toast.error(label ? 'Failed to update label' : 'Failed to create label')
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    mutation.mutate({
-      name,
-      description: description || undefined,
-      color: color || undefined,
-    })
-  }
-
-  const colorPresets = [
-    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
-    '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
-    '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
-    '#ec4899', '#f43f5e', '#64748b', '#6b7280', '#374151'
-  ]
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">
-            {label ? 'Edit Label' : 'Create Label'}
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter label name"
-            />
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter description (optional)"
-                rows={3}
-                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-3">
-                Color
-              </label>
-              <div className="flex items-center gap-3 mb-3">
-                <input
-                  type="color"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  className="w-12 h-12 rounded border-2 border-slate-700 cursor-pointer"
-                />
-                <div className="flex-1">
-                  <Input
-                    type="text"
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    placeholder="#3b82f6"
-                    className="font-mono"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-10 gap-2">
-                {colorPresets.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setColor(preset)}
-                    className={`w-8 h-8 rounded border-2 transition-all ${
-                      color === preset ? 'border-white scale-110' : 'border-slate-700'
-                    }`}
-                    style={{ backgroundColor: preset }}
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="bg-slate-800 p-3 rounded-lg">
-              <p className="text-sm text-slate-300 mb-2">Preview:</p>
-              <span
-                className="inline-block px-3 py-1.5 rounded text-sm font-medium"
-                style={{
-                  backgroundColor: `${color}20`,
-                  color: color
-                }}
-              >
-                {name || 'Label Name'}
-              </span>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={mutation.isPending}>
-                {label ? 'Update' : 'Create'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <ModalFormBuilder
+        isOpen={!!editingLabel}
+        onClose={() => setEditingLabel(null)}
+        title="Edit Label"
+        config={editFormConfig}
+        initialValues={editingLabel ? {
+          name: editingLabel.name,
+          description: editingLabel.description || '',
+          color: editingLabel.color || '#3b82f6',
+        } : undefined}
+        onSubmit={handleUpdate}
+        isLoading={updateMutation.isPending}
+      />
     </div>
   )
 }

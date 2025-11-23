@@ -7,6 +7,8 @@ import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import { FormConfig } from '@/types/form'
 
 const SERVICE_STATUSES = [
   { value: 'active', label: 'Active' },
@@ -66,6 +68,36 @@ export default function Services() {
     }),
   })
 
+  const createMutation = useMutation({
+    mutationFn: (data: any) => api.createService(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['services'],
+        refetchType: 'all'
+      })
+      toast.success('Service created successfully')
+      setShowCreateModal(false)
+    },
+    onError: () => {
+      toast.error('Failed to create service')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: any) => api.updateService(editingService.id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['services'],
+        refetchType: 'all'
+      })
+      toast.success('Service updated successfully')
+      setEditingService(null)
+    },
+    onError: () => {
+      toast.error('Failed to update service')
+    },
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteService(id),
     onSuccess: async () => {
@@ -118,6 +150,118 @@ export default function Services() {
         return 'bg-purple-500/20 text-purple-400'
     }
   }
+
+  // Build organization options for form
+  const organizationOptions = organizations?.items?.map((org: any) => ({
+    value: org.id.toString(),
+    label: org.name,
+  })) || []
+
+  // Form configuration for create/edit
+  const getServiceFormConfig = (): FormConfig => ({
+    fields: [
+      {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+        placeholder: 'api-gateway',
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'Service description (optional)',
+        rows: 2,
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: organizationOptions.length ? 'Select organization' : 'No organizations found' },
+          ...organizationOptions,
+        ],
+      },
+      {
+        name: 'language',
+        label: 'Language',
+        type: 'select',
+        options: LANGUAGES,
+        defaultValue: 'python',
+      },
+      {
+        name: 'deployment_method',
+        label: 'Deployment Method',
+        type: 'select',
+        options: DEPLOYMENT_METHODS,
+        defaultValue: 'kubernetes',
+      },
+      {
+        name: 'status',
+        label: 'Status',
+        type: 'select',
+        options: SERVICE_STATUSES,
+        defaultValue: 'active',
+      },
+      {
+        name: 'port',
+        label: 'Port',
+        type: 'number',
+        placeholder: '8080',
+      },
+      {
+        name: 'is_public',
+        label: 'Public service (accessible from internet)',
+        type: 'checkbox',
+        defaultValue: false,
+      },
+      {
+        name: 'domains',
+        label: 'Domains (one per line)',
+        type: 'multiline',
+        placeholder: 'api.example.com\napi-v2.example.com',
+        rows: 2,
+      },
+      {
+        name: 'paths',
+        label: 'Paths (one per line)',
+        type: 'multiline',
+        placeholder: '/api/v1\n/api/v2',
+        rows: 3,
+      },
+    ],
+    submitLabel: editingService ? 'Update' : 'Create',
+  })
+
+  const handleCreateSubmit = (data: Record<string, any>) => {
+    createMutation.mutate({
+      ...data,
+      organization_id: parseInt(data.organization_id),
+    })
+  }
+
+  const handleEditSubmit = (data: Record<string, any>) => {
+    updateMutation.mutate({
+      ...data,
+      organization_id: parseInt(data.organization_id),
+    })
+  }
+
+  // Get initial values for edit form
+  const getEditInitialValues = (service: any) => ({
+    name: service.name || '',
+    description: service.description || '',
+    organization_id: service.organization_id?.toString() || '',
+    language: service.language || 'python',
+    deployment_method: service.deployment_method || 'kubernetes',
+    status: service.status || 'active',
+    port: service.port?.toString() || '',
+    is_public: service.is_public || false,
+    domains: service.domains?.join('\n') || '',
+    paths: service.paths?.join('\n') || '',
+  })
 
   return (
     <div className="p-8">
@@ -302,33 +446,25 @@ export default function Services() {
       )}
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <ServiceModal
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['services'],
-              refetchType: 'all'
-            })
-            setShowCreateModal(false)
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create Service"
+        config={getServiceFormConfig()}
+        onSubmit={handleCreateSubmit}
+        isLoading={createMutation.isPending}
+      />
 
       {/* Edit Modal */}
-      {editingService && (
-        <ServiceModal
-          service={editingService}
-          onClose={() => setEditingService(null)}
-          onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['services'],
-              refetchType: 'all'
-            })
-            setEditingService(null)
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={!!editingService}
+        onClose={() => setEditingService(null)}
+        title="Edit Service"
+        config={getServiceFormConfig()}
+        initialValues={editingService ? getEditInitialValues(editingService) : undefined}
+        onSubmit={handleEditSubmit}
+        isLoading={updateMutation.isPending}
+      />
 
       {/* View Details Modal */}
       {viewingService && (
@@ -341,186 +477,6 @@ export default function Services() {
           }}
         />
       )}
-    </div>
-  )
-}
-
-interface ServiceModalProps {
-  service?: any
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function ServiceModal({ service, onClose, onSuccess }: ServiceModalProps) {
-  const [name, setName] = useState(service?.name || '')
-  const [description, setDescription] = useState(service?.description || '')
-  const [language, setLanguage] = useState(service?.language || 'python')
-  const [deploymentMethod, setDeploymentMethod] = useState(service?.deployment_method || 'kubernetes')
-  const [status, setStatus] = useState(service?.status || 'active')
-  const [isPublic, setIsPublic] = useState(service?.is_public || false)
-  const [port, setPort] = useState(service?.port?.toString() || '')
-  const [domains, setDomains] = useState(service?.domains?.join(', ') || '')
-  const [paths, setPaths] = useState(service?.paths?.join(', ') || '')
-  const [organizationId, setOrganizationId] = useState(service?.organization_id?.toString() || '')
-
-  const { data: organizations, isLoading: orgsLoading } = useQuery({
-    queryKey: ['organizations-all'],
-    queryFn: () => api.getOrganizations({ per_page: 1000 }),
-  })
-
-  const mutation = useMutation({
-    mutationFn: (data: any) =>
-      service
-        ? api.updateService(service.id, data)
-        : api.createService(data),
-    onSuccess: () => {
-      toast.success(service ? 'Service updated successfully' : 'Service created successfully')
-      onSuccess()
-    },
-    onError: () => {
-      toast.error(service ? 'Failed to update service' : 'Failed to create service')
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    mutation.mutate({
-      name,
-      description: description || undefined,
-      language,
-      deployment_method: deploymentMethod,
-      status,
-      is_public: isPublic,
-      port: port ? parseInt(port) : undefined,
-      domains: domains ? domains.split(',').map(d => d.trim()).filter(Boolean) : [],
-      paths: paths ? paths.split(',').map(p => p.trim()).filter(Boolean) : [],
-      organization_id: parseInt(organizationId),
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">
-            {service ? 'Edit Service' : 'Create Service'}
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="api-gateway"
-            />
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Service description (optional)"
-                rows={2}
-                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <Select
-              label="Organization"
-              required
-              value={organizationId}
-              onChange={(e) => setOrganizationId(e.target.value)}
-            >
-              <option value="">
-                {orgsLoading ? 'Loading...' : organizations?.items?.length ? 'Select organization' : 'No organizations found'}
-              </option>
-              {organizations?.items?.map((org: any) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </Select>
-            <div className="grid grid-cols-2 gap-4">
-              <Select
-                label="Language"
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-              >
-                {LANGUAGES.map((lang) => (
-                  <option key={lang.value} value={lang.value}>
-                    {lang.label}
-                  </option>
-                ))}
-              </Select>
-              <Select
-                label="Deployment Method"
-                value={deploymentMethod}
-                onChange={(e) => setDeploymentMethod(e.target.value)}
-              >
-                {DEPLOYMENT_METHODS.map((method) => (
-                  <option key={method.value} value={method.value}>
-                    {method.label}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Select
-                label="Status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                {SERVICE_STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </Select>
-              <Input
-                label="Port"
-                type="number"
-                value={port}
-                onChange={(e) => setPort(e.target.value)}
-                placeholder="8080"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="is_public"
-                checked={isPublic}
-                onChange={(e) => setIsPublic(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-primary-600 focus:ring-primary-500"
-              />
-              <label htmlFor="is_public" className="text-sm text-slate-300">
-                Public service (accessible from internet)
-              </label>
-            </div>
-            <Input
-              label="Domains (comma-separated)"
-              value={domains}
-              onChange={(e) => setDomains(e.target.value)}
-              placeholder="api.example.com, api-v2.example.com"
-            />
-            <Input
-              label="Paths (comma-separated)"
-              value={paths}
-              onChange={(e) => setPaths(e.target.value)}
-              placeholder="/api/v1, /api/v2"
-            />
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={mutation.isPending}>
-                {service ? 'Update' : 'Create'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
     </div>
   )
 }

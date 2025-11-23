@@ -5,10 +5,11 @@ import { Plus, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
-import Card, { CardHeader, CardContent } from '@/components/Card'
+import Card, { CardContent } from '@/components/Card'
 import Input from '@/components/Input'
-import Select from '@/components/Select'
 import VillageIdBadge from '@/components/VillageIdBadge'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import type { FormConfig } from '@/types/form'
 
 export default function Entities() {
   const [search, setSearch] = useState('')
@@ -132,12 +133,6 @@ export default function Entities() {
 }
 
 function CreateEntityModal({ initialOrganizationId, onClose, onSuccess }: any) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [entityCategory, setEntityCategory] = useState('')
-  const [entitySubType, setEntitySubType] = useState('')
-  const [orgId, setOrgId] = useState(initialOrganizationId || '')
-
   // Fetch entity types from API
   const { data: entityTypesData } = useQuery({
     queryKey: ['entityTypes'],
@@ -155,13 +150,6 @@ function CreateEntityModal({ initialOrganizationId, onClose, onSuccess }: any) {
     label: et.type.charAt(0).toUpperCase() + et.type.slice(1).replace('_', ' ')
   })) || []
 
-  // Get sub-type options for selected category
-  const selectedCategoryData = entityTypesData?.entity_types?.find((et: any) => et.type === entityCategory)
-  const subTypeOptions = selectedCategoryData?.subtypes?.map((subtype: string) => ({
-    value: subtype,
-    label: subtype.replace('_', ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-  })) || []
-
   const createMutation = useMutation({
     mutationFn: (data: any) => api.createEntity(data),
     onSuccess: () => {
@@ -173,90 +161,91 @@ function CreateEntityModal({ initialOrganizationId, onClose, onSuccess }: any) {
     },
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const formConfig: FormConfig = {
+    fields: [
+      {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+      },
+      {
+        name: 'entity_type',
+        label: 'Category',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select category' },
+          ...categoryOptions
+        ],
+      },
+      {
+        name: 'entity_sub_type',
+        label: 'Sub-Type',
+        type: 'select',
+        // Options are dynamically computed based on selected category
+        // Since FormBuilder doesn't support dynamic options, we include all possible options
+        // and use showWhen for visibility
+        options: [
+          { value: '', label: 'None' },
+          // Flatten all subtypes from all categories
+          ...(entityTypesData?.entity_types?.flatMap((et: any) =>
+            (et.subtypes || []).map((subtype: string) => ({
+              value: subtype,
+              label: subtype.replace('_', ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+            }))
+          ) || [])
+        ],
+        showWhen: (values) => {
+          const category = values.entity_type
+          const categoryData = entityTypesData?.entity_types?.find((et: any) => et.type === category)
+          return categoryData?.subtypes?.length > 0
+        },
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select organization' },
+          ...(orgs?.items || []).map((o: any) => ({
+            value: o.id,
+            label: o.name,
+          })),
+        ],
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        rows: 3,
+      },
+    ],
+    submitLabel: 'Create',
+  }
+
+  const handleSubmit = (data: Record<string, any>) => {
     createMutation.mutate({
-      name,
-      description: description || undefined,
-      entity_type: entityCategory,
-      entity_sub_type: entitySubType || undefined,
-      organization_id: parseInt(orgId),
+      name: data.name,
+      description: data.description || undefined,
+      entity_type: data.entity_type,
+      entity_sub_type: data.entity_sub_type || undefined,
+      organization_id: parseInt(data.organization_id),
     })
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Create Entity</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <Select
-              label="Category"
-              required
-              value={entityCategory}
-              onChange={(e) => {
-                setEntityCategory(e.target.value)
-                setEntitySubType('') // Reset sub-type when category changes
-              }}
-              options={[
-                { value: '', label: 'Select category' },
-                ...categoryOptions
-              ]}
-            />
-            {entityCategory && subTypeOptions.length > 0 && (
-              <Select
-                label="Sub-Type"
-                value={entitySubType}
-                onChange={(e) => setEntitySubType(e.target.value)}
-                options={[
-                  { value: '', label: 'None' },
-                  ...subTypeOptions
-                ]}
-              />
-            )}
-            <Select
-              label="Organization"
-              required
-              value={orgId}
-              onChange={(e) => setOrgId(e.target.value)}
-              options={[
-                { value: '', label: 'Select organization' },
-                ...(orgs?.items || []).map((o: any) => ({
-                  value: o.id,
-                  label: o.name,
-                })),
-              ]}
-            />
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500"
-              />
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={createMutation.isPending}>
-                Create
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <ModalFormBuilder
+      isOpen={true}
+      onClose={onClose}
+      title="Create Entity"
+      config={formConfig}
+      initialValues={{
+        organization_id: initialOrganizationId || '',
+      }}
+      onSubmit={handleSubmit}
+      isLoading={createMutation.isPending}
+    />
   )
 }

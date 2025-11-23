@@ -5,8 +5,8 @@ import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
-import Input from '@/components/Input'
-import Select from '@/components/Select'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import { FormConfig } from '@/types/form'
 
 // Authenticated integration discovery (requires credentials)
 const INTEGRATION_DISCOVERY_TYPES = [
@@ -43,6 +43,11 @@ export default function Discovery() {
     enabled: !!selectedJob,
   })
 
+  const { data: orgs } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: () => api.getOrganizations(),
+  })
+
   const runJobMutation = useMutation({
     mutationFn: (id: number) => api.runDiscoveryJob(id),
     onSuccess: async () => {
@@ -65,6 +70,22 @@ export default function Discovery() {
       if (selectedJob) {
         setSelectedJob(null)
       }
+    },
+  })
+
+  const createJobMutation = useMutation({
+    mutationFn: (data: any) => api.createDiscoveryJob(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['discoveryJobs'],
+        refetchType: 'all'
+      })
+      toast.success('Discovery job created')
+      setShowIntegrationModal(false)
+      setShowScanModal(false)
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to create job')
     },
   })
 
@@ -91,6 +112,135 @@ export default function Discovery() {
         return 'bg-yellow-500/20 text-yellow-400'
       default:
         return 'bg-slate-500/20 text-slate-400'
+    }
+  }
+
+  // Form configs
+  const integrationFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+        placeholder: 'AWS Production Discovery',
+      },
+      {
+        name: 'provider_type',
+        label: 'Integration Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select integration type' },
+          ...INTEGRATION_DISCOVERY_TYPES,
+        ],
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select organization' },
+          ...(orgs?.items || []).map((o: any) => ({ value: o.id, label: o.name })),
+        ],
+      },
+      {
+        name: 'schedule',
+        label: 'Schedule (Cron, optional)',
+        type: 'text',
+        placeholder: '0 2 * * *',
+      },
+      {
+        name: 'config',
+        label: 'Configuration (JSON)',
+        type: 'textarea',
+        rows: 8,
+        placeholder: '{"region": "us-east-1", "services": ["ec2", "rds", "s3"]}',
+        defaultValue: '{}',
+      },
+    ],
+    submitLabel: 'Create',
+  }
+
+  const scanFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Local Network Scan',
+      },
+      {
+        name: 'provider_type',
+        label: 'Scan Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select scan type' },
+          ...SCAN_TYPES,
+        ],
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select organization' },
+          ...(orgs?.items || []).map((o: any) => ({ value: o.id, label: o.name })),
+        ],
+      },
+      {
+        name: 'schedule',
+        label: 'Schedule (Cron, optional)',
+        type: 'text',
+        placeholder: '0 2 * * *',
+      },
+      {
+        name: 'config',
+        label: 'Configuration (JSON)',
+        type: 'textarea',
+        rows: 6,
+        placeholder: '{"targets": ["192.168.1.0/24"]}',
+        defaultValue: '{}',
+      },
+    ],
+    submitLabel: 'Create',
+  }
+
+  const handleIntegrationSubmit = (data: Record<string, any>) => {
+    try {
+      const configObj = JSON.parse(data.config || '{}')
+      const submitData = {
+        name: data.name,
+        provider_type: data.provider_type,
+        organization_id: parseInt(data.organization_id),
+        config: configObj,
+        schedule: data.schedule || undefined,
+        enabled: true,
+      }
+      createJobMutation.mutate(submitData)
+    } catch (err) {
+      toast.error('Invalid JSON configuration')
+    }
+  }
+
+  const handleScanSubmit = (data: Record<string, any>) => {
+    try {
+      const configObj = JSON.parse(data.config || '{}')
+      const submitData = {
+        name: data.name,
+        provider_type: data.provider_type,
+        organization_id: parseInt(data.organization_id),
+        config: configObj,
+        schedule: data.schedule || '0',
+        enabled: true,
+      }
+      createJobMutation.mutate(submitData)
+    } catch (err) {
+      toast.error('Invalid JSON configuration')
     }
   }
 
@@ -243,350 +393,23 @@ export default function Discovery() {
         </div>
       </div>
 
-      {showIntegrationModal && (
-        <IntegrationDiscoveryModal
-          onClose={() => setShowIntegrationModal(false)}
-          onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['discoveryJobs'],
-              refetchType: 'all'
-            })
-            setShowIntegrationModal(false)
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={showIntegrationModal}
+        onClose={() => setShowIntegrationModal(false)}
+        title="Create Integration Discovery"
+        config={integrationFormConfig}
+        onSubmit={handleIntegrationSubmit}
+        isLoading={createJobMutation.isPending}
+      />
 
-      {showScanModal && (
-        <ScanModal
-          onClose={() => setShowScanModal(false)}
-          onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['discoveryJobs'],
-              refetchType: 'all'
-            })
-            setShowScanModal(false)
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-function IntegrationDiscoveryModal({ onClose, onSuccess }: any) {
-  const [name, setName] = useState('')
-  const [discoveryType, setDiscoveryType] = useState('')
-  const [schedule, setSchedule] = useState('')
-  const [config, setConfig] = useState('{}')
-  const [orgId, setOrgId] = useState('')
-  // v2.0.0: Credential integration
-  const [credentialType, setCredentialType] = useState('static')
-  const [credentialId, setCredentialId] = useState('')
-
-  const { data: orgs } = useQuery({
-    queryKey: ['organizations'],
-    queryFn: () => api.getOrganizations(),
-  })
-
-  const { data: secrets } = useQuery({
-    queryKey: ['secrets', orgId],
-    queryFn: () => api.getSecrets({ organization_id: parseInt(orgId) }),
-    enabled: credentialType === 'secret' && !!orgId,
-  })
-
-  const { data: keys } = useQuery({
-    queryKey: ['keys', orgId],
-    queryFn: () => api.getKeys({ organization_id: parseInt(orgId) }),
-    enabled: credentialType === 'key' && !!orgId,
-  })
-
-  const { data: builtinSecrets } = useQuery({
-    queryKey: ['builtinSecrets', orgId],
-    queryFn: () => api.listBuiltinSecrets({ organization_id: parseInt(orgId) }),
-    enabled: credentialType === 'builtin_secret' && !!orgId,
-  })
-
-  const createMutation = useMutation({
-    mutationFn: (data: any) => api.createDiscoveryJob(data),
-    onSuccess: () => {
-      toast.success('Discovery job created')
-      onSuccess()
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create job')
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const configObj = JSON.parse(config)
-      const data: any = {
-        name,
-        provider_type: discoveryType,
-        organization_id: parseInt(orgId),
-        config: configObj,
-        schedule: schedule || undefined,
-        enabled: true,
-      }
-
-      // v2.0.0: Add credential information
-      if (credentialType !== 'static') {
-        data.credential_type = credentialType
-        data.credential_id = parseInt(credentialId)
-      }
-
-      createMutation.mutate(data)
-    } catch (err) {
-      toast.error('Invalid JSON configuration')
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Create Integration Discovery</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="AWS Production Discovery"
-            />
-            <Select
-              label="Integration Type"
-              required
-              value={discoveryType}
-              onChange={(e) => setDiscoveryType(e.target.value)}
-              options={[
-                { value: '', label: 'Select integration type' },
-                ...INTEGRATION_DISCOVERY_TYPES,
-              ]}
-            />
-            <Select
-              label="Organization"
-              required
-              value={orgId}
-              onChange={(e) => setOrgId(e.target.value)}
-              options={[
-                { value: '', label: 'Select organization' },
-                ...(orgs?.items || []).map((o: any) => ({ value: o.id, label: o.name })),
-              ]}
-            />
-            <Input
-              label="Schedule (Cron, optional)"
-              value={schedule}
-              onChange={(e) => setSchedule(e.target.value)}
-              placeholder="0 2 * * *"
-            />
-
-            {/* v2.0.0: Credential Selection */}
-            <div className="pt-4 border-t border-slate-700">
-              <h3 className="text-sm font-semibold text-white mb-3">Credentials</h3>
-              <Select
-                label="Credential Type"
-                value={credentialType}
-                onChange={(e) => {
-                  setCredentialType(e.target.value)
-                  setCredentialId('')
-                }}
-                options={[
-                  { value: 'static', label: 'Static (in config JSON)' },
-                  { value: 'secret', label: 'Secret Provider' },
-                  { value: 'key', label: 'Key Provider' },
-                  { value: 'builtin_secret', label: 'Built-in Secret' },
-                ]}
-              />
-
-              {credentialType === 'secret' && (
-                <Select
-                  label="Select Secret"
-                  value={credentialId}
-                  onChange={(e) => setCredentialId(e.target.value)}
-                  options={[
-                    { value: '', label: 'Select a secret' },
-                    ...(secrets?.secrets || []).map((s: any) => ({ value: s.id, label: s.name })),
-                  ]}
-                />
-              )}
-
-              {credentialType === 'key' && (
-                <Select
-                  label="Select Key"
-                  value={credentialId}
-                  onChange={(e) => setCredentialId(e.target.value)}
-                  options={[
-                    { value: '', label: 'Select a key' },
-                    ...(keys?.keys || []).map((k: any) => ({ value: k.id, label: k.name })),
-                  ]}
-                />
-              )}
-
-              {credentialType === 'builtin_secret' && (
-                <Select
-                  label="Select Built-in Secret"
-                  value={credentialId}
-                  onChange={(e) => setCredentialId(e.target.value)}
-                  options={[
-                    { value: '', label: 'Select a built-in secret' },
-                    ...(builtinSecrets?.secrets || []).map((s: any) => ({ value: s.id, label: s.name })),
-                  ]}
-                />
-              )}
-
-              {credentialType === 'static' && (
-                <p className="text-sm text-slate-400 mt-2">
-                  Credentials will be stored directly in the configuration JSON below
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Configuration (JSON)
-              </label>
-              <textarea
-                value={config}
-                onChange={(e) => setConfig(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-sm"
-                rows={8}
-                placeholder='{"region": "us-east-1", "services": ["ec2", "rds", "s3"]}'
-              />
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-              <Button type="submit" isLoading={createMutation.isPending}>Create</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-function ScanModal({ onClose, onSuccess }: any) {
-  const [name, setName] = useState('')
-  const [scanType, setScanType] = useState('')
-  const [schedule, setSchedule] = useState('')
-  const [config, setConfig] = useState('{}')
-  const [orgId, setOrgId] = useState('')
-
-  const { data: orgs } = useQuery({
-    queryKey: ['organizations'],
-    queryFn: () => api.getOrganizations(),
-  })
-
-  const createMutation = useMutation({
-    mutationFn: (data: any) => api.createDiscoveryJob(data),
-    onSuccess: () => {
-      toast.success('Scan job created')
-      onSuccess()
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create scan')
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const configObj = JSON.parse(config)
-      const data = {
-        name,
-        provider_type: scanType,
-        organization_id: parseInt(orgId),
-        config: configObj,
-        schedule: schedule || '0',  // Default to 0 (no schedule) if not provided
-        enabled: true,
-      }
-
-      createMutation.mutate(data)
-    } catch (err) {
-      toast.error('Invalid JSON configuration')
-    }
-  }
-
-  // Get default config based on scan type
-  const getDefaultConfig = (type: string) => {
-    switch (type) {
-      case 'network':
-        return '{\n  "targets": ["192.168.1.0/24"],\n  "ports": "1-1024",\n  "scan_type": "tcp_syn",\n  "rate": 1000\n}'
-      case 'http_screenshot':
-        return '{\n  "targets": ["https://example.com"],\n  "timeout": 30000,\n  "viewport_width": 1920,\n  "viewport_height": 1080\n}'
-      case 'banner':
-        return '{\n  "targets": ["192.168.1.1"],\n  "ports": [22, 80, 443, 3306, 5432],\n  "timeout": 5\n}'
-      default:
-        return '{}'
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Create Scan</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Local Network Scan"
-            />
-            <Select
-              label="Scan Type"
-              required
-              value={scanType}
-              onChange={(e) => {
-                setScanType(e.target.value)
-                setConfig(getDefaultConfig(e.target.value))
-              }}
-              options={[
-                { value: '', label: 'Select scan type' },
-                ...SCAN_TYPES,
-              ]}
-            />
-            <Select
-              label="Organization"
-              required
-              value={orgId}
-              onChange={(e) => setOrgId(e.target.value)}
-              options={[
-                { value: '', label: 'Select organization' },
-                ...(orgs?.items || []).map((o: any) => ({ value: o.id, label: o.name })),
-              ]}
-            />
-            <Input
-              label="Schedule (Cron, optional)"
-              value={schedule}
-              onChange={(e) => setSchedule(e.target.value)}
-              placeholder="0 2 * * *"
-            />
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Configuration (JSON)
-              </label>
-              <textarea
-                value={config}
-                onChange={(e) => setConfig(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-sm"
-                rows={6}
-                placeholder='{"targets": ["192.168.1.0/24"]}'
-              />
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-              <Button type="submit" isLoading={createMutation.isPending}>Create</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <ModalFormBuilder
+        isOpen={showScanModal}
+        onClose={() => setShowScanModal(false)}
+        title="Create Scan"
+        config={scanFormConfig}
+        onSubmit={handleScanSubmit}
+        isLoading={createJobMutation.isPending}
+      />
     </div>
   )
 }

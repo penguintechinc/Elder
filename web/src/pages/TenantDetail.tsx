@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Building2, Users, Database, Shield, Edit, Trash2, Copy } from 'lucide-react'
+import { ArrowLeft, Building2, Users, Database, Shield, Edit, Trash2, Copy, Plus } from 'lucide-react'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Card, { CardHeader, CardContent } from '@/components/Card'
+import CreateIdentityModal from '@/components/CreateIdentityModal'
 import type { Tenant, PortalUser } from '@/types'
 
 export default function TenantDetail() {
@@ -14,6 +15,7 @@ export default function TenantDetail() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [editingUser, setEditingUser] = useState<PortalUser | null>(null)
+  const [showAddUser, setShowAddUser] = useState(false)
   const [userFormData, setUserFormData] = useState({
     full_name: '',
     tenant_role: 'reader',
@@ -253,7 +255,16 @@ export default function TenantDetail() {
       {/* Users List */}
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold text-white">Portal Users</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">Portal Users</h2>
+            <Button
+              size="sm"
+              onClick={() => setShowAddUser(true)}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add User
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {usersLoading ? (
@@ -375,6 +386,21 @@ export default function TenantDetail() {
           </div>
         </div>
       )}
+
+      {/* Add User Modal */}
+      <CreateIdentityModal
+        isOpen={showAddUser}
+        onClose={() => setShowAddUser(false)}
+        defaultTenantId={tenantId}
+        defaultIsPortalUser={true}
+        defaultPortalRole="viewer"
+        defaultPermissionScope="tenant"
+        invalidateQueryKeys={[
+          ['tenant-users', tenantId],
+          ['tenant-stats', tenantId],
+          ['identities'],
+        ]}
+      />
     </div>
   )
 }

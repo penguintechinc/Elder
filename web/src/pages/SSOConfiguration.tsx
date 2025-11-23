@@ -1,28 +1,93 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Shield, Key, Plus, Trash2, Edit, RefreshCw, Copy } from 'lucide-react'
+import { Shield, Key, Plus, Trash2, Edit, Copy } from 'lucide-react'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Card, { CardHeader, CardContent } from '@/components/Card'
-import type { IdPConfiguration, SCIMConfiguration } from '@/types'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import type { FormConfig } from '@/types/form'
+import type { IdPConfiguration } from '@/types'
+
+const idpFormConfig: FormConfig = {
+  fields: [
+    {
+      name: 'name',
+      label: 'Name',
+      type: 'text',
+      required: true,
+      placeholder: 'Okta, Azure AD, etc.',
+    },
+    {
+      name: 'idp_type',
+      label: 'Type',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'saml', label: 'SAML 2.0' },
+        { value: 'oidc', label: 'OpenID Connect' },
+      ],
+      defaultValue: 'saml',
+    },
+    {
+      name: 'entity_id',
+      label: 'Entity ID',
+      type: 'text',
+      placeholder: 'https://idp.example.com/...',
+    },
+    {
+      name: 'metadata_url',
+      label: 'Metadata URL',
+      type: 'url',
+      placeholder: 'https://idp.example.com/metadata',
+    },
+    {
+      name: 'sso_url',
+      label: 'SSO URL',
+      type: 'url',
+      placeholder: 'https://idp.example.com/sso',
+    },
+    {
+      name: 'slo_url',
+      label: 'SLO URL',
+      type: 'url',
+      placeholder: 'https://idp.example.com/slo',
+    },
+    {
+      name: 'certificate',
+      label: 'Certificate',
+      type: 'textarea',
+      placeholder: 'Paste certificate here...',
+      rows: 4,
+    },
+    {
+      name: 'default_role',
+      label: 'Default Role',
+      type: 'select',
+      required: true,
+      options: [
+        { value: 'reader', label: 'Reader' },
+        { value: 'editor', label: 'Editor' },
+        { value: 'admin', label: 'Admin' },
+      ],
+      defaultValue: 'reader',
+    },
+    {
+      name: 'jit_provisioning_enabled',
+      label: 'Enable JIT (Just-in-Time) Provisioning',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+  ],
+  submitLabel: 'Save',
+  cancelLabel: 'Cancel',
+}
 
 export default function SSOConfiguration() {
   const [activeTab, setActiveTab] = useState<'idp' | 'scim'>('idp')
   const [showCreateIdP, setShowCreateIdP] = useState(false)
   const [editingIdP, setEditingIdP] = useState<IdPConfiguration | null>(null)
-  const [idpFormData, setIdpFormData] = useState({
-    name: '',
-    idp_type: 'saml',
-    entity_id: '',
-    metadata_url: '',
-    sso_url: '',
-    slo_url: '',
-    certificate: '',
-    jit_provisioning_enabled: true,
-    default_role: 'reader',
-  })
   const queryClient = useQueryClient()
 
   const { data: idpConfigs, isLoading: idpLoading } = useQuery({
@@ -31,12 +96,11 @@ export default function SSOConfiguration() {
   })
 
   const createIdPMutation = useMutation({
-    mutationFn: (data: typeof idpFormData) => api.createIdPConfig(data),
+    mutationFn: (data: Record<string, any>) => api.createIdPConfig(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['idp-configs'] })
       toast.success('IdP configuration created')
       setShowCreateIdP(false)
-      resetIdPForm()
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to create IdP config')
@@ -44,13 +108,12 @@ export default function SSOConfiguration() {
   })
 
   const updateIdPMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<typeof idpFormData> }) =>
+    mutationFn: ({ id, data }: { id: number; data: Record<string, any> }) =>
       api.updateIdPConfig(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['idp-configs'] })
       toast.success('IdP configuration updated')
       setEditingIdP(null)
-      resetIdPForm()
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to update IdP config')
@@ -68,44 +131,20 @@ export default function SSOConfiguration() {
     },
   })
 
-  const resetIdPForm = () => {
-    setIdpFormData({
-      name: '',
-      idp_type: 'saml',
-      entity_id: '',
-      metadata_url: '',
-      sso_url: '',
-      slo_url: '',
-      certificate: '',
-      jit_provisioning_enabled: true,
-      default_role: 'reader',
-    })
-  }
-
   const handleEditIdP = (config: IdPConfiguration) => {
     setEditingIdP(config)
-    setIdpFormData({
-      name: config.name,
-      idp_type: config.idp_type,
-      entity_id: config.entity_id || '',
-      metadata_url: config.metadata_url || '',
-      sso_url: config.sso_url || '',
-      slo_url: config.slo_url || '',
-      certificate: config.certificate || '',
-      jit_provisioning_enabled: config.jit_provisioning_enabled,
-      default_role: config.default_role,
-    })
   }
 
-  const handleCreateIdP = (e: React.FormEvent) => {
-    e.preventDefault()
-    createIdPMutation.mutate(idpFormData)
+  const handleCreateIdP = (data: Record<string, any>) => {
+    createIdPMutation.mutate(data)
   }
 
-  const handleUpdateIdP = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleUpdateIdP = (data: Record<string, any>) => {
     if (editingIdP) {
-      updateIdPMutation.mutate({ id: editingIdP.id, data: idpFormData })
+      updateIdPMutation.mutate({
+        id: editingIdP.id,
+        data,
+      })
     }
   }
 
@@ -119,6 +158,18 @@ export default function SSOConfiguration() {
     navigator.clipboard.writeText(text)
     toast.success('Copied to clipboard')
   }
+
+  const getEditInitialValues = (config: IdPConfiguration) => ({
+    name: config.name,
+    idp_type: config.idp_type,
+    entity_id: config.entity_id || '',
+    metadata_url: config.metadata_url || '',
+    sso_url: config.sso_url || '',
+    slo_url: config.slo_url || '',
+    certificate: config.certificate || '',
+    jit_provisioning_enabled: config.jit_provisioning_enabled,
+    default_role: config.default_role,
+  })
 
   return (
     <div className="p-6">
@@ -248,98 +299,27 @@ export default function SSOConfiguration() {
         </Card>
       )}
 
-      {/* Create/Edit IdP Modal */}
-      {(showCreateIdP || editingIdP) && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 w-full max-w-lg my-8">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              {editingIdP ? 'Edit IdP Configuration' : 'Add IdP Configuration'}
-            </h3>
-            <form onSubmit={editingIdP ? handleUpdateIdP : handleCreateIdP} className="space-y-4">
-              <Input
-                label="Name"
-                required
-                value={idpFormData.name}
-                onChange={(e) => setIdpFormData({ ...idpFormData, name: e.target.value })}
-                placeholder="Okta, Azure AD, etc."
-              />
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Type</label>
-                <select
-                  value={idpFormData.idp_type}
-                  onChange={(e) => setIdpFormData({ ...idpFormData, idp_type: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                >
-                  <option value="saml">SAML 2.0</option>
-                  <option value="oidc">OpenID Connect</option>
-                </select>
-              </div>
-              <Input
-                label="Entity ID"
-                value={idpFormData.entity_id}
-                onChange={(e) => setIdpFormData({ ...idpFormData, entity_id: e.target.value })}
-                placeholder="https://idp.example.com/..."
-              />
-              <Input
-                label="Metadata URL"
-                value={idpFormData.metadata_url}
-                onChange={(e) => setIdpFormData({ ...idpFormData, metadata_url: e.target.value })}
-                placeholder="https://idp.example.com/metadata"
-              />
-              <Input
-                label="SSO URL"
-                value={idpFormData.sso_url}
-                onChange={(e) => setIdpFormData({ ...idpFormData, sso_url: e.target.value })}
-                placeholder="https://idp.example.com/sso"
-              />
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Default Role</label>
-                <select
-                  value={idpFormData.default_role}
-                  onChange={(e) => setIdpFormData({ ...idpFormData, default_role: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                >
-                  <option value="reader">Reader</option>
-                  <option value="editor">Editor</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="jit"
-                  checked={idpFormData.jit_provisioning_enabled}
-                  onChange={(e) => setIdpFormData({ ...idpFormData, jit_provisioning_enabled: e.target.checked })}
-                  className="rounded border-slate-600"
-                />
-                <label htmlFor="jit" className="text-sm text-slate-300">
-                  Enable JIT (Just-in-Time) Provisioning
-                </label>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <Button
-                  type="submit"
-                  className="flex-1"
-                  isLoading={createIdPMutation.isPending || updateIdPMutation.isPending}
-                >
-                  {editingIdP ? 'Save Changes' : 'Create Configuration'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="flex-1"
-                  onClick={() => {
-                    setShowCreateIdP(false)
-                    setEditingIdP(null)
-                    resetIdPForm()
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Create IdP Modal */}
+      <ModalFormBuilder
+        isOpen={showCreateIdP}
+        onClose={() => setShowCreateIdP(false)}
+        title="Add IdP Configuration"
+        config={idpFormConfig}
+        onSubmit={handleCreateIdP}
+        isLoading={createIdPMutation.isPending}
+      />
+
+      {/* Edit IdP Modal */}
+      {editingIdP && (
+        <ModalFormBuilder
+          isOpen={true}
+          onClose={() => setEditingIdP(null)}
+          title="Edit IdP Configuration"
+          config={idpFormConfig}
+          initialValues={getEditInitialValues(editingIdP)}
+          onSubmit={handleUpdateIdP}
+          isLoading={updateIdPMutation.isPending}
+        />
       )}
     </div>
   )

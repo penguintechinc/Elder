@@ -4,9 +4,11 @@ import { Plus, Search, Edit, Trash2, Flag, Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
-import Card, { CardHeader, CardContent } from '@/components/Card'
+import Card, { CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import { FormConfig } from '@/types/form'
 
 const MILESTONE_STATUSES = [
   { value: 'open', label: 'Open' },
@@ -35,6 +37,11 @@ export default function Milestones() {
     queryFn: () => api.getProjects({ per_page: 1000 }),
   })
 
+  const { data: organizations } = useQuery({
+    queryKey: ['organizations-all'],
+    queryFn: () => api.getOrganizations({ per_page: 1000 }),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteMilestone(id),
     onSuccess: async () => {
@@ -49,10 +56,65 @@ export default function Milestones() {
     },
   })
 
+  const createMutation = useMutation({
+    mutationFn: (data: any) => api.createMilestone(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['milestones'],
+        refetchType: 'all'
+      })
+      toast.success('Milestone created successfully')
+      setShowCreateModal(false)
+    },
+    onError: () => {
+      toast.error('Failed to create milestone')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => api.updateMilestone(id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['milestones'],
+        refetchType: 'all'
+      })
+      toast.success('Milestone updated successfully')
+      setEditingMilestone(null)
+    },
+    onError: () => {
+      toast.error('Failed to update milestone')
+    },
+  })
+
   const handleDelete = (id: number, title: string) => {
     if (window.confirm(`Are you sure you want to delete milestone "${title}"?`)) {
       deleteMutation.mutate(id)
     }
+  }
+
+  const handleCreate = (formData: Record<string, any>) => {
+    createMutation.mutate({
+      title: formData.title,
+      description: formData.description || undefined,
+      status: formData.status,
+      organization_id: parseInt(formData.organization_id),
+      project_id: formData.project_id ? parseInt(formData.project_id) : undefined,
+      due_date: formData.due_date || undefined,
+    })
+  }
+
+  const handleUpdate = (formData: Record<string, any>) => {
+    updateMutation.mutate({
+      id: editingMilestone.id,
+      data: {
+        title: formData.title,
+        description: formData.description || undefined,
+        status: formData.status,
+        organization_id: parseInt(formData.organization_id),
+        project_id: formData.project_id ? parseInt(formData.project_id) : undefined,
+        due_date: formData.due_date || undefined,
+      },
+    })
   }
 
   const getStatusColor = (status: string) => {
@@ -71,6 +133,67 @@ export default function Milestones() {
     if (!dueDate) return false
     return new Date(dueDate) < new Date()
   }
+
+  // Build form config with dynamic options
+  const getFormConfig = (): FormConfig => ({
+    fields: [
+      {
+        name: 'title',
+        label: 'Title',
+        type: 'text',
+        required: true,
+        placeholder: 'Beta Release',
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'Milestone description (optional)',
+        rows: 3,
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: organizations?.items?.length ? 'Select organization' : 'No organizations found - create one first' },
+          ...(organizations?.items?.map((org: any) => ({
+            value: org.id.toString(),
+            label: org.name,
+          })) || []),
+        ],
+      },
+      {
+        name: 'project_id',
+        label: 'Project (Optional)',
+        type: 'select',
+        options: [
+          { value: '', label: 'No project' },
+          ...(projects?.items?.map((project: any) => ({
+            value: project.id.toString(),
+            label: project.name,
+          })) || []),
+        ],
+      },
+      {
+        name: 'status',
+        label: 'Status',
+        type: 'select',
+        defaultValue: 'open',
+        options: MILESTONE_STATUSES.map(s => ({
+          value: s.value,
+          label: s.label,
+        })),
+      },
+      {
+        name: 'due_date',
+        label: 'Due Date',
+        type: 'date',
+      },
+    ],
+    submitLabel: editingMilestone ? 'Update' : 'Create',
+  })
 
   return (
     <div className="p-8">
@@ -212,173 +335,32 @@ export default function Milestones() {
       )}
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <MilestoneModal
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['milestones'],
-              refetchType: 'all'
-            })
-            setShowCreateModal(false)
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create Milestone"
+        config={getFormConfig()}
+        onSubmit={handleCreate}
+        isLoading={createMutation.isPending}
+      />
 
       {/* Edit Modal */}
-      {editingMilestone && (
-        <MilestoneModal
-          milestone={editingMilestone}
-          onClose={() => setEditingMilestone(null)}
-          onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['milestones'],
-              refetchType: 'all'
-            })
-            setEditingMilestone(null)
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-interface MilestoneModalProps {
-  milestone?: any
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function MilestoneModal({ milestone, onClose, onSuccess }: MilestoneModalProps) {
-  const [title, setTitle] = useState(milestone?.title || '')
-  const [description, setDescription] = useState(milestone?.description || '')
-  const [status, setStatus] = useState(milestone?.status || 'open')
-  const [organizationId, setOrganizationId] = useState(milestone?.organization_id || '')
-  const [projectId, setProjectId] = useState(milestone?.project_id || '')
-  const [dueDate, setDueDate] = useState(milestone?.due_date || '')
-
-  const { data: organizations, isLoading: orgsLoading } = useQuery({
-    queryKey: ['organizations-all'],
-    queryFn: () => api.getOrganizations({ per_page: 1000 }),
-  })
-
-  const { data: projects, isLoading: projectsLoading } = useQuery({
-    queryKey: ['projects-all'],
-    queryFn: () => api.getProjects({ per_page: 1000 }),
-  })
-
-  const mutation = useMutation({
-    mutationFn: (data: any) =>
-      milestone
-        ? api.updateMilestone(milestone.id, data)
-        : api.createMilestone(data),
-    onSuccess: () => {
-      toast.success(milestone ? 'Milestone updated successfully' : 'Milestone created successfully')
-      onSuccess()
-    },
-    onError: () => {
-      toast.error(milestone ? 'Failed to update milestone' : 'Failed to create milestone')
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    mutation.mutate({
-      title,
-      description: description || undefined,
-      status,
-      organization_id: parseInt(organizationId),
-      project_id: projectId ? parseInt(projectId) : undefined,
-      due_date: dueDate || undefined,
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">
-            {milestone ? 'Edit Milestone' : 'Create Milestone'}
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Title"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Beta Release"
-            />
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Milestone description (optional)"
-                rows={3}
-                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <Select
-              label="Organization"
-              required
-              value={organizationId}
-              onChange={(e) => setOrganizationId(e.target.value)}
-            >
-              <option value="">
-                {orgsLoading ? 'Loading...' : organizations?.items?.length ? 'Select organization' : 'No organizations found - create one first'}
-              </option>
-              {organizations?.items?.map((org: any) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </Select>
-            <Select
-              label="Project (Optional)"
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-            >
-              <option value="">
-                {projectsLoading ? 'Loading...' : 'No project'}
-              </option>
-              {projects?.items?.map((project: any) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </Select>
-            <Select
-              label="Status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              {MILESTONE_STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </Select>
-            <Input
-              label="Due Date"
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={mutation.isPending}>
-                {milestone ? 'Update' : 'Create'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <ModalFormBuilder
+        isOpen={!!editingMilestone}
+        onClose={() => setEditingMilestone(null)}
+        title="Edit Milestone"
+        config={getFormConfig()}
+        initialValues={editingMilestone ? {
+          title: editingMilestone.title || '',
+          description: editingMilestone.description || '',
+          status: editingMilestone.status || 'open',
+          organization_id: editingMilestone.organization_id?.toString() || '',
+          project_id: editingMilestone.project_id?.toString() || '',
+          due_date: editingMilestone.due_date || '',
+        } : undefined}
+        onSubmit={handleUpdate}
+        isLoading={updateMutation.isPending}
+      />
     </div>
   )
 }

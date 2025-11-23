@@ -7,6 +7,8 @@ import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import { FormConfig } from '@/types/form'
 
 const SOFTWARE_TYPES = [
   { value: 'saas', label: 'SaaS' },
@@ -38,6 +40,36 @@ export default function Software() {
       organization_id: organizationFilter ? parseInt(organizationFilter) : undefined,
       software_type: typeFilter || undefined
     }),
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => api.createSoftware(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['software'],
+        refetchType: 'all'
+      })
+      toast.success('Software added successfully')
+      setShowCreateModal(false)
+    },
+    onError: () => {
+      toast.error('Failed to add software')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: any) => api.updateSoftware(editingSoftware.id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['software'],
+        refetchType: 'all'
+      })
+      toast.success('Software updated successfully')
+      setEditingSoftware(null)
+    },
+    onError: () => {
+      toast.error('Failed to update software')
+    },
   })
 
   const deleteMutation = useMutation({
@@ -80,6 +112,110 @@ export default function Software() {
   const formatCurrency = (amount: number | null) => {
     if (amount === null || amount === undefined) return '-'
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+  }
+
+  const organizationOptions = organizations?.items?.map((org: any) => ({
+    value: org.id.toString(),
+    label: org.name,
+  })) || []
+
+  const createFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Microsoft 365',
+      },
+      {
+        name: 'vendor',
+        label: 'Vendor',
+        type: 'text',
+        placeholder: 'Microsoft',
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: organizationOptions,
+        placeholder: organizationOptions.length ? 'Select organization' : 'No organizations found',
+      },
+      {
+        name: 'software_type',
+        label: 'Software Type',
+        type: 'select',
+        options: SOFTWARE_TYPES.map(t => ({ value: t.value, label: t.label })),
+        defaultValue: 'saas',
+      },
+      {
+        name: 'version',
+        label: 'Version',
+        type: 'text',
+        placeholder: '2024.1',
+      },
+      {
+        name: 'seats',
+        label: 'Seats',
+        type: 'number',
+        placeholder: '50',
+      },
+      {
+        name: 'cost_monthly',
+        label: 'Monthly Cost',
+        type: 'number',
+        placeholder: '500.00',
+      },
+      {
+        name: 'renewal_date',
+        label: 'Renewal Date',
+        type: 'date',
+      },
+      {
+        name: 'license_url',
+        label: 'License URL',
+        type: 'url',
+        placeholder: 'https://portal.vendor.com/license',
+      },
+    ],
+  }
+
+  const editFormConfig: FormConfig = {
+    fields: createFormConfig.fields.map(field => ({
+      ...field,
+      defaultValue: field.name === 'organization_id'
+        ? editingSoftware?.organization_id?.toString()
+        : editingSoftware?.[field.name],
+    })),
+  }
+
+  const handleCreateSubmit = (data: Record<string, any>) => {
+    createMutation.mutate({
+      name: data.name?.trim(),
+      vendor: data.vendor?.trim() || undefined,
+      software_type: data.software_type,
+      version: data.version?.trim() || undefined,
+      seats: data.seats ? parseInt(data.seats) : undefined,
+      cost_monthly: data.cost_monthly ? parseFloat(data.cost_monthly) : undefined,
+      renewal_date: data.renewal_date || undefined,
+      license_url: data.license_url?.replace(/\s+/g, '') || undefined,
+      organization_id: parseInt(data.organization_id),
+    })
+  }
+
+  const handleEditSubmit = (data: Record<string, any>) => {
+    updateMutation.mutate({
+      name: data.name?.trim(),
+      vendor: data.vendor?.trim() || undefined,
+      software_type: data.software_type,
+      version: data.version?.trim() || undefined,
+      seats: data.seats ? parseInt(data.seats) : undefined,
+      cost_monthly: data.cost_monthly ? parseFloat(data.cost_monthly) : undefined,
+      renewal_date: data.renewal_date || undefined,
+      license_url: data.license_url?.replace(/\s+/g, '') || undefined,
+      organization_id: parseInt(data.organization_id),
+    })
   }
 
   return (
@@ -233,30 +369,25 @@ export default function Software() {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <SoftwareModal
+        <ModalFormBuilder
+          title="Add Software"
+          config={createFormConfig}
+          onSubmit={handleCreateSubmit}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['software'],
-              refetchType: 'all'
-            })
-            setShowCreateModal(false)
-          }}
+          isLoading={createMutation.isPending}
+          submitLabel="Add"
         />
       )}
 
       {/* Edit Modal */}
       {editingSoftware && (
-        <SoftwareModal
-          software={editingSoftware}
+        <ModalFormBuilder
+          title="Edit Software"
+          config={editFormConfig}
+          onSubmit={handleEditSubmit}
           onClose={() => setEditingSoftware(null)}
-          onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['software'],
-              refetchType: 'all'
-            })
-            setEditingSoftware(null)
-          }}
+          isLoading={updateMutation.isPending}
+          submitLabel="Update"
         />
       )}
 
@@ -271,155 +402,6 @@ export default function Software() {
           }}
         />
       )}
-    </div>
-  )
-}
-
-interface SoftwareModalProps {
-  software?: any
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function SoftwareModal({ software, onClose, onSuccess }: SoftwareModalProps) {
-  const [name, setName] = useState(software?.name || '')
-  const [vendor, setVendor] = useState(software?.vendor || '')
-  const [softwareType, setSoftwareType] = useState(software?.software_type || 'saas')
-  const [version, setVersion] = useState(software?.version || '')
-  const [seats, setSeats] = useState(software?.seats?.toString() || '')
-  const [costMonthly, setCostMonthly] = useState(software?.cost_monthly?.toString() || '')
-  const [renewalDate, setRenewalDate] = useState(software?.renewal_date || '')
-  const [licenseUrl, setLicenseUrl] = useState(software?.license_url || '')
-  const [organizationId, setOrganizationId] = useState(software?.organization_id?.toString() || '')
-
-  const { data: organizations, isLoading: orgsLoading } = useQuery({
-    queryKey: ['organizations-all'],
-    queryFn: () => api.getOrganizations({ per_page: 1000 }),
-  })
-
-  const mutation = useMutation({
-    mutationFn: (data: any) =>
-      software
-        ? api.updateSoftware(software.id, data)
-        : api.createSoftware(data),
-    onSuccess: () => {
-      toast.success(software ? 'Software updated successfully' : 'Software added successfully')
-      onSuccess()
-    },
-    onError: () => {
-      toast.error(software ? 'Failed to update software' : 'Failed to add software')
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    mutation.mutate({
-      name,
-      vendor: vendor || undefined,
-      software_type: softwareType,
-      version: version || undefined,
-      seats: seats ? parseInt(seats) : undefined,
-      cost_monthly: costMonthly ? parseFloat(costMonthly) : undefined,
-      renewal_date: renewalDate || undefined,
-      license_url: licenseUrl || undefined,
-      organization_id: parseInt(organizationId),
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">
-            {software ? 'Edit Software' : 'Add Software'}
-          </h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Microsoft 365"
-            />
-            <Input
-              label="Vendor"
-              value={vendor}
-              onChange={(e) => setVendor(e.target.value)}
-              placeholder="Microsoft"
-            />
-            <Select
-              label="Organization"
-              required
-              value={organizationId}
-              onChange={(e) => setOrganizationId(e.target.value)}
-            >
-              <option value="">
-                {orgsLoading ? 'Loading...' : organizations?.items?.length ? 'Select organization' : 'No organizations found'}
-              </option>
-              {organizations?.items?.map((org: any) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </Select>
-            <Select
-              label="Software Type"
-              value={softwareType}
-              onChange={(e) => setSoftwareType(e.target.value)}
-            >
-              {SOFTWARE_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </Select>
-            <Input
-              label="Version"
-              value={version}
-              onChange={(e) => setVersion(e.target.value)}
-              placeholder="2024.1"
-            />
-            <Input
-              label="Seats"
-              type="number"
-              value={seats}
-              onChange={(e) => setSeats(e.target.value)}
-              placeholder="50"
-            />
-            <Input
-              label="Monthly Cost"
-              type="number"
-              step="0.01"
-              value={costMonthly}
-              onChange={(e) => setCostMonthly(e.target.value)}
-              placeholder="500.00"
-            />
-            <Input
-              label="Renewal Date"
-              type="date"
-              value={renewalDate}
-              onChange={(e) => setRenewalDate(e.target.value)}
-            />
-            <Input
-              label="License URL"
-              type="url"
-              value={licenseUrl}
-              onChange={(e) => setLicenseUrl(e.target.value)}
-              placeholder="https://portal.vendor.com/license"
-            />
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={mutation.isPending}>
-                {software ? 'Update' : 'Add'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
     </div>
   )
 }

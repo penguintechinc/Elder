@@ -6,21 +6,69 @@ import { Plus, Search, Building2, Users, Trash2, Edit, Eye } from 'lucide-react'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
-import Card, { CardHeader, CardContent } from '@/components/Card'
+import Card, { CardContent } from '@/components/Card'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import type { FormConfig } from '@/types/form'
 import type { Tenant } from '@/types'
+
+const tenantFormConfig: FormConfig = {
+  fields: [
+    {
+      name: 'name',
+      label: 'Name',
+      type: 'text',
+      required: true,
+      placeholder: 'Tenant name',
+    },
+    {
+      name: 'slug',
+      label: 'Slug',
+      type: 'slug',
+      required: true,
+      placeholder: 'tenant-slug',
+    },
+    {
+      name: 'domain',
+      label: 'Domain (optional)',
+      type: 'domain',
+      placeholder: 'tenant.example.com',
+    },
+    {
+      name: 'subscription_tier',
+      label: 'Subscription Tier',
+      type: 'select',
+      options: [
+        { value: 'community', label: 'Community' },
+        { value: 'professional', label: 'Professional' },
+        { value: 'enterprise', label: 'Enterprise' },
+      ],
+      defaultValue: 'community',
+    },
+    {
+      name: 'data_retention_days',
+      label: 'Data Retention (days)',
+      type: 'number',
+      defaultValue: 90,
+    },
+    {
+      name: 'storage_quota_gb',
+      label: 'Storage Quota (GB)',
+      type: 'number',
+      defaultValue: 10,
+    },
+  ],
+  submitLabel: 'Create Tenant',
+}
+
+const editFormConfig: FormConfig = {
+  ...tenantFormConfig,
+  submitLabel: 'Save Changes',
+}
 
 export default function Tenants() {
   const [search, setSearch] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingTenant, setEditingTenant] = useState<Tenant | null>(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    domain: '',
-    subscription_tier: 'community',
-    data_retention_days: 90,
-    storage_quota_gb: 10,
-  })
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -30,12 +78,11 @@ export default function Tenants() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: typeof formData) => api.createTenant(data),
+    mutationFn: (data: Record<string, any>) => api.createTenant(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['tenants'] })
       toast.success('Tenant created successfully')
       setShowCreateModal(false)
-      resetForm()
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to create tenant')
@@ -43,13 +90,12 @@ export default function Tenants() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<typeof formData> }) =>
+    mutationFn: ({ id, data }: { id: number; data: Record<string, any> }) =>
       api.updateTenant(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['tenants'] })
       toast.success('Tenant updated successfully')
       setEditingTenant(null)
-      resetForm()
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to update tenant')
@@ -67,39 +113,21 @@ export default function Tenants() {
     },
   })
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      slug: '',
-      domain: '',
-      subscription_tier: 'community',
-      data_retention_days: 90,
-      storage_quota_gb: 10,
-    })
+  const handleCreate = (data: Record<string, any>) => {
+    createMutation.mutate(data)
   }
 
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault()
-    createMutation.mutate(formData)
-  }
-
-  const handleUpdate = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleUpdate = (data: Record<string, any>) => {
     if (editingTenant) {
-      updateMutation.mutate({ id: editingTenant.id, data: formData })
+      updateMutation.mutate({
+        id: editingTenant.id,
+        data,
+      })
     }
   }
 
   const handleEdit = (tenant: Tenant) => {
     setEditingTenant(tenant)
-    setFormData({
-      name: tenant.name,
-      slug: tenant.slug,
-      domain: tenant.domain || '',
-      subscription_tier: tenant.subscription_tier,
-      data_retention_days: tenant.data_retention_days,
-      storage_quota_gb: tenant.storage_quota_gb,
-    })
   }
 
   const handleDelete = (tenant: Tenant) => {
@@ -229,85 +257,33 @@ export default function Tenants() {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
-      {(showCreateModal || editingTenant) && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              {editingTenant ? 'Edit Tenant' : 'Create Tenant'}
-            </h3>
-            <form onSubmit={editingTenant ? handleUpdate : handleCreate} className="space-y-4">
-              <Input
-                label="Name"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Tenant name"
-              />
-              <Input
-                label="Slug"
-                required
-                value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
-                placeholder="tenant-slug"
-              />
-              <Input
-                label="Domain (optional)"
-                value={formData.domain}
-                onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
-                placeholder="tenant.example.com"
-              />
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  Subscription Tier
-                </label>
-                <select
-                  value={formData.subscription_tier}
-                  onChange={(e) => setFormData({ ...formData, subscription_tier: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-primary-500"
-                >
-                  <option value="community">Community</option>
-                  <option value="professional">Professional</option>
-                  <option value="enterprise">Enterprise</option>
-                </select>
-              </div>
-              <Input
-                label="Data Retention (days)"
-                type="number"
-                value={formData.data_retention_days}
-                onChange={(e) => setFormData({ ...formData, data_retention_days: parseInt(e.target.value) })}
-              />
-              <Input
-                label="Storage Quota (GB)"
-                type="number"
-                value={formData.storage_quota_gb}
-                onChange={(e) => setFormData({ ...formData, storage_quota_gb: parseInt(e.target.value) })}
-              />
-              <div className="flex gap-3 pt-4">
-                <Button
-                  type="submit"
-                  className="flex-1"
-                  isLoading={createMutation.isPending || updateMutation.isPending}
-                >
-                  {editingTenant ? 'Save Changes' : 'Create Tenant'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="flex-1"
-                  onClick={() => {
-                    setShowCreateModal(false)
-                    setEditingTenant(null)
-                    resetForm()
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Create Modal */}
+      <ModalFormBuilder
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create Tenant"
+        config={tenantFormConfig}
+        onSubmit={handleCreate}
+        isLoading={createMutation.isPending}
+      />
+
+      {/* Edit Modal */}
+      <ModalFormBuilder
+        isOpen={!!editingTenant}
+        onClose={() => setEditingTenant(null)}
+        title="Edit Tenant"
+        config={editFormConfig}
+        initialValues={editingTenant ? {
+          name: editingTenant.name,
+          slug: editingTenant.slug,
+          domain: editingTenant.domain || '',
+          subscription_tier: editingTenant.subscription_tier,
+          data_retention_days: editingTenant.data_retention_days,
+          storage_quota_gb: editingTenant.storage_quota_gb,
+        } : undefined}
+        onSubmit={handleUpdate}
+        isLoading={updateMutation.isPending}
+      />
     </div>
   )
 }

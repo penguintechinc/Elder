@@ -1,20 +1,15 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { User, Mail, Building2, Save, X } from 'lucide-react'
+import { User, Mail, Building2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
-import Input from '@/components/Input'
-import Select from '@/components/Select'
+import FormBuilder from '@/components/FormBuilder'
+import { FormConfig } from '@/types/form'
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState({
-    email: '',
-    full_name: '',
-    organization_id: null as number | null,
-  })
   const queryClient = useQueryClient()
 
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -28,7 +23,7 @@ export default function Profile() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: (data: Partial<typeof formData>) => api.updateProfile(data),
+    mutationFn: (data: Record<string, any>) => api.updateProfile(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ['profile'],
@@ -42,30 +37,60 @@ export default function Profile() {
     },
   })
 
+  const profileFormConfig: FormConfig = useMemo(() => ({
+    fields: [
+      {
+        name: 'email',
+        label: 'Email',
+        type: 'email',
+        placeholder: 'your.email@example.com',
+      },
+      {
+        name: 'full_name',
+        label: 'Full Name',
+        type: 'text',
+        placeholder: 'John Doe',
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        options: [
+          { value: '', label: 'No Organization' },
+          ...(orgsData?.items?.map((org: any) => ({
+            value: org.id.toString(),
+            label: org.name,
+          })) || []),
+        ],
+      },
+    ],
+    submitLabel: 'Save Changes',
+    cancelLabel: 'Cancel',
+  }), [orgsData])
+
   const handleEdit = () => {
-    if (profile) {
-      setFormData({
-        email: profile.email || '',
-        full_name: profile.full_name || '',
-        organization_id: profile.organization_id,
-      })
-      setIsEditing(true)
-    }
+    setIsEditing(true)
   }
 
   const handleCancel = () => {
     setIsEditing(false)
-    setFormData({
-      email: '',
-      full_name: '',
-      organization_id: null,
+  }
+
+  const handleSubmit = (data: Record<string, any>) => {
+    updateMutation.mutate({
+      ...data,
+      organization_id: data.organization_id ? parseInt(data.organization_id) : null,
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    updateMutation.mutate(formData)
-  }
+  const initialValues = useMemo(() => {
+    if (!profile) return {}
+    return {
+      email: profile.email || '',
+      full_name: profile.full_name || '',
+      organization_id: profile.organization_id?.toString() || '',
+    }
+  }, [profile])
 
   if (profileLoading) {
     return (
@@ -107,7 +132,7 @@ export default function Profile() {
         </CardHeader>
         <CardContent>
           {isEditing ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-6">
               {/* Username (read-only) */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">
@@ -120,86 +145,14 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Email */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="pl-10"
-                    placeholder="your.email@example.com"
-                  />
-                </div>
-              </div>
-
-              {/* Full Name */}
-              <div>
-                <label htmlFor="full_name" className="block text-sm font-medium text-slate-300 mb-2">
-                  Full Name
-                </label>
-                <Input
-                  id="full_name"
-                  type="text"
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  placeholder="John Doe"
-                />
-              </div>
-
-              {/* Organization */}
-              <div>
-                <label htmlFor="organization" className="block text-sm font-medium text-slate-300 mb-2">
-                  Organization
-                </label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none z-10" />
-                  <Select
-                    id="organization"
-                    value={formData.organization_id?.toString() || ''}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      organization_id: e.target.value ? parseInt(e.target.value) : null
-                    })}
-                    className="pl-10"
-                  >
-                    <option value="">No Organization</option>
-                    {orgsData?.items?.map((org: any) => (
-                      <option key={org.id} value={org.id}>
-                        {org.name}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-4">
-                <Button
-                  type="submit"
-                  disabled={updateMutation.isPending}
-                  className="flex items-center gap-2"
-                >
-                  <Save className="w-4 h-4" />
-                  {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancel}
-                  disabled={updateMutation.isPending}
-                  className="flex items-center gap-2"
-                >
-                  <X className="w-4 h-4" />
-                  Cancel
-                </Button>
-              </div>
-            </form>
+              <FormBuilder
+                config={profileFormConfig}
+                initialValues={initialValues}
+                onSubmit={handleSubmit}
+                onCancel={handleCancel}
+                isLoading={updateMutation.isPending}
+              />
+            </div>
           ) : (
             <div className="space-y-6">
               {/* Username */}

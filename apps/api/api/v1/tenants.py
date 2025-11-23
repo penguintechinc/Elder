@@ -64,6 +64,7 @@ def list_tenants():
             "is_active": t.is_active,
             "data_retention_days": t.data_retention_days,
             "storage_quota_gb": t.storage_quota_gb,
+            "village_id": t.village_id,
             "created_at": t.created_at.isoformat() if t.created_at else None,
         }
         for t in tenants
@@ -109,6 +110,7 @@ def get_tenant(tenant_id):
         "data_retention_days": tenant.data_retention_days,
         "storage_quota_gb": tenant.storage_quota_gb,
         "is_active": tenant.is_active,
+        "village_id": tenant.village_id,
         "created_at": tenant.created_at.isoformat() if tenant.created_at else None,
         "updated_at": tenant.updated_at.isoformat() if tenant.updated_at else None,
         "usage": {

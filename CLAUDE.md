@@ -1,5 +1,7 @@
 # Project Template - Claude Code Context
 
+> **IMPORTANT**: This file must not exceed 39,000 characters. Move detailed documentation to `docs/` and link to it.
+
 ## Project Overview
 
 This is a comprehensive project template incorporating best practices and patterns from Penguin Tech Inc projects. It provides a standardized foundation for multi-language projects with enterprise-grade infrastructure and integrated licensing.
@@ -79,331 +81,37 @@ Elder uses specific terminology for organizing tracked items:
 - **Secrets**: Environment variable management
 - **Scanning**: Trivy vulnerability scanning, CodeQL analysis
 
+
 ## PenguinTech License Server Integration
 
 All projects should integrate with the centralized PenguinTech License Server at `https://license.penguintech.io` for feature gating and enterprise functionality.
 
-### Universal JSON Response Format
+**See full documentation:** [docs/development/license-server-integration.md](docs/development/license-server-integration.md)
 
-All API responses follow this standardized structure based on the `.JSONDESIGN` specification:
+Key features:
+- License key format: `PENG-XXXX-XXXX-XXXX-XXXX-ABCD`
+- Universal JSON response format
+- API endpoints: `/api/v2/validate`, `/api/v2/features`, `/api/v2/keepalive`
+- Python and Go client examples
 
-```json
-{
-    "customer": "string",           // Organization name
-    "product": "string",            // Product identifier
-    "license_version": "string",    // License schema version (2.0)
-    "license_key": "string",        // Full license key
-    "expires_at": "ISO8601",        // Expiration timestamp
-    "issued_at": "ISO8601",         // Issue timestamp
-    "tier": "string",               // community/professional/enterprise
-    "features": [
-        {
-            "name": "string",           // Feature identifier
-            "entitled": boolean,        // Feature enabled/disabled
-            "units": integer,           // Usage units (0 = unlimited, -1 = not applicable)
-            "description": "string",    // Human-readable description
-            "metadata": object          // Additional feature-specific data
-        }
-    ],
-    "limits": {
-        "max_servers": integer,     // -1 = unlimited
-        "max_users": integer,       // -1 = unlimited
-        "data_retention_days": integer
-    },
-    "metadata": {
-        "server_id": "string",      // For keepalives
-        "support_tier": "string",   // community/email/priority
-        "custom_fields": object     // Customer-specific data
-    }
-}
-```
+## WaddleAI Integration (Optional)
 
-### Authentication
+For projects requiring AI capabilities, integrate with WaddleAI located at `~/code/WaddleAI`.
 
-All API calls use Bearer token authentication where the license key serves as the bearer token:
+**When to Use WaddleAI:**
+- Natural language processing (NLP)
+- Machine learning model inference
+- AI-powered features and automation
+- Intelligent data analysis
+- Chatbots and conversational interfaces
 
-```bash
-Authorization: Bearer PENG-XXXX-XXXX-XXXX-XXXX-ABCD
-```
+**Integration Pattern:**
+- WaddleAI runs as separate microservice container
+- Communicate via REST API or gRPC
+- Environment variable configuration for API endpoints
+- License-gate AI features as enterprise functionality
 
-### License Key Format
-
-- Format: `PENG-XXXX-XXXX-XXXX-XXXX-ABCD`
-- Regex: `^PENG-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$`
-- Includes SHA256 checksum in final segment
-- Universal prefix for all PenguinTech products
-
-### Core API Endpoints
-
-#### 1. Universal License Validation
-
-**Endpoint:** `POST /api/v2/validate`
-
-```bash
-curl -X POST https://license.penguintech.io/api/v2/validate \
-  -H "Authorization: Bearer PENG-XXXX-XXXX-XXXX-XXXX-ABCD" \
-  -H "Content-Type: application/json" \
-  -d '{"product": "your-product-name"}'
-```
-
-#### 2. Feature Checking
-
-**Endpoint:** `POST /api/v2/features`
-
-```bash
-curl -X POST https://license.penguintech.io/api/v2/features \
-  -H "Authorization: Bearer PENG-XXXX-XXXX-XXXX-XXXX-ABCD" \
-  -H "Content-Type: application/json" \
-  -d '{"product": "your-product-name", "feature": "advanced_feature"}'
-```
-
-#### 3. Keepalive/Usage Reporting
-
-**Endpoint:** `POST /api/v2/keepalive`
-
-```bash
-curl -X POST https://license.penguintech.io/api/v2/keepalive \
-  -H "Authorization: Bearer PENG-XXXX-XXXX-XXXX-XXXX-ABCD" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "product": "your-product-name",
-    "server_id": "srv_8f7d6e5c4b3a2918",
-    "hostname": "server-01.company.com",
-    "version": "1.2.3",
-    "uptime_seconds": 86400,
-    "usage_stats": {
-        "active_users": 45,
-        "feature_usage": {
-            "feature_name": {"usage_count": 1250000}
-        }
-    }
-  }'
-```
-
-### Client Library Integration
-
-#### Python Client Example
-
-```python
-import requests
-from datetime import datetime, timedelta
-
-class PenguinTechLicenseClient:
-    def __init__(self, license_key, product, base_url="https://license.penguintech.io"):
-        self.license_key = license_key
-        self.product = product
-        self.base_url = base_url
-        self.server_id = None
-        self.session = requests.Session()
-        self.session.headers.update({
-            "Authorization": f"Bearer {license_key}",
-            "Content-Type": "application/json"
-        })
-
-    def validate(self):
-        """Validate license and get server ID for keepalives"""
-        response = self.session.post(
-            f"{self.base_url}/api/v2/validate",
-            json={"product": self.product}
-        )
-
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("valid"):
-                self.server_id = data["metadata"].get("server_id")
-                return data
-
-        return {"valid": False, "message": f"Validation failed: {response.text}"}
-
-    def check_feature(self, feature):
-        """Check if specific feature is enabled"""
-        response = self.session.post(
-            f"{self.base_url}/api/v2/features",
-            json={"product": self.product, "feature": feature}
-        )
-
-        if response.status_code == 200:
-            data = response.json()
-            return data.get("features", [{}])[0].get("entitled", False)
-
-        return False
-
-    def keepalive(self, usage_data=None):
-        """Send keepalive with optional usage statistics"""
-        if not self.server_id:
-            validation = self.validate()
-            if not validation.get("valid"):
-                return validation
-
-        payload = {
-            "product": self.product,
-            "server_id": self.server_id
-        }
-
-        if usage_data:
-            payload.update(usage_data)
-
-        response = self.session.post(
-            f"{self.base_url}/api/v2/keepalive",
-            json=payload
-        )
-
-        return response.json()
-
-# Usage example
-def requires_feature(feature_name):
-    """Decorator to gate functionality behind license features"""
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            if not AVAILABLE_FEATURES.get(feature_name, False):
-                raise FeatureNotAvailableError(f"Feature '{feature_name}' requires upgrade")
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
-
-@requires_feature("advanced_feature")
-def advanced_functionality():
-    """This function only works with professional+ licenses"""
-    pass
-```
-
-#### Go Client Example
-
-```go
-package license
-
-import (
-    "bytes"
-    "encoding/json"
-    "fmt"
-    "net/http"
-    "time"
-)
-
-type Client struct {
-    LicenseKey string
-    Product    string
-    BaseURL    string
-    ServerID   string
-    HTTPClient *http.Client
-}
-
-type ValidationResponse struct {
-    Valid     bool   `json:"valid"`
-    Customer  string `json:"customer"`
-    Tier      string `json:"tier"`
-    Features  []Feature `json:"features"`
-    Metadata  struct {
-        ServerID string `json:"server_id"`
-    } `json:"metadata"`
-}
-
-type Feature struct {
-    Name     string `json:"name"`
-    Entitled bool   `json:"entitled"`
-}
-
-func NewClient(licenseKey, product string) *Client {
-    return &Client{
-        LicenseKey: licenseKey,
-        Product:    product,
-        BaseURL:    "https://license.penguintech.io",
-        HTTPClient: &http.Client{Timeout: 30 * time.Second},
-    }
-}
-
-func (c *Client) Validate() (*ValidationResponse, error) {
-    payload := map[string]string{"product": c.Product}
-
-    resp, err := c.makeRequest("POST", "/api/v2/validate", payload)
-    if err != nil {
-        return nil, err
-    }
-
-    var validation ValidationResponse
-    if err := json.Unmarshal(resp, &validation); err != nil {
-        return nil, err
-    }
-
-    if validation.Valid {
-        c.ServerID = validation.Metadata.ServerID
-    }
-
-    return &validation, nil
-}
-
-func (c *Client) CheckFeature(feature string) (bool, error) {
-    payload := map[string]string{
-        "product": c.Product,
-        "feature": feature,
-    }
-
-    resp, err := c.makeRequest("POST", "/api/v2/features", payload)
-    if err != nil {
-        return false, err
-    }
-
-    var response struct {
-        Features []Feature `json:"features"`
-    }
-
-    if err := json.Unmarshal(resp, &response); err != nil {
-        return false, err
-    }
-
-    if len(response.Features) > 0 {
-        return response.Features[0].Entitled, nil
-    }
-
-    return false, nil
-}
-
-func (c *Client) makeRequest(method, endpoint string, payload interface{}) ([]byte, error) {
-    jsonData, err := json.Marshal(payload)
-    if err != nil {
-        return nil, err
-    }
-
-    req, err := http.NewRequest(method, c.BaseURL+endpoint, bytes.NewBuffer(jsonData))
-    if err != nil {
-        return nil, err
-    }
-
-    req.Header.Set("Authorization", "Bearer "+c.LicenseKey)
-    req.Header.Set("Content-Type", "application/json")
-
-    resp, err := c.HTTPClient.Do(req)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
-
-    var buf bytes.Buffer
-    _, err = buf.ReadFrom(resp.Body)
-    if err != nil {
-        return nil, err
-    }
-
-    if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("API request failed: %d", resp.StatusCode)
-    }
-
-    return buf.Bytes(), nil
-}
-```
-
-### Environment Variables for License Integration
-
-```bash
-# License Server Configuration
-LICENSE_KEY=PENG-XXXX-XXXX-XXXX-XXXX-ABCD
-LICENSE_SERVER_URL=https://license.penguintech.io
-PRODUCT_NAME=your-product-identifier
-
-# Optional: Custom License Server (for testing/development)
-LICENSE_SERVER_URL=https://license-dev.penguintech.io
-```
+**WaddleAI Documentation**: See WaddleAI project at `~/code/WaddleAI` for integration details
 
 ## Project Structure
 
@@ -692,6 +400,44 @@ docker compose down -v
 
 ## Critical Development Rules
 
+### Development Philosophy: Safe, Stable, and Feature-Complete
+
+**NEVER take shortcuts or the "easy route" - ALWAYS prioritize safety, stability, and feature completeness**
+
+#### Core Principles
+- **No Quick Fixes**: Resist quick workarounds or partial solutions
+- **Complete Features**: Fully implemented with proper error handling and validation
+- **Safety First**: Security, data integrity, and fault tolerance are non-negotiable
+- **Stable Foundations**: Build on solid, tested components
+- **Future-Proof Design**: Consider long-term maintainability and scalability
+- **No Technical Debt**: Address issues properly the first time
+
+#### Red Flags (Never Do These)
+- Skipping input validation "just this once"
+- Hardcoding credentials or configuration
+- Ignoring error returns or exceptions
+- Commenting out failing tests to make CI pass
+- Deploying without proper testing
+- Using deprecated or unmaintained dependencies
+- Implementing partial features with "TODO" placeholders
+- Bypassing security checks for convenience
+- Assuming data is valid without verification
+- Leaving debug code or backdoors in production
+
+#### Quality Checklist Before Completion
+- All error cases handled properly
+- Unit tests cover all code paths
+- Integration tests verify component interactions
+- Security requirements fully implemented
+- Performance meets acceptable standards
+- Documentation complete and accurate
+- Code review standards met
+- No hardcoded secrets or credentials
+- Logging and monitoring in place
+- Build passes in containerized environment
+- No security vulnerabilities in dependencies
+- Edge cases and boundary conditions tested
+
 ### Git Workflow
 - **NEVER commit automatically** unless explicitly requested by the user
 - **NEVER push to remote repositories** under any circumstances
@@ -747,76 +493,31 @@ docker compose down -v
 
 **CRITICAL: ALWAYS use `--no-cache` flag for production rebuilds**
 
-All builds MUST use the `--no-cache` flag to prevent stale build artifacts and ensure reproducible builds:
-
 ```bash
-# CORRECT: Always rebuild with --no-cache (using Docker Compose V2)
-docker compose build --no-cache api
-docker compose build --no-cache web
-docker compose build --no-cache grpc-server
-
-# WRONG: Never use cached builds for production changes
-docker compose build api  # ❌ BAD - May use stale cached layers
-docker compose build web  # ❌ BAD - May serve old frontend code
-
-# Complete rebuild and restart workflow
+# Correct workflow
 docker compose build --no-cache api && docker compose restart api
 docker compose build --no-cache web && docker compose restart web
 ```
 
-**Why `--no-cache` is mandatory:**
-- Prevents serving stale frontend builds with old navigation/components
-- Ensures Python dependency changes are properly applied
-- Avoids cached intermediate layers with outdated code
-- Guarantees reproducible builds across environments
-- Eliminates "works on my machine" issues from layer caching
+**See full documentation:** [docs/development/ci-cd-patterns.md](docs/development/ci-cd-patterns.md)
 
-**Standard build commands:**
-```bash
-# Go builds within containers (using debian-slim)
-docker run --rm -v $(pwd):/app -w /app golang:1.23-slim go build -o bin/app
-docker build --no-cache -t app:latest .
+Key points:
+- Prevents stale frontend builds and cached outdated code
+- Use debian-slim base images for all containers
+- Multi-arch builds (amd64/arm64) in GitHub Actions
 
-# Python builds within containers (using debian-slim)
-# Use Python 3.13+ for Flask applications
-docker run --rm -v $(pwd):/app -w /app python:3.13-slim pip install -r requirements.txt
-docker build --no-cache -t web:latest .
-
-# Use multi-stage builds with debian-slim for optimized production images
-FROM golang:1.23-slim AS builder
-FROM debian:stable-slim AS runtime
-
-FROM python:3.13-slim AS builder
-FROM debian:stable-slim AS runtime
-```
-
-### GitHub Actions Multi-Arch Build Strategy
-```yaml
-# Single workflow with multi-arch builds for each container
-name: Build Containers
-jobs:
-  build-app:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: docker/build-push-action@v4
-        with:
-          platforms: linux/amd64,linux/arm64
-          context: ./apps/app
-          file: ./apps/app/Dockerfile
-
-  build-manager:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: docker/build-push-action@v4
-        with:
-          platforms: linux/amd64,linux/arm64
-          context: ./apps/manager
-          file: ./apps/manager/Dockerfile
-
-# Separate parallel workflows for each container type (app, manager, etc.)
-# Each workflow builds multi-arch for that specific container
-# Minimize build time through parallel container builds and caching
-```
+### Linting & Code Quality Requirements
+- **ALL code must pass linting** before commit - no exceptions
+- **Python**: flake8, black, isort, mypy (type checking), bandit (security)
+- **JavaScript/TypeScript**: ESLint, Prettier
+- **Go**: golangci-lint (includes staticcheck, gosec, etc.)
+- **Ansible**: ansible-lint
+- **Docker**: hadolint
+- **YAML**: yamllint
+- **Markdown**: markdownlint
+- **Shell**: shellcheck
+- **CodeQL**: All code must pass CodeQL security analysis
+- **PEP Compliance**: Python code must follow PEP 8, PEP 257 (docstrings), PEP 484 (type hints)
 
 ### Code Quality
 - Follow language-specific style guides
@@ -824,6 +525,13 @@ jobs:
 - No hardcoded secrets or credentials
 - Proper error handling and logging
 - Security-first development approach
+
+### API Design Principles
+- **Avoid duplicative APIs**: Prefer updating existing APIs to be more flexible rather than creating new endpoints for similar functionality
+- **Maintain backwards compatibility**: When extending APIs, ensure existing clients continue to work
+- **Use optional parameters**: Add optional parameters to existing endpoints instead of creating variant endpoints
+- **Consolidate similar operations**: One flexible endpoint is better than multiple specialized ones
+- **Shared modals**: Make modals shared resources in `components/` as they may be reused across multiple pages (e.g., CreateIdentityModal can be used on IAM, Tenant, and Organization pages with different defaults)
 
 ### Unit Testing Requirements
 - **All applications MUST have comprehensive unit tests**
@@ -853,7 +561,7 @@ jobs:
 - **I/O Operations**: Use non-blocking I/O, buffering, and batching strategies
 - **Database Access**: Implement connection pooling, prepared statements, and query optimization
 
-### Documentation
+### Documentation Standards
 - **README.md**: Keep as overview and pointer to comprehensive docs/ folder
 - **docs/ folder**: Create comprehensive documentation for all aspects
 - **RELEASE_NOTES.md**: Maintain in docs/ folder, prepend new version releases to top
@@ -861,6 +569,20 @@ jobs:
 - API documentation must be comprehensive
 - Architecture decisions should be documented
 - Security procedures must be documented
+- **Build status badges**: Always include in README.md
+- **ASCII art**: Include catchy, project-appropriate ASCII art in README
+- **Company homepage**: Point to www.penguintech.io
+- **License**: All projects use Limited AGPL3 with preamble for fair use
+
+### File Size Limits
+- **Maximum file size**: 25,000 characters for ALL code and markdown files
+- **Split large files**: Decompose into modules, libraries, or separate documents
+- **CLAUDE.md exception**: Maximum 39,000 characters (only exception to 25K rule)
+- **High-level approach**: CLAUDE.md contains high-level context and references detailed docs
+- **Documentation strategy**: Create detailed documentation in `docs/` folder and link to them from CLAUDE.md
+- **Keep focused**: Critical context, architectural decisions, and workflow instructions only
+- **User approval required**: ALWAYS ask user permission before splitting CLAUDE.md files
+- **Use Task Agents**: Utilize task agents (subagents) to be more expedient and efficient when making changes to large files, updating or reviewing multiple files, or performing complex multi-step operations
 
 ### README.md Standards
 - **ALWAYS include build status badges** at the top of every README.md:
@@ -938,227 +660,27 @@ jobs:
 - **Testing**: Ensure playbooks are idempotent and properly handle error conditions
 
 ### Website Integration Requirements
-- **Each project MUST have two dedicated websites**:
-  - Marketing/Sales website (Node.js based)
-  - Documentation website (Markdown based)
-- **Website Design Preferences**:
-  - **Multi-page design preferred** - avoid single-page applications for marketing sites
-  - **Modern aesthetic** with clean, professional appearance
-  - **Not overly bright** - use subtle, sophisticated color schemes
-  - **Gradient usage encouraged** - subtle gradients for visual depth and modern appeal
-  - **Responsive design** - must work seamlessly across all device sizes
-  - **Performance focused** - fast loading times and optimized assets
-- **Web Application UI/UX Principles**:
-  - **Modal-first approach** - prefer modals over dedicated routes for secondary actions
-  - **Minimize navigation disruption** - keep users focused on main pages (entity/organization views)
-  - **Inline editing when possible** - allow editing without leaving the current context
-  - **Progressive disclosure** - reveal complexity only when needed
-  - **Contextual actions** - actions should be available where they're needed
-  - **Consistent patterns** - use the same UI patterns throughout the application
-  - **Clickable cards** - cards displaying objects (identities, entities, organizations, issues, etc.) should be clickable to view details
-    - Clicking anywhere on the card (outside of action buttons) should open the detail view modal
-    - Add hover effects (e.g., `hover:border-primary-500/50`) and cursor pointer to indicate interactivity
-    - Action buttons (View, Edit, Delete) should stop event propagation to prevent double-triggering
-    - This pattern applies to ALL pages displaying object cards in Elder
-  - **Use modals for**:
-    - Create operations (creating sub-organizations, entities, issues, etc.)
-    - Edit operations (updating metadata, editing properties)
-    - Quick views (previewing details without full navigation)
-    - Confirmations and deletions
-  - **Use dedicated routes only for**:
-    - Primary entity views (organization detail, entity detail, issue detail)
-    - List pages (organizations list, entities list, issues list)
-    - Complex multi-step workflows that require dedicated space
-- **Website Repository Integration**:
-  - Add `github.com/penguintechinc/website` as a sparse checkout submodule
-  - Only include the project's specific website folders in the sparse checkout
-  - Folder naming convention:
-    - `{app_name}/` - Marketing and sales website
-    - `{app_name}-docs/` - Documentation website
-- **Sparse Submodule Setup**:
-  ```bash
-  # First, check if folders exist in the website repo and create if needed
-  git clone https://github.com/penguintechinc/website.git temp-website
-  cd temp-website
 
-  # Create project folders if they don't exist
-  mkdir -p {app_name}/
-  mkdir -p {app_name}-docs/
+**See full documentation:** [docs/development/website-integration.md](docs/development/website-integration.md)
 
-  # Create initial template files if folders are empty
-  if [ ! -f {app_name}/package.json ]; then
-    # Initialize Node.js marketing website
-    echo "Creating initial marketing website structure..."
-    # Add basic package.json, index.js, etc.
-  fi
+Key principles:
+- Each project needs marketing (Node.js) and documentation (Markdown) websites
+- **Modal-first approach** - prefer modals over routes for secondary actions
+- **Clickable cards** - all object cards should open detail modals on click
+- Use sparse checkout submodule from `github.com/penguintechinc/website`
 
-  if [ ! -f {app_name}-docs/README.md ]; then
-    # Initialize documentation website
-    echo "Creating initial docs website structure..."
-    # Add basic markdown structure
-  fi
-
-  # Commit and push if changes were made
-  git add .
-  git commit -m "Initialize website folders for {app_name}"
-  git push origin main
-  cd .. && rm -rf temp-website
-
-  # Now add sparse submodule for website integration
-  git submodule add --name websites https://github.com/penguintechinc/website.git websites
-  git config -f .gitmodules submodule.websites.sparse-checkout true
-
-  # Configure sparse checkout to only include project folders
-  echo "{app_name}/" > .git/modules/websites/info/sparse-checkout
-  echo "{app_name}-docs/" >> .git/modules/websites/info/sparse-checkout
-
-  # Initialize sparse checkout
-  git submodule update --init websites
-  ```
-- **Website Maintenance**: Both websites must be kept current with project releases and feature updates
-- **First-Time Setup**: If project folders don't exist in the website repo, they must be created and initialized with basic templates before setting up the sparse submodule
 
 ## Common Integration Patterns
 
-### License-Gated Features
-```python
-# Python feature gating
-from shared.licensing import license_client, requires_feature
+Common code patterns for database, API, and monitoring integration.
 
-@requires_feature("advanced_analytics")
-def generate_advanced_report():
-    """This feature requires professional+ license"""
-    return advanced_analytics.generate_report()
+**See full documentation:** [docs/development/integration-patterns.md](docs/development/integration-patterns.md)
 
-# Startup validation
-def initialize_application():
-    client = license_client.get_client()
-    validation = client.validate()
-    if not validation.get("valid"):
-        logger.error(f"License validation failed: {validation.get('message')}")
-        sys.exit(1)
-
-    logger.info(f"License valid for {validation['customer']} ({validation['tier']})")
-    return validation
-```
-
-```go
-// Go feature gating
-package main
-
-import (
-    "log"
-    "os"
-    "your-project/internal/license"
-)
-
-func main() {
-    client := license.NewClient(os.Getenv("LICENSE_KEY"), "your-product")
-
-    validation, err := client.Validate()
-    if err != nil || !validation.Valid {
-        log.Fatal("License validation failed")
-    }
-
-    log.Printf("License valid for %s (%s)", validation.Customer, validation.Tier)
-
-    // Check features
-    if hasAdvanced, _ := client.CheckFeature("advanced_feature"); hasAdvanced {
-        log.Println("Advanced features enabled")
-    }
-}
-```
-
-### Database Integration
-```python
-# Python with SQLAlchemy
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-
-db = SQLAlchemy()
-
-class User(db.Model):
-    __tablename__ = 'users'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
-```
-
-```go
-// Go with GORM
-import "gorm.io/gorm"
-
-type User struct {
-    ID    uint   `gorm:"primaryKey"`
-    Name  string `gorm:"not null"`
-    Email string `gorm:"uniqueIndex;not null"`
-}
-```
-
-### API Development
-```python
-# Python with Flask
-from flask import Blueprint, request, jsonify
-from flask_cors import cross_origin
-from apps.api.models import User
-from shared.database import db
-
-bp = Blueprint("users", __name__)
-
-@bp.route('/users', methods=['GET', 'POST'])
-@cross_origin()
-def api_users():
-    if request.method == 'GET':
-        users = User.query.all()
-        return jsonify({'users': [u.to_dict() for u in users]})
-    # Handle POST...
-```
-
-```go
-// Go with Gin
-func setupRoutes() *gin.Engine {
-    r := gin.Default()
-    r.Use(cors.Default())
-
-    v1 := r.Group("/api/v1")
-    {
-        v1.GET("/users", getUsers)
-        v1.POST("/users", createUser)
-    }
-    return r
-}
-```
-
-### Monitoring Integration
-```python
-# Python metrics with Flask
-from prometheus_flask_exporter import PrometheusMetrics
-from flask import Flask
-
-app = Flask(__name__)
-metrics = PrometheusMetrics(app)
-
-# Metrics are automatically collected and exposed at /metrics
-# Custom metrics can be added:
-metrics.info('app_info', 'Application info', version='1.0.0')
-```
-
-```go
-// Go metrics
-import "github.com/prometheus/client_golang/prometheus"
-
-var (
-    requestCount = prometheus.NewCounterVec(
-        prometheus.CounterOpts{Name: "http_requests_total"},
-        []string{"method", "endpoint"})
-    requestDuration = prometheus.NewHistogramVec(
-        prometheus.HistogramOpts{Name: "http_request_duration_seconds"},
-        []string{"method", "endpoint"})
-)
-```
+Includes examples for:
+- License-gated features (Python decorators, Go feature checking)
+- Database integration (SQLAlchemy, GORM)
+- API development (Flask blueprints, Gin routes)
+- Monitoring integration (Prometheus metrics)
 
 ## Troubleshooting & Support
 

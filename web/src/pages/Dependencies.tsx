@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, Trash2, ArrowRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import type { DependencyType } from '@/types'
+import type { FormConfig } from '@/types/form'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
 
 // Resource types supported by dependencies
 const RESOURCE_TYPES = [
@@ -17,6 +19,18 @@ const RESOURCE_TYPES = [
   { value: 'milestone', label: 'Milestone' },
   { value: 'issue', label: 'Issue' },
   { value: 'organization', label: 'Organization' },
+]
+
+const DEPENDENCY_TYPE_OPTIONS = [
+  { value: 'depends', label: 'Depends On' },
+  { value: 'calls', label: 'Calls' },
+  { value: 'related', label: 'Related To' },
+  { value: 'affects', label: 'Affects' },
+  { value: 'manages', label: 'Manages' },
+  { value: 'owns', label: 'Owns' },
+  { value: 'contains', label: 'Contains' },
+  { value: 'connects', label: 'Connects To' },
+  { value: 'other', label: 'Other' },
 ]
 
 interface PolymorphicDependency {
@@ -301,34 +315,87 @@ function CreateDependencyModal({
   onClose,
   onSuccess,
 }: CreateDependencyModalProps) {
-  const [sourceType, setSourceType] = useState<string>('entity')
-  const [sourceId, setSourceId] = useState<number | undefined>()
-  const [targetType, setTargetType] = useState<string>('entity')
-  const [targetId, setTargetId] = useState<number | undefined>()
-  const [dependencyType, setDependencyType] = useState<DependencyType>('depends')
-
   // Get items for a resource type
   const getItemsForType = (type: string) => {
     switch (type) {
       case 'entity':
-        return entities.map((e) => ({ id: e.id, name: e.name, detail: e.entity_type }))
+        return entities.map((e) => ({ value: e.id, label: `${e.name}${e.entity_type ? ` (${e.entity_type})` : ''}` }))
       case 'identity':
-        return identities.map((i) => ({ id: i.id, name: i.username, detail: i.identity_type }))
+        return identities.map((i) => ({ value: i.id, label: `${i.username}${i.identity_type ? ` (${i.identity_type})` : ''}` }))
       case 'project':
-        return projects.map((p) => ({ id: p.id, name: p.name, detail: p.status }))
+        return projects.map((p) => ({ value: p.id, label: `${p.name}${p.status ? ` (${p.status})` : ''}` }))
       case 'milestone':
-        return milestones.map((m) => ({ id: m.id, name: m.title, detail: m.status }))
+        return milestones.map((m) => ({ value: m.id, label: `${m.title}${m.status ? ` (${m.status})` : ''}` }))
       case 'issue':
-        return issues.map((i) => ({ id: i.id, name: i.title, detail: i.status }))
+        return issues.map((i) => ({ value: i.id, label: `${i.title}${i.status ? ` (${i.status})` : ''}` }))
       case 'organization':
-        return organizations.map((o) => ({ id: o.id, name: o.name, detail: o.organization_type }))
+        return organizations.map((o) => ({ value: o.id, label: `${o.name}${o.organization_type ? ` (${o.organization_type})` : ''}` }))
       default:
         return []
     }
   }
 
-  const sourceItems = getItemsForType(sourceType)
-  const targetItems = getItemsForType(targetType)
+  // Build form config with all resource options for all types
+  // The FormBuilder will handle state internally
+  const formConfig: FormConfig = useMemo(() => ({
+    fields: [
+      {
+        name: 'source_type',
+        label: 'Source Type',
+        type: 'select',
+        required: true,
+        options: RESOURCE_TYPES.map(t => ({ value: t.value, label: t.label })),
+        defaultValue: 'entity',
+      },
+      {
+        name: 'source_id',
+        label: 'Source',
+        type: 'select',
+        required: true,
+        // Include all items from all types - user selects after choosing type
+        options: [
+          ...getItemsForType('entity').map(i => ({ ...i, label: `[Entity] ${i.label}` })),
+          ...getItemsForType('identity').map(i => ({ ...i, label: `[Identity] ${i.label}` })),
+          ...getItemsForType('project').map(i => ({ ...i, label: `[Project] ${i.label}` })),
+          ...getItemsForType('milestone').map(i => ({ ...i, label: `[Milestone] ${i.label}` })),
+          ...getItemsForType('issue').map(i => ({ ...i, label: `[Issue] ${i.label}` })),
+          ...getItemsForType('organization').map(i => ({ ...i, label: `[Organization] ${i.label}` })),
+        ],
+      },
+      {
+        name: 'dependency_type',
+        label: 'Relationship Type',
+        type: 'select',
+        required: true,
+        options: DEPENDENCY_TYPE_OPTIONS,
+        defaultValue: 'depends',
+      },
+      {
+        name: 'target_type',
+        label: 'Target Type',
+        type: 'select',
+        required: true,
+        options: RESOURCE_TYPES.map(t => ({ value: t.value, label: t.label })),
+        defaultValue: 'entity',
+      },
+      {
+        name: 'target_id',
+        label: 'Target',
+        type: 'select',
+        required: true,
+        // Include all items from all types
+        options: [
+          ...getItemsForType('entity').map(i => ({ ...i, label: `[Entity] ${i.label}` })),
+          ...getItemsForType('identity').map(i => ({ ...i, label: `[Identity] ${i.label}` })),
+          ...getItemsForType('project').map(i => ({ ...i, label: `[Project] ${i.label}` })),
+          ...getItemsForType('milestone').map(i => ({ ...i, label: `[Milestone] ${i.label}` })),
+          ...getItemsForType('issue').map(i => ({ ...i, label: `[Issue] ${i.label}` })),
+          ...getItemsForType('organization').map(i => ({ ...i, label: `[Organization] ${i.label}` })),
+        ],
+      },
+    ],
+    submitLabel: 'Create',
+  }), [entities, identities, projects, milestones, issues, organizations])
 
   const createMutation = useMutation({
     mutationFn: (data: {
@@ -347,158 +414,35 @@ function CreateDependencyModal({
     },
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (data: Record<string, any>) => {
+    const sourceId = parseInt(data.source_id)
+    const targetId = parseInt(data.target_id)
+
     if (!sourceId || !targetId) {
       toast.error('Please select both source and target resources')
       return
     }
-    if (sourceType === targetType && sourceId === targetId) {
+    if (data.source_type === data.target_type && sourceId === targetId) {
       toast.error('Source and target cannot be the same resource')
       return
     }
     createMutation.mutate({
-      source_type: sourceType,
+      source_type: data.source_type,
       source_id: sourceId,
-      target_type: targetType,
+      target_type: data.target_type,
       target_id: targetId,
-      dependency_type: dependencyType,
+      dependency_type: data.dependency_type,
     })
   }
 
-  // Reset selection when type changes
-  const handleSourceTypeChange = (type: string) => {
-    setSourceType(type)
-    setSourceId(undefined)
-  }
-
-  const handleTargetTypeChange = (type: string) => {
-    setTargetType(type)
-    setTargetId(undefined)
-  }
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Create Dependency</h2>
-          <p className="text-sm text-slate-400 mt-1">
-            Link any resource types together
-          </p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Source */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-slate-300">
-                Source <span className="text-red-500">*</span>
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <Select
-                  value={sourceType}
-                  onChange={(e) => handleSourceTypeChange(e.target.value)}
-                >
-                  {RESOURCE_TYPES.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </Select>
-                <Select
-                  required
-                  value={sourceId?.toString() || ''}
-                  onChange={(e) => setSourceId(parseInt(e.target.value))}
-                >
-                  <option value="">Select {sourceType}</option>
-                  {sourceItems.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} {item.detail ? `(${item.detail})` : ''}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            </div>
-
-            {/* Dependency Type */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Relationship Type <span className="text-red-500">*</span>
-              </label>
-              <Select
-                required
-                value={dependencyType}
-                onChange={(e) => setDependencyType(e.target.value as DependencyType)}
-              >
-                <option value="depends">Depends On</option>
-                <option value="calls">Calls</option>
-                <option value="related">Related To</option>
-                <option value="affects">Affects</option>
-                <option value="manages">Manages</option>
-                <option value="owns">Owns</option>
-                <option value="contains">Contains</option>
-                <option value="connects">Connects To</option>
-                <option value="other">Other</option>
-              </Select>
-            </div>
-
-            {/* Target */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-slate-300">
-                Target <span className="text-red-500">*</span>
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <Select
-                  value={targetType}
-                  onChange={(e) => handleTargetTypeChange(e.target.value)}
-                >
-                  {RESOURCE_TYPES.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </Select>
-                <Select
-                  required
-                  value={targetId?.toString() || ''}
-                  onChange={(e) => setTargetId(parseInt(e.target.value))}
-                >
-                  <option value="">Select {targetType}</option>
-                  {targetItems.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} {item.detail ? `(${item.detail})` : ''}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            </div>
-
-            {/* Preview */}
-            <div className="bg-slate-800 p-3 rounded-lg text-sm text-slate-300">
-              <strong>Preview:</strong>{' '}
-              <span className="text-white">
-                {sourceId
-                  ? sourceItems.find((i) => i.id === sourceId)?.name || sourceType
-                  : `[${sourceType}]`}
-              </span>{' '}
-              <span className="text-primary-400">{dependencyType}</span>{' '}
-              <span className="text-white">
-                {targetId
-                  ? targetItems.find((i) => i.id === targetId)?.name || targetType
-                  : `[${targetType}]`}
-              </span>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={createMutation.isPending}>
-                Create
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <ModalFormBuilder
+      isOpen={true}
+      onClose={onClose}
+      title="Create Dependency"
+      config={formConfig}
+      onSubmit={handleSubmit}
+      isLoading={createMutation.isPending}
+    />
   )
 }
