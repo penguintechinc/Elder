@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.3.0] - 2025-11-22
+## [2.3.0] - 2025-11-23
 
-### 🚀 Resource Tracking, Village ID & Infrastructure Management
+### 🚀 Resource Tracking, Village ID, FormBuilder & Infrastructure Management
 
-Major release adding Software tracking, Services tracking, IP Address Management (IPAM), Village ID universal identifiers, polymorphic dependencies, and interactive Resource Map visualization.
+Major release adding Software tracking, Services tracking, IP Address Management (IPAM), Village ID universal identifiers, polymorphic dependencies, interactive Resource Map visualization, and a comprehensive FormBuilder system with security validations.
 
 ### ✨ New Features
 
@@ -103,6 +103,38 @@ Major release adding Software tracking, Services tracking, IP Address Management
 - **New syntax**: `docker compose` (with space) instead of `docker-compose`
 - **Installation instructions** added to CLAUDE.md
 
+#### FormBuilder System
+- **Declarative Form Definition**: Web2py-style form configuration with automatic space handling
+  - 16 field types: text, email, username, password, password_generate, url, domain, ip, path, slug, textarea, select, number, checkbox, date, color, multiline
+  - Automatic space processing by field type (strip all, trim only, etc.)
+  - Field validation with type-specific rules
+- **Security Validations**: Comprehensive injection attack prevention
+  - SQL injection pattern detection
+  - Script/XSS injection blocking
+  - Format string attack prevention
+  - Command injection protection
+  - Character whitelisting per field type
+- **Conditional Field Visibility**:
+  - `triggerField` parameter: Show field when another field is truthy
+  - `showWhen` function: Custom visibility conditions
+- **password_generate Field Type**: Password field with generator button
+  - Visible text (not masked) for easy copy
+  - 14-character alphanumeric generation
+  - Restricted special characters: `! @ # $ % ^ & * ( ) - _ = +`
+- **UI Enhancements**:
+  - Gold (yellow-500) labels by default
+  - Red error messages below invalid fields
+  - Real-time validation feedback
+- **17 Forms Converted**: All user input forms migrated to FormBuilder
+- **Documentation**: Complete guide at `docs/development/form-builder.md`
+
+#### Portal User Password Management
+- **must_change_password Field**: Force password change on first login
+  - Checkbox in identity creation modal (for portal users only)
+  - Defaults to true for new portal users
+  - Stored in Identity model for API enforcement
+- **Conditional Display**: Only shown when "Create as Portal User" is checked
+
 ### 🔧 Database Schema Changes
 
 #### New Tables (5)
@@ -181,10 +213,21 @@ VALID_RESOURCE_TYPES = [
 - `web/src/lib/api.ts` - Added software, services, IPAM, village_id functions
 - `web/src/components/Layout.tsx` - Added Software, Services, IPAM, Map to navigation
 - `web/src/App.tsx` - Added routes for new pages and village_id redirect
+- `web/src/types/form.ts` - NEW: FormBuilder types, validation, and processing functions
+- `web/src/components/FormBuilder.tsx` - NEW: Main form renderer component
+- `web/src/components/ModalFormBuilder.tsx` - NEW: Modal wrapper for FormBuilder
+- `web/src/components/CreateIdentityModal.tsx` - Updated with FormBuilder and must_change_password
+- `web/src/pages/IAM.tsx` - Updated with FormBuilder and must_change_password
+- 17 form pages converted to use FormBuilder system
 
 **Documentation**:
 - `CLAUDE.md` - Added Elder Terminology section, Docker Compose V2 syntax
 - `docs/RELEASE_NOTES.md` - Updated with v2.3.0 features
+- `docs/development/form-builder.md` - NEW: FormBuilder system documentation
+
+**Backend (Identity)**:
+- `apps/api/models/identity.py` - Added must_change_password column
+- `apps/api/api/v1/identities.py` - Added must_change_password to create endpoint
 
 ### 🔍 Breaking Changes
 
@@ -204,8 +247,8 @@ The polymorphic dependency system enables tracking relationships like:
 
 ### 🙏 Acknowledgments
 
-**Development Timeline**: November 22, 2025
-**Major Focus**: Polymorphic dependencies, resource map visualization, Docker Compose V2
+**Development Timeline**: November 22-23, 2025
+**Major Focus**: Polymorphic dependencies, resource map visualization, Docker Compose V2, FormBuilder system with security validations
 
 ---
 
