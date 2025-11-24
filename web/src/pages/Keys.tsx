@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Key, TestTube, Trash2, Lock, Unlock } from 'lucide-react'
+import { Plus, Key, TestTube, Trash2, Lock, Unlock, Copy, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import { FormConfig } from '@/types/form'
 
 const PROVIDER_TYPES = [
   { value: 'aws_kms', label: 'AWS KMS' },
@@ -272,12 +274,35 @@ function CreateProviderModal({ onClose, onSuccess }: any) {
 }
 
 function EncryptModal({ providerId, onClose }: any) {
-  const [plaintext, setPlaintext] = useState('')
-  const [keyId, setKeyId] = useState('')
   const [ciphertext, setCiphertext] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  const encryptFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'key_id',
+        label: 'Key ID (optional)',
+        type: 'text',
+        placeholder: 'key-12345',
+      },
+      {
+        name: 'plaintext',
+        label: 'Plaintext',
+        type: 'textarea',
+        required: true,
+        placeholder: 'Enter data to encrypt...',
+        rows: 4,
+      },
+    ],
+    submitLabel: 'Encrypt',
+  }
 
   const encryptMutation = useMutation({
-    mutationFn: (data: any) => api.encryptData(data),
+    mutationFn: (data: any) => api.encryptData(
+      providerId,
+      data.key_id || '',
+      { plaintext: data.plaintext }
+    ),
     onSuccess: (data) => {
       setCiphertext(data.ciphertext)
       toast.success('Data encrypted successfully')
@@ -285,54 +310,49 @@ function EncryptModal({ providerId, onClose }: any) {
     onError: () => toast.error('Encryption failed'),
   })
 
-  const handleEncrypt = () => {
-    encryptMutation.mutate({
-      provider_id: providerId,
-      plaintext,
-      key_id: keyId || undefined,
-    })
+  const handleCopyResult = () => {
+    navigator.clipboard.writeText(ciphertext)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+    toast.success('Copied to clipboard')
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader>
           <h2 className="text-xl font-semibold text-white">Encrypt Data</h2>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Input
-            label="Key ID (optional)"
-            value={keyId}
-            onChange={(e) => setKeyId(e.target.value)}
-            placeholder="key-12345"
-          />
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Plaintext</label>
-            <textarea
-              value={plaintext}
-              onChange={(e) => setPlaintext(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
-              rows={4}
-              placeholder="Enter data to encrypt..."
+        <CardContent>
+          <div className="space-y-4">
+            <ModalFormBuilder
+              isOpen={true}
+              onClose={onClose}
+              title=""
+              config={encryptFormConfig}
+              onSubmit={(data: any) => encryptMutation.mutate(data)}
+              isLoading={encryptMutation.isPending}
             />
-          </div>
-          {ciphertext && (
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Ciphertext</label>
-              <textarea
-                value={ciphertext}
-                readOnly
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-sm"
-                rows={4}
-              />
-            </div>
-          )}
-          <div className="flex justify-end gap-3">
-            <Button variant="ghost" onClick={onClose}>Close</Button>
-            <Button onClick={handleEncrypt} isLoading={encryptMutation.isPending}>
-              <Lock className="w-4 h-4 mr-2" />
-              Encrypt
-            </Button>
+            {ciphertext && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-300">Ciphertext</label>
+                <div className="flex gap-2">
+                  <textarea
+                    value={ciphertext}
+                    readOnly
+                    rows={4}
+                    className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-sm"
+                  />
+                  <button
+                    onClick={handleCopyResult}
+                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center gap-2"
+                    title="Copy to clipboard"
+                  >
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -340,13 +360,37 @@ function EncryptModal({ providerId, onClose }: any) {
   )
 }
 
+
 function DecryptModal({ providerId, onClose }: any) {
-  const [ciphertext, setCiphertext] = useState('')
-  const [keyId, setKeyId] = useState('')
   const [plaintext, setPlaintext] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  const decryptFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'key_id',
+        label: 'Key ID (optional)',
+        type: 'text',
+        placeholder: 'key-12345',
+      },
+      {
+        name: 'ciphertext',
+        label: 'Ciphertext',
+        type: 'textarea',
+        required: true,
+        placeholder: 'Enter encrypted data...',
+        rows: 4,
+      },
+    ],
+    submitLabel: 'Decrypt',
+  }
 
   const decryptMutation = useMutation({
-    mutationFn: (data: any) => api.decryptData(data),
+    mutationFn: (data: any) => api.decryptData(
+      providerId,
+      data.key_id || '',
+      { ciphertext: data.ciphertext }
+    ),
     onSuccess: (data) => {
       setPlaintext(data.plaintext)
       toast.success('Data decrypted successfully')
@@ -354,54 +398,49 @@ function DecryptModal({ providerId, onClose }: any) {
     onError: () => toast.error('Decryption failed'),
   })
 
-  const handleDecrypt = () => {
-    decryptMutation.mutate({
-      provider_id: providerId,
-      ciphertext,
-      key_id: keyId || undefined,
-    })
+  const handleCopyResult = () => {
+    navigator.clipboard.writeText(plaintext)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+    toast.success('Copied to clipboard')
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader>
           <h2 className="text-xl font-semibold text-white">Decrypt Data</h2>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Input
-            label="Key ID (optional)"
-            value={keyId}
-            onChange={(e) => setKeyId(e.target.value)}
-            placeholder="key-12345"
-          />
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Ciphertext</label>
-            <textarea
-              value={ciphertext}
-              onChange={(e) => setCiphertext(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-sm"
-              rows={4}
-              placeholder="Enter encrypted data..."
+        <CardContent>
+          <div className="space-y-4">
+            <ModalFormBuilder
+              isOpen={true}
+              onClose={onClose}
+              title=""
+              config={decryptFormConfig}
+              onSubmit={(data: any) => decryptMutation.mutate(data)}
+              isLoading={decryptMutation.isPending}
             />
-          </div>
-          {plaintext && (
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Plaintext</label>
-              <textarea
-                value={plaintext}
-                readOnly
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
-                rows={4}
-              />
-            </div>
-          )}
-          <div className="flex justify-end gap-3">
-            <Button variant="ghost" onClick={onClose}>Close</Button>
-            <Button onClick={handleDecrypt} isLoading={decryptMutation.isPending}>
-              <Unlock className="w-4 h-4 mr-2" />
-              Decrypt
-            </Button>
+            {plaintext && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-300">Plaintext</label>
+                <div className="flex gap-2">
+                  <textarea
+                    value={plaintext}
+                    readOnly
+                    rows={4}
+                    className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white"
+                  />
+                  <button
+                    onClick={handleCopyResult}
+                    className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg transition-colors flex items-center gap-2"
+                    title="Copy to clipboard"
+                  >
+                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
