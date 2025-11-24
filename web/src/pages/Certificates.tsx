@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Certificate, Trash2, Edit2, Eye } from 'lucide-react'
+import { Plus, FileKey, Trash2, Edit2, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
@@ -154,7 +154,7 @@ export default function Certificates() {
       ) : filteredCerts.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
-            <Certificate className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+            <FileKey className="w-12 h-12 text-slate-600 mx-auto mb-4" />
             <p className="text-slate-400">No certificates found</p>
             <Button className="mt-4" onClick={() => {
               setSelectedCertificate(null)
@@ -178,7 +178,7 @@ export default function Certificates() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <Certificate className="w-5 h-5 text-primary-400" />
+                        <FileKey className="w-5 h-5 text-primary-400" />
                         <div>
                           <h3 className="text-lg font-semibold text-white">{cert.name}</h3>
                           {cert.common_name && (
