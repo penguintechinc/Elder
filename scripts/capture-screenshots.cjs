@@ -3,23 +3,23 @@ const path = require('path');
 const fs = require('fs');
 
 const BASE_URL = 'http://localhost:3005';
-const OUTPUT_DIR = path.join(__dirname, '..', 'docs', 'screenshots');
+const OUTPUT_DIR = '/home/penguin/code/Elder/docs/screenshots';
 
 const pages = [
-  { name: 'login', path: '/login', requiresAuth: false },
-  { name: 'dashboard', path: '/', requiresAuth: true },
-  { name: 'entities', path: '/entities', requiresAuth: true },
-  { name: 'organizations', path: '/organizations', requiresAuth: true },
-  { name: 'software', path: '/software', requiresAuth: true },
-  { name: 'services', path: '/services', requiresAuth: true },
-  { name: 'issues', path: '/issues', requiresAuth: true },
-  { name: 'projects', path: '/projects', requiresAuth: true },
-  { name: 'identities', path: '/identities', requiresAuth: true },
-  { name: 'keys', path: '/keys', requiresAuth: true },
-  { name: 'secrets', path: '/secrets', requiresAuth: true },
-  { name: 'dependencies', path: '/dependencies', requiresAuth: true },
-  { name: 'discovery', path: '/discovery', requiresAuth: true },
-  { name: 'profile', path: '/profile', requiresAuth: true },
+  { name: 'login', path: '/login' },
+  { name: 'dashboard', path: '/' },
+  { name: 'entities', path: '/entities' },
+  { name: 'organizations', path: '/organizations' },
+  { name: 'software', path: '/software' },
+  { name: 'services', path: '/services' },
+  { name: 'issues', path: '/issues' },
+  { name: 'projects', path: '/projects' },
+  { name: 'identities', path: '/identities' },
+  { name: 'keys', path: '/keys' },
+  { name: 'secrets', path: '/secrets' },
+  { name: 'dependencies', path: '/dependencies' },
+  { name: 'discovery', path: '/discovery' },
+  { name: 'profile', path: '/profile' },
 ];
 
 async function sleep(ms) {
@@ -39,45 +39,50 @@ async function captureScreenshots() {
   const page = await browser.newPage();
   await page.setViewport({ width: 1920, height: 1080 });
 
-  console.log('Logging in...');
+  // Capture login page first (unauthenticated)
+  console.log('Capturing login...');
   await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle0', timeout: 60000 });
-  await page.waitForSelector('input[type="text"]', { timeout: 10000 });
+  await sleep(1000);
+  await page.screenshot({ path: path.join(OUTPUT_DIR, 'login.png') });
+  console.log('  Saved login.png');
 
-  await page.type('input[type="text"]', 'admin');
-  await page.type('input[type="password"]', 'admin123');
+  // Perform actual login through UI
+  console.log('Logging in...');
+
+  // Find and fill login form - email field comes first, then password
+  const inputs = await page.$$('input');
+  if (inputs.length >= 2) {
+    await inputs[0].type('admin@localhost');  // Email field
+    await inputs[1].type('admin123');          // Password field
+  }
+
+  // Click submit button
   await page.click('button[type="submit"]');
 
-  await page.waitForFunction(
-    () => !window.location.pathname.includes('/login'),
-    { timeout: 30000 }
-  );
+  // Wait for navigation to complete
+  try {
+    await page.waitForFunction(
+      () => !window.location.pathname.includes('/login'),
+      { timeout: 30000 }
+    );
+  } catch (e) {
+    console.log('Navigation timeout - checking if login succeeded anyway');
+  }
   await sleep(2000);
-  console.log('Logged in successfully');
+  console.log('Current URL after login:', page.url());
 
+  // Capture all other pages
   for (const pageInfo of pages) {
+    if (pageInfo.name === 'login') continue;
+
     try {
       console.log(`Capturing ${pageInfo.name}...`);
-
-      if (!pageInfo.requiresAuth && pageInfo.path === '/login') {
-        const incognitoContext = await browser.createBrowserContext();
-        const incognitoPage = await incognitoContext.newPage();
-        await incognitoPage.setViewport({ width: 1920, height: 1080 });
-        await incognitoPage.goto(`${BASE_URL}${pageInfo.path}`, { waitUntil: 'networkidle0', timeout: 60000 });
-        await sleep(1500);
-        await incognitoPage.screenshot({
-          path: path.join(OUTPUT_DIR, `${pageInfo.name}.png`),
-          fullPage: false,
-        });
-        await incognitoContext.close();
-      } else {
-        await page.goto(`${BASE_URL}${pageInfo.path}`, { waitUntil: 'networkidle0', timeout: 60000 });
-        await sleep(1500);
-        await page.screenshot({
-          path: path.join(OUTPUT_DIR, `${pageInfo.name}.png`),
-          fullPage: false,
-        });
-      }
-
+      await page.goto(`${BASE_URL}${pageInfo.path}`, { waitUntil: 'networkidle0', timeout: 60000 });
+      await sleep(2000); // Wait for data to load
+      await page.screenshot({
+        path: path.join(OUTPUT_DIR, `${pageInfo.name}.png`),
+        fullPage: false,
+      });
       console.log(`  Saved ${pageInfo.name}.png`);
     } catch (error) {
       console.error(`  Error capturing ${pageInfo.name}: ${error.message}`);
