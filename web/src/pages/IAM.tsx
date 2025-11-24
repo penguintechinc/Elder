@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Shield, Users, User, Bot, Building2, Cloud, RefreshCw, Search, Key } from 'lucide-react'
+import { Plus, Shield, Users, User, Bot, Cloud, RefreshCw, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
@@ -9,6 +9,7 @@ import Input from '@/components/Input'
 import Select from '@/components/Select'
 import ModalFormBuilder from '@/components/ModalFormBuilder'
 import { FormConfig } from '@/types/form'
+import { getStatusColor } from '@/lib/colorHelpers'
 
 const TABS = ['All Identities', 'Providers', 'Groups & Roles', 'Relationships'] as const
 type Tab = typeof TABS[number]
@@ -476,7 +477,7 @@ export default function IAM() {
     return <User className="w-5 h-5 text-slate-400" />
   }
 
-  const getTypeColor = (type: string) => {
+  const getIdentityTypeColor = (type: string) => {
     const identityType = IDENTITY_TYPES.find(t => t.value === type)
     return identityType
       ? `bg-${identityType.color}-500/20 text-${identityType.color}-400`
@@ -674,7 +675,7 @@ export default function IAM() {
                             <h3 className="text-lg font-semibold text-white">
                               {identity.displayName}
                             </h3>
-                            <span className={`px-2 py-1 text-xs font-medium rounded ${getTypeColor(identity.type)}`}>
+                            <span className={`px-2 py-1 text-xs font-medium rounded ${getIdentityTypeColor(identity.type)}`}>
                               {IDENTITY_TYPES.find(t => t.value === identity.type)?.label || identity.type}
                             </span>
                             <span className={`px-2 py-1 text-xs font-medium rounded ${getSourceBadge(identity.source)}`}>
@@ -770,7 +771,7 @@ export default function IAM() {
                     </div>
                   </div>
                   <span className={`px-3 py-1 text-xs font-medium rounded ${
-                    provider.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                    getStatusColor(provider.enabled ? 'active' : 'inactive')
                   }`}>
                     {provider.enabled ? 'Enabled' : 'Disabled'}
                   </span>
@@ -801,7 +802,7 @@ export default function IAM() {
                     </div>
                   </div>
                   <span className={`px-3 py-1 text-xs font-medium rounded ${
-                    provider.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                    getStatusColor(provider.enabled ? 'active' : 'inactive')
                   }`}>
                     {provider.enabled ? 'Enabled' : 'Disabled'}
                   </span>

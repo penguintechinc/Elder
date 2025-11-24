@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
 import { invalidateCache } from '@/lib/invalidateCache'
+import { getStatusColor } from '@/lib/colorHelpers'
+import { confirmDelete } from '@/lib/confirmActions'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
@@ -106,24 +108,9 @@ export default function Services() {
   })
 
   const handleDelete = (id: number, name: string) => {
-    if (window.confirm(`Are you sure you want to delete service "${name}"?`)) {
+    confirmDelete(`service "${name}"`, () => {
       deleteMutation.mutate(id)
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-500/20 text-green-400'
-      case 'inactive':
-        return 'bg-slate-500/20 text-slate-400'
-      case 'maintenance':
-        return 'bg-yellow-500/20 text-yellow-400'
-      case 'deprecated':
-        return 'bg-red-500/20 text-red-400'
-      default:
-        return 'bg-slate-500/20 text-slate-400'
-    }
+    })
   }
 
   const getLanguageColor = (language: string) => {
@@ -481,21 +468,6 @@ interface ServiceDetailsModalProps {
 }
 
 function ServiceDetailsModal({ service, onClose, onEdit }: ServiceDetailsModalProps) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-500/20 text-green-400'
-      case 'inactive':
-        return 'bg-slate-500/20 text-slate-400'
-      case 'maintenance':
-        return 'bg-yellow-500/20 text-yellow-400'
-      case 'deprecated':
-        return 'bg-red-500/20 text-red-400'
-      default:
-        return 'bg-slate-500/20 text-slate-400'
-    }
-  }
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-lg">

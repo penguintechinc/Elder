@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
 import { invalidateCache } from '@/lib/invalidateCache'
+import { confirmDelete } from '@/lib/confirmActions'
 import type { Organization } from '@/types'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
@@ -82,9 +83,7 @@ export default function Organizations() {
   })
 
   const handleDelete = (id: number, name: string) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      deleteMutation.mutate(id)
-    }
+    confirmDelete(name, () => deleteMutation.mutate(id))
   }
 
   // Form configurations

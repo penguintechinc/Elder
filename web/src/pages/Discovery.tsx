@@ -7,6 +7,8 @@ import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import ModalFormBuilder from '@/components/ModalFormBuilder'
 import { FormConfig } from '@/types/form'
+import { getStatusColor } from '@/lib/colorHelpers'
+import { confirmDelete } from '@/lib/confirmActions'
 
 // Authenticated integration discovery (requires credentials)
 const INTEGRATION_DISCOVERY_TYPES = [
@@ -102,18 +104,6 @@ export default function Discovery() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-500/20 text-green-400'
-      case 'failed':
-        return 'bg-red-500/20 text-red-400'
-      case 'running':
-        return 'bg-yellow-500/20 text-yellow-400'
-      default:
-        return 'bg-slate-500/20 text-slate-400'
-    }
-  }
 
   // Form configs
   const integrationFormConfig: FormConfig = {
@@ -320,7 +310,7 @@ export default function Discovery() {
                         <Play className="w-4 h-4 mr-2" />
                         Run Now
                       </Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteJobMutation.mutate(job.id)}>
+                      <Button size="sm" variant="ghost" onClick={() => confirmDelete(job.name, () => deleteJobMutation.mutate(job.id))}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>

@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
 import { invalidateCache } from '@/lib/invalidateCache'
+import { getStatusColor, getPriorityColor } from '@/lib/colorHelpers'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
@@ -49,33 +50,6 @@ export default function Issues() {
     },
   })
 
-  const getStatusColor = (status: IssueStatus) => {
-    switch (status) {
-      case 'open':
-        return 'bg-green-500/20 text-green-400'
-      case 'in_progress':
-        return 'bg-blue-500/20 text-blue-400'
-      case 'closed':
-        return 'bg-slate-500/20 text-slate-400'
-      default:
-        return 'bg-slate-500/20 text-slate-400'
-    }
-  }
-
-  const getPriorityColor = (priority: IssuePriority) => {
-    switch (priority) {
-      case 'critical':
-        return 'bg-red-500/20 text-red-400'
-      case 'high':
-        return 'bg-orange-500/20 text-orange-400'
-      case 'medium':
-        return 'bg-yellow-500/20 text-yellow-400'
-      case 'low':
-        return 'bg-slate-500/20 text-slate-400'
-      default:
-        return 'bg-slate-500/20 text-slate-400'
-    }
-  }
 
   return (
     <div className="p-8">
@@ -178,10 +152,10 @@ export default function Issues() {
                               INCIDENT
                             </span>
                           )}
-                          <span className={`text-xs px-2 py-0.5 rounded ${getStatusColor(issue.status)}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded border ${getStatusColor(issue.status)}`}>
                             {issue.status.replace('_', ' ')}
                           </span>
-                          <span className={`text-xs px-2 py-0.5 rounded ${getPriorityColor(issue.priority)}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded border ${getPriorityColor(issue.priority)}`}>
                             {issue.priority}
                           </span>
                           {issue.assignee_id && (

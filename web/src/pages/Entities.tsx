@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
 import { invalidateCache } from '@/lib/invalidateCache'
+import { getTypeColor } from '@/lib/colorHelpers'
 import Button from '@/components/Button'
 import Card, { CardContent } from '@/components/Card'
 import Input from '@/components/Input'
@@ -83,11 +84,11 @@ export default function Entities() {
               <CardContent>
                 <h3 className="text-lg font-semibold text-white mb-2">{entity.name}</h3>
                 <div className="flex gap-2 flex-wrap mb-3">
-                  <span className="inline-block px-2 py-1 text-xs font-medium bg-primary-500/20 text-primary-400 rounded">
+                  <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${getTypeColor(entity.entity_type)}`}>
                     {entity.entity_type.replace('_', ' ').toUpperCase()}
                   </span>
                   {entity.entity_sub_type && (
-                    <span className="inline-block px-2 py-1 text-xs font-medium bg-purple-500/20 text-purple-400 rounded">
+                    <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${getTypeColor(entity.entity_sub_type)}`}>
                       {entity.entity_sub_type.replace('_', ' ').toUpperCase()}
                     </span>
                   )}

@@ -1,4 +1,4 @@
-"""Services management API endpoints for Elder using PyDAL with async/await."""
+"""Services management API endpoints for Elder using PyDAL with async/await and shared helpers."""
 
 from dataclasses import asdict
 
@@ -11,6 +11,14 @@ from apps.api.models.dataclasses import (
     from_pydal_row,
     from_pydal_rows,
 )
+from apps.api.utils.api_responses import ApiResponse
+from apps.api.utils.validation_helpers import (
+    validate_json_body,
+    validate_required_fields,
+    validate_organization_and_get_tenant,
+    validate_resource_exists,
+)
+from apps.api.utils.pydal_helpers import PaginationParams
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("services", __name__)
@@ -40,9 +48,8 @@ async def list_services():
     """
     db = current_app.db
 
-    # Get pagination params
-    page = request.args.get("page", 1, type=int)
-    per_page = min(request.args.get("per_page", 50, type=int), 1000)
+    # Get pagination params using helper
+    pagination = PaginationParams.from_request()
 
     # Build query
     def get_services():
@@ -69,21 +76,18 @@ async def list_services():
                 db.services.description.ilike(search_pattern)
             )
 
-        # Calculate pagination
-        offset = (page - 1) * per_page
-
         # Get count and rows
         total = db(query).count()
         rows = db(query).select(
-            orderby=~db.services.created_at, limitby=(offset, offset + per_page)
+            orderby=~db.services.created_at, limitby=(pagination.offset, pagination.offset + pagination.per_page)
         )
 
         return total, rows
 
     total, rows = await run_in_threadpool(get_services)
 
-    # Calculate total pages
-    pages = (total + per_page - 1) // per_page if total > 0 else 0
+    # Calculate total pages using helper
+    pages = pagination.calculate_pages(total)
 
     # Convert to DTOs
     items = from_pydal_rows(rows, ServiceDTO)
@@ -92,8 +96,8 @@ async def list_services():
     response = PaginatedResponse(
         items=[asdict(item) for item in items],
         total=total,
-        page=page,
-        per_page=per_page,
+        page=pagination.page,
+        per_page=pagination.per_page,
         pages=pages,
     )
 
@@ -110,27 +114,7 @@ async def create_service():
     Requires viewer role on the resource.
 
     Request Body:
-        {
-            "name": "User Authentication Service",
-            "description": "Handles user authentication and session management",
-            "organization_id": 1,
-            "domains": ["auth.example.com"],
-            "paths": ["/api/auth"],
-            "poc_identity_id": 5,
-            "language": "go",
-            "deployment_method": "kubernetes",
-            "deployment_type": "blue-green",
-            "is_public": false,
-            "port": 8080,
-            "health_endpoint": "/healthz",
-            "repository_url": "https://github.com/org/auth-service",
-            "documentation_url": "https://docs.example.com/auth",
-            "sla_uptime": 99.99,
-            "sla_response_time_ms": 200,
-            "notes": "Critical service",
-            "tags": ["auth", "security"],
-            "status": "active"
-        }
+        JSON object with service fields (see docstring in original)
 
     Returns:
         201: Service created
@@ -142,25 +126,19 @@ async def create_service():
     """
     db = current_app.db
 
+    # Validate JSON body
     data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
+    if error := validate_json_body(data):
+        return error
 
     # Validate required fields
-    if not data.get("name"):
-        return jsonify({"error": "name is required"}), 400
-    if not data.get("organization_id"):
-        return jsonify({"error": "organization_id is required"}), 400
+    if error := validate_required_fields(data, ["name", "organization_id"]):
+        return error
 
-    # Get organization to derive tenant_id
-    def get_org():
-        return db.organizations[data["organization_id"]]
-
-    org = await run_in_threadpool(get_org)
-    if not org:
-        return jsonify({"error": "Organization not found"}), 404
-    if not org.tenant_id:
-        return jsonify({"error": "Organization must have a tenant"}), 400
+    # Get organization to derive tenant_id using helper
+    org, tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+    if error:
+        return error
 
     # Validate poc_identity_id if provided
     if data.get("poc_identity_id"):
@@ -168,7 +146,7 @@ async def create_service():
             return db.identities[data["poc_identity_id"]]
         identity = await run_in_threadpool(get_identity)
         if not identity:
-            return jsonify({"error": "POC identity not found"}), 404
+            return ApiResponse.not_found("POC identity", data["poc_identity_id"])
 
     def create():
         # Create service
@@ -176,7 +154,7 @@ async def create_service():
             name=data["name"],
             description=data.get("description"),
             organization_id=data["organization_id"],
-            tenant_id=org.tenant_id,
+            tenant_id=tenant_id,
             domains=data.get("domains", []),
             paths=data.get("paths", []),
             poc_identity_id=data.get("poc_identity_id"),
@@ -201,7 +179,7 @@ async def create_service():
     service = await run_in_threadpool(create)
 
     service_dto = from_pydal_row(service, ServiceDTO)
-    return jsonify(asdict(service_dto)), 201
+    return ApiResponse.created(asdict(service_dto))
 
 
 @bp.route("/<int:id>", methods=["GET"])
@@ -222,13 +200,13 @@ async def get_service(id: int):
     """
     db = current_app.db
 
-    service = await run_in_threadpool(lambda: db.services[id])
-
-    if not service:
-        return jsonify({"error": "Service not found"}), 404
+    # Validate resource exists using helper
+    service, error = await validate_resource_exists(db.services, id, "Service")
+    if error:
+        return error
 
     service_dto = from_pydal_row(service, ServiceDTO)
-    return jsonify(asdict(service_dto)), 200
+    return ApiResponse.success(asdict(service_dto))
 
 
 @bp.route("/<int:id>", methods=["PUT"])
@@ -244,10 +222,7 @@ async def update_service(id: int):
         - id: Service ID
 
     Request Body:
-        {
-            "name": "Updated Service Name",
-            "status": "maintenance"
-        }
+        JSON object with fields to update
 
     Returns:
         200: Service updated
@@ -260,21 +235,17 @@ async def update_service(id: int):
     """
     db = current_app.db
 
+    # Validate JSON body
     data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
+    if error := validate_json_body(data):
+        return error
 
     # If organization is being changed, validate and get tenant
     org_tenant_id = None
     if "organization_id" in data:
-        def get_org():
-            return db.organizations[data["organization_id"]]
-        org = await run_in_threadpool(get_org)
-        if not org:
-            return jsonify({"error": "Organization not found"}), 404
-        if not org.tenant_id:
-            return jsonify({"error": "Organization must have a tenant"}), 400
-        org_tenant_id = org.tenant_id
+        org, org_tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+        if error:
+            return error
 
     # Validate poc_identity_id if provided
     if "poc_identity_id" in data and data["poc_identity_id"]:
@@ -282,7 +253,7 @@ async def update_service(id: int):
             return db.identities[data["poc_identity_id"]]
         identity = await run_in_threadpool(get_identity)
         if not identity:
-            return jsonify({"error": "POC identity not found"}), 404
+            return ApiResponse.not_found("POC identity", data["poc_identity_id"])
 
     def update():
         service = db.services[id]
@@ -291,42 +262,17 @@ async def update_service(id: int):
 
         # Update fields
         update_dict = {}
-        if "name" in data:
-            update_dict["name"] = data["name"]
-        if "description" in data:
-            update_dict["description"] = data["description"]
-        if "domains" in data:
-            update_dict["domains"] = data["domains"]
-        if "paths" in data:
-            update_dict["paths"] = data["paths"]
-        if "poc_identity_id" in data:
-            update_dict["poc_identity_id"] = data["poc_identity_id"]
-        if "language" in data:
-            update_dict["language"] = data["language"]
-        if "deployment_method" in data:
-            update_dict["deployment_method"] = data["deployment_method"]
-        if "deployment_type" in data:
-            update_dict["deployment_type"] = data["deployment_type"]
-        if "is_public" in data:
-            update_dict["is_public"] = data["is_public"]
-        if "port" in data:
-            update_dict["port"] = data["port"]
-        if "health_endpoint" in data:
-            update_dict["health_endpoint"] = data["health_endpoint"]
-        if "repository_url" in data:
-            update_dict["repository_url"] = data["repository_url"]
-        if "documentation_url" in data:
-            update_dict["documentation_url"] = data["documentation_url"]
-        if "sla_uptime" in data:
-            update_dict["sla_uptime"] = data["sla_uptime"]
-        if "sla_response_time_ms" in data:
-            update_dict["sla_response_time_ms"] = data["sla_response_time_ms"]
-        if "notes" in data:
-            update_dict["notes"] = data["notes"]
-        if "tags" in data:
-            update_dict["tags"] = data["tags"]
-        if "status" in data:
-            update_dict["status"] = data["status"]
+        updateable_fields = [
+            "name", "description", "domains", "paths", "poc_identity_id",
+            "language", "deployment_method", "deployment_type", "is_public",
+            "port", "health_endpoint", "repository_url", "documentation_url",
+            "sla_uptime", "sla_response_time_ms", "notes", "tags", "status"
+        ]
+
+        for field in updateable_fields:
+            if field in data:
+                update_dict[field] = data[field]
+
         if "organization_id" in data:
             update_dict["organization_id"] = data["organization_id"]
             update_dict["tenant_id"] = org_tenant_id
@@ -340,10 +286,10 @@ async def update_service(id: int):
     service = await run_in_threadpool(update)
 
     if not service:
-        return jsonify({"error": "Service not found"}), 404
+        return ApiResponse.not_found("Service", id)
 
     service_dto = from_pydal_row(service, ServiceDTO)
-    return jsonify(asdict(service_dto)), 200
+    return ApiResponse.success(asdict(service_dto))
 
 
 @bp.route("/<int:id>", methods=["DELETE"])
@@ -368,18 +314,15 @@ async def delete_service(id: int):
     """
     db = current_app.db
 
-    def delete():
-        service = db.services[id]
-        if not service:
-            return False
+    # Validate resource exists using helper
+    service, error = await validate_resource_exists(db.services, id, "Service")
+    if error:
+        return error
 
+    def delete():
         del db.services[id]
         db.commit()
-        return True
 
-    success = await run_in_threadpool(delete)
+    await run_in_threadpool(delete)
 
-    if not success:
-        return jsonify({"error": "Service not found"}), 404
-
-    return "", 204
+    return ApiResponse.no_content()

@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, Edit, Trash2, FolderKanban, Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
+import { getStatusColor } from '@/lib/colorHelpers'
+import { confirmDelete } from '@/lib/confirmActions'
 import Button from '@/components/Button'
 import Card, { CardContent } from '@/components/Card'
 import Input from '@/components/Input'
@@ -81,9 +83,9 @@ export default function Projects() {
   })
 
   const handleDelete = (id: number, name: string) => {
-    if (window.confirm(`Are you sure you want to delete project "${name}"?`)) {
+    confirmDelete(`project "${name}"`, () => {
       deleteMutation.mutate(id)
-    }
+    })
   }
 
   const handleCreate = (data: Record<string, any>) => {
@@ -104,20 +106,6 @@ export default function Projects() {
     })
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-500/20 text-green-400'
-      case 'completed':
-        return 'bg-blue-500/20 text-blue-400'
-      case 'archived':
-        return 'bg-slate-500/20 text-slate-400'
-      case 'on_hold':
-        return 'bg-yellow-500/20 text-yellow-400'
-      default:
-        return 'bg-slate-500/20 text-slate-400'
-    }
-  }
 
   const projectFormConfig: FormConfig = {
     fields: [

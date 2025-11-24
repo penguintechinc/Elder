@@ -1,4 +1,4 @@
-"""Software tracking management API endpoints for Elder using PyDAL with async/await."""
+"""Software tracking management API endpoints for Elder using PyDAL with async/await and shared helpers."""
 
 from dataclasses import asdict
 
@@ -6,6 +6,15 @@ from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required, resource_role_required
 from apps.api.models.dataclasses import PaginatedResponse
+from apps.api.utils.api_responses import ApiResponse
+from apps.api.utils.validation_helpers import (
+    validate_json_body,
+    validate_required_fields,
+    validate_organization_and_get_tenant,
+    validate_resource_exists,
+    validate_enum_value,
+)
+from apps.api.utils.pydal_helpers import PaginationParams
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("software", __name__)
@@ -21,78 +30,39 @@ VALID_SOFTWARE_TYPES = [
 @bp.route("", methods=["GET"])
 @login_required
 async def list_software():
-    """
-    List software with optional filtering.
-
-    Query Parameters:
-        - organization_id: Filter by organization
-        - software_type: Filter by software type
-        - is_active: Filter by active status (true/false)
-        - page: Page number (default: 1)
-        - per_page: Items per page (default: 50)
-        - search: Search in name and description
-
-    Returns:
-        200: List of software with pagination
-        400: Invalid parameters
-
-    Example:
-        GET /api/v1/software?organization_id=1&software_type=saas&is_active=true
-    """
+    """List software with optional filtering."""
     db = current_app.db
+    pagination = PaginationParams.from_request()
 
-    # Get pagination params
-    page = request.args.get("page", 1, type=int)
-    per_page = min(request.args.get("per_page", 50, type=int), 1000)
-
-    # Build query
     def get_software():
         query = db.software.id > 0
 
-        # Apply filters
         if request.args.get("organization_id"):
-            org_id = request.args.get("organization_id", type=int)
-            query &= db.software.organization_id == org_id
-
+            query &= db.software.organization_id == request.args.get("organization_id", type=int)
         if request.args.get("software_type"):
             query &= db.software.software_type == request.args.get("software_type")
-
         if request.args.get("is_active") is not None:
             is_active = request.args.get("is_active", "").lower() == "true"
             query &= db.software.is_active == is_active
-
         if request.args.get("search"):
-            search = request.args.get("search")
-            search_pattern = f"%{search}%"
-            query &= (db.software.name.ilike(search_pattern)) | (
-                db.software.description.ilike(search_pattern)
-            )
+            search = f"%{request.args.get('search')}%"
+            query &= (db.software.name.ilike(search)) | (db.software.description.ilike(search))
 
-        # Calculate pagination
-        offset = (page - 1) * per_page
-
-        # Get count and rows
         total = db(query).count()
         rows = db(query).select(
-            orderby=~db.software.created_at, limitby=(offset, offset + per_page)
+            orderby=~db.software.created_at,
+            limitby=(pagination.offset, pagination.offset + pagination.per_page)
         )
-
         return total, rows
 
     total, rows = await run_in_threadpool(get_software)
+    pages = pagination.calculate_pages(total)
 
-    # Calculate total pages
-    pages = (total + per_page - 1) // per_page if total > 0 else 0
-
-    # Convert rows to dicts
-    items = [row.as_dict() for row in rows]
-
-    # Create paginated response
     response = PaginatedResponse(
-        items=items,
+        items=[row.as_dict() for row in rows],
         total=total,
-        page=page,
-        per_page=per_page,
+        page=pagination.page,
+        per_page=pagination.per_page,
         pages=pages,
     )
 
@@ -103,83 +73,35 @@ async def list_software():
 @login_required
 @resource_role_required("viewer")
 async def create_software():
-    """
-    Create a new software entry.
-
-    Requires viewer role on the resource.
-
-    Request Body:
-        {
-            "name": "Microsoft 365",
-            "description": "Office productivity suite",
-            "organization_id": 1,
-            "software_type": "saas",
-            "vendor": "Microsoft",
-            "seats": 100,
-            "cost_monthly": 1500.00,
-            "renewal_date": "2025-12-31",
-            "license_url": "https://portal.office.com",
-            "version": "Enterprise E3",
-            "business_purpose": "Email and document collaboration",
-            "purchasing_poc_id": 5,
-            "support_contact": "support@microsoft.com",
-            "notes": "Annual subscription",
-            "tags": "productivity,email,office",
-            "is_active": true
-        }
-
-    Returns:
-        201: Software created
-        400: Invalid request
-        403: Insufficient permissions
-
-    Example:
-        POST /api/v1/software
-    """
+    """Create a new software entry."""
     db = current_app.db
 
     data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
+    if error := validate_json_body(data):
+        return error
 
-    # Validate required fields
-    if not data.get("name"):
-        return jsonify({"error": "name is required"}), 400
-    if not data.get("organization_id"):
-        return jsonify({"error": "organization_id is required"}), 400
+    if error := validate_required_fields(data, ["name", "organization_id"]):
+        return error
 
-    # Validate software_type if provided
-    if data.get("software_type") and data["software_type"] not in VALID_SOFTWARE_TYPES:
-        return jsonify({
-            "error": f"Invalid software_type. Must be one of: {', '.join(VALID_SOFTWARE_TYPES)}"
-        }), 400
+    if data.get("software_type"):
+        if error := validate_enum_value(data["software_type"], VALID_SOFTWARE_TYPES, "software_type"):
+            return error
 
-    # Validate purchasing_poc_id if provided
     if data.get("purchasing_poc_id"):
-        def check_identity():
-            return db.identities[data["purchasing_poc_id"]]
+        identity, error = await validate_resource_exists(db.identities, data["purchasing_poc_id"], "Purchasing POC identity")
+        if error:
+            return error
 
-        identity = await run_in_threadpool(check_identity)
-        if not identity:
-            return jsonify({"error": "Purchasing POC identity not found"}), 404
-
-    # Get organization to derive tenant_id
-    def get_org():
-        return db.organizations[data["organization_id"]]
-
-    org = await run_in_threadpool(get_org)
-    if not org:
-        return jsonify({"error": "Organization not found"}), 404
-    if not org.tenant_id:
-        return jsonify({"error": "Organization must have a tenant"}), 400
+    org, tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+    if error:
+        return error
 
     def create():
-        # Create software entry
         software_id = db.software.insert(
             name=data["name"],
             description=data.get("description"),
             organization_id=data["organization_id"],
-            tenant_id=org.tenant_id,
+            tenant_id=tenant_id,
             purchasing_poc_id=data.get("purchasing_poc_id"),
             license_url=data.get("license_url"),
             version=data.get("version"),
@@ -195,108 +117,56 @@ async def create_software():
             is_active=data.get("is_active", True),
         )
         db.commit()
-
         return db.software[software_id]
 
     software = await run_in_threadpool(create)
-
-    return jsonify(software.as_dict()), 201
+    return ApiResponse.created(software.as_dict())
 
 
 @bp.route("/<int:id>", methods=["GET"])
 @login_required
 async def get_software(id: int):
-    """
-    Get a single software entry by ID.
-
-    Path Parameters:
-        - id: Software ID
-
-    Returns:
-        200: Software details
-        404: Software not found
-
-    Example:
-        GET /api/v1/software/1
-    """
+    """Get a single software entry by ID."""
     db = current_app.db
 
-    software = await run_in_threadpool(lambda: db.software[id])
+    software, error = await validate_resource_exists(db.software, id, "Software")
+    if error:
+        return error
 
-    if not software:
-        return jsonify({"error": "Software not found"}), 404
-
-    return jsonify(software.as_dict()), 200
+    return ApiResponse.success(software.as_dict())
 
 
 @bp.route("/<int:id>", methods=["PUT"])
 @login_required
 @resource_role_required("maintainer")
 async def update_software(id: int):
-    """
-    Update a software entry.
-
-    Requires maintainer role.
-
-    Path Parameters:
-        - id: Software ID
-
-    Request Body:
-        {
-            "name": "Updated Software Name",
-            "seats": 200,
-            "cost_monthly": 2500.00,
-            "is_active": false
-        }
-
-    Returns:
-        200: Software updated
-        400: Invalid request
-        403: Insufficient permissions
-        404: Software not found
-
-    Example:
-        PUT /api/v1/software/1
-    """
+    """Update a software entry."""
     db = current_app.db
 
     data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
+    if error := validate_json_body(data):
+        return error
 
-    # Validate software_type if provided
-    if data.get("software_type") and data["software_type"] not in VALID_SOFTWARE_TYPES:
-        return jsonify({
-            "error": f"Invalid software_type. Must be one of: {', '.join(VALID_SOFTWARE_TYPES)}"
-        }), 400
+    if data.get("software_type"):
+        if error := validate_enum_value(data["software_type"], VALID_SOFTWARE_TYPES, "software_type"):
+            return error
 
-    # Validate purchasing_poc_id if provided
     if data.get("purchasing_poc_id"):
-        def check_identity():
-            return db.identities[data["purchasing_poc_id"]]
+        identity, error = await validate_resource_exists(db.identities, data["purchasing_poc_id"], "Purchasing POC identity")
+        if error:
+            return error
 
-        identity = await run_in_threadpool(check_identity)
-        if not identity:
-            return jsonify({"error": "Purchasing POC identity not found"}), 404
-
-    # If organization is being changed, validate and get tenant
     org_tenant_id = None
     if "organization_id" in data:
-        def get_org():
-            return db.organizations[data["organization_id"]]
-        org = await run_in_threadpool(get_org)
-        if not org:
-            return jsonify({"error": "Organization not found"}), 404
-        if not org.tenant_id:
-            return jsonify({"error": "Organization must have a tenant"}), 400
-        org_tenant_id = org.tenant_id
+        org, org_tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+        if error:
+            return error
 
     def update():
         software = db.software[id]
         if not software:
             return None
 
-        # Update fields
         update_dict = {}
         updateable_fields = [
             "name", "description", "purchasing_poc_id", "license_url",
@@ -322,45 +192,26 @@ async def update_software(id: int):
     software = await run_in_threadpool(update)
 
     if not software:
-        return jsonify({"error": "Software not found"}), 404
+        return ApiResponse.not_found("Software", id)
 
-    return jsonify(software.as_dict()), 200
+    return ApiResponse.success(software.as_dict())
 
 
 @bp.route("/<int:id>", methods=["DELETE"])
 @login_required
 @resource_role_required("maintainer")
 async def delete_software(id: int):
-    """
-    Delete a software entry.
-
-    Requires maintainer role.
-
-    Path Parameters:
-        - id: Software ID
-
-    Returns:
-        204: Software deleted
-        403: Insufficient permissions
-        404: Software not found
-
-    Example:
-        DELETE /api/v1/software/1
-    """
+    """Delete a software entry."""
     db = current_app.db
 
-    def delete():
-        software = db.software[id]
-        if not software:
-            return False
+    software, error = await validate_resource_exists(db.software, id, "Software")
+    if error:
+        return error
 
+    def delete():
         del db.software[id]
         db.commit()
-        return True
 
-    success = await run_in_threadpool(delete)
+    await run_in_threadpool(delete)
 
-    if not success:
-        return jsonify({"error": "Software not found"}), 404
-
-    return "", 204
+    return ApiResponse.no_content()

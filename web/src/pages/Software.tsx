@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
 import { invalidateCache } from '@/lib/invalidateCache'
+import { confirmDelete } from '@/lib/confirmActions'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
@@ -20,6 +21,11 @@ const SOFTWARE_TYPES = [
   { value: 'open_source', label: 'Open Source' },
   { value: 'other', label: 'Other' },
 ]
+
+const formatCurrency = (amount: number | null): string => {
+  if (amount === null || amount === undefined) return '-'
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+}
 
 export default function Software() {
   const [search, setSearch] = useState('')
@@ -80,31 +86,18 @@ export default function Software() {
   })
 
   const handleDelete = (id: number, name: string) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      deleteMutation.mutate(id)
-    }
+    confirmDelete(name, () => deleteMutation.mutate(id))
   }
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'saas':
-        return 'bg-blue-500/20 text-blue-400'
-      case 'on_premise':
-        return 'bg-purple-500/20 text-purple-400'
-      case 'desktop':
-        return 'bg-green-500/20 text-green-400'
-      case 'mobile':
-        return 'bg-orange-500/20 text-orange-400'
-      case 'open_source':
-        return 'bg-cyan-500/20 text-cyan-400'
-      default:
-        return 'bg-slate-500/20 text-slate-400'
+  const getSoftwareTypeColor = (type: string): string => {
+    const typeMap: { [key: string]: string } = {
+      'saas': 'bg-blue-500/20 text-blue-400',
+      'on_premise': 'bg-purple-500/20 text-purple-400',
+      'desktop': 'bg-green-500/20 text-green-400',
+      'mobile': 'bg-orange-500/20 text-orange-400',
+      'open_source': 'bg-cyan-500/20 text-cyan-400',
     }
-  }
-
-  const formatCurrency = (amount: number | null) => {
-    if (amount === null || amount === undefined) return '-'
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
+    return typeMap[type] || 'bg-slate-500/20 text-slate-400'
   }
 
   const organizationOptions = organizations?.items?.map((org: any) => ({
@@ -327,7 +320,7 @@ export default function Software() {
                 )}
 
                 <div className="flex items-center justify-between mb-3">
-                  <span className={`text-xs px-2 py-1 rounded ${getTypeColor(software.software_type)}`}>
+                  <span className={`text-xs px-2 py-1 rounded ${getSoftwareTypeColor(software.software_type)}`}>
                     {software.software_type?.replace('_', ' ')}
                   </span>
                   {software.version && (
@@ -406,11 +399,6 @@ interface SoftwareDetailModalProps {
 }
 
 function SoftwareDetailModal({ software, onClose, onEdit }: SoftwareDetailModalProps) {
-  const formatCurrency = (amount: number | null) => {
-    if (amount === null || amount === undefined) return '-'
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount)
-  }
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-lg">

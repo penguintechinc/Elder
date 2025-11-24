@@ -1,4 +1,4 @@
-"""Entity API endpoints using PyDAL with async/await."""
+"""Entity API endpoints using PyDAL with async/await and shared helpers."""
 
 import asyncio
 from dataclasses import asdict
@@ -12,6 +12,14 @@ from apps.api.models.dataclasses import (
     from_pydal_row,
     from_pydal_rows,
 )
+from apps.api.utils.api_responses import ApiResponse
+from apps.api.utils.validation_helpers import (
+    validate_json_body,
+    validate_required_fields,
+    validate_organization_and_get_tenant,
+    validate_resource_exists,
+)
+from apps.api.utils.pydal_helpers import PaginationParams
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("entities", __name__)
@@ -36,9 +44,8 @@ async def list_entities():
     """
     db = current_app.db
 
-    # Get pagination params
-    page = request.args.get("page", 1, type=int)
-    per_page = min(request.args.get("per_page", 50, type=int), 1000)
+    # Get pagination params using helper
+    pagination = PaginationParams.from_request()
 
     # Build query
     query = db.entities.id > 0
@@ -60,16 +67,14 @@ async def list_entities():
         is_active = request.args.get("is_active", "true").lower() == "true"
         query &= db.entities.is_active == is_active
 
-    # Calculate pagination
-    offset = (page - 1) * per_page
-
     # Use asyncio TaskGroup for concurrent queries (Python 3.12)
     async with asyncio.TaskGroup() as tg:
         count_task = tg.create_task(run_in_threadpool(lambda: db(query).count()))
         rows_task = tg.create_task(
             run_in_threadpool(
                 lambda: db(query).select(
-                    orderby=db.entities.name, limitby=(offset, offset + per_page)
+                    orderby=db.entities.name,
+                    limitby=(pagination.offset, pagination.offset + pagination.per_page)
                 )
             )
         )
@@ -77,8 +82,8 @@ async def list_entities():
     total = count_task.result()
     rows = rows_task.result()
 
-    # Calculate total pages
-    pages = (total + per_page - 1) // per_page if total > 0 else 0
+    # Calculate total pages using helper
+    pages = pagination.calculate_pages(total)
 
     # Convert PyDAL rows to DTOs
     items = from_pydal_rows(rows, EntityDTO)
@@ -87,8 +92,8 @@ async def list_entities():
     response = PaginatedResponse(
         items=[asdict(item) for item in items],
         total=total,
-        page=page,
-        per_page=per_page,
+        page=pagination.page,
+        per_page=pagination.per_page,
         pages=pages,
     )
 
@@ -109,27 +114,19 @@ async def create_entity():
     """
     db = current_app.db
 
+    # Validate JSON body
     data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
+    if error := validate_json_body(data):
+        return error
 
     # Validate required fields
-    if not data.get("name"):
-        return jsonify({"error": "name is required"}), 400
-    if not data.get("entity_type"):
-        return jsonify({"error": "entity_type is required"}), 400
-    if not data.get("organization_id"):
-        return jsonify({"error": "organization_id is required"}), 400
+    if error := validate_required_fields(data, ["name", "entity_type", "organization_id"]):
+        return error
 
-    # Get organization to derive tenant_id
-    def get_org():
-        return db.organizations[data["organization_id"]]
-
-    org = await run_in_threadpool(get_org)
-    if not org:
-        return jsonify({"error": "Organization not found"}), 404
-    if not org.tenant_id:
-        return jsonify({"error": "Organization must have a tenant"}), 400
+    # Get organization to derive tenant_id using helper
+    org, tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+    if error:
+        return error
 
     # Create entity in database
     def create_in_db():
@@ -138,7 +135,7 @@ async def create_entity():
             description=data.get("description"),
             entity_type=data["entity_type"],
             organization_id=data["organization_id"],
-            tenant_id=org.tenant_id,
+            tenant_id=tenant_id,
             parent_id=data.get("parent_id"),
             attributes=data.get("attributes"),
             tags=data.get("tags", []),
@@ -152,7 +149,7 @@ async def create_entity():
     # Convert to DTO
     entity_dto = from_pydal_row(row, EntityDTO)
 
-    return jsonify(asdict(entity_dto)), 201
+    return ApiResponse.created(asdict(entity_dto))
 
 
 @bp.route("/<int:id>", methods=["GET"])
@@ -170,13 +167,13 @@ async def get_entity(id: int):
     """
     db = current_app.db
 
-    row = await run_in_threadpool(lambda: db.entities[id])
-
-    if not row:
-        return jsonify({"error": "Entity not found"}), 404
+    # Validate resource exists using helper
+    row, error = await validate_resource_exists(db.entities, id, "Entity")
+    if error:
+        return error
 
     entity_dto = from_pydal_row(row, EntityDTO)
-    return jsonify(asdict(entity_dto)), 200
+    return ApiResponse.success(asdict(entity_dto))
 
 
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])
@@ -198,25 +195,21 @@ async def update_entity(id: int):
     db = current_app.db
 
     # Check if entity exists
-    existing = await run_in_threadpool(lambda: db.entities[id])
-    if not existing:
-        return jsonify({"error": "Entity not found"}), 404
+    existing, error = await validate_resource_exists(db.entities, id, "Entity")
+    if error:
+        return error
 
+    # Validate JSON body
     data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
+    if error := validate_json_body(data):
+        return error
 
     # If organization is being changed, validate and get tenant
     org_tenant_id = None
     if "organization_id" in data:
-        def get_org():
-            return db.organizations[data["organization_id"]]
-        org = await run_in_threadpool(get_org)
-        if not org:
-            return jsonify({"error": "Organization not found"}), 404
-        if not org.tenant_id:
-            return jsonify({"error": "Organization must have a tenant"}), 400
-        org_tenant_id = org.tenant_id
+        org, org_tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+        if error:
+            return error
 
     # Update entity
     def update_in_db():
@@ -246,7 +239,7 @@ async def update_entity(id: int):
     row = await run_in_threadpool(update_in_db)
 
     entity_dto = from_pydal_row(row, EntityDTO)
-    return jsonify(asdict(entity_dto)), 200
+    return ApiResponse.success(asdict(entity_dto))
 
 
 @bp.route("/<int:id>", methods=["DELETE"])
@@ -265,22 +258,31 @@ async def delete_entity(id: int):
     db = current_app.db
 
     # Check if entity exists
-    existing = await run_in_threadpool(lambda: db.entities[id])
-    if not existing:
-        return jsonify({"error": "Entity not found"}), 404
+    existing, error = await validate_resource_exists(db.entities, id, "Entity")
+    if error:
+        return error
 
     # Check for dependencies
     def check_and_delete():
         # Check outgoing dependencies (this entity depends on others)
-        outgoing_count = db((db.dependencies.source_entity_id == id)).count()
+        outgoing_count = db(
+            (db.dependencies.source_type == "entity") &
+            (db.dependencies.source_id == id)
+        ).count()
         # Check incoming dependencies (others depend on this entity)
-        incoming_count = db((db.dependencies.target_entity_id == id)).count()
+        incoming_count = db(
+            (db.dependencies.target_type == "entity") &
+            (db.dependencies.target_id == id)
+        ).count()
 
         total_deps = outgoing_count + incoming_count
         if total_deps > 0:
-            return {
-                "error": f"Cannot delete entity with {total_deps} dependencies. Remove dependencies first."
-            }, False
+            return (
+                ApiResponse.bad_request(
+                    f"Cannot delete entity with {total_deps} dependencies. Remove dependencies first."
+                ),
+                False
+            )
 
         # Delete entity
         del db.entities[id]
@@ -290,9 +292,9 @@ async def delete_entity(id: int):
     result, success = await run_in_threadpool(check_and_delete)
 
     if not success:
-        return jsonify(result), 400
+        return result
 
-    return "", 204
+    return ApiResponse.no_content()
 
 
 @bp.route("/<int:id>/dependencies", methods=["GET"])
@@ -314,9 +316,9 @@ async def get_entity_dependencies(id: int):
     db = current_app.db
 
     # Check if entity exists
-    entity = await run_in_threadpool(lambda: db.entities[id])
-    if not entity:
-        return jsonify({"error": "Entity not found"}), 404
+    entity, error = await validate_resource_exists(db.entities, id, "Entity")
+    if error:
+        return error
 
     direction = request.args.get("direction", "all")
 
@@ -328,11 +330,15 @@ async def get_entity_dependencies(id: int):
 
         if direction in ("outgoing", "all"):
             # Entities this entity depends on
-            outgoing = db(db.dependencies.source_entity_id == id).select()
+            outgoing = db(
+                (db.dependencies.source_type == "entity") &
+                (db.dependencies.source_id == id)
+            ).select()
             result["depends_on"] = [
                 {
                     "id": dep.id,
-                    "target_entity_id": dep.target_entity_id,
+                    "target_type": dep.target_type,
+                    "target_id": dep.target_id,
                     "dependency_type": dep.dependency_type,
                     "metadata": dep.metadata,
                 }
@@ -341,11 +347,15 @@ async def get_entity_dependencies(id: int):
 
         if direction in ("incoming", "all"):
             # Entities that depend on this entity
-            incoming = db(db.dependencies.target_entity_id == id).select()
+            incoming = db(
+                (db.dependencies.target_type == "entity") &
+                (db.dependencies.target_id == id)
+            ).select()
             result["depended_by"] = [
                 {
                     "id": dep.id,
-                    "source_entity_id": dep.source_entity_id,
+                    "source_type": dep.source_type,
+                    "source_id": dep.source_id,
                     "dependency_type": dep.dependency_type,
                     "metadata": dep.metadata,
                 }
@@ -355,7 +365,7 @@ async def get_entity_dependencies(id: int):
         return result
 
     result = await run_in_threadpool(get_dependencies)
-    return jsonify(result), 200
+    return ApiResponse.success(result)
 
 
 @bp.route("/<int:id>/attributes", methods=["PATCH"])
@@ -376,13 +386,13 @@ async def update_entity_attributes(id: int):
     db = current_app.db
 
     # Check if entity exists
-    existing = await run_in_threadpool(lambda: db.entities[id])
-    if not existing:
-        return jsonify({"error": "Entity not found"}), 404
+    existing, error = await validate_resource_exists(db.entities, id, "Entity")
+    if error:
+        return error
 
     data = request.get_json()
     if not isinstance(data, dict):
-        return jsonify({"error": "Attributes must be a JSON object"}), 400
+        return ApiResponse.bad_request("Attributes must be a JSON object")
 
     # Update attributes
     def update_attributes():
@@ -396,4 +406,4 @@ async def update_entity_attributes(id: int):
     row = await run_in_threadpool(update_attributes)
 
     entity_dto = from_pydal_row(row, EntityDTO)
-    return jsonify(asdict(entity_dto)), 200
+    return ApiResponse.success(asdict(entity_dto))
