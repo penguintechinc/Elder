@@ -190,20 +190,24 @@ Elder provides visibility into your infrastructure and organizational relationsh
 
 ### License Tiers
 
-| Tier | Features | Limits |
-|------|----------|--------|
-| **Community** | Basic tracking, local auth | Up to 100 entities |
-| **Professional** | SAML/OAuth2, advanced visualization | Unlimited entities |
-| **Enterprise** | All features + LDAP sync, audit logging, gRPC API, SSO | Unlimited |
+Elder uses a fair-use licensing model with the Limited AGPL v3 license:
+
+- **Personal & Internal Use**: Free for individual and internal organizational use
+- **Commercial Use**: Requires a commercial license from Penguin Tech Inc
+- **Modifications**: Must be shared under the same license terms (AGPL)
+- **SaaS Deployment**: Requires commercial license if providing Elder as a service
+
+For commercial licensing inquiries: sales@penguintech.io
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.13+
-- Docker & Docker Compose
-- PostgreSQL 15+ (or MySQL, SQLite via PyDAL)
-- Redis 7+
+- **Docker & Docker Compose V2**: Required for all services
+- **Python 3.12+**: Backend API (included in Docker)
+- **Node.js 18+**: Web UI build (included in Docker)
+- **PostgreSQL 17**: Database (included in Docker Compose)
+- **Redis 7**: Cache and session storage (included in Docker Compose)
 
 ### Installation
 
