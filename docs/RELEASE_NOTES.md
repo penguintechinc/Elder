@@ -7,6 +7,106 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.0] - 2025-11-24
+
+### 🔒 Certificate Management, Code Consolidation & Bug Fixes
+
+This release introduces comprehensive SSL/TLS certificate management, significant code consolidation using ModalFormBuilder, and critical bug fixes for village_id schema constraints.
+
+### ✨ New Features
+
+#### SSL/TLS Certificate Management
+- **Comprehensive Certificate Tracking**: Complete system for managing SSL/TLS certificates
+  - Support for 15+ certificate authorities (DigiCert, Let's Encrypt, Self-Signed, Sectigo, GoDaddy, etc.)
+  - Support for 11+ certificate types (CA Root, CA Intermediate, Server Cert, Wildcard, SAN, Client Cert, Code Signing, etc.)
+  - Full X.509 certificate metadata tracking
+    - Subject information (CN, SAN, OU, locality, state, country)
+    - Issuer information
+    - Key details (algorithm, size, signature algorithm)
+    - Certificate content (PEM, SHA1/SHA256 fingerprints, serial number)
+  - Date management (issue date, expiration date, not_before, not_after)
+  - Renewal automation (auto_renew flag, renewal_days_before threshold, renewal_method)
+  - ACME/Let's Encrypt integration (account URL, order URL, challenge type)
+  - Revocation tracking (is_revoked, revoked_at, revocation_reason)
+  - Compliance tracking (validation type DV/OV/EV, CT log status, OCSP must-staple)
+  - Cost tracking (annual cost, purchase date, vendor)
+  - Usage tracking (entities_using JSONB, services_using array)
+  - Storage references (file_path, vault_path, private_key_secret_id)
+- **API Endpoints**: Full CRUD at `/api/v1/certificates`
+  - List with filtering (organization, creator, cert type, status, expiring_soon)
+  - Create, get, update, delete operations
+  - Dynamic status calculation (active, expiring_soon, expired, revoked)
+  - Role-based access control (viewer can create, maintainer can update/delete)
+- **Web UI**: Dedicated Certificates page in Security section
+  - Card-based certificate display
+  - Color-coded status badges (green=active, yellow=expiring_soon, red=expired, gray=revoked)
+  - Filtering by creator, cert type, and organization
+  - Create/edit modals using ModalFormBuilder
+  - Detail modal for viewing full certificate information
+  - Support for PEM certificate content display
+- **Database Schema**: Migration 006 - certificates table with 50+ fields, 16 indexes including GIN indexes for JSONB/arrays
+- **Village ID Support**: Universal referencing for all certificates
+
+### 🔧 Improvements
+
+#### Code Consolidation (DRY Principle)
+- **FormBuilder Pattern Migration** (Phase 1):
+  - Migrated Keys.tsx CreateProviderModal (95 lines → 25 lines with FormConfig)
+  - Migrated Secrets.tsx CreateProviderModal (115 lines → modular with dynamic help text)
+  - Migrated Keys.tsx Encrypt/Decrypt modals (134 lines → hybrid approach)
+  - Total lines saved: 245-285 lines
+  - Improved code consistency and maintainability
+  - Enhanced form validation and error handling
+- **Shared Helper Modules**: Backend consolidation
+  - Created `api_responses.py` for standardized JSON responses
+  - Created `validation_helpers.py` for common validation patterns
+  - Created `crud_helpers.py` for reusable CRUD operations
+  - Created `pydal_helpers.py` for PyDAL database utilities
+  - Total backend consolidation savings: 150+ lines
+- **Cache Invalidation Pattern**: Frontend optimization
+  - Standardized React Query cache invalidation across all pages
+  - Query key management utilities
+  - Consistent refetch patterns
+
+### 🐛 Bug Fixes
+
+- **Village ID Schema Fix**: Expanded village_id from VARCHAR(16) to VARCHAR(32)
+  - Village ID format is `TTTT-OOOO-IIIIIIII` (18 chars), original schema was too small
+  - Migration 005 safely expands all village_id columns across 14 tables
+  - Provides extra headroom for future format changes
+- **PyDAL Model Syntax**: Fixed unterminated string literals in certificates model
+- **TypeScript Compilation**: Fixed API call signatures for encryptData() and decryptData() in Keys.tsx
+- **Screenshot Updates**: Refreshed documentation screenshots
+- **Cache Invalidation**: Improved React Query cache management across multiple pages
+
+### 📦 Files Added
+
+- `apps/api/api/v1/certificates.py` (512 lines) - Certificate API endpoints
+- `apps/api/migrations/006_add_certificates.sql` (150 lines) - Certificates database schema
+- `web/src/pages/Certificates.tsx` (640 lines) - Certificate management UI
+- `apps/api/migrations/005_expand_village_id_length.sql` - Village ID schema fix
+
+### 📝 Files Modified
+
+- Backend: `main.py`, `pydal_models.py`, `api_responses.py`, `validation_helpers.py`, `crud_helpers.py`, `pydal_helpers.py`
+- Frontend: `App.tsx`, `Layout.tsx`, `api.ts`, `Keys.tsx`, `Secrets.tsx`
+- Documentation: `README.md` (version 2.4.0, updated license terms), `RELEASE_NOTES.md`
+
+### 🔄 Database Migrations
+
+- **Migration 005**: Expand village_id columns from VARCHAR(16) to VARCHAR(32) across all tables
+- **Migration 006**: Add certificates table with comprehensive SSL/TLS certificate tracking
+
+### 📊 Statistics
+
+- Total API Endpoints: 84 (added 5 certificate endpoints)
+- Total Database Tables: 31 (added certificates table)
+- Frontend Pages: 35 (added Certificates page)
+- Code Consolidation: 395-435 lines saved through DRY refactoring
+- License: Updated to Limited AGPL v3 with preamble for fair use
+
+---
+
 ## [2.3.0] - 2025-11-23
 
 ### 🚀 Resource Tracking, Village ID, FormBuilder & Infrastructure Management
