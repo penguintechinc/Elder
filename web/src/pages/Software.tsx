@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, Edit, Trash2, Package, Calendar, DollarSign, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
+import { invalidateCache } from '@/lib/invalidateCache'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
@@ -29,12 +31,12 @@ export default function Software() {
   const queryClient = useQueryClient()
 
   const { data: organizations } = useQuery({
-    queryKey: ['organizations-all'],
+    queryKey: queryKeys.organizations.dropdown,
     queryFn: () => api.getOrganizations({ per_page: 1000 }),
   })
 
   const { data, isLoading } = useQuery({
-    queryKey: ['software', { search, organization_id: organizationFilter, software_type: typeFilter }],
+    queryKey: queryKeys.software.list({ search, organization_id: organizationFilter, software_type: typeFilter }),
     queryFn: () => api.getSoftware({
       search,
       organization_id: organizationFilter ? parseInt(organizationFilter) : undefined,
@@ -45,10 +47,7 @@ export default function Software() {
   const createMutation = useMutation({
     mutationFn: (data: any) => api.createSoftware(data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['software'],
-        refetchType: 'all'
-      })
+      await invalidateCache.software(queryClient)
       toast.success('Software added successfully')
       setShowCreateModal(false)
     },
@@ -60,10 +59,7 @@ export default function Software() {
   const updateMutation = useMutation({
     mutationFn: (data: any) => api.updateSoftware(editingSoftware.id, data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['software'],
-        refetchType: 'all'
-      })
+      await invalidateCache.software(queryClient)
       toast.success('Software updated successfully')
       setEditingSoftware(null)
     },
@@ -75,10 +71,7 @@ export default function Software() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteSoftware(id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['software'],
-        refetchType: 'all'
-      })
+      await invalidateCache.software(queryClient)
       toast.success('Software deleted successfully')
     },
     onError: () => {

@@ -4,6 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Search } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
+import { invalidateCache } from '@/lib/invalidateCache'
 import Button from '@/components/Button'
 import Card, { CardContent } from '@/components/Card'
 import Input from '@/components/Input'
@@ -27,7 +29,7 @@ export default function Entities() {
   }, [initialOrgId])
 
   const { data, isLoading } = useQuery({
-    queryKey: ['entities', { search }],
+    queryKey: queryKeys.entities.list({ search }),
     queryFn: () => api.getEntities({ search }),
   })
 
@@ -116,10 +118,7 @@ export default function Entities() {
             }
           }}
           onSuccess={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: ['entities'],
-              refetchType: 'all'
-            })
+            await invalidateCache.entities(queryClient)
             setShowCreateModal(false)
             // Clear query params on success
             if (initialOrgId) {

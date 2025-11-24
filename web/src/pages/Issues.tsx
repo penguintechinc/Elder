@@ -4,6 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Search, MessageSquare, Tag, User, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
+import { invalidateCache } from '@/lib/invalidateCache'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
@@ -25,7 +27,7 @@ export default function Issues() {
   const entityId = searchParams.get('entity_id')
 
   const { data, isLoading } = useQuery({
-    queryKey: ['issues', { search, status: statusFilter, priority: priorityFilter, organizationId, entityId }],
+    queryKey: queryKeys.issues.list({ search, status: statusFilter, priority: priorityFilter, organizationId, entityId }),
     queryFn: () => api.getIssues({
       search,
       status: statusFilter || undefined,
@@ -39,10 +41,7 @@ export default function Issues() {
     mutationFn: ({ id, status }: { id: number; status: IssueStatus }) =>
       api.updateIssue(id, { status }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['issues'],
-        refetchType: 'all'
-      })
+      await invalidateCache.issues(queryClient)
       toast.success('Issue status updated')
     },
     onError: () => {

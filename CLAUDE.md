@@ -526,6 +526,17 @@ Key points:
 - Proper error handling and logging
 - Security-first development approach
 
+### DRY Principle - Shared Resources
+- **Rule of Two**: If the same or nearly identical code appears in 2+ places, convert it to a shared resource
+- **Create shared utilities** in `src/lib/` for frontend, `shared/` for backend
+- **Examples of shared resources**:
+  - Query keys and cache invalidation utilities (React Query)
+  - API client functions
+  - Form validation schemas
+  - Type definitions
+  - UI components with consistent patterns
+- **Benefits**: Consistent behavior, single point of maintenance, reduced bugs
+
 ### API Design Principles
 - **Avoid duplicative APIs**: Prefer updating existing APIs to be more flexible rather than creating new endpoints for similar functionality
 - **Maintain backwards compatibility**: When extending APIs, ensure existing clients continue to work

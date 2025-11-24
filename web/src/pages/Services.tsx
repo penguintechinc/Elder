@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, Edit, Trash2, Server, Globe, Lock, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
+import { invalidateCache } from '@/lib/invalidateCache'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
@@ -53,12 +55,12 @@ export default function Services() {
   const queryClient = useQueryClient()
 
   const { data: organizations } = useQuery({
-    queryKey: ['organizations-all'],
+    queryKey: queryKeys.organizations.dropdown,
     queryFn: () => api.getOrganizations({ per_page: 1000 }),
   })
 
   const { data, isLoading } = useQuery({
-    queryKey: ['services', { search, organization_id: organizationFilter, language: languageFilter, deployment_method: deploymentFilter, status: statusFilter }],
+    queryKey: queryKeys.services.list({ search, organization_id: organizationFilter, language: languageFilter, deployment_method: deploymentFilter, status: statusFilter }),
     queryFn: () => api.getServices({
       search,
       organization_id: organizationFilter ? parseInt(organizationFilter) : undefined,
@@ -71,10 +73,7 @@ export default function Services() {
   const createMutation = useMutation({
     mutationFn: (data: any) => api.createService(data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['services'],
-        refetchType: 'all'
-      })
+      await invalidateCache.services(queryClient)
       toast.success('Service created successfully')
       setShowCreateModal(false)
     },
@@ -86,10 +85,7 @@ export default function Services() {
   const updateMutation = useMutation({
     mutationFn: (data: any) => api.updateService(editingService.id, data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['services'],
-        refetchType: 'all'
-      })
+      await invalidateCache.services(queryClient)
       toast.success('Service updated successfully')
       setEditingService(null)
     },
@@ -101,10 +97,7 @@ export default function Services() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteService(id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['services'],
-        refetchType: 'all'
-      })
+      await invalidateCache.services(queryClient)
       toast.success('Service deleted successfully')
     },
     onError: () => {

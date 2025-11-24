@@ -4,6 +4,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Search, Trash2, Edit } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
+import { invalidateCache } from '@/lib/invalidateCache'
 import type { Organization } from '@/types'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
@@ -28,7 +30,7 @@ export default function Organizations() {
   }, [initialParentId])
 
   const { data, isLoading } = useQuery({
-    queryKey: ['organizations', search],
+    queryKey: queryKeys.organizations.list({ search }),
     queryFn: () => api.getOrganizations({ search }),
   })
 
@@ -42,10 +44,7 @@ export default function Organizations() {
     mutationFn: (data: { name: string; description?: string; parent_id?: number; tenant_id: number }) =>
       api.createOrganization(data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['organizations'],
-        refetchType: 'all'
-      })
+      await invalidateCache.organizations(queryClient)
       setShowCreateModal(false)
       toast.success('Organization created successfully')
       if (initialParentId) {
@@ -62,10 +61,7 @@ export default function Organizations() {
     mutationFn: ({ id, data }: { id: number; data: { name: string; description?: string; tenant_id?: number } }) =>
       api.updateOrganization(id, data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['organizations'],
-        refetchType: 'all'
-      })
+      await invalidateCache.organizations(queryClient)
       setEditingOrg(null)
       toast.success('Organization updated successfully')
     },
@@ -77,10 +73,7 @@ export default function Organizations() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteOrganization(id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['organizations'],
-        refetchType: 'all'
-      })
+      await invalidateCache.organizations(queryClient)
       toast.success('Organization deleted successfully')
     },
     onError: () => {
