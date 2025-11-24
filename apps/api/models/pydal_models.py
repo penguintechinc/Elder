@@ -47,7 +47,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -117,7 +117,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -725,7 +725,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -747,7 +747,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -878,7 +878,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -907,7 +907,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -956,7 +956,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -985,7 +985,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -1392,7 +1392,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -1523,7 +1523,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -1747,7 +1747,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -1846,7 +1846,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -1887,7 +1887,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -1920,7 +1920,7 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
 
@@ -1957,6 +1957,6 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=16, unique=True, default=generate_village_id),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
