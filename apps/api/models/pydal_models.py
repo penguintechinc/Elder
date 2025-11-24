@@ -1960,3 +1960,148 @@ def define_all_tables(db):
         Field("village_id", "string", length=32, unique=True, default=generate_village_id),
         migrate=False,
     )
+
+    # Certificates table (depends on: tenants, organizations, identities, builtin_secrets) - v2.4.0
+    db.define_table(
+        "certificates",
+        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field("description", "text"),
+        Field(
+            "organization_id",
+            "reference organizations",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        # Certificate details
+        Field(
+            "creator",
+            "string",
+            length=100,
+            notnull=True,
+            requires=IS_IN_SET(
+                [
+                    "digicert",
+                    "letsencrypt",
+                    "self_signed",
+                    "sectigo",
+                    "globalsign",
+                    "godaddy",
+                    "entrust",
+                    "certbot",
+                    "acme",
+                    "comodo",
+                    "thawte",
+                    "geotrust",
+                    "rapidssl",
+                    "internal_ca",
+                    "other",
+                ]
+            ),
+        ),
+        Field(
+            "cert_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(
+                [
+                    "ca_root",
+                    "ca_intermediate",
+                    "server_cert",
+                    "client_cert",
+                    "code_signing",
+                    "wildcard",
+                    "san",
+                    "ecc",
+                    "rsa",
+                    "email",
+                    "other",
+                ]
+            ),
+        ),
+        # Subject information
+        Field("common_name", "string", length=255),  # CN
+        Field("subject_alternative_names", "list:string"),  # SAN entries
+        Field("organization_unit", "string", length=255),  # OU
+        Field("locality", "string", length=100),  # L
+        Field("state_province", "string", length=100),  # ST
+        Field("country", "string", length=2),  # C (ISO 3166-1 alpha-2)
+        # Issuer information
+        Field("issuer_common_name", "string", length=255),
+        Field("issuer_organization", "string", length=255),
+        # Key information
+        Field("key_algorithm", "string", length=50),  # RSA, ECDSA, DSA, Ed25519
+        Field("key_size", "integer"),  # 2048, 4096, 256, etc.
+        Field("signature_algorithm", "string", length=100),
+        # Dates
+        Field("issue_date", "date", notnull=True),
+        Field("expiration_date", "date", notnull=True),
+        Field("not_before", "datetime"),
+        Field("not_after", "datetime"),
+        # Certificate content
+        Field("certificate_pem", "text"),
+        Field("certificate_fingerprint_sha1", "string", length=64),
+        Field("certificate_fingerprint_sha256", "string", length=64),
+        Field("serial_number", "string", length=255),
+        # Key storage reference
+        Field("private_key_secret_id", "reference builtin_secrets", ondelete="SET NULL"),
+        # Usage tracking
+        Field("entities_using", "json"),
+        Field("services_using", "list:integer"),
+        # File/location tracking
+        Field("file_path", "string", length=1024),
+        Field("vault_path", "string", length=512),
+        # Renewal information
+        Field("auto_renew", "boolean", default=False, notnull=True),
+        Field("renewal_days_before", "integer", default=30),
+        Field("last_renewed_at", "datetime"),
+        Field("renewal_method", "string", length=50),  # acme_http, acme_dns, manual, api
+        # ACME/Let's Encrypt specific
+        Field("acme_account_url", "string", length=512),
+        Field("acme_order_url", "string", length=512),
+        Field("acme_challenge_type", "string", length=50),  # http-01, dns-01, tls-alpn-01
+        # Revocation information
+        Field("is_revoked", "boolean", default=False, notnull=True),
+        Field("revoked_at", "datetime"),
+        Field("revocation_reason", "string", length=100),
+        # Validation and compliance
+        Field("validation_type", "string", length=50),  # DV, OV, EV
+        Field("ct_log_status", "string", length=50),  # logged, pending, not_required
+        Field("ocsp_must_staple", "boolean", default=False),
+        # Cost tracking
+        Field("cost_annual", "decimal(10,2)"),
+        Field("purchase_date", "date"),
+        Field("vendor", "string", length=255),
+        # Metadata
+        Field("notes", "text"),
+        Field("tags", "list:string"),
+        Field("custom_metadata", "json"),
+        # Status
+        Field(
+            "status",
+            "string",
+            length=50,
+            default="active",
+            notnull=True,
+            requires=IS_IN_SET(
+                ["active", "expiring_soon", "expired", "revoked", "pending", "archived"]
+            ),
+        ),
+        Field("is_active", "boolean", default=True, notnull=True),
+        # Audit fields
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field("created_by_id", "reference identities", ondelete="SET NULL"),
+        Field("updated_by_id", "reference identities", ondelete="SET NULL"),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        migrate=False,
+    )

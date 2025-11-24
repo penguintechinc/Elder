@@ -21,6 +21,7 @@ import Profile from './pages/Profile'
 // v1.2.0 Pages
 import Secrets from './pages/Secrets'
 import Keys from './pages/Keys'
+import Certificates from './pages/Certificates'
 import IAM from './pages/IAM'
 import Discovery from './pages/Discovery'
 import Webhooks from './pages/Webhooks'
@@ -76,6 +77,7 @@ export default function App() {
         <Route path="labels" element={<Labels />} />
         <Route path="secrets" element={<Secrets />} />
         <Route path="keys" element={<Keys />} />
+        <Route path="certificates" element={<Certificates />} />
         <Route path="iam" element={<IAM />} />
         <Route path="discovery" element={<Discovery />} />
         <Route path="webhooks" element={<Webhooks />} />

@@ -182,6 +182,7 @@ def _register_blueprints(app: Flask) -> None:
     from apps.api.api.v1 import audit_enterprise  # v2.2.0: Enhanced Audit & Compliance
     from apps.api.api.v1 import backup  # Phase 10: Backup & Data Management
     from apps.api.api.v1 import builtin_secrets  # v2.0.0: Built-in Secrets Storage
+    from apps.api.api.v1 import certificates  # v2.4.0: Certificate Management
     from apps.api.api.v1 import discovery  # Phase 5: Cloud Auto-Discovery
     from apps.api.api.v1 import iam  # Phase 4: IAM Integration
     from apps.api.api.v1 import keys  # Phase 3: Keys Management
@@ -294,6 +295,11 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(
         ipam.bp, url_prefix=f"{api_prefix}/ipam"
     )  # IP Address Management
+
+    # v2.4.0 Feature blueprints
+    app.register_blueprint(
+        certificates.bp, url_prefix=f"{api_prefix}/certificates"
+    )  # Certificate management
 
     # Public lookup endpoint (no /api/v1 prefix for cleaner URLs)
     app.register_blueprint(lookup.bp, url_prefix="/lookup")

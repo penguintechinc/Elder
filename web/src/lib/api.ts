@@ -1582,6 +1582,60 @@ class ApiClient {
     return response.data
   }
 
+  // Certificates
+  async getCertificates(params?: {
+    page?: number
+    per_page?: number
+    search?: string
+    organization_id?: number
+  }) {
+    const response = await this.client.get('/certificates', { params })
+    return response.data
+  }
+
+  async getCertificate(id: number) {
+    const response = await this.client.get(`/certificates/${id}`)
+    return response.data
+  }
+
+  async createCertificate(data: {
+    name: string
+    description?: string
+    organization_id: number
+    creator: string
+    cert_type: string
+    common_name?: string
+    issue_date: string
+    expiration_date: string
+    auto_renew?: boolean
+    certificate_pem?: string
+  }) {
+    const response = await this.client.post('/certificates', data)
+    return response.data
+  }
+
+  async updateCertificate(id: number, data: Partial<{
+    name: string
+    description: string
+    organization_id: number
+    creator: string
+    cert_type: string
+    common_name: string
+    issue_date: string
+    expiration_date: string
+    auto_renew: boolean
+    certificate_pem: string
+    status: string
+  }>) {
+    const response = await this.client.put(`/certificates/${id}`, data)
+    return response.data
+  }
+
+  async deleteCertificate(id: number) {
+    const response = await this.client.delete(`/certificates/${id}`)
+    return response.data
+  }
+
   // Village ID Resolution
   async resolveVillageId(villageId: string) {
     const response = await this.client.get(`/id/${villageId}`)

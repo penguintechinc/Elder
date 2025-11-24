@@ -15,6 +15,7 @@ import {
   User,
   LogOut,
   Key,
+  Certificate,
   Shield,
   Compass,
   Webhook,
@@ -67,6 +68,7 @@ const navigationCategories = [
       { name: 'Identity Center', href: '/iam', icon: Shield },
       { name: 'Keys', href: '/keys', icon: Key },
       { name: 'Secrets', href: '/secrets', icon: Key },
+      { name: 'Certificates', href: '/certificates', icon: Certificate },
     ],
   },
   {
