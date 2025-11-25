@@ -1004,6 +1004,31 @@ def define_all_tables(db):
         migrate=False,
     )
 
+    # Labels table - Generic labels for any resource (depends on: organizations) - v2.4.0: Cross-resource labeling
+    db.define_table(
+        "labels",
+        Field("name", "string", length=100, notnull=True, requires=IS_NOT_EMPTY()),
+        Field("color", "string", length=7, default="#cccccc"),
+        Field("description", "string", length=512),
+        Field(
+            "organization_id",
+            "reference organizations",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
     # Projects table (depends on: organizations)
     db.define_table(
         "projects",
@@ -2189,5 +2214,86 @@ def define_all_tables(db):
         Field("created_by_id", "reference identities", ondelete="SET NULL"),
         Field("updated_by_id", "reference identities", ondelete="SET NULL"),
         Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        migrate=False,
+    )
+
+    # Data Stores table (depends on: tenants, organizations, identities, crypto_keys) - v2.4.0: Data inventory management
+    db.define_table(
+        "data_stores",
+        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field("organization_id", "reference organizations", ondelete="CASCADE"),
+        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field("description", "text"),
+        Field(
+            "storage_type",
+            "string",
+            length=50,
+            default="other",
+            requires=IS_IN_SET(
+                ["s3", "gcs", "azure_blob", "disk", "nas", "san", "database", "data_lake", "hdfs", "other"]
+            ),
+        ),
+        Field("storage_provider", "string", length=100),  # AWS, GCP, Azure, On-Premise, Wasabi, Backblaze, MinIO
+        Field("location_region", "string", length=50),  # us-west-1, eu-west-1, etc.
+        Field("location_physical", "string", length=255),  # Dallas, TX; Frankfurt, DE
+        Field(
+            "data_classification",
+            "string",
+            length=20,
+            default="internal",
+            requires=IS_IN_SET(["public", "internal", "confidential", "restricted"]),
+        ),
+        Field("encryption_at_rest", "boolean", default=False),
+        Field("encryption_in_transit", "boolean", default=False),
+        Field("encryption_key_id", "reference crypto_keys", ondelete="SET NULL"),
+        Field("retention_days", "integer"),  # nullable
+        Field("backup_enabled", "boolean", default=False),
+        Field(
+            "backup_frequency",
+            "string",
+            length=50,
+            requires=IS_EMPTY_OR(IS_IN_SET(["daily", "hourly", "weekly"])),
+        ),
+        Field(
+            "access_control_type",
+            "string",
+            length=20,
+            default="private",
+            requires=IS_IN_SET(["iam", "acl", "rbac", "public", "private"]),
+        ),
+        Field("poc_identity_id", "reference identities", ondelete="SET NULL"),
+        Field("compliance_frameworks", "json"),  # array like ["SOC2", "HIPAA", "GDPR", "PCI-DSS"]
+        Field("contains_pii", "boolean", default=False),
+        Field("contains_phi", "boolean", default=False),
+        Field("contains_pci", "boolean", default=False),
+        Field("size_bytes", "bigint"),
+        Field("last_access_audit", "datetime"),
+        Field("metadata", "json"),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field("created_by", "reference portal_users", ondelete="SET NULL"),
+        Field("is_active", "boolean", default=True),
+        migrate=False,
+    )
+
+    # Data Store Labels table (depends on: data_stores, labels) - v2.4.0: Labeling for data stores
+    db.define_table(
+        "data_store_labels",
+        Field("data_store_id", "reference data_stores", notnull=True, ondelete="CASCADE"),
+        Field("label_id", "reference labels", notnull=True, ondelete="CASCADE"),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
         migrate=False,
     )

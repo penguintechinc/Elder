@@ -360,6 +360,14 @@ RESP=$(api_call GET "/services")
 check_response "$RESP" "200" "/services" "GET"
 
 ###########################################
+# DATA STORES
+###########################################
+section "DATA STORES"
+
+RESP=$(api_call GET "/data-stores")
+check_response "$RESP" "200" "/data-stores" "GET"
+
+###########################################
 # CERTIFICATES
 ###########################################
 section "CERTIFICATES"

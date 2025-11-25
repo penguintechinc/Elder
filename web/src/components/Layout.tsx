@@ -29,6 +29,7 @@ import {
   Package,
   Server,
   Globe,
+  HardDrive,
 } from 'lucide-react'
 import api from '@/lib/api'
 
@@ -59,6 +60,7 @@ const navigationCategories = [
       { name: 'Labels', href: '/labels', icon: Tag },
       { name: 'Milestones', href: '/milestones', icon: Flag },
       { name: 'Projects', href: '/projects', icon: FolderKanban },
+      { name: 'Data Stores', href: '/data-stores', icon: HardDrive },
     ],
   },
   {

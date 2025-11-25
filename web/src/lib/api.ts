@@ -1636,6 +1636,86 @@ class ApiClient {
     return response.data
   }
 
+  // ===========================
+  // Data Stores (Community)
+  // ===========================
+
+  async getDataStores(params?: {
+    page?: number
+    per_page?: number
+    organization_id?: number
+    data_classification?: string
+    storage_type?: string
+    location_region?: string
+    contains_pii?: boolean
+    contains_phi?: boolean
+    contains_pci?: boolean
+    compliance_framework?: string
+    poc_identity_id?: number
+    search?: string
+  }) {
+    const response = await this.client.get('/data-stores', { params })
+    return response.data
+  }
+
+  async getDataStore(id: number) {
+    const response = await this.client.get(`/data-stores/${id}`)
+    return response.data
+  }
+
+  async createDataStore(data: {
+    name: string
+    description?: string
+    organization_id: number
+    data_classification: string
+    storage_type: string
+    location_region?: string
+    contains_pii?: boolean
+    contains_phi?: boolean
+    contains_pci?: boolean
+    compliance_framework?: string
+    poc_identity_id?: number
+  }) {
+    const response = await this.client.post('/data-stores', data)
+    return response.data
+  }
+
+  async updateDataStore(id: number, data: Partial<{
+    name: string
+    description: string
+    data_classification: string
+    storage_type: string
+    location_region: string
+    contains_pii: boolean
+    contains_phi: boolean
+    contains_pci: boolean
+    compliance_framework: string
+    poc_identity_id: number
+  }>) {
+    const response = await this.client.put(`/data-stores/${id}`, data)
+    return response.data
+  }
+
+  async deleteDataStore(id: number) {
+    const response = await this.client.delete(`/data-stores/${id}`)
+    return response.data
+  }
+
+  async getDataStoreLabels(id: number) {
+    const response = await this.client.get(`/data-stores/${id}/labels`)
+    return response.data
+  }
+
+  async addDataStoreLabel(id: number, labelId: number) {
+    const response = await this.client.post(`/data-stores/${id}/labels/${labelId}`)
+    return response.data
+  }
+
+  async removeDataStoreLabel(id: number, labelId: number) {
+    const response = await this.client.delete(`/data-stores/${id}/labels/${labelId}`)
+    return response.data
+  }
+
   // Services (Microservice Tracking)
   async getServices(params?: {
     page?: number

@@ -196,6 +196,7 @@ def _register_blueprints(app: Flask) -> None:
     from apps.api.api.v1 import software  # v2.3.0: Software Tracking
     from apps.api.api.v1 import services  # v2.3.0: Services Tracking
     from apps.api.api.v1 import ipam  # v2.3.0: IP Address Management
+    from apps.api.api.v1 import data_stores  # v3.0.0: Data Store Tracking
     from apps.api.api.v1 import (  # Phase 7: Google Workspace Integration
         api_keys,
         auth,
@@ -299,6 +300,9 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(
         ipam.bp, url_prefix=f"{api_prefix}/ipam"
     )  # IP Address Management
+    app.register_blueprint(
+        data_stores.bp, url_prefix=f"{api_prefix}/data-stores"
+    )  # v3.0.0: Data Store Tracking (Community)
 
     # v2.4.0 Feature blueprints
     app.register_blueprint(

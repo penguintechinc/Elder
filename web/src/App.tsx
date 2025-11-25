@@ -31,6 +31,7 @@ import Networking from './pages/Networking'
 // v2.3.0 Pages
 import Software from './pages/Software'
 import Services from './pages/Services'
+import DataStores from './pages/DataStores'
 import IPAM from './pages/IPAM'
 // v2.2.0 Enterprise Admin Pages
 import Tenants from './pages/Tenants'
@@ -86,6 +87,7 @@ export default function App() {
         {/* v2.3.0 Routes */}
         <Route path="software" element={<Software />} />
         <Route path="services" element={<Services />} />
+        <Route path="data-stores" element={<DataStores />} />
         <Route path="ipam" element={<IPAM />} />
         {/* v2.2.0 Enterprise Admin Routes */}
         <Route path="admin/tenants" element={<Tenants />} />
