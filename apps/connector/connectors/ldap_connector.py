@@ -9,10 +9,14 @@ from ldap3.core.exceptions import LDAPException
 
 from apps.connector.config.settings import settings
 from apps.connector.connectors.base import BaseConnector, SyncResult
+from apps.connector.connectors.group_operations import (
+    GroupMembershipResult,
+    GroupOperationsMixin,
+)
 from apps.connector.utils.elder_client import ElderAPIClient, Entity, Organization
 
 
-class LDAPConnector(BaseConnector):
+class LDAPConnector(BaseConnector, GroupOperationsMixin):
     """Connector for LDAP/LDAPS directory services."""
 
     def __init__(self):
@@ -480,3 +484,180 @@ class LDAPConnector(BaseConnector):
         except Exception as e:
             self.logger.warning("LDAP health check failed", error=str(e))
             return False
+
+    # ==================== GroupOperationsMixin Implementation ====================
+
+    async def add_group_member(
+        self,
+        group_id: str,
+        user_id: str,
+    ) -> GroupMembershipResult:
+        """
+        Add a user to an LDAP group.
+
+        Args:
+            group_id: LDAP group DN (e.g., cn=admins,ou=groups,dc=example,dc=com)
+            user_id: LDAP user DN (e.g., cn=jdoe,ou=users,dc=example,dc=com)
+
+        Returns:
+            GroupMembershipResult with operation status
+        """
+        try:
+            if not self.ldap_conn or not self.ldap_conn.bound:
+                return GroupMembershipResult(
+                    success=False,
+                    group_id=group_id,
+                    user_id=user_id,
+                    operation="add",
+                    error="LDAP connection not established",
+                )
+
+            # Add member using MODIFY_ADD
+            self.ldap_conn.modify(
+                group_id, {"member": [(ldap3.MODIFY_ADD, [user_id])]}
+            )
+
+            success = self.ldap_conn.result["result"] == 0
+            error = None if success else self.ldap_conn.result.get("description")
+
+            self.logger.info(
+                "LDAP add_group_member",
+                group_dn=group_id,
+                member_dn=user_id,
+                success=success,
+                error=error,
+            )
+
+            return GroupMembershipResult(
+                success=success,
+                group_id=group_id,
+                user_id=user_id,
+                operation="add",
+                error=error,
+            )
+
+        except LDAPException as e:
+            self.logger.error(
+                "LDAP add_group_member failed",
+                group_dn=group_id,
+                member_dn=user_id,
+                error=str(e),
+            )
+            return GroupMembershipResult(
+                success=False,
+                group_id=group_id,
+                user_id=user_id,
+                operation="add",
+                error=str(e),
+            )
+
+    async def remove_group_member(
+        self,
+        group_id: str,
+        user_id: str,
+    ) -> GroupMembershipResult:
+        """
+        Remove a user from an LDAP group.
+
+        Args:
+            group_id: LDAP group DN
+            user_id: LDAP user DN
+
+        Returns:
+            GroupMembershipResult with operation status
+        """
+        try:
+            if not self.ldap_conn or not self.ldap_conn.bound:
+                return GroupMembershipResult(
+                    success=False,
+                    group_id=group_id,
+                    user_id=user_id,
+                    operation="remove",
+                    error="LDAP connection not established",
+                )
+
+            # Remove member using MODIFY_DELETE
+            self.ldap_conn.modify(
+                group_id, {"member": [(ldap3.MODIFY_DELETE, [user_id])]}
+            )
+
+            success = self.ldap_conn.result["result"] == 0
+            error = None if success else self.ldap_conn.result.get("description")
+
+            self.logger.info(
+                "LDAP remove_group_member",
+                group_dn=group_id,
+                member_dn=user_id,
+                success=success,
+                error=error,
+            )
+
+            return GroupMembershipResult(
+                success=success,
+                group_id=group_id,
+                user_id=user_id,
+                operation="remove",
+                error=error,
+            )
+
+        except LDAPException as e:
+            self.logger.error(
+                "LDAP remove_group_member failed",
+                group_dn=group_id,
+                member_dn=user_id,
+                error=str(e),
+            )
+            return GroupMembershipResult(
+                success=False,
+                group_id=group_id,
+                user_id=user_id,
+                operation="remove",
+                error=str(e),
+            )
+
+    async def get_group_members(self, group_id: str) -> List[str]:
+        """
+        Get current members of an LDAP group.
+
+        Args:
+            group_id: LDAP group DN
+
+        Returns:
+            List of member DNs
+        """
+        try:
+            if not self.ldap_conn or not self.ldap_conn.bound:
+                self.logger.warning(
+                    "LDAP get_group_members: connection not established"
+                )
+                return []
+
+            # Search for group and get member attribute
+            self.ldap_conn.search(
+                search_base=group_id,
+                search_filter="(objectClass=*)",
+                search_scope=ldap3.BASE,
+                attributes=["member"],
+            )
+
+            if not self.ldap_conn.entries:
+                return []
+
+            entry = self.ldap_conn.entries[0]
+            members = entry.member.values if hasattr(entry, "member") else []
+
+            self.logger.info(
+                "LDAP get_group_members",
+                group_dn=group_id,
+                member_count=len(members),
+            )
+
+            return list(members)
+
+        except LDAPException as e:
+            self.logger.error(
+                "LDAP get_group_members failed",
+                group_dn=group_id,
+                error=str(e),
+            )
+            return []

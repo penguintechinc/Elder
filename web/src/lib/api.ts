@@ -306,6 +306,115 @@ class ApiClient {
     return response.data
   }
 
+  // ===========================
+  // Group Membership Management (Enterprise)
+  // ===========================
+
+  // List groups with ownership/member info
+  async getGroupMembershipGroups(params?: {
+    include_members?: boolean
+    include_pending?: boolean
+    limit?: number
+    offset?: number
+  }) {
+    const response = await this.client.get('/group-membership/groups', { params })
+    return response.data
+  }
+
+  // Get group details
+  async getGroupMembershipGroup(groupId: number) {
+    const response = await this.client.get(`/group-membership/groups/${groupId}`)
+    return response.data
+  }
+
+  // Update group ownership/settings
+  async updateGroupMembershipGroup(groupId: number, data: Partial<{
+    owner_identity_id: number
+    owner_group_id: number
+    approval_mode: 'any' | 'all' | 'threshold'
+    approval_threshold: number
+    provider: 'internal' | 'ldap' | 'okta'
+    provider_group_id: string
+    sync_enabled: boolean
+  }>) {
+    const response = await this.client.patch(`/group-membership/groups/${groupId}`, data)
+    return response.data
+  }
+
+  // Create access request for a group
+  async createGroupAccessRequest(groupId: number, data: {
+    reason?: string
+    expires_at?: string
+  }) {
+    const response = await this.client.post(`/group-membership/groups/${groupId}/requests`, data)
+    return response.data
+  }
+
+  // List access requests for a group (owners only)
+  async getGroupAccessRequests(groupId: number, params?: {
+    status?: 'pending' | 'approved' | 'denied' | 'cancelled'
+    limit?: number
+    offset?: number
+  }) {
+    const response = await this.client.get(`/group-membership/groups/${groupId}/requests`, { params })
+    return response.data
+  }
+
+  // List pending requests for groups owned by current user
+  async getPendingGroupAccessRequests(params?: { limit?: number; offset?: number }) {
+    const response = await this.client.get('/group-membership/requests/pending', { params })
+    return response.data
+  }
+
+  // Approve an access request
+  async approveGroupAccessRequest(requestId: number, data?: { comment?: string }) {
+    const response = await this.client.post(`/group-membership/requests/${requestId}/approve`, data || {})
+    return response.data
+  }
+
+  // Deny an access request
+  async denyGroupAccessRequest(requestId: number, data?: { comment?: string }) {
+    const response = await this.client.post(`/group-membership/requests/${requestId}/deny`, data || {})
+    return response.data
+  }
+
+  // Cancel own access request
+  async cancelGroupAccessRequest(requestId: number) {
+    const response = await this.client.delete(`/group-membership/requests/${requestId}`)
+    return response.data
+  }
+
+  // Bulk approve multiple requests
+  async bulkApproveGroupAccessRequests(data: {
+    request_ids: number[]
+    comment?: string
+  }) {
+    const response = await this.client.post('/group-membership/requests/bulk-approve', data)
+    return response.data
+  }
+
+  // List members of a group
+  async getGroupMembers(groupId: number, params?: { limit?: number; offset?: number }) {
+    const response = await this.client.get(`/group-membership/groups/${groupId}/members`, { params })
+    return response.data
+  }
+
+  // Add member to group (owner/admin only)
+  async addGroupMember(groupId: number, data: {
+    identity_id: number
+    expires_at?: string
+    provider_member_id?: string
+  }) {
+    const response = await this.client.post(`/group-membership/groups/${groupId}/members`, data)
+    return response.data
+  }
+
+  // Remove member from group
+  async removeGroupMember(groupId: number, identityId: number) {
+    const response = await this.client.delete(`/group-membership/groups/${groupId}/members/${identityId}`)
+    return response.data
+  }
+
   // Issues
   async getIssues(params?: {
     organization_id?: number

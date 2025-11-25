@@ -123,6 +123,36 @@ class Settings(BaseSettings):
         description="LDAP sync interval in seconds (default: 1 hour)",
     )
 
+    # Okta Configuration (Enterprise)
+    okta_enabled: bool = Field(
+        default=False,
+        description="Enable Okta connector (Enterprise feature)",
+    )
+    okta_domain: Optional[str] = Field(
+        default=None,
+        description="Okta organization domain (e.g., dev-123456.okta.com)",
+    )
+    okta_api_token: Optional[str] = Field(
+        default=None,
+        description="Okta API token (SSWS token) for authentication",
+    )
+    okta_sync_interval: int = Field(
+        default=3600,
+        description="Okta sync interval in seconds (default: 1 hour)",
+    )
+    okta_sync_users: bool = Field(
+        default=True,
+        description="Sync users from Okta to Elder identities",
+    )
+    okta_sync_groups: bool = Field(
+        default=True,
+        description="Sync groups from Okta to Elder identity_groups",
+    )
+    okta_write_back_enabled: bool = Field(
+        default=False,
+        description="Enable write-back of group membership changes to Okta",
+    )
+
     # iBoss Configuration
     iboss_enabled: bool = Field(default=False, description="Enable iBoss connector")
     iboss_api_url: str = Field(

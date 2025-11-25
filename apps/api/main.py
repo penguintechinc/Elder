@@ -204,6 +204,7 @@ def _register_blueprints(app: Flask) -> None:
         entity_types,
         google_workspace,
         graph,
+        group_membership,  # v3.x: Group Membership Management
         identities,
         issues,
         labels,
@@ -247,6 +248,9 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(milestones.bp, url_prefix=f"{api_prefix}/milestones")
     app.register_blueprint(organization_tree.bp, url_prefix=f"{api_prefix}")
     app.register_blueprint(sync.bp, url_prefix=f"{api_prefix}/sync")
+    app.register_blueprint(
+        group_membership.bp, url_prefix=f"{api_prefix}/group-membership"
+    )  # v3.x: Group Membership Management
 
     # v1.2.0 Feature blueprints
     app.register_blueprint(secrets.bp, url_prefix=f"{api_prefix}/secrets")  # Phase 2

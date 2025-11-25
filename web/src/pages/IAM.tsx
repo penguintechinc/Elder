@@ -8,6 +8,7 @@ import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
 import ModalFormBuilder from '@/components/ModalFormBuilder'
+import GroupMembershipManager from '@/components/GroupMembershipManager'
 import { FormConfig } from '@/types/form'
 import { getStatusColor } from '@/lib/colorHelpers'
 
@@ -850,16 +851,7 @@ export default function IAM() {
 
       {/* Groups & Roles Tab */}
       {activeTab === 'Groups & Roles' && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Users className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Groups & Roles</h3>
-            <p className="text-slate-400 mb-4">
-              View and manage groups, roles, and permissions across all identity providers
-            </p>
-            <p className="text-sm text-slate-500">Coming soon in next update</p>
-          </CardContent>
-        </Card>
+        <GroupMembershipManager />
       )}
 
       {/* Relationships Tab */}

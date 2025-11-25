@@ -233,6 +233,16 @@ def define_all_tables(db):
         Field("ldap_dn", "string", length=512),
         Field("saml_group", "string", length=255),
         Field("is_active", "boolean", default=True, notnull=True),
+        # Group ownership (Enterprise feature)
+        Field("owner_identity_id", "integer"),  # Reference to identities (added later)
+        Field("owner_group_id", "integer"),  # Self-reference to identity_groups
+        # Approval workflow settings
+        Field("approval_mode", "string", length=20, default="any"),  # any, all, threshold
+        Field("approval_threshold", "integer", default=1),
+        # Multi-provider configuration
+        Field("provider", "string", length=50, default="internal"),  # internal, ldap, okta
+        Field("provider_group_id", "string", length=512),  # Provider-specific group ID
+        Field("sync_enabled", "boolean", default=False),
         Field(
             "created_at",
             "datetime",
@@ -501,6 +511,68 @@ def define_all_tables(db):
         Field(
             "group_id", "reference identity_groups", notnull=True, ondelete="CASCADE"
         ),
+        # Expiration support (Enterprise feature)
+        Field("expires_at", "datetime"),
+        Field("granted_via_request_id", "integer"),  # Reference to group_access_requests
+        # Provider sync tracking
+        Field("provider_synced", "boolean", default=False),
+        Field("provider_synced_at", "datetime"),
+        Field("provider_member_id", "string", length=512),  # Provider-specific user ID
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
+    # Group Access Requests table (Enterprise feature - depends on: identity_groups, identities)
+    db.define_table(
+        "group_access_requests",
+        Field("tenant_id", "integer", default=1, notnull=True),
+        Field(
+            "group_id", "reference identity_groups", notnull=True, ondelete="CASCADE"
+        ),
+        Field(
+            "requester_id", "reference identities", notnull=True, ondelete="CASCADE"
+        ),
+        Field(
+            "status", "string", length=20, default="pending"
+        ),  # pending, approved, denied, expired, cancelled
+        Field("reason", "text"),
+        Field("expires_at", "datetime"),  # Requested membership expiration
+        Field("decided_at", "datetime"),
+        Field("decided_by_id", "integer"),  # Reference to identities
+        Field("decision_comment", "text"),
+        Field("village_id", "string", length=32, unique=True),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
+    # Group Access Approvals table (Enterprise feature - tracks individual approvals)
+    db.define_table(
+        "group_access_approvals",
+        Field("tenant_id", "integer", default=1, notnull=True),
+        Field(
+            "request_id",
+            "reference group_access_requests",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "approver_id", "reference identities", notnull=True, ondelete="CASCADE"
+        ),
+        Field("decision", "string", length=20, notnull=True),  # approved, denied
+        Field("comment", "text"),
         Field(
             "created_at",
             "datetime",

@@ -6,7 +6,13 @@ from apps.connector.connectors.gcp_connector import GCPConnector
 from apps.connector.connectors.google_workspace_connector import (
     GoogleWorkspaceConnector,
 )
+from apps.connector.connectors.group_operations import (
+    GroupMembershipResult,
+    GroupOperationsMixin,
+    GroupSyncResult,
+)
 from apps.connector.connectors.ldap_connector import LDAPConnector
+from apps.connector.connectors.okta_connector import OktaConnector
 
 __all__ = [
     "BaseConnector",
@@ -15,4 +21,8 @@ __all__ = [
     "GCPConnector",
     "GoogleWorkspaceConnector",
     "LDAPConnector",
+    "OktaConnector",
+    "GroupOperationsMixin",
+    "GroupMembershipResult",
+    "GroupSyncResult",
 ]
