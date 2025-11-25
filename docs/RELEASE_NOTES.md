@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.0] - 2025-11-25
+
+### 💥 Breaking Changes
+
+This release includes database schema changes that require migration.
+
+#### Database Schema Updates
+- **crypto_keys table**: Added new fields for enhanced key management
+  - `key_provider_id` (renamed from `provider_id`)
+  - `provider_key_arn` (string, 512 chars)
+  - `key_type` (string, 50 chars, default: "symmetric")
+  - `key_state` (string, 50 chars, default: "Enabled")
+  - `metadata_json` (renamed from `metadata`)
+- **key_access_log table**: Added new fields for better audit logging
+  - `operation` (string, 50 chars)
+  - `metadata_json` (json)
+
+### 🐛 Bug Fixes
+
+#### API Endpoint Fixes (20 endpoints fixed)
+- **Module-level database import issues**: Fixed `db = None` errors in:
+  - `/api/v1/api-keys` - API keys management
+  - `/api/v1/sso/idp` - SSO identity provider configuration
+  - `/api/v1/audit-enterprise/*` - Enterprise audit logging endpoints
+- **Empty list SQL errors**: Fixed PyDAL `.belongs([])` generating invalid SQL in:
+  - `/api/v1/graph` - Dependency graph visualization
+  - `/api/v1/graph/analyze` - Graph analysis
+  - `/api/v1/organizations/{id}/graph` - Organization relationship graph
+- **Table name mismatch**: Fixed Keys service using wrong table reference
+  - Changed `self.db.keys` to `self.db.crypto_keys` throughout service
+
+### ✨ Improvements
+
+- **Documentation**: Added default login credentials section to README.md
+- **API Testing**: Added comprehensive API test script at `scripts/test/test_api_endpoints.sh`
+
+### 📁 Files Modified
+
+- `apps/api/api/v1/graph.py` - Empty list guards
+- `apps/api/api/v1/api_keys.py` - Database import fix
+- `apps/api/services/sso/saml_service.py` - Database import fix
+- `apps/api/services/sso/scim_service.py` - Database import fix
+- `apps/api/services/audit/service.py` - Database import fix
+- `apps/api/models/pydal_models.py` - Schema updates
+- `apps/api/services/keys/service.py` - Table reference fix
+- `README.md` - Default login section
+
+### ⬆️ Migration Notes
+
+After updating to v3.0.0, run database migrations or recreate the `crypto_keys` and `key_access_log` tables to apply schema changes:
+
+```sql
+-- Add new columns to crypto_keys
+ALTER TABLE crypto_keys RENAME COLUMN provider_id TO key_provider_id;
+ALTER TABLE crypto_keys ADD COLUMN provider_key_arn VARCHAR(512);
+ALTER TABLE crypto_keys ADD COLUMN key_type VARCHAR(50) DEFAULT 'symmetric';
+ALTER TABLE crypto_keys ADD COLUMN key_state VARCHAR(50) DEFAULT 'Enabled';
+ALTER TABLE crypto_keys RENAME COLUMN metadata TO metadata_json;
+
+-- Add new columns to key_access_log
+ALTER TABLE key_access_log ADD COLUMN operation VARCHAR(50);
+ALTER TABLE key_access_log ADD COLUMN metadata_json JSON;
+```
+
+---
+
 ## [2.4.0] - 2025-11-24
 
 ### 🔒 Certificate Management, Code Consolidation & Bug Fixes

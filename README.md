@@ -3,7 +3,7 @@
 [![Continuous Integration](https://github.com/penguintechinc/elder/actions/workflows/ci.yml/badge.svg)](https://github.com/penguintechinc/elder/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/penguintechinc/elder/actions/workflows/docker-build.yml/badge.svg)](https://github.com/penguintechinc/elder/actions/workflows/docker-build.yml)
 [![Test Coverage](https://codecov.io/gh/penguintechinc/elder/branch/main/graph/badge.svg)](https://codecov.io/gh/penguintechinc/elder)
-[![Version](https://img.shields.io/badge/version-2.4.0-green.svg)](https://github.com/penguintechinc/elder/releases)
+[![Version](https://img.shields.io/badge/version-3.0.0-green.svg)](https://github.com/penguintechinc/elder/releases)
 [![Python](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
 [![Node.js](https://img.shields.io/badge/node.js-18+-green.svg)](https://nodejs.org/)
 [![License: Limited AGPL v3](https://img.shields.io/badge/License-Limited_AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)*
@@ -351,6 +351,19 @@ Elder is licensed under the Limited AGPL v3 with Fair Use Preamble. See [LICENSE
 - **Documentation**: [docs.penguintech.io/elder](https://docs.penguintech.io/elder)
 - **Issues**: [GitHub Issues](https://github.com/penguintechinc/elder/issues)
 - **Email**: support@penguintech.io
+
+## Default Login Credentials
+
+For local development and testing, Elder creates a default admin user:
+
+| Field | Value |
+|-------|-------|
+| **URL** | http://localhost:3005 |
+| **Email** | admin@localhost |
+| **Password** | admin123 |
+| **Tenant** | System (ID: 1) |
+
+> **Warning**: Change the default password immediately in production environments by setting the `ADMIN_PASSWORD` environment variable before first startup.
 
 ---
 

@@ -9,7 +9,7 @@ import json
 import uuid
 from typing import Optional, Any
 
-from shared.database import db
+from flask import current_app
 
 
 class AuditService:
@@ -80,6 +80,8 @@ class AuditService:
         Returns:
             Audit log entry ID
         """
+        db = current_app.db
+
         # Build details dict
         event_details = details or {}
 
@@ -267,6 +269,8 @@ class AuditService:
         Returns:
             Dict with logs and pagination info
         """
+        db = current_app.db
+
         query = db.audit_logs.id > 0
 
         if tenant_id:
@@ -349,6 +353,8 @@ class AuditService:
         Returns:
             Compliance report data
         """
+        db = current_app.db
+
         base_query = (
             (db.audit_logs.created_at >= start_date)
             & (db.audit_logs.created_at <= end_date)
@@ -442,6 +448,8 @@ class AuditService:
         Returns:
             Retention policy settings
         """
+        db = current_app.db
+
         tenant = db.tenants[tenant_id]
         if not tenant:
             return {"error": "Tenant not found"}
@@ -462,6 +470,8 @@ class AuditService:
         Returns:
             Cleanup result
         """
+        db = current_app.db
+
         tenant = db.tenants[tenant_id]
         if not tenant:
             return {"error": "Tenant not found"}

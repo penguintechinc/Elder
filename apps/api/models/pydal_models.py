@@ -1582,21 +1582,30 @@ def define_all_tables(db):
         "crypto_keys",
         Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
         Field(
-            "provider_id", "reference key_providers", notnull=True, ondelete="CASCADE"
+            "key_provider_id", "reference key_providers", notnull=True, ondelete="CASCADE"
         ),
         Field(
             "provider_key_id", "string", length=512, notnull=True
         ),  # Key ID in provider
         Field(
+            "provider_key_arn", "string", length=512
+        ),  # Key ARN in provider (AWS, GCP)
+        Field(
             "key_hash", "string", length=255, notnull=True
         ),  # Hash of key for tracking
+        Field(
+            "key_type", "string", length=50, default="symmetric"
+        ),  # symmetric, asymmetric, hmac
+        Field(
+            "key_state", "string", length=50, default="Enabled"
+        ),  # Enabled, Disabled, PendingDeletion
         Field(
             "organization_id",
             "reference organizations",
             notnull=True,
             ondelete="CASCADE",
         ),
-        Field("metadata", "json"),  # Additional metadata about the key
+        Field("metadata_json", "json"),  # Additional metadata about the key
         Field("last_synced_at", "datetime"),
         Field(
             "created_at",
@@ -1663,16 +1672,21 @@ def define_all_tables(db):
     db.define_table(
         "key_access_log",
         Field("key_id", "reference crypto_keys", notnull=True, ondelete="CASCADE"),
-        Field("identity_id", "reference identities", notnull=True, ondelete="CASCADE"),
+        Field("identity_id", "reference identities", ondelete="CASCADE"),
         Field(
             "action",
             "string",
             length=50,
-            notnull=True,
             requires=IS_IN_SET(
                 ["view", "create", "update", "delete", "encrypt", "decrypt", "sign"]
             ),
         ),
+        Field(
+            "operation",
+            "string",
+            length=50,
+        ),  # Operation performed (encrypt, decrypt, sign, verify, etc.)
+        Field("metadata_json", "json"),  # Additional metadata about the access
         Field(
             "accessed_at",
             "datetime",

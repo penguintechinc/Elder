@@ -8,7 +8,7 @@ import datetime
 from typing import Optional
 from urllib.parse import urljoin
 
-from shared.database import db
+from flask import current_app
 from apps.api.services.portal_auth import PortalAuthService
 
 
@@ -25,6 +25,7 @@ class SAMLService:
         Returns:
             IdP configuration dict or None
         """
+        db = current_app.db
         if tenant_id:
             # Try tenant-specific IdP first
             config = db(
@@ -96,6 +97,7 @@ class SAMLService:
         Returns:
             Created configuration dict
         """
+        db = current_app.db
         config_id = db.idp_configurations.insert(
             tenant_id=tenant_id,
             idp_type=idp_type,
@@ -125,6 +127,7 @@ class SAMLService:
         Returns:
             Updated configuration dict or error
         """
+        db = current_app.db
         config = db.idp_configurations[config_id]
         if not config:
             return {"error": "IdP configuration not found"}
@@ -153,6 +156,7 @@ class SAMLService:
         Returns:
             Success dict or error
         """
+        db = current_app.db
         config = db.idp_configurations[config_id]
         if not config:
             return {"error": "IdP configuration not found"}
@@ -215,6 +219,7 @@ class SAMLService:
         Returns:
             Created or existing user dict
         """
+        db = current_app.db
         # Check if user exists
         existing = db(
             (db.portal_users.email == email.lower())
@@ -309,6 +314,7 @@ class SAMLService:
         Returns:
             List of IdP configurations
         """
+        db = current_app.db
         if tenant_id:
             configs = db(
                 (db.idp_configurations.tenant_id == tenant_id)

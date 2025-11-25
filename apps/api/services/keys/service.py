@@ -197,7 +197,7 @@ class KeysService:
             raise Exception(f"Provider not found: {provider_id}")
 
         # Check if provider has keys
-        keys_count = self.db(self.db.keys.key_provider_id == provider_id).count()
+        keys_count = self.db(self.db.crypto_keys.key_provider_id == provider_id).count()
 
         if keys_count > 0:
             raise Exception(
@@ -269,7 +269,7 @@ class KeysService:
         key_data = client.create_key(key_name, key_type, key_spec, description, tags)
 
         # Register key in database
-        key_id = self.db.keys.insert(
+        key_id = self.db.crypto_keys.insert(
             key_provider_id=provider_id,
             provider_key_id=key_data["key_id"],
             provider_key_arn=key_data.get("key_arn"),
@@ -299,7 +299,7 @@ class KeysService:
         Returns:
             Key dictionary
         """
-        key = self.db.keys[key_id]
+        key = self.db.crypto_keys[key_id]
 
         if not key:
             raise Exception(f"Key not found: {key_id}")
@@ -330,18 +330,18 @@ class KeysService:
         Returns:
             List of key dictionaries
         """
-        query = self.db.keys.id > 0
+        query = self.db.crypto_keys.id > 0
 
         if provider_id:
-            query &= self.db.keys.key_provider_id == provider_id
+            query &= self.db.crypto_keys.key_provider_id == provider_id
 
         if key_type:
-            query &= self.db.keys.key_type == key_type
+            query &= self.db.crypto_keys.key_type == key_type
 
         if enabled_only:
-            query &= self.db.keys.key_state == "Enabled"
+            query &= self.db.crypto_keys.key_state == "Enabled"
 
-        keys = self.db(query).select(orderby=self.db.keys.created_at)
+        keys = self.db(query).select(orderby=self.db.crypto_keys.created_at)
 
         result = []
         for key in keys:
@@ -358,7 +358,7 @@ class KeysService:
 
     def enable_key(self, key_id: int) -> Dict[str, Any]:
         """Enable a disabled key."""
-        key = self.db.keys[key_id]
+        key = self.db.crypto_keys[key_id]
 
         if not key:
             raise Exception(f"Key not found: {key_id}")
@@ -367,7 +367,7 @@ class KeysService:
         result = client.enable_key(key.provider_key_id)
 
         # Update database
-        self.db(self.db.keys.id == key_id).update(
+        self.db(self.db.crypto_keys.id == key_id).update(
             key_state=result.get("state", "Enabled")
         )
         self.db.commit()
@@ -376,7 +376,7 @@ class KeysService:
 
     def disable_key(self, key_id: int) -> Dict[str, Any]:
         """Disable a key."""
-        key = self.db.keys[key_id]
+        key = self.db.crypto_keys[key_id]
 
         if not key:
             raise Exception(f"Key not found: {key_id}")
@@ -385,7 +385,7 @@ class KeysService:
         result = client.disable_key(key.provider_key_id)
 
         # Update database
-        self.db(self.db.keys.id == key_id).update(
+        self.db(self.db.crypto_keys.id == key_id).update(
             key_state=result.get("state", "Disabled")
         )
         self.db.commit()
@@ -394,7 +394,7 @@ class KeysService:
 
     def delete_key(self, key_id: int, pending_days: int = 30) -> Dict[str, Any]:
         """Schedule key deletion."""
-        key = self.db.keys[key_id]
+        key = self.db.crypto_keys[key_id]
 
         if not key:
             raise Exception(f"Key not found: {key_id}")
@@ -403,7 +403,7 @@ class KeysService:
         result = client.schedule_key_deletion(key.provider_key_id, pending_days)
 
         # Update database
-        self.db(self.db.keys.id == key_id).update(
+        self.db(self.db.crypto_keys.id == key_id).update(
             key_state=result.get("state", "PendingDeletion")
         )
         self.db.commit()
@@ -419,7 +419,7 @@ class KeysService:
         self, key_id: int, plaintext: str, context: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
         """Encrypt data using a key."""
-        key = self.db.keys[key_id]
+        key = self.db.crypto_keys[key_id]
 
         if not key:
             raise Exception(f"Key not found: {key_id}")
@@ -439,7 +439,7 @@ class KeysService:
         self, key_id: int, ciphertext: str, context: Optional[Dict[str, str]] = None
     ) -> Dict[str, Any]:
         """Decrypt data using a key."""
-        key = self.db.keys[key_id]
+        key = self.db.crypto_keys[key_id]
 
         if not key:
             raise Exception(f"Key not found: {key_id}")
@@ -462,7 +462,7 @@ class KeysService:
         context: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """Generate a data encryption key."""
-        key = self.db.keys[key_id]
+        key = self.db.crypto_keys[key_id]
 
         if not key:
             raise Exception(f"Key not found: {key_id}")
@@ -482,7 +482,7 @@ class KeysService:
         self, key_id: int, message: str, signing_algorithm: str = "RSASSA_PSS_SHA_256"
     ) -> Dict[str, Any]:
         """Sign a message using an asymmetric key."""
-        key = self.db.keys[key_id]
+        key = self.db.crypto_keys[key_id]
 
         if not key:
             raise Exception(f"Key not found: {key_id}")
@@ -507,7 +507,7 @@ class KeysService:
         self, key_id: int, message: str, signature: str, signing_algorithm: str
     ) -> Dict[str, Any]:
         """Verify a message signature."""
-        key = self.db.keys[key_id]
+        key = self.db.crypto_keys[key_id]
 
         if not key:
             raise Exception(f"Key not found: {key_id}")
@@ -529,7 +529,7 @@ class KeysService:
 
     def rotate_key(self, key_id: int) -> Dict[str, Any]:
         """Rotate a key."""
-        key = self.db.keys[key_id]
+        key = self.db.crypto_keys[key_id]
 
         if not key:
             raise Exception(f"Key not found: {key_id}")

@@ -66,6 +66,21 @@ async def get_graph():
         # Get entity IDs for dependency filtering
         entity_ids = [e.id for e in entities]
 
+        # Early return if no entities found
+        if not entity_ids:
+            return (
+                {
+                    "nodes": [],
+                    "edges": [],
+                    "stats": {
+                        "entity_count": 0,
+                        "dependency_count": 0,
+                    },
+                },
+                None,
+                200,
+            )
+
         # Get dependencies between these entities
         dependencies = db(
             db.dependencies.source_entity_id.belongs(entity_ids)
@@ -149,6 +164,27 @@ async def analyze_graph():
 
         entities = db(query).select()
         entity_ids = [e.id for e in entities]
+
+        # Early return if no entities found
+        if not entity_ids:
+            return {
+                "basic_stats": {
+                    "total_entities": 0,
+                    "total_dependencies": 0,
+                    "entities_by_type": {},
+                },
+                "graph_metrics": {
+                    "density": 0,
+                    "is_directed_acyclic": True,
+                },
+                "centrality": {},
+                "critical_paths": [],
+                "issues": {
+                    "circular_dependencies": 0,
+                    "cycles": [],
+                    "isolated_entities": 0,
+                },
+            }
 
         dependencies = db(
             db.dependencies.source_entity_id.belongs(entity_ids)
@@ -400,7 +436,8 @@ async def get_map():
             if org_id:
                 # Get this org and all children recursively
                 org_ids_to_include = _get_org_tree(db, org_id)
-                org_query &= db.organizations.id.belongs(list(org_ids_to_include))
+                if org_ids_to_include:
+                    org_query &= db.organizations.id.belongs(list(org_ids_to_include))
 
             orgs = db(org_query).select(limitby=(0, limit))
             for org in orgs:

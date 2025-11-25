@@ -8,7 +8,7 @@ import datetime
 import secrets
 from typing import Optional
 
-from shared.database import db
+from flask import current_app
 
 
 class SCIMService:
@@ -32,6 +32,7 @@ class SCIMService:
         Returns:
             SCIM configuration with bearer token
         """
+        db = current_app.db
         # Generate secure bearer token
         bearer_token = f"scim_{secrets.token_urlsafe(32)}"
 
@@ -61,6 +62,7 @@ class SCIMService:
         Returns:
             SCIM configuration dict or None
         """
+        db = current_app.db
         config = db(
             (db.scim_configurations.tenant_id == tenant_id)
             & (db.scim_configurations.is_active == True)  # noqa: E712  # noqa: E712
@@ -88,6 +90,7 @@ class SCIMService:
         Returns:
             True if valid, False otherwise
         """
+        db = current_app.db
         config = db(
             (db.scim_configurations.tenant_id == tenant_id)
             & (db.scim_configurations.bearer_token == token)
@@ -107,6 +110,7 @@ class SCIMService:
         Returns:
             SCIM user response
         """
+        db = current_app.db
         # Extract user attributes from SCIM format
         email = None
         for email_obj in scim_user.get("emails", []):
@@ -161,6 +165,7 @@ class SCIMService:
         Returns:
             SCIM user resource
         """
+        db = current_app.db
         user = db(
             (db.portal_users.id == user_id)
             & (db.portal_users.tenant_id == tenant_id)
@@ -185,6 +190,7 @@ class SCIMService:
         Returns:
             Updated SCIM user response
         """
+        db = current_app.db
         user = db(
             (db.portal_users.id == user_id)
             & (db.portal_users.tenant_id == tenant_id)
@@ -234,6 +240,7 @@ class SCIMService:
         Returns:
             Success status
         """
+        db = current_app.db
         user = db(
             (db.portal_users.id == user_id)
             & (db.portal_users.tenant_id == tenant_id)
@@ -266,6 +273,7 @@ class SCIMService:
         Returns:
             SCIM ListResponse
         """
+        db = current_app.db
         query = db.portal_users.tenant_id == tenant_id
 
         # Simple filter parsing (basic support)
@@ -349,6 +357,7 @@ class SCIMService:
         Returns:
             New bearer token
         """
+        db = current_app.db
         config = db(
             db.scim_configurations.tenant_id == tenant_id
         ).select().first()
