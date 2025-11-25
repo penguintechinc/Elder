@@ -37,13 +37,15 @@ Entity, Element, and Relationship Tracking System
 Elder provides visibility into your infrastructure and organizational relationships through:
 
 - **Entity Tracking**: Datacenters, VPCs, Compute, Network, Storage, Security, and Applications
+- **Data Store Tracking**: S3, GCS, Azure Blob, NAS, SAN, databases with compliance metadata
 - **Dependency Mapping**: Visualize relationships between entities
 - **Organizational Hierarchy**: Manage Company → Department → Team structures
-- **Unified IAM**: Manage identities across AWS, Azure, GCP, Okta, LDAP
+- **Unified IAM**: Manage identities across AWS, Azure, GCP, Okta, LDAP with group management
+- **SSO Integration**: SAML 2.0, OpenID Connect (OIDC), and SCIM 2.0 provisioning
 - **Secrets Management**: Integrate with Vault, AWS Secrets Manager, GCP Secret Manager
 - **Network Topology**: Track VPCs, subnets, peering, VPN connections
 - **Project Sync**: Bi-directional sync with GitHub, GitLab, Jira, Trello, OpenProject
-- **Enterprise Features**: Audit logging, RBAC, MFA, SSO, license management
+- **Enterprise Features**: Audit logging, RBAC, MFA, SSO, multi-tenant, license management
 
 ## Screenshots
 
@@ -177,16 +179,26 @@ Elder provides visibility into your infrastructure and organizational relationsh
 - ✅ **Hierarchical Organizations**: Unlimited depth organizational structures
 - ✅ **Dependency Graphs**: Visualize complex entity relationships
 - ✅ **Full RBAC**: Role-based permissions with org-scoped access
-- ✅ **Multi-Auth**: Local, SAML, OAuth2, and LDAP authentication
+- ✅ **Multi-Auth**: Local, SAML, OAuth2, OIDC, and LDAP authentication
 - ✅ **RESTful & gRPC APIs**: Complete API coverage
 - ✅ **Audit Logging**: Comprehensive audit trail for compliance
 
-### v2.0 Highlights
+### v3.0.0 Highlights (Latest)
+- **OpenID Connect (OIDC)**: Full OIDC support alongside SAML for SSO integration
+- **Data Stores Tracking**: Track S3, GCS, Azure Blob, NAS, SAN, databases, and data lakes with compliance metadata (PII, PHI, PCI flags)
+- **Group Membership Management**: Approval workflows, access requests, owner reviews, and multi-provider write-back (LDAP + Okta)
+- **Okta Connector**: Full Okta identity provider with bidirectional sync and group management
+- **SCIM 2.0 Provisioning**: Complete SCIM user provisioning with JIT provisioning support
+- **Enhanced Key Management**: Improved crypto key schema with provider ARN, key types, and state tracking
+
+### v2.x Highlights
 - **Unified Identity Center**: Single page for all identity types (Users, Groups, Service Accounts, API Keys)
 - **Multi-backend Secrets**: HashiCorp Vault, AWS Secrets Manager, GCP Secret Manager, Infisical
 - **Network Topology**: VPCs, Subnets, Firewalls, Load Balancers with connection mapping
 - **Project Sync**: Bi-directional sync with GitHub, GitLab, Jira, Trello, OpenProject
-- **Cloud Connectors**: AWS, GCP, Kubernetes, Google Workspace, LDAP
+- **Cloud Connectors**: AWS, GCP, Kubernetes, Google Workspace, LDAP, iBoss, vCenter, FleetDM
+- **SSL/TLS Certificate Management**: Track certificates with expiration, renewal, and compliance
+- **Village ID System**: Universal hierarchical identifiers for all resources
 
 ### License Tiers
 
@@ -254,6 +266,7 @@ REDIS_URL=redis://:password@localhost:6379/0
 
 # Authentication
 SAML_ENABLED=true
+OIDC_ENABLED=true
 OAUTH2_ENABLED=true
 LDAP_ENABLED=true
 
@@ -294,7 +307,8 @@ ADMIN_EMAIL=admin@example.com
 - **Database**: PostgreSQL (recommended), MySQL, SQLite, Oracle, MSSQL
 - **Cache**: Redis / Valkey
 - **APIs**: REST (OpenAPI 3.0), gRPC
-- **Auth**: JWT, SAML, OAuth2, LDAP
+- **Auth**: JWT, SAML, OIDC, OAuth2, LDAP, SCIM 2.0
+- **Connectors**: AWS, GCP, Kubernetes, Okta, LDAP, vCenter, FleetDM, iBoss
 - **Monitoring**: Prometheus, Grafana
 
 ## Documentation
@@ -344,6 +358,11 @@ We welcome contributions! Please see [CONTRIBUTING.md](docs/CONTRIBUTING.md) for
 ## License
 
 Elder is licensed under the Limited AGPL v3 with Fair Use Preamble. See [LICENSE.md](docs/LICENSE.md) for details.
+
+**License Highlights:**
+- **Personal & Internal Use**: Free under AGPL-3.0
+- **Commercial Use**: Requires commercial license
+- **Contributor Employer Exception**: Companies employing official contributors receive GPL-2.0 access to community features for versions where their employee is credited
 
 ## Support
 
