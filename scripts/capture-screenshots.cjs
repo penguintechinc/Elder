@@ -17,6 +17,7 @@ const pages = [
   { name: 'identities', path: '/identities' },
   { name: 'keys', path: '/keys' },
   { name: 'secrets', path: '/secrets' },
+  { name: 'certificates', path: '/certificates' },
   { name: 'dependencies', path: '/dependencies' },
   { name: 'discovery', path: '/discovery' },
   { name: 'profile', path: '/profile' },

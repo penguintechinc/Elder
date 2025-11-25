@@ -143,10 +143,10 @@ Elder provides visibility into your infrastructure and organizational relationsh
 <p align="center"><em>API Keys</em></p>
 </td>
 <td width="50%">
-<a href="docs/screenshots/dependencies.png" target="_blank">
-  <img src="docs/screenshots/dependencies.png" alt="Dependencies" style="max-width: 100%;">
+<a href="docs/screenshots/certificates.png" target="_blank">
+  <img src="docs/screenshots/certificates.png" alt="Certificates" style="max-width: 100%;">
 </a>
-<p align="center"><em>Dependencies</em></p>
+<p align="center"><em>Certificates</em></p>
 </td>
 </tr>
 </table>
