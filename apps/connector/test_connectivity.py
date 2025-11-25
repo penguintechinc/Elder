@@ -171,6 +171,64 @@ async def test_ldap():
         return False
 
 
+async def test_okta():
+    """Test Okta connectivity."""
+    if not settings.okta_enabled:
+        logger.info("Okta connector disabled, skipping")
+        return True
+
+    try:
+        import httpx
+
+        logger.info("Testing Okta connectivity...")
+
+        base_url = f"https://{settings.okta_domain}"
+        headers = {
+            "Authorization": f"SSWS {settings.okta_api_token}",
+            "Accept": "application/json",
+        }
+
+        async with httpx.AsyncClient(headers=headers, timeout=30.0) as client:
+            resp = await client.get(f"{base_url}/api/v1/users?limit=1")
+            resp.raise_for_status()
+
+        logger.info("✓ Okta connection successful", domain=settings.okta_domain)
+        return True
+    except Exception as e:
+        logger.error(f"✗ Okta connection failed: {e}")
+        return False
+
+
+async def test_authentik():
+    """Test Authentik connectivity."""
+    if not settings.authentik_enabled:
+        logger.info("Authentik connector disabled, skipping")
+        return True
+
+    try:
+        import httpx
+
+        logger.info("Testing Authentik connectivity...")
+
+        base_url = f"https://{settings.authentik_domain}/api/v3"
+        headers = {
+            "Authorization": f"Bearer {settings.authentik_api_token}",
+            "Accept": "application/json",
+        }
+
+        async with httpx.AsyncClient(
+            headers=headers, timeout=30.0, verify=settings.authentik_verify_ssl
+        ) as client:
+            resp = await client.get(f"{base_url}/core/users/?page_size=1")
+            resp.raise_for_status()
+
+        logger.info("✓ Authentik connection successful", domain=settings.authentik_domain)
+        return True
+    except Exception as e:
+        logger.error(f"✗ Authentik connection failed: {e}")
+        return False
+
+
 async def test_elder_api():
     """Test Elder API connectivity."""
     try:
@@ -206,6 +264,8 @@ async def main():
         "GCP": await test_gcp(),
         "Google Workspace": await test_google_workspace(),
         "LDAP": await test_ldap(),
+        "Okta": await test_okta(),
+        "Authentik": await test_authentik(),
     }
 
     logger.info("=" * 60)

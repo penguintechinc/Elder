@@ -50,20 +50,38 @@ class SAMLService:
     @staticmethod
     def _config_to_dict(config) -> dict:
         """Convert IdP config record to dict."""
-        return {
+        result = {
             "id": config.id,
             "tenant_id": config.tenant_id,
             "idp_type": config.idp_type,
             "name": config.name,
-            "entity_id": config.entity_id,
-            "metadata_url": config.metadata_url,
-            "sso_url": config.sso_url,
-            "slo_url": config.slo_url,
-            "certificate": config.certificate,
             "attribute_mappings": config.attribute_mappings or {},
             "jit_provisioning_enabled": config.jit_provisioning_enabled,
             "default_role": config.default_role,
         }
+
+        # Add SAML-specific fields
+        if config.idp_type == "saml":
+            result.update({
+                "entity_id": config.entity_id,
+                "metadata_url": config.metadata_url,
+                "sso_url": config.sso_url,
+                "slo_url": config.slo_url,
+                "certificate": config.certificate,
+            })
+
+        # Add OIDC-specific fields
+        elif config.idp_type == "oidc":
+            result.update({
+                "oidc_client_id": config.oidc_client_id,
+                "oidc_client_secret": config.oidc_client_secret,
+                "oidc_issuer_url": config.oidc_issuer_url,
+                "oidc_scopes": config.oidc_scopes or "openid profile email",
+                "oidc_response_type": config.oidc_response_type or "code",
+                "oidc_token_endpoint_auth_method": config.oidc_token_endpoint_auth_method or "client_secret_basic",
+            })
+
+        return result
 
     @staticmethod
     def create_idp_config(
@@ -75,6 +93,12 @@ class SAMLService:
         sso_url: Optional[str] = None,
         slo_url: Optional[str] = None,
         certificate: Optional[str] = None,
+        oidc_client_id: Optional[str] = None,
+        oidc_client_secret: Optional[str] = None,
+        oidc_issuer_url: Optional[str] = None,
+        oidc_scopes: Optional[str] = None,
+        oidc_response_type: Optional[str] = None,
+        oidc_token_endpoint_auth_method: Optional[str] = None,
         attribute_mappings: Optional[dict] = None,
         jit_provisioning_enabled: bool = True,
         default_role: str = "reader",
@@ -90,6 +114,12 @@ class SAMLService:
             sso_url: SSO endpoint URL
             slo_url: Single Logout URL
             certificate: X.509 certificate
+            oidc_client_id: OIDC Client ID
+            oidc_client_secret: OIDC Client Secret
+            oidc_issuer_url: OIDC Issuer URL
+            oidc_scopes: OIDC scopes (space-separated)
+            oidc_response_type: OIDC response type
+            oidc_token_endpoint_auth_method: Token endpoint auth method
             attribute_mappings: Map IdP attributes to user fields
             jit_provisioning_enabled: Auto-create users on first login
             default_role: Default role for JIT-provisioned users
@@ -107,6 +137,12 @@ class SAMLService:
             sso_url=sso_url,
             slo_url=slo_url,
             certificate=certificate,
+            oidc_client_id=oidc_client_id,
+            oidc_client_secret=oidc_client_secret,
+            oidc_issuer_url=oidc_issuer_url,
+            oidc_scopes=oidc_scopes or "openid profile email",
+            oidc_response_type=oidc_response_type or "code",
+            oidc_token_endpoint_auth_method=oidc_token_endpoint_auth_method or "client_secret_basic",
             attribute_mappings=attribute_mappings or {},
             jit_provisioning_enabled=jit_provisioning_enabled,
             default_role=default_role,
@@ -136,7 +172,9 @@ class SAMLService:
         allowed_fields = {
             "name", "entity_id", "metadata_url", "sso_url", "slo_url",
             "certificate", "attribute_mappings", "jit_provisioning_enabled",
-            "default_role", "is_active"
+            "default_role", "is_active",
+            "oidc_client_id", "oidc_client_secret", "oidc_issuer_url",
+            "oidc_scopes", "oidc_response_type", "oidc_token_endpoint_auth_method"
         }
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
 

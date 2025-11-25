@@ -112,3 +112,15 @@ CREATE INDEX IF NOT EXISTS idx_group_requests_requester ON group_access_requests
 CREATE INDEX IF NOT EXISTS idx_group_memberships_expires ON identity_group_memberships(expires_at) WHERE expires_at IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_groups_provider ON identity_groups(provider);
 CREATE INDEX IF NOT EXISTS idx_groups_sync_enabled ON identity_groups(sync_enabled) WHERE sync_enabled = TRUE;
+
+-- ============================================
+-- Part 3: OIDC SSO Support (Enterprise)
+-- ============================================
+
+-- Add OIDC columns to idp_configurations table
+ALTER TABLE idp_configurations ADD COLUMN IF NOT EXISTS oidc_client_id VARCHAR(255);
+ALTER TABLE idp_configurations ADD COLUMN IF NOT EXISTS oidc_client_secret VARCHAR(512);
+ALTER TABLE idp_configurations ADD COLUMN IF NOT EXISTS oidc_issuer_url VARCHAR(512);
+ALTER TABLE idp_configurations ADD COLUMN IF NOT EXISTS oidc_scopes VARCHAR(255) DEFAULT 'openid profile email';
+ALTER TABLE idp_configurations ADD COLUMN IF NOT EXISTS oidc_response_type VARCHAR(50) DEFAULT 'code';
+ALTER TABLE idp_configurations ADD COLUMN IF NOT EXISTS oidc_token_endpoint_auth_method VARCHAR(50) DEFAULT 'client_secret_basic';

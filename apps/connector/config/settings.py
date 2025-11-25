@@ -153,6 +153,40 @@ class Settings(BaseSettings):
         description="Enable write-back of group membership changes to Okta",
     )
 
+    # Authentik Configuration (Enterprise)
+    authentik_enabled: bool = Field(
+        default=False,
+        description="Enable Authentik connector (Enterprise feature)",
+    )
+    authentik_domain: Optional[str] = Field(
+        default=None,
+        description="Authentik domain (e.g., auth.example.com)",
+    )
+    authentik_api_token: Optional[str] = Field(
+        default=None,
+        description="Authentik API token (Bearer token from admin)",
+    )
+    authentik_sync_interval: int = Field(
+        default=3600,
+        description="Authentik sync interval in seconds (default: 1 hour)",
+    )
+    authentik_sync_users: bool = Field(
+        default=True,
+        description="Sync users from Authentik to Elder identities",
+    )
+    authentik_sync_groups: bool = Field(
+        default=True,
+        description="Sync groups from Authentik to Elder identity_groups",
+    )
+    authentik_write_back_enabled: bool = Field(
+        default=True,
+        description="Enable write-back of group membership changes to Authentik",
+    )
+    authentik_verify_ssl: bool = Field(
+        default=True,
+        description="Verify SSL certificate for Authentik API",
+    )
+
     # iBoss Configuration
     iboss_enabled: bool = Field(default=False, description="Enable iBoss connector")
     iboss_api_url: str = Field(

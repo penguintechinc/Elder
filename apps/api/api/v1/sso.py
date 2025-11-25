@@ -7,7 +7,7 @@ and SCIM 2.0 user provisioning.
 from flask import Blueprint, request, jsonify, Response
 from functools import wraps
 
-from apps.api.services.sso import SAMLService, SCIMService
+from apps.api.services.sso import SAMLService, OIDCService, SCIMService
 from apps.api.api.v1.portal_auth import portal_token_required, generate_tokens
 
 bp = Blueprint("sso", __name__)
@@ -79,14 +79,26 @@ def create_idp_config():
         name: str - Display name
         idp_type: str - saml or oidc
         tenant_id: int (optional) - Tenant ID or null for global
-        entity_id: str (optional) - SAML Entity ID
-        metadata_url: str (optional) - IdP metadata URL
-        sso_url: str (optional) - SSO endpoint
-        slo_url: str (optional) - SLO endpoint
-        certificate: str (optional) - X.509 certificate
-        attribute_mappings: dict (optional) - Attribute mappings
-        jit_provisioning_enabled: bool - Enable JIT provisioning
-        default_role: str - Default role for new users
+
+        SAML fields (required if idp_type=saml):
+            entity_id: str - SAML Entity ID
+            metadata_url: str - IdP metadata URL
+            sso_url: str - SSO endpoint
+            slo_url: str - SLO endpoint
+            certificate: str - X.509 certificate
+
+        OIDC fields (required if idp_type=oidc):
+            oidc_client_id: str - OIDC Client ID
+            oidc_client_secret: str - OIDC Client Secret
+            oidc_issuer_url: str - OIDC Issuer URL
+            oidc_scopes: str (optional) - Space-separated scopes (default: "openid profile email")
+            oidc_response_type: str (optional) - Response type (default: "code")
+            oidc_token_endpoint_auth_method: str (optional) - Auth method (default: "client_secret_basic")
+
+        Common fields:
+            attribute_mappings: dict (optional) - Attribute mappings
+            jit_provisioning_enabled: bool - Enable JIT provisioning (default: true)
+            default_role: str - Default role for new users (default: "reader")
 
     Returns:
         Created configuration
@@ -118,6 +130,12 @@ def create_idp_config():
         sso_url=data.get("sso_url"),
         slo_url=data.get("slo_url"),
         certificate=data.get("certificate"),
+        oidc_client_id=data.get("oidc_client_id"),
+        oidc_client_secret=data.get("oidc_client_secret"),
+        oidc_issuer_url=data.get("oidc_issuer_url"),
+        oidc_scopes=data.get("oidc_scopes"),
+        oidc_response_type=data.get("oidc_response_type"),
+        oidc_token_endpoint_auth_method=data.get("oidc_token_endpoint_auth_method"),
         attribute_mappings=data.get("attribute_mappings"),
         jit_provisioning_enabled=data.get("jit_provisioning_enabled", True),
         default_role=data.get("default_role", "reader"),
@@ -276,6 +294,196 @@ def saml_slo(tenant_id):
         "message": "Logged out successfully",
         "tenant_id": tenant_id
     }), 200
+
+
+# =============================================================================
+# OIDC Endpoints (v3.0.0 Enterprise Feature)
+# =============================================================================
+
+@bp.route("/oidc/authorize/<int:idp_id>", methods=["GET"])
+def oidc_authorize(idp_id):
+    """Initiate OIDC authorization flow.
+
+    Args:
+        idp_id: IdP configuration ID
+
+    Query params:
+        redirect_uri: Callback redirect URI
+        state: Optional state parameter
+
+    Returns:
+        Redirect to IdP authorization endpoint
+    """
+    redirect_uri = request.args.get("redirect_uri")
+    if not redirect_uri:
+        return jsonify({"error": "redirect_uri is required"}), 400
+
+    state = request.args.get("state")
+
+    result = OIDCService.get_authorization_url(idp_id, redirect_uri, state)
+
+    if "error" in result:
+        return jsonify(result), 400
+
+    return jsonify(result), 200
+
+
+@bp.route("/oidc/callback", methods=["GET"])
+def oidc_callback():
+    """Handle OIDC callback with authorization code.
+
+    Query params:
+        code: Authorization code from IdP
+        state: State parameter for CSRF protection
+        idp_id: IdP configuration ID
+        redirect_uri: Original redirect URI
+
+    Returns:
+        JWT tokens on success
+    """
+    code = request.args.get("code")
+    state = request.args.get("state")
+    idp_id = request.args.get("idp_id", type=int)
+    redirect_uri = request.args.get("redirect_uri")
+
+    if not code:
+        return jsonify({"error": "code is required"}), 400
+    if not idp_id:
+        return jsonify({"error": "idp_id is required"}), 400
+    if not redirect_uri:
+        return jsonify({"error": "redirect_uri is required"}), 400
+
+    # Exchange code for tokens
+    tokens = OIDCService.exchange_code_for_tokens(idp_id, code, redirect_uri)
+
+    if "error" in tokens:
+        return jsonify(tokens), 400
+
+    # Validate ID token
+    id_token_claims = OIDCService.validate_id_token(idp_id, tokens["id_token"])
+
+    if "error" in id_token_claims:
+        return jsonify(id_token_claims), 400
+
+    # Get additional userinfo (optional)
+    userinfo = OIDCService.get_userinfo(idp_id, tokens["access_token"])
+    if "error" in userinfo:
+        userinfo = None
+
+    # Get IdP config for JIT provisioning
+    idp_config = OIDCService.get_idp_config(idp_id)
+    if not idp_config:
+        return jsonify({"error": "IdP configuration not found"}), 404
+
+    tenant_id = idp_config.get("tenant_id", 1)  # Default to tenant 1 if global
+
+    # JIT provision user if enabled
+    if idp_config.get("jit_provisioning_enabled"):
+        user = OIDCService.jit_provision_user(
+            tenant_id=tenant_id,
+            idp_config=idp_config,
+            id_token_claims=id_token_claims,
+            userinfo=userinfo,
+        )
+
+        if "error" in user:
+            return jsonify(user), 400
+
+        # Generate Elder JWT tokens
+        elder_tokens = generate_tokens(user)
+
+        return jsonify({
+            "user": user,
+            **elder_tokens,
+        }), 200
+
+    return jsonify({
+        "error": "JIT provisioning is disabled for this IdP"
+    }), 403
+
+
+@bp.route("/oidc/logout/<int:idp_id>", methods=["POST"])
+@portal_token_required
+def oidc_logout(idp_id):
+    """Initiate OIDC logout (RP-Initiated Logout).
+
+    Args:
+        idp_id: IdP configuration ID
+
+    Request body:
+        id_token_hint: Optional ID token hint
+        post_logout_redirect_uri: Optional redirect URI after logout
+
+    Returns:
+        End session endpoint URL
+    """
+    data = request.get_json() or {}
+    id_token_hint = data.get("id_token_hint")
+    post_logout_redirect_uri = data.get("post_logout_redirect_uri")
+
+    result = OIDCService.logout(idp_id, id_token_hint, post_logout_redirect_uri)
+
+    if "error" in result:
+        return jsonify(result), 400
+
+    return jsonify(result), 200
+
+
+@bp.route("/oidc/userinfo/<int:idp_id>", methods=["GET"])
+@portal_token_required
+def oidc_userinfo(idp_id):
+    """Get current user info from OIDC userinfo endpoint.
+
+    Args:
+        idp_id: IdP configuration ID
+
+    Headers:
+        X-OIDC-Access-Token: Access token from IdP
+
+    Returns:
+        User info claims
+    """
+    access_token = request.headers.get("X-OIDC-Access-Token")
+
+    if not access_token:
+        return jsonify({"error": "X-OIDC-Access-Token header is required"}), 400
+
+    result = OIDCService.get_userinfo(idp_id, access_token)
+
+    if "error" in result:
+        return jsonify(result), 400
+
+    return jsonify(result), 200
+
+
+@bp.route("/oidc/refresh/<int:idp_id>", methods=["POST"])
+@portal_token_required
+def oidc_refresh(idp_id):
+    """Refresh OIDC access token.
+
+    Args:
+        idp_id: IdP configuration ID
+
+    Request body:
+        refresh_token: Refresh token from IdP
+
+    Returns:
+        New tokens
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    refresh_token = data.get("refresh_token")
+    if not refresh_token:
+        return jsonify({"error": "refresh_token is required"}), 400
+
+    result = OIDCService.refresh_tokens(idp_id, refresh_token)
+
+    if "error" in result:
+        return jsonify(result), 400
+
+    return jsonify(result), 200
 
 
 # =============================================================================

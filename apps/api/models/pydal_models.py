@@ -161,7 +161,7 @@ def define_all_tables(db):
         migrate=False,
     )
 
-    # IdP Configurations table - v2.2.0: SSO/SAML configuration
+    # IdP Configurations table - v2.2.0: SSO/SAML configuration, v3.0.0: OIDC support
     db.define_table(
         "idp_configurations",
         Field(
@@ -175,11 +175,20 @@ def define_all_tables(db):
             requires=IS_IN_SET(["saml", "oidc"]),
         ),
         Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        # SAML-specific fields
         Field("entity_id", "string", length=512),  # SAML Entity ID
         Field("metadata_url", "string", length=1024),  # IdP metadata URL
         Field("sso_url", "string", length=1024),  # SSO endpoint
         Field("slo_url", "string", length=1024),  # Single Logout endpoint
         Field("certificate", "text"),  # X.509 certificate
+        # OIDC-specific fields (v3.0.0)
+        Field("oidc_client_id", "string", length=512),  # OIDC Client ID
+        Field("oidc_client_secret", "string", length=512),  # OIDC Client Secret (encrypted)
+        Field("oidc_issuer_url", "string", length=1024),  # OIDC Issuer URL (.well-known/openid-configuration)
+        Field("oidc_scopes", "string", length=512, default="openid profile email"),  # Space-separated scopes
+        Field("oidc_response_type", "string", length=50, default="code"),  # OAuth2 response type
+        Field("oidc_token_endpoint_auth_method", "string", length=100, default="client_secret_basic"),  # Token endpoint auth method
+        # Common fields
         Field("attribute_mappings", "json"),  # Map IdP attributes to user fields
         Field("jit_provisioning_enabled", "boolean", default=True, notnull=True),
         Field(

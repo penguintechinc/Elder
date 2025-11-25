@@ -1,5 +1,6 @@
 """Connector implementations for various data sources."""
 
+from apps.connector.connectors.authentik_connector import AuthentikConnector
 from apps.connector.connectors.aws_connector import AWSConnector
 from apps.connector.connectors.base import BaseConnector, SyncResult
 from apps.connector.connectors.gcp_connector import GCPConnector
@@ -17,6 +18,7 @@ from apps.connector.connectors.okta_connector import OktaConnector
 __all__ = [
     "BaseConnector",
     "SyncResult",
+    "AuthentikConnector",
     "AWSConnector",
     "GCPConnector",
     "GoogleWorkspaceConnector",
