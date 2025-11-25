@@ -1,6 +1,6 @@
 """Organization API endpoints."""
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from marshmallow import ValidationError
 
 from apps.api.schemas.organization import (
@@ -12,7 +12,6 @@ from shared.api_utils import (
     make_error_response,
     validate_request,
 )
-from shared.database import db
 
 bp = Blueprint("organizations", __name__)
 
@@ -32,6 +31,7 @@ def list_organizations():
     Returns:
         200: List of organizations with pagination metadata
     """
+    db = current_app.db
     # Get pagination params
     page = request.args.get("page", 1, type=int)
     per_page = min(request.args.get("per_page", 50, type=int), 1000)
@@ -89,6 +89,7 @@ def create_organization():
         201: Created organization
         400: Validation error
     """
+    db = current_app.db
     try:
         data = validate_request(OrganizationCreateSchema)
     except ValidationError as e:
@@ -121,6 +122,7 @@ def get_organization(id: int):
         200: Organization details
         404: Organization not found
     """
+    db = current_app.db
     org = db.organizations[id]
     if not org:
         return make_error_response("Organization not found", 404)
@@ -144,6 +146,7 @@ def update_organization(id: int):
         400: Validation error
         404: Organization not found
     """
+    db = current_app.db
     org = db.organizations[id]
     if not org:
         return make_error_response("Organization not found", 404)
@@ -207,6 +210,7 @@ def delete_organization(id: int):
         404: Organization not found
         400: Cannot delete organization with children
     """
+    db = current_app.db
     org = db.organizations[id]
     if not org:
         return make_error_response("Organization not found", 404)
@@ -244,6 +248,7 @@ def get_organization_children(id: int):
         200: List of child organizations
         404: Organization not found
     """
+    db = current_app.db
     org = db.organizations[id]
     if not org:
         return make_error_response("Organization not found", 404)
@@ -283,6 +288,7 @@ def get_organization_hierarchy(id: int):
         200: List of organizations in hierarchy path
         404: Organization not found
     """
+    db = current_app.db
     org = db.organizations[id]
     if not org:
         return make_error_response("Organization not found", 404)
@@ -330,6 +336,7 @@ def get_organization_graph(id: int):
         200: Graph data with nodes and edges
         404: Organization not found
     """
+    db = current_app.db
     org = db.organizations[id]
     if not org:
         return make_error_response("Organization not found", 404)
@@ -428,37 +435,48 @@ def get_organization_graph(id: int):
     # Get entities for all visited organizations
     org_ids = list(visited_orgs)
     if org_ids:
-        entities = db(db.entities.organization_id.belongs(org_ids)).select(
-            limitby=(0, 100)
-        )
-
-        for entity in entities:
-            add_entity_node(entity)
-            # Add edge from organization to entity
-            edges.append(
-                {
-                    "from": f"org-{entity.organization_id}",
-                    "to": f"entity-{entity.id}",
-                    "label": "contains",
-                }
+        try:
+            entities = db(db.entities.organization_id.belongs(org_ids)).select(
+                limitby=(0, 100)
             )
 
-    # Get dependencies between entities
+            for entity in entities:
+                add_entity_node(entity)
+                # Add edge from organization to entity
+                edges.append(
+                    {
+                        "from": f"org-{entity.organization_id}",
+                        "to": f"entity-{entity.id}",
+                        "label": "contains",
+                    }
+                )
+        except Exception as e:
+            # Log error but continue - entities are optional
+            current_app.logger.warning(f"Error fetching entities: {str(e)}")
+
+    # Get dependencies between entities (if dependencies table exists)
     entity_ids = list(visited_entities)
-    if entity_ids:
-        dependencies = db(
-            (db.dependencies.source_entity_id.belongs(entity_ids))
-            & (db.dependencies.target_entity_id.belongs(entity_ids))
-        ).select()
+    if entity_ids and hasattr(db, 'dependencies'):
+        try:
+            # Dependencies table uses source_type/source_id, not source_entity_id
+            dependencies = db(
+                (db.dependencies.source_type == "entity")
+                & (db.dependencies.source_id.belongs(entity_ids))
+                & (db.dependencies.target_type == "entity")
+                & (db.dependencies.target_id.belongs(entity_ids))
+            ).select()
 
-        for dep in dependencies:
-            edges.append(
-                {
-                    "from": f"entity-{dep.source_entity_id}",
-                    "to": f"entity-{dep.target_entity_id}",
-                    "label": dep.dependency_type or "depends",
-                }
-            )
+            for dep in dependencies:
+                edges.append(
+                    {
+                        "from": f"entity-{dep.source_id}",
+                        "to": f"entity-{dep.target_id}",
+                        "label": dep.dependency_type or "depends",
+                    }
+                )
+        except Exception as e:
+            # Log error but continue - dependencies are optional
+            current_app.logger.warning(f"Error fetching dependencies: {str(e)}")
 
     return (
         jsonify(

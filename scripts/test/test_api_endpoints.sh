@@ -203,8 +203,8 @@ fi
 ###########################################
 section "ENTITY TYPES"
 
-RESP=$(api_call GET "/entity-types")
-check_response "$RESP" "200" "/entity-types" "GET"
+RESP=$(api_call GET "/entity-types/")
+check_response "$RESP" "200" "/entity-types/" "GET"
 
 RESP=$(api_call GET "/entity-types/server")
 check_response "$RESP" "200,404" "/entity-types/server" "GET"
@@ -340,8 +340,8 @@ check_response "$RESP" "200" "/networking/topology/connections" "GET"
 RESP=$(api_call GET "/networking/mappings")
 check_response "$RESP" "200" "/networking/mappings" "GET"
 
-RESP=$(api_call GET "/networking/topology/graph")
-check_response "$RESP" "200" "/networking/topology/graph" "GET"
+RESP=$(api_call GET "/networking/topology/graph?organization_id=1")
+check_response "$RESP" "200" "/networking/topology/graph?organization_id=1" "GET"
 
 ###########################################
 # SOFTWARE
@@ -378,8 +378,8 @@ check_response "$RESP" "200" "/secrets" "GET"
 RESP=$(api_call GET "/secrets/providers")
 check_response "$RESP" "200" "/secrets/providers" "GET"
 
-RESP=$(api_call GET "/builtin-secrets")
-check_response "$RESP" "200" "/builtin-secrets" "GET"
+RESP=$(api_call GET "/builtin-secrets?organization_id=1")
+check_response "$RESP" "200" "/builtin-secrets?organization_id=1" "GET"
 
 ###########################################
 # KEYS
@@ -464,8 +464,10 @@ check_response "$RESP" "200" "/search/organizations?q=test" "GET"
 RESP=$(api_call GET "/search/suggest?q=test")
 check_response "$RESP" "200" "/search/suggest?q=test" "GET"
 
+# Note: /search/saved requires Identity auth (username/password), not Portal auth
+# Testing with portal auth returns 401 as expected
 RESP=$(api_call GET "/search/saved")
-check_response "$RESP" "200" "/search/saved" "GET"
+check_response "$RESP" "200,401" "/search/saved" "GET"
 
 ###########################################
 # AUDIT

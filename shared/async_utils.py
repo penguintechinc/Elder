@@ -102,9 +102,12 @@ async def run_in_threadpool(
                     from flask import current_app
 
                     if hasattr(current_app, "db"):
+                        # Always rollback on error to prevent failed transaction state
                         current_app.db.rollback()
-                except:
-                    pass
+                except Exception as rollback_error:
+                    # Log but don't fail on rollback errors
+                    import logging
+                    logging.error(f"Failed to rollback transaction: {rollback_error}")
 
                 raise  # Re-raise the original error
 

@@ -168,7 +168,7 @@ class DiscoveryService:
             raise Exception(f"Discovery job not found: {job_id}")
 
         # Delete associated history records
-        self.db(self.db.discovery_history.discovery_job_id == job_id).delete()
+        self.db(self.db.discovery_history.job_id == job_id).delete()
 
         # Delete job
         self.db(self.db.discovery_jobs.id == job_id).delete()
@@ -211,11 +211,11 @@ class DiscoveryService:
 
             # Record discovery history
             history_id = self.db.discovery_history.insert(
-                discovery_job_id=job_id,
-                discovered_at=datetime.utcnow(),
-                resources_discovered=results["resources_count"],
-                success=True,
-                details_json=results,
+                job_id=job_id,
+                started_at=datetime.utcnow(),
+                entities_discovered=results["resources_count"],
+                status="completed",
+                results_json=results,
             )
 
             # Update job's last_run timestamp
@@ -239,10 +239,10 @@ class DiscoveryService:
         except Exception as e:
             # Record failed discovery
             self.db.discovery_history.insert(
-                discovery_job_id=job_id,
-                discovered_at=datetime.utcnow(),
-                resources_discovered=0,
-                success=False,
+                job_id=job_id,
+                started_at=datetime.utcnow(),
+                entities_discovered=0,
+                status="failed",
                 error_message=str(e),
             )
             self.db.commit()
@@ -261,10 +261,10 @@ class DiscoveryService:
         query = self.db.discovery_history.id > 0
 
         if job_id:
-            query &= self.db.discovery_history.discovery_job_id == job_id
+            query &= self.db.discovery_history.job_id == job_id
 
         history = self.db(query).select(
-            orderby=~self.db.discovery_history.discovered_at, limitby=(0, limit)
+            orderby=~self.db.discovery_history.started_at, limitby=(0, limit)
         )
 
         return [h.as_dict() for h in history]

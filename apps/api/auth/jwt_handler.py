@@ -126,20 +126,30 @@ def get_current_user() -> Optional[Row]:
 
     logger.debug(f"Token verified, looking up user with ID: {payload.get('sub')}")
     db = current_app.db
-    user_id = int(payload["sub"])  # Convert string back to integer
-    identity = db.identities[user_id]
 
-    if not identity:
-        logger.warning(f"User not found in database with ID: {payload.get('sub')}")
+    try:
+        user_id = int(payload["sub"])  # Convert string back to integer
+        identity = db.identities[user_id]
+
+        if not identity:
+            logger.warning(f"User not found in database with ID: {payload.get('sub')}")
+            return None
+
+        if not identity.is_active:
+            logger.warning(f"User {identity.username} is not active")
+            return None
+
+        logger.debug(f"Authentication successful for user: {identity.username}")
+        g.current_user = identity
+        return identity
+    except Exception as e:
+        logger.error(f"Error looking up user: {e}")
+        # Rollback transaction on error to prevent transaction state issues
+        try:
+            db.rollback()
+        except Exception as rollback_error:
+            logger.error(f"Error rolling back transaction: {rollback_error}")
         return None
-
-    if not identity.is_active:
-        logger.warning(f"User {identity.username} is not active")
-        return None
-
-    logger.debug(f"Authentication successful for user: {identity.username}")
-    g.current_user = identity
-    return identity
 
 
 def verify_password(identity: Row, password: str) -> bool:

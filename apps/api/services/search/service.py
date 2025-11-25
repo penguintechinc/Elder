@@ -340,8 +340,10 @@ class SearchService:
                 )
 
                 # Find dependencies where this entity is source
+                # Dependencies table uses source_type/source_id, not source_entity_id
                 deps_out = self.db(
-                    self.db.entity_dependencies.source_entity_id == entity_id
+                    (self.db.dependencies.source_type == "entity")
+                    & (self.db.dependencies.source_id == entity_id)
                 ).select()
 
                 for dep in deps_out:
@@ -352,20 +354,21 @@ class SearchService:
                         visited_dependencies.add(dep.id)
                         edges.append(
                             {
-                                "source": dep.source_entity_id,
-                                "target": dep.target_entity_id,
+                                "source": dep.source_id,
+                                "target": dep.target_id,
                                 "type": dep.dependency_type,
                                 "metadata": dep.metadata,
                             }
                         )
 
-                        # Add target to queue
-                        if dep.target_entity_id not in visited_entities:
-                            queue.append((dep.target_entity_id, depth + 1))
+                        # Add target to queue (only if target is also an entity)
+                        if dep.target_type == "entity" and dep.target_id not in visited_entities:
+                            queue.append((dep.target_id, depth + 1))
 
                 # Find dependencies where this entity is target
                 deps_in = self.db(
-                    self.db.entity_dependencies.target_entity_id == entity_id
+                    (self.db.dependencies.target_type == "entity")
+                    & (self.db.dependencies.target_id == entity_id)
                 ).select()
 
                 for dep in deps_in:
@@ -376,16 +379,16 @@ class SearchService:
                         visited_dependencies.add(dep.id)
                         edges.append(
                             {
-                                "source": dep.source_entity_id,
-                                "target": dep.target_entity_id,
+                                "source": dep.source_id,
+                                "target": dep.target_id,
                                 "type": dep.dependency_type,
                                 "metadata": dep.metadata,
                             }
                         )
 
-                        # Add source to queue
-                        if dep.source_entity_id not in visited_entities:
-                            queue.append((dep.source_entity_id, depth + 1))
+                        # Add source to queue (only if source is also an entity)
+                        if dep.source_type == "entity" and dep.source_id not in visited_entities:
+                            queue.append((dep.source_id, depth + 1))
 
         return {
             "start_entity_id": start_entity_id,
@@ -413,8 +416,8 @@ class SearchService:
         Returns:
             List of saved searches
         """
-        searches = self.db(self.db.saved_searches.user_id == user_id).select(
-            orderby=~self.db.saved_searches.last_used_at, limitby=(0, limit)
+        searches = self.db(self.db.saved_searches.identity_id == user_id).select(
+            orderby=~self.db.saved_searches.created_at, limitby=(0, limit)
         )
 
         return [s.as_dict() for s in searches]
@@ -438,7 +441,7 @@ class SearchService:
         if not search:
             raise Exception(f"Saved search {search_id} not found")
 
-        if search.user_id != user_id:
+        if search.identity_id != user_id:
             raise Exception(f"Saved search {search_id} not owned by user {user_id}")
 
         return search.as_dict()
@@ -467,15 +470,10 @@ class SearchService:
             Created saved search dictionary
         """
         search_id = self.db.saved_searches.insert(
-            user_id=user_id,
+            identity_id=user_id,
             name=name,
             query=query,
-            resource_type=resource_type,
-            filters_json=json.dumps(filters) if filters else None,
-            description=description,
-            use_count=0,
-            created_at=datetime.utcnow(),
-            last_used_at=datetime.utcnow(),
+            filters=filters,
         )
 
         self.db.commit()
@@ -514,10 +512,10 @@ class SearchService:
         if not search:
             raise Exception(f"Saved search {search_id} not found")
 
-        if search.user_id != user_id:
+        if search.identity_id != user_id:
             raise Exception(f"Saved search {search_id} not owned by user {user_id}")
 
-        update_data = {"updated_at": datetime.utcnow()}
+        update_data = {}
 
         if name is not None:
             update_data["name"] = name
@@ -526,10 +524,7 @@ class SearchService:
             update_data["query"] = query
 
         if filters is not None:
-            update_data["filters_json"] = json.dumps(filters)
-
-        if description is not None:
-            update_data["description"] = description
+            update_data["filters"] = filters
 
         self.db(self.db.saved_searches.id == search_id).update(**update_data)
         self.db.commit()
@@ -556,7 +551,7 @@ class SearchService:
         if not search:
             raise Exception(f"Saved search {search_id} not found")
 
-        if search.user_id != user_id:
+        if search.identity_id != user_id:
             raise Exception(f"Saved search {search_id} not owned by user {user_id}")
 
         self.db(self.db.saved_searches.id == search_id).delete()
@@ -587,40 +582,16 @@ class SearchService:
         if not search:
             raise Exception(f"Saved search {search_id} not found")
 
-        if search.user_id != user_id:
+        if search.identity_id != user_id:
             raise Exception(f"Saved search {search_id} not owned by user {user_id}")
 
-        # Update usage stats
-        self.db(self.db.saved_searches.id == search_id).update(
-            use_count=self.db.saved_searches.use_count + 1,
-            last_used_at=datetime.utcnow(),
+        # Parse filters (already stored as JSON in table)
+        filters = search.filters if hasattr(search, 'filters') else None
+
+        # Execute search across all resource types
+        return self.search_all(
+            query=search.query, filters=filters, limit=limit, offset=offset
         )
-        self.db.commit()
-
-        # Parse filters
-        filters = None
-        if search.filters_json:
-            filters = json.loads(search.filters_json)
-
-        # Execute search based on resource type
-        if search.resource_type == "entity":
-            return self.search_entities(
-                query=search.query, filters=filters, limit=limit, offset=offset
-            )
-        elif search.resource_type == "organization":
-            return self.search_organizations(
-                query=search.query, limit=limit, offset=offset
-            )
-        elif search.resource_type == "issue":
-            return self.search_issues(
-                query=search.query, filters=filters, limit=limit, offset=offset
-            )
-        elif search.resource_type == "all":
-            return self.search_all(
-                query=search.query, filters=filters, limit=limit, offset=offset
-            )
-        else:
-            raise Exception(f"Unknown resource type: {search.resource_type}")
 
     # ===========================
     # Search Analytics Methods
@@ -637,7 +608,7 @@ class SearchService:
             List of popular searches
         """
         searches = self.db(self.db.saved_searches.id > 0).select(
-            orderby=~self.db.saved_searches.use_count, limitby=(0, limit)
+            orderby=~self.db.saved_searches.created_at, limitby=(0, limit)
         )
 
         return [
@@ -668,10 +639,12 @@ class SearchService:
         """
         suggestions = []
 
-        # Entity name suggestions
+        # Entity name suggestions - use groupby instead of distinct to avoid ORDER BY issues
         if not resource_type or resource_type == "entity":
             entities = self.db(self.db.entities.name.contains(partial_query)).select(
-                self.db.entities.name, distinct=True, limitby=(0, limit)
+                self.db.entities.name,
+                groupby=self.db.entities.name,
+                limitby=(0, limit)
             )
             suggestions.extend(
                 [
@@ -680,10 +653,12 @@ class SearchService:
                 ]
             )
 
-        # Organization name suggestions
+        # Organization name suggestions - use groupby instead of distinct
         if not resource_type or resource_type == "organization":
             orgs = self.db(self.db.organizations.name.contains(partial_query)).select(
-                self.db.organizations.name, distinct=True, limitby=(0, limit)
+                self.db.organizations.name,
+                groupby=self.db.organizations.name,
+                limitby=(0, limit)
             )
             suggestions.extend(
                 [
@@ -692,10 +667,12 @@ class SearchService:
                 ]
             )
 
-        # Issue title suggestions
+        # Issue title suggestions - use groupby instead of distinct
         if not resource_type or resource_type == "issue":
             issues = self.db(self.db.issues.title.contains(partial_query)).select(
-                self.db.issues.title, distinct=True, limitby=(0, limit)
+                self.db.issues.title,
+                groupby=self.db.issues.title,
+                limitby=(0, limit)
             )
             suggestions.extend(
                 [

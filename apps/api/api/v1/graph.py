@@ -82,9 +82,12 @@ async def get_graph():
             )
 
         # Get dependencies between these entities
+        # Dependencies table uses source_type/source_id, not source_entity_id
         dependencies = db(
-            db.dependencies.source_entity_id.belongs(entity_ids)
-            & db.dependencies.target_entity_id.belongs(entity_ids)
+            (db.dependencies.source_type == "entity")
+            & (db.dependencies.source_id.belongs(entity_ids))
+            & (db.dependencies.target_type == "entity")
+            & (db.dependencies.target_id.belongs(entity_ids))
         ).select()
 
         # Build vis.js compatible graph data
@@ -109,8 +112,8 @@ async def get_graph():
         for dep in dependencies:
             edge = {
                 "id": dep.id,
-                "from": dep.source_entity_id,
-                "to": dep.target_entity_id,
+                "from": dep.source_id,
+                "to": dep.target_id,
                 "type": dep.dependency_type,
                 "arrows": "to",
             }
@@ -187,8 +190,10 @@ async def analyze_graph():
             }
 
         dependencies = db(
-            db.dependencies.source_entity_id.belongs(entity_ids)
-            & db.dependencies.target_entity_id.belongs(entity_ids)
+            (db.dependencies.source_type == "entity")
+            & (db.dependencies.source_id.belongs(entity_ids))
+            & (db.dependencies.target_type == "entity")
+            & (db.dependencies.target_id.belongs(entity_ids))
         ).select()
 
         # Build NetworkX graph for analysis
@@ -204,7 +209,7 @@ async def analyze_graph():
             )
 
         for dep in dependencies:
-            G.add_edge(dep.source_entity_id, dep.target_entity_id)
+            G.add_edge(dep.source_id, dep.target_id)
 
         # Calculate metrics
         analysis = {
@@ -297,12 +302,15 @@ async def find_path():
         if not to_entity:
             return None, "Target entity not found", 404
 
-        # Build graph
-        dependencies = db(db.dependencies).select()
+        # Build graph - only include entity dependencies
+        dependencies = db(
+            (db.dependencies.source_type == "entity")
+            & (db.dependencies.target_type == "entity")
+        ).select()
         G = nx.DiGraph()
 
         for dep in dependencies:
-            G.add_edge(dep.source_entity_id, dep.target_entity_id, dependency_id=dep.id)
+            G.add_edge(dep.source_id, dep.target_id, dependency_id=dep.id)
 
         # Find path
         try:
@@ -639,21 +647,27 @@ def _get_entity_subgraph(db, entity, depth: int):
 
         for e in current_level:
             # Get outgoing dependencies (this entity depends on others)
-            outgoing = db(db.dependencies.source_entity_id == e.id).select()
+            outgoing = db(
+                (db.dependencies.source_type == "entity")
+                & (db.dependencies.source_id == e.id)
+            ).select()
             for dep in outgoing:
-                if dep.target_entity_id not in visited:
-                    visited.add(dep.target_entity_id)
-                    target = db.entities[dep.target_entity_id]
+                if dep.target_id not in visited:
+                    visited.add(dep.target_id)
+                    target = db.entities[dep.target_id]
                     if target:
                         next_level.append(target)
                         all_entities.append(target)
 
             # Get incoming dependencies (others depend on this entity)
-            incoming = db(db.dependencies.target_entity_id == e.id).select()
+            incoming = db(
+                (db.dependencies.target_type == "entity")
+                & (db.dependencies.target_id == e.id)
+            ).select()
             for dep in incoming:
-                if dep.source_entity_id not in visited:
-                    visited.add(dep.source_entity_id)
-                    source = db.entities[dep.source_entity_id]
+                if dep.source_id not in visited:
+                    visited.add(dep.source_id)
+                    source = db.entities[dep.source_id]
                     if source:
                         next_level.append(source)
                         all_entities.append(source)

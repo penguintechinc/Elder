@@ -440,18 +440,21 @@ async def get_organization_graph(id: int):
 
     # Get dependencies between entities
     entity_ids = list(visited_entities)
+    # Dependencies table uses source_type/source_id, not source_entity_id
     dependencies = await run_in_threadpool(
         lambda: db(
-            (db.dependencies.source_entity_id.belongs(entity_ids))
-            & (db.dependencies.target_entity_id.belongs(entity_ids))
+            (db.dependencies.source_type == "entity")
+            & (db.dependencies.source_id.belongs(entity_ids))
+            & (db.dependencies.target_type == "entity")
+            & (db.dependencies.target_id.belongs(entity_ids))
         ).select()
     )
 
     for dep in dependencies:
         edges.append(
             {
-                "from": f"entity-{dep.source_entity_id}",
-                "to": f"entity-{dep.target_entity_id}",
+                "from": f"entity-{dep.source_id}",
+                "to": f"entity-{dep.target_id}",
                 "label": dep.dependency_type or "depends",
             }
         )

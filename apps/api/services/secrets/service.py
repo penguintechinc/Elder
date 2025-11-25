@@ -4,8 +4,9 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from flask import current_app
+
 from apps.api.models.pydal_models import define_all_tables
-from shared.database import db
 
 from .aws_client import AWSSecretsManagerClient
 from .base import SecretNotFoundException, SecretProviderClient, SecretProviderException
@@ -30,9 +31,9 @@ class SecretsService:
         Initialize secrets service.
 
         Args:
-            db_instance: Database instance (optional, uses global db if not provided)
+            db_instance: Database instance (optional, uses current_app.db if not provided)
         """
-        self.db = db_instance or db
+        self.db = db_instance or current_app.db
         if not hasattr(self.db, "secret_providers"):
             define_all_tables(self.db)
 
