@@ -24,6 +24,74 @@ This release includes database schema changes that require migration.
   - `operation` (string, 50 chars)
   - `metadata_json` (json)
 
+### ✨ New Features
+
+#### Data Store Tracking (Community Feature)
+- **Comprehensive Data Store Management**: Track sensitive data stores across your organization
+  - Storage types: database, object_storage, file_system, data_warehouse, data_lake, cache, message_queue, other
+  - Storage providers: AWS S3, Azure Blob, GCP Cloud Storage, MinIO, local, on-prem, etc.
+  - Location tracking: region and physical location
+  - Point of contact (POC) linked to Identity
+- **Data Classification System**: Four-level classification for security and compliance
+  - Public, Internal, Confidential, Restricted
+  - Color-coded badges in UI (green, blue, yellow, red)
+- **Sensitive Data Flags**: Track PII/PHI/PCI data presence
+  - `contains_pii`: Personal Identifiable Information
+  - `contains_phi`: Protected Health Information (HIPAA)
+  - `contains_pci`: Payment Card Industry data (PCI-DSS)
+  - Visual badges in UI for quick identification
+- **Compliance Framework Tracking**: JSONB field for compliance frameworks
+  - SOC2, HIPAA, GDPR, PCI-DSS, ISO27001, and custom frameworks
+- **Encryption Tracking**: Monitor encryption status
+  - `encryption_at_rest`: Data encrypted when stored
+  - `encryption_in_transit`: Data encrypted during transfer
+  - `encryption_key_id`: Link to crypto_keys table
+- **Backup Configuration**: Track backup policies
+  - `backup_enabled`: Whether backups are configured
+  - `backup_frequency`: Backup schedule (daily, weekly, monthly)
+- **Access Control**: Track access policies
+  - `access_control_type`: private, internal, public
+- **Additional Metadata**: Size, retention, audit tracking
+  - `size_bytes`: Data store size
+  - `retention_days`: Data retention policy
+  - `last_access_audit`: Last audit timestamp
+  - `metadata`: Custom JSONB field
+- **Label Support**: Categorize data stores with labels via junction table
+- **API Endpoints**: Full CRUD at `/api/v1/data-stores` (8 endpoints)
+  - `GET /api/v1/data-stores` - List with filtering
+  - `POST /api/v1/data-stores` - Create new data store
+  - `GET /api/v1/data-stores/<id>` - Get details
+  - `PUT /api/v1/data-stores/<id>` - Update
+  - `DELETE /api/v1/data-stores/<id>` - Delete
+  - `GET /api/v1/data-stores/<id>/labels` - Get labels
+  - `POST /api/v1/data-stores/<id>/labels` - Add label
+  - `DELETE /api/v1/data-stores/<id>/labels/<label_id>` - Remove label
+- **Web UI**: Dedicated Data Stores page in Infrastructure section
+  - Card-based display with classification badges
+  - Filtering by classification, storage type, region
+  - Create/Edit/Detail modals with comprehensive fields
+  - PII/PHI/PCI indicator badges
+
+#### Group Membership Management (Enterprise Feature)
+- **Group Ownership**: Assign identity or group as owner
+  - `owner_identity_id`: Individual owner
+  - `owner_group_id`: Group owner (nested ownership)
+- **Multi-Approval Workflows**: Configurable approval modes
+  - `approval_mode`: any, all, threshold
+  - `approval_threshold`: Number of required approvals
+- **Provider Sync Support**: External identity provider integration
+  - `provider`: internal, ldap, okta, authentik
+  - `provider_group_id`: External group identifier
+  - `sync_enabled`: Enable/disable sync
+- **Access Request System**: Self-service group access requests
+  - `group_access_requests` table for request tracking
+  - `group_access_approvals` table for multi-approver workflows
+  - Request justification and expiration support
+- **Membership Expiration**: Time-limited group memberships
+  - `expires_at`: Automatic membership expiration
+  - `granted_via_request_id`: Link to access request
+- **API Endpoints**: Full workflow at `/api/v1/group-membership`
+
 ### 🐛 Bug Fixes
 
 #### API Endpoint Fixes (20 endpoints fixed)
@@ -43,30 +111,113 @@ This release includes database schema changes that require migration.
 - **Documentation**: Added default login credentials section to README.md
 - **API Testing**: Added comprehensive API test script at `scripts/test/test_api_endpoints.sh`
 
-### 📁 Files Modified
+### 📦 Files Added
+
+- `apps/api/api/v1/data_stores.py` (300+ lines) - Data Store API endpoints
+- `apps/api/api/v1/group_membership.py` (400+ lines) - Group Membership API endpoints
+- `apps/api/services/group_membership/service.py` - Group membership service
+- `apps/api/services/group_membership/ldap_connector.py` - LDAP sync connector
+- `apps/api/services/group_membership/okta_connector.py` - Okta sync connector
+- `apps/api/migrations/007_v300_data_stores_group_membership.sql` - v3.0.0 migration
+- `web/src/pages/DataStores.tsx` (500+ lines) - Data Stores management UI
+
+### 📝 Files Modified
 
 - `apps/api/api/v1/graph.py` - Empty list guards
 - `apps/api/api/v1/api_keys.py` - Database import fix
 - `apps/api/services/sso/saml_service.py` - Database import fix
 - `apps/api/services/sso/scim_service.py` - Database import fix
 - `apps/api/services/audit/service.py` - Database import fix
-- `apps/api/models/pydal_models.py` - Schema updates
+- `apps/api/models/pydal_models.py` - Schema updates + data_stores table
 - `apps/api/services/keys/service.py` - Table reference fix
+- `apps/api/main.py` - Registered data_stores and group_membership blueprints
+- `web/src/components/Layout.tsx` - Added Data Stores to navigation
+- `web/src/App.tsx` - Added Data Stores route
+- `web/src/lib/api.ts` - Added data stores API functions
 - `README.md` - Default login section
+
+### 📊 Statistics
+
+- **Total API Endpoints**: 92 (added 8 data-stores + group-membership endpoints)
+- **Total Database Tables**: 33 (added data_stores, data_store_labels, group_access_requests, group_access_approvals)
+- **Frontend Pages**: 36 (added Data Stores page)
 
 ### ⬆️ Migration Notes
 
-After updating to v3.0.0, run database migrations or recreate the `crypto_keys` and `key_access_log` tables to apply schema changes:
+After updating to v3.0.0, run the migration file `007_v300_data_stores_group_membership.sql`:
+
+```bash
+# Run migration for v3.0.0 features
+docker compose exec postgres psql -U elder -d elder -f /migrations/007_v300_data_stores_group_membership.sql
+```
+
+Or apply the following SQL changes manually:
 
 ```sql
--- Add new columns to crypto_keys
+-- Part 1: Data Stores (Community Feature)
+CREATE TABLE IF NOT EXISTS data_stores (
+    id SERIAL PRIMARY KEY,
+    tenant_id INTEGER NOT NULL DEFAULT 1 REFERENCES tenants(id) ON DELETE CASCADE,
+    organization_id INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
+    village_id VARCHAR(32) UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    storage_type VARCHAR(50) DEFAULT 'other',
+    storage_provider VARCHAR(100),
+    location_region VARCHAR(50),
+    location_physical VARCHAR(255),
+    data_classification VARCHAR(20) DEFAULT 'internal',
+    encryption_at_rest BOOLEAN DEFAULT FALSE,
+    encryption_in_transit BOOLEAN DEFAULT FALSE,
+    encryption_key_id INTEGER REFERENCES crypto_keys(id) ON DELETE SET NULL,
+    retention_days INTEGER,
+    backup_enabled BOOLEAN DEFAULT FALSE,
+    backup_frequency VARCHAR(50),
+    access_control_type VARCHAR(20) DEFAULT 'private',
+    poc_identity_id INTEGER REFERENCES identities(id) ON DELETE SET NULL,
+    compliance_frameworks JSONB,
+    contains_pii BOOLEAN DEFAULT FALSE,
+    contains_phi BOOLEAN DEFAULT FALSE,
+    contains_pci BOOLEAN DEFAULT FALSE,
+    size_bytes BIGINT,
+    last_access_audit TIMESTAMP,
+    metadata JSONB,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP,
+    created_by INTEGER REFERENCES portal_users(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS data_store_labels (
+    id SERIAL PRIMARY KEY,
+    data_store_id INTEGER NOT NULL REFERENCES data_stores(id) ON DELETE CASCADE,
+    label_id INTEGER NOT NULL REFERENCES issue_labels(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(data_store_id, label_id)
+);
+
+-- Part 2: Group Membership Management (Enterprise)
+ALTER TABLE identity_groups ADD COLUMN IF NOT EXISTS owner_identity_id INTEGER REFERENCES identities(id) ON DELETE SET NULL;
+ALTER TABLE identity_groups ADD COLUMN IF NOT EXISTS owner_group_id INTEGER REFERENCES identity_groups(id) ON DELETE SET NULL;
+ALTER TABLE identity_groups ADD COLUMN IF NOT EXISTS approval_mode VARCHAR(20) DEFAULT 'any';
+ALTER TABLE identity_groups ADD COLUMN IF NOT EXISTS approval_threshold INTEGER DEFAULT 1;
+ALTER TABLE identity_groups ADD COLUMN IF NOT EXISTS sync_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE identity_groups ADD COLUMN IF NOT EXISTS provider VARCHAR(50) DEFAULT 'internal';
+ALTER TABLE identity_groups ADD COLUMN IF NOT EXISTS provider_group_id VARCHAR(512);
+
+ALTER TABLE identity_group_memberships ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;
+ALTER TABLE identity_group_memberships ADD COLUMN IF NOT EXISTS granted_via_request_id INTEGER;
+ALTER TABLE identity_group_memberships ADD COLUMN IF NOT EXISTS provider_synced BOOLEAN DEFAULT FALSE;
+ALTER TABLE identity_group_memberships ADD COLUMN IF NOT EXISTS provider_synced_at TIMESTAMP;
+ALTER TABLE identity_group_memberships ADD COLUMN IF NOT EXISTS provider_member_id VARCHAR(512);
+
+-- Part 3: Previous crypto_keys updates
 ALTER TABLE crypto_keys RENAME COLUMN provider_id TO key_provider_id;
 ALTER TABLE crypto_keys ADD COLUMN provider_key_arn VARCHAR(512);
 ALTER TABLE crypto_keys ADD COLUMN key_type VARCHAR(50) DEFAULT 'symmetric';
 ALTER TABLE crypto_keys ADD COLUMN key_state VARCHAR(50) DEFAULT 'Enabled';
 ALTER TABLE crypto_keys RENAME COLUMN metadata TO metadata_json;
 
--- Add new columns to key_access_log
 ALTER TABLE key_access_log ADD COLUMN operation VARCHAR(50);
 ALTER TABLE key_access_log ADD COLUMN metadata_json JSON;
 ```
