@@ -33,6 +33,11 @@ jobs:
             dockerfile: web/Dockerfile
             context: web
             platforms: linux/amd64,linux/arm64
+    outputs:
+      api-digest: ${{ steps.build-api.outputs.digest }}
+      web-digest: ${{ steps.build-web.outputs.digest }}
+      api-image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api
+      web-image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-web
 
     steps:
     - name: Checkout code
@@ -73,6 +78,7 @@ jobs:
           type=ref,event=pr
 
     - name: Build and push Docker image
+      id: build-${{ matrix.service.name }}
       uses: docker/build-push-action@v5
       with:
         context: ${{ matrix.service.context }}
@@ -88,6 +94,10 @@ jobs:
           VCS_REF=${{ github.sha }}
           VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
 
+    - name: Output image digest
+      run: |
+        echo "Built ${{ matrix.service.name }} with digest: ${{ steps.build-${{ matrix.service.name }}.outputs.digest }}"
+
   # Security scanning of built images
   security-scan:
     needs: build-and-push
@@ -102,10 +112,43 @@ jobs:
       id: short-sha
       run: echo "sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Wait for registry propagation
+      run: |
+        echo "Waiting 30s for registry to propagate multi-arch manifest..."
+        sleep 30
+
+    - name: Pull image with retry
+      id: pull-image
+      run: |
+        IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-${{ matrix.service }}:sha-${{ steps.short-sha.outputs.sha }}"
+        echo "Attempting to pull: $IMAGE"
+
+        for i in 1 2 3 4 5; do
+          echo "Attempt $i of 5..."
+          if docker pull "$IMAGE"; then
+            echo "Successfully pulled image on attempt $i"
+            echo "image=$IMAGE" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          DELAY=$((i * 15))
+          echo "Pull failed, waiting ${DELAY}s before retry..."
+          sleep $DELAY
+        done
+
+        echo "Failed to pull image after 5 attempts"
+        exit 1
+
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-${{ matrix.service }}:sha-${{ steps.short-sha.outputs.sha }}
+        image-ref: ${{ steps.pull-image.outputs.image }}
         format: 'sarif'
         output: 'trivy-results-${{ matrix.service }}.sarif'
 
@@ -134,6 +177,40 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Wait for registry propagation
+      run: |
+        echo "Waiting 30s for registry to propagate multi-arch manifests..."
+        sleep 30
+
+    - name: Pull images with retry
+      run: |
+        pull_with_retry() {
+          local IMAGE="$1"
+          echo "Attempting to pull: $IMAGE"
+
+          for i in 1 2 3 4 5; do
+            echo "Attempt $i of 5..."
+            if docker pull "$IMAGE"; then
+              echo "Successfully pulled image on attempt $i"
+              return 0
+            fi
+            DELAY=$((i * 15))
+            echo "Pull failed, waiting ${DELAY}s before retry..."
+            sleep $DELAY
+          done
+
+          echo "Failed to pull image after 5 attempts"
+          return 1
+        }
+
+        API_IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api:sha-${{ steps.short-sha.outputs.sha }}"
+        WEB_IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-web:sha-${{ steps.short-sha.outputs.sha }}"
+
+        pull_with_retry "$API_IMAGE" || exit 1
+        pull_with_retry "$WEB_IMAGE" || exit 1
+
+        echo "All images pulled successfully"
 
     - name: Create test docker-compose
       run: |
@@ -332,6 +409,25 @@ jobs:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Pull API image with retry
+      run: |
+        IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api:sha-${{ steps.short-sha.outputs.sha }}"
+        echo "Attempting to pull: $IMAGE"
+
+        for i in 1 2 3 4 5; do
+          echo "Attempt $i of 5..."
+          if docker pull "$IMAGE"; then
+            echo "Successfully pulled image on attempt $i"
+            exit 0
+          fi
+          DELAY=$((i * 15))
+          echo "Pull failed, waiting ${DELAY}s before retry..."
+          sleep $DELAY
+        done
+
+        echo "Failed to pull image after 5 attempts"
+        exit 1
 
     - name: Run performance tests with k6
       run: |
