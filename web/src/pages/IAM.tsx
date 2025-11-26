@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Shield, Users, User, Bot, Cloud, RefreshCw, Search } from 'lucide-react'
+import { Plus, Shield, Users, User, Bot, Cloud, RefreshCw, Search, Link2, Trash2, Building2, Box, Server } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
@@ -33,6 +33,286 @@ const IDENTITY_TYPES = [
   { value: 'otherHuman', label: 'Other Human', icon: User, color: 'slate' },
   { value: 'other', label: 'Other', icon: User, color: 'slate' },
 ]
+
+// IdentityRelationshipsTab - Displays identity-to-resource relationships using the dependencies API
+function IdentityRelationshipsTab() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedType, setSelectedType] = useState<string>('')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const queryClient = useQueryClient()
+
+  // Fetch identity relationships (dependencies where source or target is identity)
+  const { data: relationships, isLoading } = useQuery({
+    queryKey: ['identity-relationships'],
+    queryFn: async () => {
+      // Get dependencies where source is identity
+      const sourceResp = await api.get('/dependencies', { params: { source_type: 'identity', per_page: 100 } })
+      // Get dependencies where target is identity
+      const targetResp = await api.get('/dependencies', { params: { target_type: 'identity', per_page: 100 } })
+
+      const sourceItems = sourceResp.data?.items || []
+      const targetItems = targetResp.data?.items || []
+
+      // Combine and deduplicate
+      const allItems = [...sourceItems]
+      targetItems.forEach((item: any) => {
+        if (!allItems.find((existing: any) => existing.id === item.id)) {
+          allItems.push(item)
+        }
+      })
+      return allItems
+    }
+  })
+
+  // Delete relationship mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/dependencies/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['identity-relationships'] })
+      toast.success('Relationship removed')
+    },
+    onError: () => toast.error('Failed to remove relationship')
+  })
+
+  // Filter relationships
+  const filteredRelationships = (relationships || []).filter((rel: any) => {
+    const matchesSearch = !searchQuery ||
+      rel.source_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rel.target_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rel.dependency_type?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesType = !selectedType ||
+      rel.source_type === selectedType ||
+      rel.target_type === selectedType
+    return matchesSearch && matchesType
+  })
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'identity': return User
+      case 'entity': return Server
+      case 'organization': return Building2
+      case 'project': return Box
+      default: return Link2
+    }
+  }
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'identity': return 'text-blue-400 bg-blue-500/10'
+      case 'entity': return 'text-green-400 bg-green-500/10'
+      case 'organization': return 'text-purple-400 bg-purple-500/10'
+      case 'project': return 'text-orange-400 bg-orange-500/10'
+      default: return 'text-slate-400 bg-slate-500/10'
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header with stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Total Relationships</p>
+                <p className="text-2xl font-bold text-white">{relationships?.length || 0}</p>
+              </div>
+              <Link2 className="w-8 h-8 text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Entity Links</p>
+                <p className="text-2xl font-bold text-white">
+                  {(relationships || []).filter((r: any) => r.source_type === 'entity' || r.target_type === 'entity').length}
+                </p>
+              </div>
+              <Server className="w-8 h-8 text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Organization Links</p>
+                <p className="text-2xl font-bold text-white">
+                  {(relationships || []).filter((r: any) => r.source_type === 'organization' || r.target_type === 'organization').length}
+                </p>
+              </div>
+              <Building2 className="w-8 h-8 text-purple-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex-1 min-w-[200px]">
+              <Input
+                placeholder="Search relationships..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                leftIcon={<Search className="w-4 h-4" />}
+              />
+            </div>
+            <Select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="w-48"
+            >
+              <option value="">All Types</option>
+              <option value="entity">Entities</option>
+              <option value="organization">Organizations</option>
+              <option value="project">Projects</option>
+            </Select>
+            <Button onClick={() => setShowAddModal(true)}>
+              <Plus className="w-4 h-4 mr-2" /> Add Relationship
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Relationships List */}
+      <Card>
+        <CardHeader>
+          <h3 className="text-lg font-semibold text-white">Identity Relationships</h3>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <RefreshCw className="w-6 h-6 text-slate-400 animate-spin" />
+            </div>
+          ) : filteredRelationships.length === 0 ? (
+            <div className="text-center py-12">
+              <Link2 className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+              <p className="text-slate-400 mb-2">No identity relationships found</p>
+              <p className="text-sm text-slate-500">
+                Create relationships to map identities to entities, organizations, and resources
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredRelationships.map((rel: any) => {
+                const SourceIcon = getTypeIcon(rel.source_type)
+                const TargetIcon = getTypeIcon(rel.target_type)
+                return (
+                  <div key={rel.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors">
+                    <div className="flex items-center gap-4">
+                      {/* Source */}
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-lg ${getTypeColor(rel.source_type)}`}>
+                          <SourceIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{rel.source_name || `${rel.source_type} #${rel.source_id}`}</p>
+                          <p className="text-xs text-slate-500 capitalize">{rel.source_type}</p>
+                        </div>
+                      </div>
+
+                      {/* Arrow with relationship type */}
+                      <div className="flex items-center gap-2 px-4">
+                        <div className="h-px w-8 bg-slate-600" />
+                        <span className="text-xs text-slate-400 px-2 py-1 bg-slate-700 rounded">
+                          {rel.dependency_type || 'related'}
+                        </span>
+                        <div className="h-px w-8 bg-slate-600" />
+                        <span className="text-slate-500">→</span>
+                      </div>
+
+                      {/* Target */}
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-lg ${getTypeColor(rel.target_type)}`}>
+                          <TargetIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{rel.target_name || `${rel.target_type} #${rel.target_id}`}</p>
+                          <p className="text-xs text-slate-500 capitalize">{rel.target_type}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteMutation.mutate(rel.id)}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add Relationship Modal - using ModalFormBuilder */}
+      <ModalFormBuilder
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Add Identity Relationship"
+        config={{
+          fields: [
+            {
+              name: 'source_type',
+              label: 'Source Type',
+              type: 'select',
+              required: true,
+              options: [
+                { value: 'identity', label: 'Identity' },
+                { value: 'entity', label: 'Entity' },
+                { value: 'organization', label: 'Organization' },
+                { value: 'project', label: 'Project' },
+              ]
+            },
+            { name: 'source_id', label: 'Source ID', type: 'number', required: true },
+            {
+              name: 'target_type',
+              label: 'Target Type',
+              type: 'select',
+              required: true,
+              options: [
+                { value: 'identity', label: 'Identity' },
+                { value: 'entity', label: 'Entity' },
+                { value: 'organization', label: 'Organization' },
+                { value: 'project', label: 'Project' },
+              ]
+            },
+            { name: 'target_id', label: 'Target ID', type: 'number', required: true },
+            {
+              name: 'dependency_type',
+              label: 'Relationship Type',
+              type: 'select',
+              required: true,
+              options: [
+                { value: 'owns', label: 'Owns' },
+                { value: 'manages', label: 'Manages' },
+                { value: 'administers', label: 'Administers' },
+                { value: 'accesses', label: 'Has Access To' },
+                { value: 'member_of', label: 'Member Of' },
+                { value: 'related', label: 'Related To' },
+              ]
+            },
+            { name: 'description', label: 'Description', type: 'textarea' },
+          ]
+        }}
+        onSubmit={async (data) => {
+          await api.post('/dependencies', data)
+          queryClient.invalidateQueries({ queryKey: ['identity-relationships'] })
+          setShowAddModal(false)
+          toast.success('Relationship created')
+        }}
+      />
+    </div>
+  )
+}
 
 export default function IAM() {
   const [activeTab, setActiveTab] = useState<Tab>('All Identities')
@@ -856,16 +1136,7 @@ export default function IAM() {
 
       {/* Relationships Tab */}
       {activeTab === 'Relationships' && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Shield className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Identity Relationships</h3>
-            <p className="text-slate-400 mb-4">
-              Map identities to entities, organizations, and resources
-            </p>
-            <p className="text-sm text-slate-500">Coming soon in next update</p>
-          </CardContent>
-        </Card>
+        <IdentityRelationshipsTab />
       )}
 
       {/* Create Identity Modal */}
