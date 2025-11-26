@@ -6,7 +6,7 @@ at both global and tenant levels using Authlib.
 
 import datetime
 import secrets
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 from urllib.parse import urlencode
 
 import jwt

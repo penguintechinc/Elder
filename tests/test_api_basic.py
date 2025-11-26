@@ -1,7 +1,8 @@
 """Basic API tests to verify endpoints work."""
 
-import pytest
 import json
+
+import pytest
 
 
 def test_health_endpoint(client):

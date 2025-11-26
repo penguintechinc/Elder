@@ -11,10 +11,9 @@ import time
 from typing import Any, Dict, Optional
 
 import httpx
-
-from scanners.network import NetworkScanner
-from scanners.http_screenshot import HTTPScreenshotScanner
 from scanners.banner import BannerScanner
+from scanners.http_screenshot import HTTPScreenshotScanner
+from scanners.network import NetworkScanner
 
 # Configuration from environment
 POLL_INTERVAL = int(os.getenv("SCANNER_POLL_INTERVAL", "300"))

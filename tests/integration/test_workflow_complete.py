@@ -5,12 +5,14 @@ These tests verify end-to-end functionality with real database interactions
 (using test database), but still avoid external network calls.
 """
 
-import pytest
 import json
-from apps.api.models.organization import Organization
-from apps.api.models.entity import Entity, EntityType
-from apps.api.models.dependency import Dependency
+
+import pytest
+
 from apps.api import db
+from apps.api.models.dependency import Dependency
+from apps.api.models.entity import Entity, EntityType
+from apps.api.models.organization import Organization
 
 
 class TestCompleteWorkflow:

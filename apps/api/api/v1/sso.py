@@ -4,11 +4,12 @@ Provides REST endpoints for SSO configuration, SAML authentication,
 and SCIM 2.0 user provisioning.
 """
 
-from flask import Blueprint, request, jsonify, Response
 from functools import wraps
 
-from apps.api.services.sso import SAMLService, OIDCService, SCIMService
-from apps.api.api.v1.portal_auth import portal_token_required, generate_tokens
+from flask import Blueprint, Response, jsonify, request
+
+from apps.api.api.v1.portal_auth import generate_tokens, portal_token_required
+from apps.api.services.sso import OIDCService, SAMLService, SCIMService
 
 bp = Blueprint("sso", __name__)
 

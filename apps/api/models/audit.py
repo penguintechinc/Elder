@@ -4,7 +4,8 @@ import enum
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, Integer, String
+from sqlalchemy import (JSON, Column, DateTime, Enum, ForeignKey, Integer,
+                        String)
 from sqlalchemy.orm import Mapped, relationship
 
 from apps.api.models.base import Base, IDMixin

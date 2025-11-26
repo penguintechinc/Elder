@@ -5,10 +5,12 @@ These tests are isolated and do not require network connections or external serv
 All database operations use in-memory SQLite or mocked connections.
 """
 
-import pytest
 from datetime import datetime
-from apps.api.models.organization import Organization
+
+import pytest
+
 from apps.api import db
+from apps.api.models.organization import Organization
 
 
 class TestOrganizationModel:

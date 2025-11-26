@@ -9,7 +9,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from apps.connector.config.settings import settings  # noqa: E402
-from apps.connector.utils.logger import configure_logging, get_logger  # noqa: E402
+from apps.connector.utils.logger import (configure_logging,  # noqa: E402
+                                         get_logger)
 
 # Configure logging
 configure_logging()

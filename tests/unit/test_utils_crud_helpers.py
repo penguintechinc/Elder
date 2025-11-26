@@ -5,11 +5,13 @@ These tests use extensive mocking to avoid external dependencies.
 No network calls or real database required.
 """
 
-import pytest
 import json
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-from flask import Flask
 from dataclasses import asdict
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
+from flask import Flask
+
 from apps.api.utils.crud_helpers import CrudHelper
 
 

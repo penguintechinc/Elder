@@ -5,8 +5,10 @@ This module provides async wrappers for common PyDAL operations,
 simplifying the use of run_in_threadpool with database queries.
 """
 
-from typing import Any, Optional, List
+from typing import Any, List, Optional
+
 from flask import request
+
 from shared.async_utils import run_in_threadpool
 
 

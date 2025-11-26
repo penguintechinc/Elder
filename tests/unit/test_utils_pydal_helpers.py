@@ -5,22 +5,17 @@ These tests use mocking to avoid external dependencies.
 No network calls or real database required.
 """
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from flask import Flask
-from apps.api.utils.pydal_helpers import (
-    get_by_id,
-    query_count,
-    query_select,
-    insert_record,
-    update_record,
-    delete_record,
-    query_update,
-    query_delete,
-    commit_db,
-    PaginationParams,
-    paginated_query,
-)
+
+from apps.api.utils.pydal_helpers import (PaginationParams, commit_db,
+                                          delete_record, get_by_id,
+                                          insert_record, paginated_query,
+                                          query_count, query_delete,
+                                          query_select, query_update,
+                                          update_record)
 
 
 @pytest.fixture

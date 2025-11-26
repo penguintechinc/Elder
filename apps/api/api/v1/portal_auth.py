@@ -5,12 +5,13 @@ MFA management, and password operations with tenant context.
 """
 
 import datetime
-import jwt
-from flask import Blueprint, request, jsonify, current_app
 from functools import wraps
 
-from apps.api.services.portal_auth import PortalAuthService
+import jwt
+from flask import Blueprint, current_app, jsonify, request
+
 import shared.database.connection as database
+from apps.api.services.portal_auth import PortalAuthService
 
 bp = Blueprint("portal_auth", __name__)
 

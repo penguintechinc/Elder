@@ -7,15 +7,9 @@ from typing import Any, Dict, List, Optional
 
 from flask import current_app
 
-from .base import (
-    InvalidSecretConfigException,
-    SecretAlreadyExistsException,
-    SecretMetadata,
-    SecretNotFoundException,
-    SecretProviderClient,
-    SecretProviderException,
-    SecretValue,
-)
+from .base import (InvalidSecretConfigException, SecretAlreadyExistsException,
+                   SecretMetadata, SecretNotFoundException,
+                   SecretProviderClient, SecretProviderException, SecretValue)
 
 logger = logging.getLogger(__name__)
 

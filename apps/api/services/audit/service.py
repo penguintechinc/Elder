@@ -7,7 +7,7 @@ HIPAA, and GDPR compliance requirements.
 import datetime
 import json
 import uuid
-from typing import Optional, Any
+from typing import Any, Optional
 
 from flask import current_app
 

@@ -5,9 +5,12 @@ This module provides reusable validation functions for common patterns
 like organization/tenant validation, required field checks, etc.
 """
 
+from typing import Any, Optional, Tuple
+
 from flask import current_app
-from typing import Tuple, Optional, Any
+
 from shared.async_utils import run_in_threadpool
+
 from .api_responses import ApiResponse
 
 

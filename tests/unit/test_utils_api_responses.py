@@ -5,9 +5,11 @@ These tests ensure consistent response formatting across all API endpoints.
 No external dependencies required - pure unit tests.
 """
 
-import pytest
 import json
+
+import pytest
 from flask import Flask
+
 from apps.api.utils.api_responses import ApiResponse
 
 

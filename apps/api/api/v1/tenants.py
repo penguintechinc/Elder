@@ -4,7 +4,7 @@ Provides REST endpoints for tenant CRUD operations, configuration,
 and usage statistics for the Super Admin Console.
 """
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.api.v1.portal_auth import portal_token_required
 

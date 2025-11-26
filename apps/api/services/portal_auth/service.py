@@ -5,11 +5,12 @@ with tenant context for multi-tenancy support.
 """
 
 import datetime
-import secrets
 import hashlib
-import pyotp
+import secrets
 from typing import Optional
-from werkzeug.security import generate_password_hash, check_password_hash
+
+import pyotp
+from werkzeug.security import check_password_hash, generate_password_hash
 
 import shared.database.connection as database
 

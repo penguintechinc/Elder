@@ -5,12 +5,8 @@ from dataclasses import asdict
 from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.dataclasses import (
-    PaginatedResponse,
-    ProjectDTO,
-    from_pydal_row,
-    from_pydal_rows,
-)
+from apps.api.models.dataclasses import (PaginatedResponse, ProjectDTO,
+                                         from_pydal_row, from_pydal_rows)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("projects", __name__)
