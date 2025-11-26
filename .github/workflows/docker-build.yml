@@ -7,10 +7,11 @@ on:
   pull_request:
     branches: [ main ]
 
-# Required for pushing to GHCR from organization
+# Required permissions for GHCR push, security scanning, and integration tests
 permissions:
   contents: read
   packages: write
+  security-events: write
 
 env:
   REGISTRY: ghcr.io
@@ -202,7 +203,7 @@ jobs:
 
     - name: Start test environment
       run: |
-        docker-compose -f docker-compose.test.yml up -d
+        docker compose -f docker-compose.test.yml up -d
         sleep 60  # Wait for all services to be healthy
 
     - name: Test API endpoints
@@ -246,18 +247,18 @@ jobs:
       if: failure()
       run: |
         echo "=== API Logs ==="
-        docker-compose -f docker-compose.test.yml logs api
+        docker compose -f docker-compose.test.yml logs api
         echo "=== Web Logs ==="
-        docker-compose -f docker-compose.test.yml logs web
+        docker compose -f docker-compose.test.yml logs web
         echo "=== Database Logs ==="
-        docker-compose -f docker-compose.test.yml logs postgres
+        docker compose -f docker-compose.test.yml logs postgres
         echo "=== Redis Logs ==="
-        docker-compose -f docker-compose.test.yml logs redis
+        docker compose -f docker-compose.test.yml logs redis
 
     - name: Cleanup test environment
       if: always()
       run: |
-        docker-compose -f docker-compose.test.yml down -v
+        docker compose -f docker-compose.test.yml down -v
         docker system prune -f
 
   # Performance testing
