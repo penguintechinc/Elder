@@ -33,12 +33,6 @@ jobs:
             dockerfile: web/Dockerfile
             context: web
             platforms: linux/amd64,linux/arm64
-    outputs:
-      api-digest: ${{ steps.build-api.outputs.digest }}
-      web-digest: ${{ steps.build-web.outputs.digest }}
-      api-image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api
-      web-image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-web
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -78,7 +72,7 @@ jobs:
           type=ref,event=pr
 
     - name: Build and push Docker image
-      id: build-${{ matrix.service.name }}
+      id: build
       uses: docker/build-push-action@v5
       with:
         context: ${{ matrix.service.context }}
@@ -96,7 +90,7 @@ jobs:
 
     - name: Output image digest
       run: |
-        echo "Built ${{ matrix.service.name }} with digest: ${{ steps.build-${{ matrix.service.name }}.outputs.digest }}"
+        echo "Built ${{ matrix.service.name }} with digest: ${{ steps.build.outputs.digest }}"
 
   # Security scanning of built images
   security-scan:
