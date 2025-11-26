@@ -12,6 +12,7 @@ const pages = [
   { name: 'organizations', path: '/organizations' },
   { name: 'software', path: '/software' },
   { name: 'services', path: '/services' },
+  { name: 'data-stores', path: '/data-stores' },
   { name: 'issues', path: '/issues' },
   { name: 'projects', path: '/projects' },
   { name: 'identities', path: '/identities' },

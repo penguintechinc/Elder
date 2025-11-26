@@ -99,6 +99,20 @@ Elder provides visibility into your infrastructure and organizational relationsh
 <p align="center"><em>Services</em></p>
 </td>
 </tr>
+<tr>
+<td width="50%">
+<a href="docs/screenshots/data-stores.png" target="_blank">
+  <img src="docs/screenshots/data-stores.png" alt="Data Stores" style="max-width: 100%;">
+</a>
+<p align="center"><em>Data Stores (v3.0.0)</em></p>
+</td>
+<td width="50%">
+<a href="docs/screenshots/dependencies.png" target="_blank">
+  <img src="docs/screenshots/dependencies.png" alt="Dependencies" style="max-width: 100%;">
+</a>
+<p align="center"><em>Dependencies</em></p>
+</td>
+</tr>
 </table>
 
 ### Project Tracking
