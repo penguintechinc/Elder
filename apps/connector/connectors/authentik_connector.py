@@ -41,7 +41,9 @@ class AuthentikConnector(BaseConnector, GroupOperationsMixin):
 
     async def connect(self) -> None:
         """Establish connection to Authentik API and Elder API."""
-        self.logger.info("Connecting to Authentik API", domain=settings.authentik_domain)
+        self.logger.info(
+            "Connecting to Authentik API", domain=settings.authentik_domain
+        )
 
         if not settings.authentik_domain or not settings.authentik_api_token:
             raise ValueError("Authentik domain and API token are required")
@@ -63,7 +65,9 @@ class AuthentikConnector(BaseConnector, GroupOperationsMixin):
 
         # Test connection
         try:
-            resp = await self._http_client.get(f"{self.base_url}/core/users/?page_size=1")
+            resp = await self._http_client.get(
+                f"{self.base_url}/core/users/?page_size=1"
+            )
             resp.raise_for_status()
             self.logger.info("Authentik API connection verified")
         except httpx.HTTPError as e:
@@ -134,7 +138,11 @@ class AuthentikConnector(BaseConnector, GroupOperationsMixin):
 
                 # Determine identity_type based on user attributes
                 # Service accounts typically have is_service_account or type attribute
-                identity_type = "serviceAccount" if user.get("is_service_account", False) else "employee"
+                identity_type = (
+                    "serviceAccount"
+                    if user.get("is_service_account", False)
+                    else "employee"
+                )
 
                 identity_data = {
                     "provider": "authentik",
@@ -216,7 +224,9 @@ class AuthentikConnector(BaseConnector, GroupOperationsMixin):
                 result.entities_created += 1
 
             except Exception as e:
-                error_msg = f"Failed to sync Authentik group {group.get('pk')}: {str(e)}"
+                error_msg = (
+                    f"Failed to sync Authentik group {group.get('pk')}: {str(e)}"
+                )
                 self.logger.warning(error_msg)
                 result.errors.append(error_msg)
 
@@ -255,7 +265,11 @@ class AuthentikConnector(BaseConnector, GroupOperationsMixin):
                 url = data.get("pagination", {}).get("next")
                 if url and not url.startswith("http"):
                     # Make absolute URL if relative
-                    url = f"{self.base_url}{url}" if url.startswith("/") else f"{self.base_url}/{url}"
+                    url = (
+                        f"{self.base_url}{url}"
+                        if url.startswith("/")
+                        else f"{self.base_url}/{url}"
+                    )
             else:
                 # Single result or list
                 if isinstance(data, list):
@@ -272,7 +286,9 @@ class AuthentikConnector(BaseConnector, GroupOperationsMixin):
             if not self._http_client:
                 return False
 
-            resp = await self._http_client.get(f"{self.base_url}/core/users/?page_size=1")
+            resp = await self._http_client.get(
+                f"{self.base_url}/core/users/?page_size=1"
+            )
             return resp.status_code == 200
 
         except Exception as e:
@@ -437,9 +453,7 @@ class AuthentikConnector(BaseConnector, GroupOperationsMixin):
         """
         try:
             if not self._http_client:
-                self.logger.warning(
-                    "Authentik get_group_members: client not connected"
-                )
+                self.logger.warning("Authentik get_group_members: client not connected")
                 return []
 
             # GET /api/v3/core/groups/{group_pk}/

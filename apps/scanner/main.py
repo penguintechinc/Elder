@@ -65,7 +65,9 @@ class ScannerService:
                     data = response.json()
                     return data.get("jobs", [])
                 else:
-                    logger.error(f"Failed to fetch pending jobs: {response.status_code}")
+                    logger.error(
+                        f"Failed to fetch pending jobs: {response.status_code}"
+                    )
                     return []
         except Exception as e:
             logger.error(f"Error fetching pending jobs: {e}")

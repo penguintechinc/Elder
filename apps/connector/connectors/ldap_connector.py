@@ -513,9 +513,7 @@ class LDAPConnector(BaseConnector, GroupOperationsMixin):
                 )
 
             # Add member using MODIFY_ADD
-            self.ldap_conn.modify(
-                group_id, {"member": [(ldap3.MODIFY_ADD, [user_id])]}
-            )
+            self.ldap_conn.modify(group_id, {"member": [(ldap3.MODIFY_ADD, [user_id])]})
 
             success = self.ldap_conn.result["result"] == 0
             error = None if success else self.ldap_conn.result.get("description")

@@ -11,22 +11,22 @@ logger = logging.getLogger("scanner.banner")
 
 # Common service ports and their probe strings
 SERVICE_PROBES = {
-    21: ("FTP", b"\r\n"),                    # FTP
-    22: ("SSH", b""),                         # SSH (responds immediately)
-    23: ("Telnet", b"\r\n"),                 # Telnet
-    25: ("SMTP", b"EHLO scanner\r\n"),       # SMTP
-    80: ("HTTP", b"HEAD / HTTP/1.0\r\n\r\n"), # HTTP
-    110: ("POP3", b""),                       # POP3
-    143: ("IMAP", b""),                       # IMAP
-    443: ("HTTPS", b""),                      # HTTPS (may not work without SSL)
-    465: ("SMTPS", b""),                      # SMTPS
+    21: ("FTP", b"\r\n"),  # FTP
+    22: ("SSH", b""),  # SSH (responds immediately)
+    23: ("Telnet", b"\r\n"),  # Telnet
+    25: ("SMTP", b"EHLO scanner\r\n"),  # SMTP
+    80: ("HTTP", b"HEAD / HTTP/1.0\r\n\r\n"),  # HTTP
+    110: ("POP3", b""),  # POP3
+    143: ("IMAP", b""),  # IMAP
+    443: ("HTTPS", b""),  # HTTPS (may not work without SSL)
+    465: ("SMTPS", b""),  # SMTPS
     587: ("SMTP-Submission", b"EHLO scanner\r\n"),
-    993: ("IMAPS", b""),                      # IMAPS
-    995: ("POP3S", b""),                      # POP3S
-    3306: ("MySQL", b""),                     # MySQL
-    5432: ("PostgreSQL", b""),                # PostgreSQL
-    6379: ("Redis", b"PING\r\n"),            # Redis
-    27017: ("MongoDB", b""),                  # MongoDB
+    993: ("IMAPS", b""),  # IMAPS
+    995: ("POP3S", b""),  # POP3S
+    3306: ("MySQL", b""),  # MySQL
+    5432: ("PostgreSQL", b""),  # PostgreSQL
+    6379: ("Redis", b"PING\r\n"),  # Redis
+    27017: ("MongoDB", b""),  # MongoDB
 }
 
 

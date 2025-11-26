@@ -62,11 +62,16 @@ class NetworkScanner(BaseScanner):
         # Build masscan command
         cmd = [
             "masscan",
-            "-p", str(ports),
-            "--rate", str(rate),
-            "--retries", str(max_retries),
-            "--wait", str(wait),
-            "-oJ", "-",  # JSON output to stdout
+            "-p",
+            str(ports),
+            "--rate",
+            str(rate),
+            "--retries",
+            str(max_retries),
+            "--wait",
+            str(wait),
+            "-oJ",
+            "-",  # JSON output to stdout
         ]
 
         # Add targets
@@ -149,17 +154,18 @@ class NetworkScanner(BaseScanner):
                         hosts_dict[ip] = []
 
                     for port_info in entry["ports"]:
-                        hosts_dict[ip].append({
-                            "port": port_info.get("port"),
-                            "proto": port_info.get("proto", "tcp"),
-                            "state": port_info.get("status", "open"),
-                            "service": port_info.get("service", {}).get("name", ""),
-                        })
+                        hosts_dict[ip].append(
+                            {
+                                "port": port_info.get("port"),
+                                "proto": port_info.get("proto", "tcp"),
+                                "state": port_info.get("status", "open"),
+                                "service": port_info.get("service", {}).get("name", ""),
+                            }
+                        )
 
             # Convert to list format
             hosts = [
-                {"ip": ip, "ports": ports_list}
-                for ip, ports_list in hosts_dict.items()
+                {"ip": ip, "ports": ports_list} for ip, ports_list in hosts_dict.items()
             ]
 
             return {
@@ -167,9 +173,14 @@ class NetworkScanner(BaseScanner):
                 "scan_stats": {
                     "total_hosts": len(hosts_dict),
                     "hosts_up": len(hosts_dict),
-                    "ports_scanned": len(ports.split(",")) if "," in ports else (
-                        int(ports.split("-")[1]) - int(ports.split("-")[0]) + 1
-                        if "-" in ports else 1
+                    "ports_scanned": (
+                        len(ports.split(","))
+                        if "," in ports
+                        else (
+                            int(ports.split("-")[1]) - int(ports.split("-")[0]) + 1
+                            if "-" in ports
+                            else 1
+                        )
                     ),
                 },
             }

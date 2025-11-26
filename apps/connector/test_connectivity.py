@@ -222,7 +222,9 @@ async def test_authentik():
             resp = await client.get(f"{base_url}/core/users/?page_size=1")
             resp.raise_for_status()
 
-        logger.info("✓ Authentik connection successful", domain=settings.authentik_domain)
+        logger.info(
+            "✓ Authentik connection successful", domain=settings.authentik_domain
+        )
         return True
     except Exception as e:
         logger.error(f"✗ Authentik connection failed: {e}")

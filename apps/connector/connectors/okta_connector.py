@@ -123,7 +123,7 @@ class OktaConnector(BaseConnector, GroupOperationsMixin):
         """Sync all active users from Okta."""
         self.logger.info("Syncing Okta users")
 
-        users = await self._paginate("/api/v1/users?filter=status eq \"ACTIVE\"")
+        users = await self._paginate('/api/v1/users?filter=status eq "ACTIVE"')
 
         for user in users:
             try:
@@ -435,9 +435,7 @@ class OktaConnector(BaseConnector, GroupOperationsMixin):
         """
         try:
             if not self._http_client:
-                self.logger.warning(
-                    "Okta get_group_members: client not connected"
-                )
+                self.logger.warning("Okta get_group_members: client not connected")
                 return []
 
             # GET /api/v1/groups/{groupId}/users

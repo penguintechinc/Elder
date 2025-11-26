@@ -207,9 +207,7 @@ class Settings(BaseSettings):
     )
 
     # VMware vCenter Configuration
-    vcenter_enabled: bool = Field(
-        default=False, description="Enable vCenter connector"
-    )
+    vcenter_enabled: bool = Field(default=False, description="Enable vCenter connector")
     vcenter_host: Optional[str] = Field(
         default=None,
         description="vCenter server hostname or IP",
@@ -236,9 +234,7 @@ class Settings(BaseSettings):
     )
 
     # FleetDM Configuration
-    fleetdm_enabled: bool = Field(
-        default=False, description="Enable FleetDM connector"
-    )
+    fleetdm_enabled: bool = Field(default=False, description="Enable FleetDM connector")
     fleetdm_url: str = Field(
         default="https://fleet.example.com",
         description="FleetDM server URL",

@@ -66,7 +66,9 @@ class HTTPScreenshotScanner(BaseScanner):
         try:
             from playwright.async_api import async_playwright
         except ImportError:
-            raise Exception("Playwright not installed. Run: pip install playwright && playwright install chromium")
+            raise Exception(
+                "Playwright not installed. Run: pip install playwright && playwright install chromium"
+            )
 
         screenshots: List[Dict[str, Any]] = []
         successful = 0
