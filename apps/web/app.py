@@ -17,8 +17,12 @@ from pydal.validators import IS_EMAIL, IS_IN_SET, IS_NOT_EMPTY
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from shared.licensing.python_client import (  # noqa: E402
-    FeatureNotAvailableError, LicenseValidationError, get_client,
-    initialize_licensing, requires_feature)
+    FeatureNotAvailableError,
+    LicenseValidationError,
+    get_client,
+    initialize_licensing,
+    requires_feature,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

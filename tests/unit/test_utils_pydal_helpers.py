@@ -10,12 +10,19 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from flask import Flask
 
-from apps.api.utils.pydal_helpers import (PaginationParams, commit_db,
-                                          delete_record, get_by_id,
-                                          insert_record, paginated_query,
-                                          query_count, query_delete,
-                                          query_select, query_update,
-                                          update_record)
+from apps.api.utils.pydal_helpers import (
+    PaginationParams,
+    commit_db,
+    delete_record,
+    get_by_id,
+    insert_record,
+    paginated_query,
+    query_count,
+    query_delete,
+    query_select,
+    query_update,
+    update_record,
+)
 
 
 @pytest.fixture

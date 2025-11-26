@@ -1,8 +1,12 @@
 """Authentication package for Elder."""
 
 from apps.api.auth.decorators import login_required, permission_required
-from apps.api.auth.jwt_handler import (generate_token, get_current_user,
-                                       verify_password, verify_token)
+from apps.api.auth.jwt_handler import (
+    generate_token,
+    get_current_user,
+    verify_password,
+    verify_token,
+)
 
 __all__ = [
     "generate_token",

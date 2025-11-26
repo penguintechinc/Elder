@@ -11,9 +11,14 @@ import pytest
 from flask import Flask
 
 from apps.api.utils.validation_helpers import (
-    validate_enum_value, validate_json_body,
-    validate_organization_and_get_tenant, validate_pagination_params,
-    validate_required_fields, validate_resource_exists, validate_tenant_exists)
+    validate_enum_value,
+    validate_json_body,
+    validate_organization_and_get_tenant,
+    validate_pagination_params,
+    validate_required_fields,
+    validate_resource_exists,
+    validate_tenant_exists,
+)
 
 
 @pytest.fixture

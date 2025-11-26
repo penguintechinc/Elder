@@ -8,10 +8,16 @@ from typing import Any, Dict, List, Optional
 import boto3
 from botocore.exceptions import ClientError
 
-from .base import (InvalidSecretConfigException, SecretAccessDeniedException,
-                   SecretAlreadyExistsException, SecretMetadata,
-                   SecretNotFoundException, SecretProviderClient,
-                   SecretProviderException, SecretValue)
+from .base import (
+    InvalidSecretConfigException,
+    SecretAccessDeniedException,
+    SecretAlreadyExistsException,
+    SecretMetadata,
+    SecretNotFoundException,
+    SecretProviderClient,
+    SecretProviderException,
+    SecretValue,
+)
 
 logger = logging.getLogger(__name__)
 

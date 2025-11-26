@@ -3,10 +3,12 @@
 from flask import Blueprint, jsonify, request
 
 from apps.api.auth.decorators import login_required
-from apps.api.models.entity_types import (DEFAULT_METADATA_TEMPLATES,
-                                          get_all_entity_types,
-                                          get_default_metadata_for_subtype,
-                                          get_subtypes_for_type)
+from apps.api.models.entity_types import (
+    DEFAULT_METADATA_TEMPLATES,
+    get_all_entity_types,
+    get_default_metadata_for_subtype,
+    get_subtypes_for_type,
+)
 
 bp = Blueprint("entity_types", __name__)
 
