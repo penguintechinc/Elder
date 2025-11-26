@@ -56,7 +56,7 @@ class BaseIAMProvider(ABC):
         username: str,
         display_name: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Create a new user/service account.
@@ -89,7 +89,7 @@ class BaseIAMProvider(ABC):
         user_identifier: str,
         display_name: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Update user/service account metadata.
@@ -144,7 +144,7 @@ class BaseIAMProvider(ABC):
         description: Optional[str] = None,
         trust_policy: Optional[Dict[str, Any]] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Create a new role.
@@ -178,7 +178,7 @@ class BaseIAMProvider(ABC):
         role_identifier: str,
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Update role metadata.
@@ -237,7 +237,7 @@ class BaseIAMProvider(ABC):
         policy_document: Dict[str, Any],
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Create a new policy.
