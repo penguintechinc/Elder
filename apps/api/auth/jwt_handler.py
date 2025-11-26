@@ -141,27 +141,20 @@ def get_current_user() -> Optional[Row]:
                 logger.warning(f"Portal user not found with ID: {user_id}")
                 return None
 
+            # Check is_active - use truthy check like the portal_auth service
             if not portal_user.is_active:
                 logger.warning(f"Portal user {portal_user.email} is not active")
                 return None
 
-            # Check if there's a linked identity, otherwise create synthetic one
-            if portal_user.identity_id:
-                identity = db.identities[portal_user.identity_id]
-                if identity:
-                    logger.debug(f"Using linked identity for portal user: {identity.username}")
-                    g.current_user = identity
-                    return identity
-
             # Create a synthetic identity-like object from portal_user for API compatibility
-            # This allows portal users to access APIs even without a linked identity
+            # This allows portal users to access APIs without a linked identity
             class PortalUserIdentity:
                 def __init__(self, pu):
                     self.id = pu.id
                     self.username = pu.email.split('@')[0] if pu.email else f"user_{pu.id}"
                     self.email = pu.email
-                    self.display_name = pu.display_name or self.username
-                    self.is_active = pu.is_active
+                    self.display_name = pu.full_name or self.username
+                    self.is_active = bool(pu.is_active)
                     self.is_superuser = pu.global_role == 'admin'
                     self.tenant_id = pu.tenant_id
                     self.portal_role = pu.global_role or 'observer'
@@ -190,7 +183,8 @@ def get_current_user() -> Optional[Row]:
         g.current_user = identity
         return identity
     except Exception as e:
-        logger.error(f"Error looking up user: {e}")
+        import traceback
+        logger.error(f"Error looking up user: {e} - {traceback.format_exc()}")
         # Rollback transaction on error to prevent transaction state issues
         try:
             db.rollback()
