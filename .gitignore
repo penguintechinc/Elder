@@ -449,4 +449,4 @@ vagrant/.TODO
 .TODO
 
 *.local.json
-.claude/
+.claude/.mcp.json

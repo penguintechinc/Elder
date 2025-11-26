@@ -467,6 +467,10 @@ docker compose down -v
 ### Dependency Security Requirements
 - **ALWAYS check for Dependabot alerts** before every commit using GitHub CLI or API
 - **Monitor vulnerabilities via Socket.dev** for all Python, Go, and Node.js dependencies
+- **Socket.dev MCP Tool**: Available locally via `.mcp.json` for pre-commit dependency scanning
+  - API key configured in `~/.bashrc` as `SOCKET_API_KEY`
+  - Run scans before pushing dependency changes to catch supply chain risks
+  - Socket.dev is also integrated in CI/CD for automated scanning
 - **Mandatory security scanning** before any dependency changes are committed
 - **Fix all security alerts immediately** - no commits with outstanding vulnerabilities
 - **Automated dependency updates**: Use tools like Dependabot, Renovate, or custom scripts

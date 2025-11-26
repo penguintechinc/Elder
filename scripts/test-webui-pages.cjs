@@ -1,6 +1,8 @@
 const puppeteer = require('puppeteer');
 
-const BASE_URL = 'http://localhost:3005';
+// Configurable via environment variables for CI/CD flexibility
+const BASE_URL = process.env.WEB_URL || 'http://localhost:3005';
+const API_URL = process.env.API_URL || 'http://localhost:4000';
 
 const pages = [
   { name: 'Dashboard', path: '/' },
