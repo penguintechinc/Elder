@@ -4,10 +4,6 @@ Unit tests for Entity model.
 These tests are isolated and do not require network connections or external services.
 """
 
-from datetime import datetime
-
-import pytest
-
 from apps.api import db
 from apps.api.models.entity import Entity, EntityType
 from apps.api.models.organization import Organization

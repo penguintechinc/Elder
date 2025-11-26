@@ -1,6 +1,6 @@
 """Graph visualization API endpoints using PyDAL with async/await."""
 
-from typing import Dict, List
+from typing import Dict
 
 import networkx as nx
 from flask import Blueprint, current_app, jsonify, request

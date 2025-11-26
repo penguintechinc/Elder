@@ -1,12 +1,10 @@
 """HTTP screenshot scanner using Playwright for headless browser captures."""
 
-import asyncio
 import hashlib
 import logging
 import os
 from datetime import datetime
 from typing import Any, Dict, List
-from urllib.parse import urlparse
 
 from .base import BaseScanner
 

@@ -5,7 +5,7 @@ This module provides consistent response formatting across all API endpoints,
 ensuring uniform error handling and success responses.
 """
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional, Tuple
 
 from flask import jsonify
 

@@ -5,7 +5,6 @@ with tenant context for multi-tenancy support.
 """
 
 import datetime
-import hashlib
 import secrets
 from typing import Optional
 

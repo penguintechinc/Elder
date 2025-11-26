@@ -6,9 +6,7 @@ No external network calls or real database required.
 """
 
 import json
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from apps.api.models.organization import Organization
 

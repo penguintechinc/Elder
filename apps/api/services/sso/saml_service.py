@@ -6,11 +6,8 @@ at both global and tenant levels.
 
 import datetime
 from typing import Optional
-from urllib.parse import urljoin
 
 from flask import current_app
-
-from apps.api.services.portal_auth import PortalAuthService
 
 
 class SAMLService:

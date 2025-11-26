@@ -5,9 +5,7 @@ HIPAA, and GDPR compliance requirements.
 """
 
 import datetime
-import json
-import uuid
-from typing import Any, Optional
+from typing import Optional
 
 from flask import current_app
 
@@ -401,8 +399,8 @@ class AuditService:
             # Failed authentication attempts
             query = (
                 base_query
-                & (db.audit_logs.success == False)
-                & (  # noqa: E712
+                & (db.audit_logs.success == False)  # noqa: E712
+                & (
                     db.audit_logs.action_name.belongs(
                         [
                             AuditService.ACTION_LOGIN,

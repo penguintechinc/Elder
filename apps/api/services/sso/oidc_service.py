@@ -12,7 +12,6 @@ from urllib.parse import urlencode
 import jwt
 import requests
 from authlib.integrations.requests_client import OAuth2Session
-from authlib.oauth2.rfc6749 import OAuth2Token
 from flask import current_app
 
 

@@ -1,7 +1,5 @@
 """Search Service for Elder v1.2.0 (Phase 10)."""
 
-import json
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from pydal import DAL

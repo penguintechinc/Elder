@@ -12,8 +12,6 @@ import logging
 import secrets
 from typing import Any, Dict, List, Optional
 
-from flask import current_app
-
 from apps.api.services.audit.service import AuditService
 
 logger = logging.getLogger(__name__)

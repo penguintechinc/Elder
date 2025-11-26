@@ -5,7 +5,7 @@ These tests use mocking to avoid external dependencies.
 No network calls or real database required.
 """
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from flask import Flask

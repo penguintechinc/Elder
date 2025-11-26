@@ -6,8 +6,7 @@ No network calls or real database required.
 """
 
 import json
-from dataclasses import asdict
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from flask import Flask

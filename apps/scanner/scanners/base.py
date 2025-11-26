@@ -17,7 +17,6 @@ class BaseScanner(ABC):
         Returns:
             Dictionary containing scan results
         """
-        pass
 
     def validate_config(self, config: Dict[str, Any], required_fields: list) -> None:
         """Validate that required fields are present in config.

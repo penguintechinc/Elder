@@ -385,20 +385,20 @@ class DiscoveryService:
 
         # Find pending one-time jobs (never run)
         pending_jobs = self.db(
-            (self.db.discovery_jobs.enabled == True)
+            (self.db.discovery_jobs.enabled == True)  # noqa: E712
             & (self.db.discovery_jobs.provider.belongs(local_providers))
             & (self.db.discovery_jobs.schedule_interval == 0)
-            & (self.db.discovery_jobs.last_run_at == None)
+            & (self.db.discovery_jobs.last_run_at == None)  # noqa: E711
         ).select()
 
         # Also get scheduled jobs that are due
         now = datetime.utcnow()
         scheduled_jobs = self.db(
-            (self.db.discovery_jobs.enabled == True)
+            (self.db.discovery_jobs.enabled == True)  # noqa: E712
             & (self.db.discovery_jobs.provider.belongs(local_providers))
             & (self.db.discovery_jobs.schedule_interval > 0)
             & (
-                (self.db.discovery_jobs.next_run_at == None)
+                (self.db.discovery_jobs.next_run_at == None)  # noqa: E711
                 | (self.db.discovery_jobs.next_run_at <= now)
             )
         ).select()
