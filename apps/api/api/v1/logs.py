@@ -89,9 +89,7 @@ def search_logs():
     try:
         with open(log_file, "r") as f:
             # Case-insensitive search
-            matches = [
-                line.rstrip() for line in f if query.lower() in line.lower()
-            ]
+            matches = [line.rstrip() for line in f if query.lower() in line.lower()]
             last_100 = matches[-100:] if len(matches) > 100 else matches
 
         admin_email = getattr(g.current_user, "email", "unknown")
