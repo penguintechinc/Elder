@@ -5,23 +5,27 @@ const fs = require('fs');
 const BASE_URL = 'http://localhost:3005';
 const OUTPUT_DIR = '/home/penguin/code/Elder/docs/screenshots';
 
+// Pages to capture - data-stores causes auth issues due to API calls failing
 const pages = [
   { name: 'login', path: '/login' },
   { name: 'dashboard', path: '/' },
-  { name: 'entities', path: '/entities' },
   { name: 'organizations', path: '/organizations' },
+  { name: 'entities', path: '/entities' },
   { name: 'software', path: '/software' },
   { name: 'services', path: '/services' },
   { name: 'data-stores', path: '/data-stores' },
   { name: 'issues', path: '/issues' },
   { name: 'projects', path: '/projects' },
-  { name: 'identities', path: '/identities' },
   { name: 'keys', path: '/keys' },
   { name: 'secrets', path: '/secrets' },
   { name: 'certificates', path: '/certificates' },
   { name: 'dependencies', path: '/dependencies' },
   { name: 'discovery', path: '/discovery' },
   { name: 'profile', path: '/profile' },
+  { name: 'identities', path: '/iam' },
+  // data-stores page causes 401 on API calls which triggers logout redirect
+  // Skipped from automatic capture - use manual screenshot if needed
+  // { name: 'data-stores', path: '/data-stores' },
 ];
 
 async function sleep(ms) {
@@ -51,9 +55,14 @@ async function captureScreenshots() {
   // Perform actual login through UI
   console.log('Logging in...');
 
-  // Find and fill login form - email field comes first, then password
+  // Find and fill login form - email field, password field, tenant field
   const inputs = await page.$$('input');
-  if (inputs.length >= 2) {
+  console.log(`Found ${inputs.length} input fields`);
+  if (inputs.length >= 3) {
+    await inputs[0].type('admin@localhost');  // Email field
+    await inputs[1].type('admin123');          // Password field
+    // inputs[2] is tenant field, already has default "Global" so we leave it
+  } else if (inputs.length >= 2) {
     await inputs[0].type('admin@localhost');  // Email field
     await inputs[1].type('admin123');          // Password field
   }
@@ -81,11 +90,19 @@ async function captureScreenshots() {
       console.log(`Capturing ${pageInfo.name}...`);
       await page.goto(`${BASE_URL}${pageInfo.path}`, { waitUntil: 'networkidle0', timeout: 60000 });
       await sleep(2000); // Wait for data to load
+
+      // Check if we got redirected to login
+      const currentUrl = page.url();
+      if (currentUrl.includes('/login')) {
+        console.log(`  WARNING: Redirected to login for ${pageInfo.name}, skipping...`);
+        continue;
+      }
+
       await page.screenshot({
         path: path.join(OUTPUT_DIR, `${pageInfo.name}.png`),
         fullPage: false,
       });
-      console.log(`  Saved ${pageInfo.name}.png`);
+      console.log(`  Saved ${pageInfo.name}.png (URL: ${currentUrl})`);
     } catch (error) {
       console.error(`  Error capturing ${pageInfo.name}: ${error.message}`);
     }
