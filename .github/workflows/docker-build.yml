@@ -9,8 +9,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_API: ${{ github.repository }}/api
-  IMAGE_NAME_WEB: ${{ github.repository }}/web
+  IMAGE_NAME_API: ${{ github.repository_owner }}/elder-api
+  IMAGE_NAME_WEB: ${{ github.repository_owner }}/elder-web
 
 jobs:
   # Build matrix for different services
@@ -47,7 +47,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service.name }}
+        images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-${{ matrix.service.name }}
         tags: |
           # Prototype tag for all non-main branches
           type=raw,value=prototype-{{branch}},enable=${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
@@ -95,7 +95,7 @@ jobs:
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service }}:${{ github.ref_name }}
+        image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-${{ matrix.service }}:${{ github.ref_name }}
         format: 'sarif'
         output: 'trivy-results-${{ matrix.service }}.sarif'
 
@@ -152,7 +152,7 @@ jobs:
               retries: 5
 
           api:
-            image: ${{ env.REGISTRY }}/${{ github.repository }}/api:${{ github.ref_name }}
+            image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api:${{ github.ref_name }}
             ports:
               - "4000:8000"
             environment:
@@ -180,7 +180,7 @@ jobs:
               retries: 5
 
           web:
-            image: ${{ env.REGISTRY }}/${{ github.repository }}/web:${{ github.ref_name }}
+            image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-web:${{ github.ref_name }}
             ports:
               - "3000:80"
             environment:
@@ -279,7 +279,7 @@ jobs:
           -p 8080:8080 \
           -e LICENSE_KEY=PENG-TEST-TEST-TEST-TEST-ABCD \
           -e PRODUCT_NAME=perf-test \
-          ${{ env.REGISTRY }}/${{ github.repository }}/api:${{ github.ref_name }}
+          ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api:${{ github.ref_name }}
 
         sleep 10
 
@@ -331,8 +331,8 @@ jobs:
 
         echo "" >> CHANGELOG.md
         echo "### Docker Images" >> CHANGELOG.md
-        echo "- \`${{ env.REGISTRY }}/${{ github.repository }}/api:${GITHUB_REF_NAME}\`" >> CHANGELOG.md
-        echo "- \`${{ env.REGISTRY }}/${{ github.repository }}/web:${GITHUB_REF_NAME}\`" >> CHANGELOG.md
+        echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api:${GITHUB_REF_NAME}\`" >> CHANGELOG.md
+        echo "- \`${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-web:${GITHUB_REF_NAME}\`" >> CHANGELOG.md
         echo "" >> CHANGELOG.md
         echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...${{ github.ref_name }}" >> CHANGELOG.md
 
@@ -358,13 +358,13 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
-          const services = ['api', 'web'];
+          const packages = ['elder-api', 'elder-web'];
 
-          for (const service of services) {
+          for (const pkg of packages) {
             try {
               const response = await github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
                 package_type: 'container',
-                package_name: `${context.repo.repo}/${service}`,
+                package_name: pkg,
                 org: context.repo.owner,
                 per_page: 100
               });
@@ -374,15 +374,15 @@ jobs:
               );
 
               for (const version of untaggedVersions) {
-                console.log(`Deleting untagged version: ${version.id} for ${service}`);
+                console.log(`Deleting untagged version: ${version.id} for ${pkg}`);
                 await github.rest.packages.deletePackageVersionForOrg({
                   package_type: 'container',
-                  package_name: `${context.repo.repo}/${service}`,
+                  package_name: pkg,
                   org: context.repo.owner,
                   package_version_id: version.id,
                 });
               }
             } catch (error) {
-              console.log(`Error cleaning up ${service}: ${error.message}`);
+              console.log(`Error cleaning up ${pkg}: ${error.message}`);
             }
           }
