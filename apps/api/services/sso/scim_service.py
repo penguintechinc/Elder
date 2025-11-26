@@ -63,10 +63,14 @@ class SCIMService:
             SCIM configuration dict or None
         """
         db = current_app.db
-        config = db(
-            (db.scim_configurations.tenant_id == tenant_id)
-            & (db.scim_configurations.is_active == True)  # noqa: E712  # noqa: E712
-        ).select().first()
+        config = (
+            db(
+                (db.scim_configurations.tenant_id == tenant_id)
+                & (db.scim_configurations.is_active == True)  # noqa: E712  # noqa: E712
+            )
+            .select()
+            .first()
+        )
 
         if not config:
             return None
@@ -76,7 +80,9 @@ class SCIMService:
             "tenant_id": config.tenant_id,
             "endpoint_url": config.endpoint_url,
             "sync_groups": config.sync_groups,
-            "last_sync_at": config.last_sync_at.isoformat() if config.last_sync_at else None,
+            "last_sync_at": (
+                config.last_sync_at.isoformat() if config.last_sync_at else None
+            ),
         }
 
     @staticmethod
@@ -91,11 +97,15 @@ class SCIMService:
             True if valid, False otherwise
         """
         db = current_app.db
-        config = db(
-            (db.scim_configurations.tenant_id == tenant_id)
-            & (db.scim_configurations.bearer_token == token)
-            & (db.scim_configurations.is_active == True)  # noqa: E712
-        ).select().first()
+        config = (
+            db(
+                (db.scim_configurations.tenant_id == tenant_id)
+                & (db.scim_configurations.bearer_token == token)
+                & (db.scim_configurations.is_active == True)  # noqa: E712
+            )
+            .select()
+            .first()
+        )
 
         return config is not None
 
@@ -121,18 +131,24 @@ class SCIMService:
             return {"error": "Email is required", "status": 400}
 
         # Check if user already exists
-        existing = db(
-            (db.portal_users.email == email.lower())
-            & (db.portal_users.tenant_id == tenant_id)
-        ).select().first()
+        existing = (
+            db(
+                (db.portal_users.email == email.lower())
+                & (db.portal_users.tenant_id == tenant_id)
+            )
+            .select()
+            .first()
+        )
 
         if existing:
             return {"error": "User already exists", "status": 409}
 
         # Build name
         name_obj = scim_user.get("name", {})
-        full_name = scim_user.get("displayName") or \
-            f"{name_obj.get('givenName', '')} {name_obj.get('familyName', '')}".strip()
+        full_name = (
+            scim_user.get("displayName")
+            or f"{name_obj.get('givenName', '')} {name_obj.get('familyName', '')}".strip()
+        )
 
         # Create portal user
         user_id = db.portal_users.insert(
@@ -166,10 +182,14 @@ class SCIMService:
             SCIM user resource
         """
         db = current_app.db
-        user = db(
-            (db.portal_users.id == user_id)
-            & (db.portal_users.tenant_id == tenant_id)
-        ).select().first()
+        user = (
+            db(
+                (db.portal_users.id == user_id)
+                & (db.portal_users.tenant_id == tenant_id)
+            )
+            .select()
+            .first()
+        )
 
         if not user:
             return {"error": "User not found", "status": 404}
@@ -191,10 +211,14 @@ class SCIMService:
             Updated SCIM user response
         """
         db = current_app.db
-        user = db(
-            (db.portal_users.id == user_id)
-            & (db.portal_users.tenant_id == tenant_id)
-        ).select().first()
+        user = (
+            db(
+                (db.portal_users.id == user_id)
+                & (db.portal_users.tenant_id == tenant_id)
+            )
+            .select()
+            .first()
+        )
 
         if not user:
             return {"error": "User not found", "status": 404}
@@ -211,8 +235,10 @@ class SCIMService:
         # Name
         name_obj = scim_user.get("name", {})
         if "displayName" in scim_user or name_obj:
-            updates["full_name"] = scim_user.get("displayName") or \
-                f"{name_obj.get('givenName', '')} {name_obj.get('familyName', '')}".strip()
+            updates["full_name"] = (
+                scim_user.get("displayName")
+                or f"{name_obj.get('givenName', '')} {name_obj.get('familyName', '')}".strip()
+            )
 
         # Active status
         if "active" in scim_user:
@@ -241,10 +267,14 @@ class SCIMService:
             Success status
         """
         db = current_app.db
-        user = db(
-            (db.portal_users.id == user_id)
-            & (db.portal_users.tenant_id == tenant_id)
-        ).select().first()
+        user = (
+            db(
+                (db.portal_users.id == user_id)
+                & (db.portal_users.tenant_id == tenant_id)
+            )
+            .select()
+            .first()
+        )
 
         if not user:
             return {"error": "User not found", "status": 404}
@@ -260,7 +290,7 @@ class SCIMService:
         tenant_id: int,
         start_index: int = 1,
         count: int = 100,
-        filter_str: Optional[str] = None
+        filter_str: Optional[str] = None,
     ) -> dict:
         """List users in SCIM format.
 
@@ -283,9 +313,7 @@ class SCIMService:
                 email = filter_str.split('"')[1] if '"' in filter_str else ""
                 query &= db.portal_users.email == email.lower()
 
-        users = db(query).select(
-            limitby=(start_index - 1, start_index - 1 + count)
-        )
+        users = db(query).select(limitby=(start_index - 1, start_index - 1 + count))
         total = db(query).count()
 
         resources = [
@@ -303,10 +331,7 @@ class SCIMService:
 
     @staticmethod
     def _user_to_scim(
-        user_id: int,
-        email: str,
-        full_name: Optional[str],
-        is_active: bool
+        user_id: int, email: str, full_name: Optional[str], is_active: bool
     ) -> dict:
         """Convert portal user to SCIM format.
 
@@ -358,9 +383,7 @@ class SCIMService:
             New bearer token
         """
         db = current_app.db
-        config = db(
-            db.scim_configurations.tenant_id == tenant_id
-        ).select().first()
+        config = db(db.scim_configurations.tenant_id == tenant_id).select().first()
 
         if not config:
             return {"error": "SCIM not configured for this tenant"}

@@ -282,9 +282,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(
         portal_auth.bp, url_prefix=f"{api_prefix}/portal-auth"
     )  # Portal user authentication
-    app.register_blueprint(
-        sso.bp, url_prefix=f"{api_prefix}/sso"
-    )  # SSO/SAML/SCIM
+    app.register_blueprint(sso.bp, url_prefix=f"{api_prefix}/sso")  # SSO/SAML/SCIM
     app.register_blueprint(
         audit_enterprise.bp, url_prefix=f"{api_prefix}/audit-enterprise"
     )  # Enhanced audit & compliance

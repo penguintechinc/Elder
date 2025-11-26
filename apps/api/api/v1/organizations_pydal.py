@@ -71,7 +71,7 @@ async def list_organizations():
         total = db(query).count()
         rows = db(query).select(
             orderby=db.organizations.name,
-            limitby=(pagination.offset, pagination.offset + pagination.per_page)
+            limitby=(pagination.offset, pagination.offset + pagination.per_page),
         )
         return total, rows
 
@@ -132,10 +132,7 @@ async def create_organization():
 
     # Insert organization using helper
     try:
-        org_id = await insert_record(
-            db.organizations,
-            **asdict(create_req)
-        )
+        org_id = await insert_record(db.organizations, **asdict(create_req))
         await commit_db(db)
 
         # Fetch created org using helper
@@ -146,12 +143,7 @@ async def create_organization():
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
-        return log_error_and_respond(
-            logger,
-            e,
-            "Failed to process request",
-            500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:id>", methods=["GET"])
@@ -239,12 +231,7 @@ async def update_organization(id: int):
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
-        return log_error_and_respond(
-            logger,
-            e,
-            "Failed to process request",
-            500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:id>", methods=["DELETE"])
@@ -273,9 +260,7 @@ async def delete_organization(id: int):
     )
 
     if children_count > 0:
-        return ApiResponse.bad_request(
-            "Cannot delete Organization Unit with child OUs"
-        )
+        return ApiResponse.bad_request("Cannot delete Organization Unit with child OUs")
 
     # Delete organization
     try:
@@ -285,12 +270,7 @@ async def delete_organization(id: int):
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
-        return log_error_and_respond(
-            logger,
-            e,
-            "Failed to process request",
-            500
-        )
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:id>/graph", methods=["GET"])
@@ -381,14 +361,10 @@ async def get_organization_graph(id: int):
         children = db(db.organizations.parent_id == parent_id).select()
         all_children = list(children)
         for child in children:
-            all_children.extend(
-                get_children_recursive(child.id, current_depth + 1)
-            )
+            all_children.extend(get_children_recursive(child.id, current_depth + 1))
         return all_children[: depth * 10]
 
-    all_children = await run_in_threadpool(
-        lambda: get_children_recursive(id)
-    )
+    all_children = await run_in_threadpool(lambda: get_children_recursive(id))
     for child in all_children:
         add_org_node(child.id)
         if child.parent_id:

@@ -362,7 +362,10 @@ class SearchService:
                         )
 
                         # Add target to queue (only if target is also an entity)
-                        if dep.target_type == "entity" and dep.target_id not in visited_entities:
+                        if (
+                            dep.target_type == "entity"
+                            and dep.target_id not in visited_entities
+                        ):
                             queue.append((dep.target_id, depth + 1))
 
                 # Find dependencies where this entity is target
@@ -387,7 +390,10 @@ class SearchService:
                         )
 
                         # Add source to queue (only if source is also an entity)
-                        if dep.source_type == "entity" and dep.source_id not in visited_entities:
+                        if (
+                            dep.source_type == "entity"
+                            and dep.source_id not in visited_entities
+                        ):
                             queue.append((dep.source_id, depth + 1))
 
         return {
@@ -586,7 +592,7 @@ class SearchService:
             raise Exception(f"Saved search {search_id} not owned by user {user_id}")
 
         # Parse filters (already stored as JSON in table)
-        filters = search.filters if hasattr(search, 'filters') else None
+        filters = search.filters if hasattr(search, "filters") else None
 
         # Execute search across all resource types
         return self.search_all(
@@ -642,9 +648,7 @@ class SearchService:
         # Entity name suggestions - use groupby instead of distinct to avoid ORDER BY issues
         if not resource_type or resource_type == "entity":
             entities = self.db(self.db.entities.name.contains(partial_query)).select(
-                self.db.entities.name,
-                groupby=self.db.entities.name,
-                limitby=(0, limit)
+                self.db.entities.name, groupby=self.db.entities.name, limitby=(0, limit)
             )
             suggestions.extend(
                 [
@@ -658,7 +662,7 @@ class SearchService:
             orgs = self.db(self.db.organizations.name.contains(partial_query)).select(
                 self.db.organizations.name,
                 groupby=self.db.organizations.name,
-                limitby=(0, limit)
+                limitby=(0, limit),
             )
             suggestions.extend(
                 [
@@ -670,9 +674,7 @@ class SearchService:
         # Issue title suggestions - use groupby instead of distinct
         if not resource_type or resource_type == "issue":
             issues = self.db(self.db.issues.title.contains(partial_query)).select(
-                self.db.issues.title,
-                groupby=self.db.issues.title,
-                limitby=(0, limit)
+                self.db.issues.title, groupby=self.db.issues.title, limitby=(0, limit)
             )
             suggestions.extend(
                 [

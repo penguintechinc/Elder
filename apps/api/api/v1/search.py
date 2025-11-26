@@ -380,7 +380,9 @@ def get_saved_search(search_id):
     try:
         service = get_search_service()
 
-        search = service.get_saved_search(search_id=search_id, user_id=g.current_user.id)
+        search = service.get_saved_search(
+            search_id=search_id, user_id=g.current_user.id
+        )
 
         return jsonify(search), 200
 

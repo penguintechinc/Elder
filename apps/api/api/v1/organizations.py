@@ -160,7 +160,7 @@ def update_organization(id: int):
     try:
         # Check if tenant_id is changing
         old_tenant_id = org.tenant_id
-        new_tenant_id = data.get('tenant_id')
+        new_tenant_id = data.get("tenant_id")
         tenant_changed = new_tenant_id is not None and new_tenant_id != old_tenant_id
 
         # Update organization
@@ -180,8 +180,12 @@ def update_organization(id: int):
                 for child in children:
                     db(db.organizations.id == child.id).update(tenant_id=tenant_id)
                     # Update entities and identities of child org
-                    db(db.entities.organization_id == child.id).update(tenant_id=tenant_id)
-                    db(db.identities.organization_id == child.id).update(tenant_id=tenant_id)
+                    db(db.entities.organization_id == child.id).update(
+                        tenant_id=tenant_id
+                    )
+                    db(db.identities.organization_id == child.id).update(
+                        tenant_id=tenant_id
+                    )
                     # Recurse to grandchildren
                     update_children_tenant(child.id, tenant_id)
 
@@ -456,7 +460,7 @@ def get_organization_graph(id: int):
 
     # Get dependencies between entities (if dependencies table exists)
     entity_ids = list(visited_entities)
-    if entity_ids and hasattr(db, 'dependencies'):
+    if entity_ids and hasattr(db, "dependencies"):
         try:
             # Dependencies table uses source_type/source_id, not source_entity_id
             dependencies = db(

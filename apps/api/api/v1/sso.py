@@ -16,25 +16,36 @@ bp = Blueprint("sso", __name__)
 # SCIM authentication decorator
 def scim_auth_required(f):
     """Decorator to require SCIM bearer token authentication."""
+
     @wraps(f)
     def decorated(tenant_id, *args, **kwargs):
         auth_header = request.headers.get("Authorization")
 
         if not auth_header or not auth_header.startswith("Bearer "):
-            return jsonify({
-                "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-                "detail": "Authorization required",
-                "status": 401
-            }), 401
+            return (
+                jsonify(
+                    {
+                        "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                        "detail": "Authorization required",
+                        "status": 401,
+                    }
+                ),
+                401,
+            )
 
         token = auth_header.split(" ")[1]
 
         if not SCIMService.validate_bearer_token(tenant_id, token):
-            return jsonify({
-                "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-                "detail": "Invalid bearer token",
-                "status": 401
-            }), 401
+            return (
+                jsonify(
+                    {
+                        "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                        "detail": "Invalid bearer token",
+                        "status": 401,
+                    }
+                ),
+                401,
+            )
 
         return f(tenant_id, *args, **kwargs)
 
@@ -44,6 +55,7 @@ def scim_auth_required(f):
 # =============================================================================
 # IdP Configuration Endpoints
 # =============================================================================
+
 
 @bp.route("/idp", methods=["GET"])
 @portal_token_required
@@ -59,8 +71,10 @@ def list_idp_configs():
     tenant_id = request.args.get("tenant_id", type=int)
 
     # Check permissions - only admins can view IdP configs
-    if request.portal_user.get("global_role") not in ["admin", "support"] and \
-       request.portal_user.get("tenant_role") != "admin":
+    if (
+        request.portal_user.get("global_role") not in ["admin", "support"]
+        and request.portal_user.get("tenant_role") != "admin"
+    ):
         # Non-admins can only see their tenant's config
         tenant_id = request.portal_user.get("tenant_id")
 
@@ -104,8 +118,10 @@ def create_idp_config():
         Created configuration
     """
     # Check permissions
-    if request.portal_user.get("global_role") != "admin" and \
-       request.portal_user.get("tenant_role") != "admin":
+    if (
+        request.portal_user.get("global_role") != "admin"
+        and request.portal_user.get("tenant_role") != "admin"
+    ):
         return jsonify({"error": "Admin permission required"}), 403
 
     data = request.get_json()
@@ -156,8 +172,10 @@ def update_idp_config(config_id):
         Updated configuration
     """
     # Check permissions
-    if request.portal_user.get("global_role") != "admin" and \
-       request.portal_user.get("tenant_role") != "admin":
+    if (
+        request.portal_user.get("global_role") != "admin"
+        and request.portal_user.get("tenant_role") != "admin"
+    ):
         return jsonify({"error": "Admin permission required"}), 403
 
     data = request.get_json()
@@ -184,8 +202,10 @@ def delete_idp_config(config_id):
         Success status
     """
     # Check permissions
-    if request.portal_user.get("global_role") != "admin" and \
-       request.portal_user.get("tenant_role") != "admin":
+    if (
+        request.portal_user.get("global_role") != "admin"
+        and request.portal_user.get("tenant_role") != "admin"
+    ):
         return jsonify({"error": "Admin permission required"}), 403
 
     result = SAMLService.delete_idp_config(config_id)
@@ -199,6 +219,7 @@ def delete_idp_config(config_id):
 # =============================================================================
 # SAML Endpoints
 # =============================================================================
+
 
 @bp.route("/saml/metadata", methods=["GET"])
 @bp.route("/saml/metadata/<int:tenant_id>", methods=["GET"])
@@ -217,7 +238,7 @@ def get_sp_metadata(tenant_id=None):
     return Response(
         metadata,
         mimetype="application/xml",
-        headers={"Content-Disposition": "inline; filename=sp-metadata.xml"}
+        headers={"Content-Disposition": "inline; filename=sp-metadata.xml"},
     )
 
 
@@ -241,10 +262,15 @@ def saml_login(tenant_id):
 
     # In production, generate SAML AuthnRequest and redirect
     # For now, return the SSO URL for manual redirect
-    return jsonify({
-        "sso_url": idp_config["sso_url"],
-        "message": "Redirect to SSO URL to initiate login"
-    }), 200
+    return (
+        jsonify(
+            {
+                "sso_url": idp_config["sso_url"],
+                "message": "Redirect to SSO URL to initiate login",
+            }
+        ),
+        200,
+    )
 
 
 @bp.route("/saml/acs/<int:tenant_id>", methods=["POST"])
@@ -273,10 +299,15 @@ def saml_acs(tenant_id):
     # Generate tokens
     tokens = generate_tokens(result)
 
-    return jsonify({
-        "user": result,
-        **tokens,
-    }), 200
+    return (
+        jsonify(
+            {
+                "user": result,
+                **tokens,
+            }
+        ),
+        200,
+    )
 
 
 @bp.route("/saml/slo/<int:tenant_id>", methods=["GET", "POST"])
@@ -290,15 +321,13 @@ def saml_slo(tenant_id):
         Logout confirmation
     """
     # In production, process SLO request/response
-    return jsonify({
-        "message": "Logged out successfully",
-        "tenant_id": tenant_id
-    }), 200
+    return jsonify({"message": "Logged out successfully", "tenant_id": tenant_id}), 200
 
 
 # =============================================================================
 # OIDC Endpoints (v3.0.0 Enterprise Feature)
 # =============================================================================
+
 
 @bp.route("/oidc/authorize/<int:idp_id>", methods=["GET"])
 def oidc_authorize(idp_id):
@@ -392,14 +421,17 @@ def oidc_callback():
         # Generate Elder JWT tokens
         elder_tokens = generate_tokens(user)
 
-        return jsonify({
-            "user": user,
-            **elder_tokens,
-        }), 200
+        return (
+            jsonify(
+                {
+                    "user": user,
+                    **elder_tokens,
+                }
+            ),
+            200,
+        )
 
-    return jsonify({
-        "error": "JIT provisioning is disabled for this IdP"
-    }), 403
+    return jsonify({"error": "JIT provisioning is disabled for this IdP"}), 403
 
 
 @bp.route("/oidc/logout/<int:idp_id>", methods=["POST"])
@@ -490,6 +522,7 @@ def oidc_refresh(idp_id):
 # SCIM Endpoints
 # =============================================================================
 
+
 @bp.route("/scim/config", methods=["POST"])
 @portal_token_required
 def create_scim_config():
@@ -502,8 +535,10 @@ def create_scim_config():
         SCIM configuration with bearer token
     """
     # Check permissions
-    if request.portal_user.get("global_role") != "admin" and \
-       request.portal_user.get("tenant_role") != "admin":
+    if (
+        request.portal_user.get("global_role") != "admin"
+        and request.portal_user.get("tenant_role") != "admin"
+    ):
         return jsonify({"error": "Admin permission required"}), 403
 
     data = request.get_json() or {}
@@ -552,8 +587,10 @@ def regenerate_scim_token(tenant_id):
         New bearer token
     """
     # Check permissions
-    if request.portal_user.get("global_role") != "admin" and \
-       request.portal_user.get("tenant_role") != "admin":
+    if (
+        request.portal_user.get("global_role") != "admin"
+        and request.portal_user.get("tenant_role") != "admin"
+    ):
         return jsonify({"error": "Admin permission required"}), 403
 
     result = SCIMService.regenerate_token(tenant_id)
@@ -567,6 +604,7 @@ def regenerate_scim_token(tenant_id):
 # =============================================================================
 # SCIM 2.0 User Provisioning Endpoints
 # =============================================================================
+
 
 @bp.route("/scim/<int:tenant_id>/Users", methods=["GET"])
 @scim_auth_required
@@ -603,21 +641,31 @@ def scim_create_user(tenant_id):
     """
     scim_user = request.get_json()
     if not scim_user:
-        return jsonify({
-            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-            "detail": "Request body required",
-            "status": 400
-        }), 400
+        return (
+            jsonify(
+                {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                    "detail": "Request body required",
+                    "status": 400,
+                }
+            ),
+            400,
+        )
 
     result = SCIMService.create_user(tenant_id, scim_user)
 
     if "error" in result:
         status = result.pop("status", 400)
-        return jsonify({
-            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-            "detail": result["error"],
-            "status": status
-        }), status
+        return (
+            jsonify(
+                {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                    "detail": result["error"],
+                    "status": status,
+                }
+            ),
+            status,
+        )
 
     return jsonify(result), 201
 
@@ -638,11 +686,16 @@ def scim_get_user(tenant_id, user_id):
 
     if "error" in result:
         status = result.pop("status", 404)
-        return jsonify({
-            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-            "detail": result["error"],
-            "status": status
-        }), status
+        return (
+            jsonify(
+                {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                    "detail": result["error"],
+                    "status": status,
+                }
+            ),
+            status,
+        )
 
     return jsonify(result), 200
 
@@ -664,21 +717,31 @@ def scim_update_user(tenant_id, user_id):
     """
     scim_user = request.get_json()
     if not scim_user:
-        return jsonify({
-            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-            "detail": "Request body required",
-            "status": 400
-        }), 400
+        return (
+            jsonify(
+                {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                    "detail": "Request body required",
+                    "status": 400,
+                }
+            ),
+            400,
+        )
 
     result = SCIMService.update_user(tenant_id, user_id, scim_user)
 
     if "error" in result:
         status = result.pop("status", 400)
-        return jsonify({
-            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-            "detail": result["error"],
-            "status": status
-        }), status
+        return (
+            jsonify(
+                {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                    "detail": result["error"],
+                    "status": status,
+                }
+            ),
+            status,
+        )
 
     return jsonify(result), 200
 
@@ -699,10 +762,15 @@ def scim_delete_user(tenant_id, user_id):
 
     if "error" in result:
         status = result.pop("status", 404)
-        return jsonify({
-            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-            "detail": result["error"],
-            "status": status
-        }), status
+        return (
+            jsonify(
+                {
+                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+                    "detail": result["error"],
+                    "status": status,
+                }
+            ),
+            status,
+        )
 
     return "", 204

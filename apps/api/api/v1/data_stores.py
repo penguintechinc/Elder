@@ -21,7 +21,16 @@ bp = Blueprint("data_stores", __name__)
 
 # Valid storage types
 VALID_STORAGE_TYPES = [
-    "s3", "gcs", "azure_blob", "disk", "nas", "san", "database", "data_lake", "hdfs", "other"
+    "s3",
+    "gcs",
+    "azure_blob",
+    "disk",
+    "nas",
+    "san",
+    "database",
+    "data_lake",
+    "hdfs",
+    "other",
 ]
 
 # Valid data classifications
@@ -39,13 +48,19 @@ async def list_data_stores():
         query = db.data_stores.id > 0
 
         if request.args.get("organization_id"):
-            query &= db.data_stores.organization_id == request.args.get("organization_id", type=int)
+            query &= db.data_stores.organization_id == request.args.get(
+                "organization_id", type=int
+            )
         if request.args.get("data_classification"):
-            query &= db.data_stores.data_classification == request.args.get("data_classification")
+            query &= db.data_stores.data_classification == request.args.get(
+                "data_classification"
+            )
         if request.args.get("storage_type"):
             query &= db.data_stores.storage_type == request.args.get("storage_type")
         if request.args.get("location_region"):
-            query &= db.data_stores.location_region == request.args.get("location_region")
+            query &= db.data_stores.location_region == request.args.get(
+                "location_region"
+            )
         if request.args.get("contains_pii") is not None:
             contains_pii = request.args.get("contains_pii", "").lower() == "true"
             query &= db.data_stores.contains_pii == contains_pii
@@ -57,14 +72,18 @@ async def list_data_stores():
             query &= db.data_stores.contains_pci == contains_pci
         if request.args.get("compliance_framework"):
             # Search for compliance framework in JSON array
-            query &= db.data_stores.compliance_frameworks.contains(request.args.get("compliance_framework"))
+            query &= db.data_stores.compliance_frameworks.contains(
+                request.args.get("compliance_framework")
+            )
         if request.args.get("poc_identity_id"):
-            query &= db.data_stores.poc_identity_id == request.args.get("poc_identity_id", type=int)
+            query &= db.data_stores.poc_identity_id == request.args.get(
+                "poc_identity_id", type=int
+            )
 
         total = db(query).count()
         rows = db(query).select(
             orderby=~db.data_stores.created_at,
-            limitby=(pagination.offset, pagination.offset + pagination.per_page)
+            limitby=(pagination.offset, pagination.offset + pagination.per_page),
         )
         return total, rows
 
@@ -97,19 +116,29 @@ async def create_data_store():
         return error
 
     if data.get("data_classification"):
-        if error := validate_enum_value(data["data_classification"], VALID_DATA_CLASSIFICATIONS, "data_classification"):
+        if error := validate_enum_value(
+            data["data_classification"],
+            VALID_DATA_CLASSIFICATIONS,
+            "data_classification",
+        ):
             return error
 
     if data.get("storage_type"):
-        if error := validate_enum_value(data["storage_type"], VALID_STORAGE_TYPES, "storage_type"):
+        if error := validate_enum_value(
+            data["storage_type"], VALID_STORAGE_TYPES, "storage_type"
+        ):
             return error
 
     if data.get("poc_identity_id"):
-        identity, error = await validate_resource_exists(db.identities, data["poc_identity_id"], "POC identity")
+        identity, error = await validate_resource_exists(
+            db.identities, data["poc_identity_id"], "POC identity"
+        )
         if error:
             return error
 
-    org, tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+    org, tenant_id, error = await validate_organization_and_get_tenant(
+        data["organization_id"]
+    )
     if error:
         return error
 
@@ -172,21 +201,31 @@ async def update_data_store(id: int):
         return error
 
     if data.get("data_classification"):
-        if error := validate_enum_value(data["data_classification"], VALID_DATA_CLASSIFICATIONS, "data_classification"):
+        if error := validate_enum_value(
+            data["data_classification"],
+            VALID_DATA_CLASSIFICATIONS,
+            "data_classification",
+        ):
             return error
 
     if data.get("storage_type"):
-        if error := validate_enum_value(data["storage_type"], VALID_STORAGE_TYPES, "storage_type"):
+        if error := validate_enum_value(
+            data["storage_type"], VALID_STORAGE_TYPES, "storage_type"
+        ):
             return error
 
     if data.get("poc_identity_id"):
-        identity, error = await validate_resource_exists(db.identities, data["poc_identity_id"], "POC identity")
+        identity, error = await validate_resource_exists(
+            db.identities, data["poc_identity_id"], "POC identity"
+        )
         if error:
             return error
 
     org_tenant_id = None
     if "organization_id" in data:
-        org, org_tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+        org, org_tenant_id, error = await validate_organization_and_get_tenant(
+            data["organization_id"]
+        )
         if error:
             return error
 
@@ -197,13 +236,28 @@ async def update_data_store(id: int):
 
         update_dict = {}
         updateable_fields = [
-            "name", "description", "storage_type", "storage_provider",
-            "location_region", "location_physical", "data_classification",
-            "encryption_at_rest", "encryption_in_transit", "encryption_key_id",
-            "retention_days", "backup_enabled", "backup_frequency",
-            "access_control_type", "poc_identity_id", "compliance_frameworks",
-            "contains_pii", "contains_phi", "contains_pci", "size_bytes",
-            "metadata", "is_active"
+            "name",
+            "description",
+            "storage_type",
+            "storage_provider",
+            "location_region",
+            "location_physical",
+            "data_classification",
+            "encryption_at_rest",
+            "encryption_in_transit",
+            "encryption_key_id",
+            "retention_days",
+            "backup_enabled",
+            "backup_frequency",
+            "access_control_type",
+            "poc_identity_id",
+            "compliance_frameworks",
+            "contains_pii",
+            "contains_phi",
+            "contains_pci",
+            "size_bytes",
+            "metadata",
+            "is_active",
         ]
 
         for field in updateable_fields:
@@ -289,21 +343,24 @@ async def add_data_store_label(id: int):
     if error := validate_required_fields(data, ["label_id"]):
         return error
 
-    label, error = await validate_resource_exists(db.issue_labels, data["label_id"], "Label")
+    label, error = await validate_resource_exists(
+        db.issue_labels, data["label_id"], "Label"
+    )
     if error:
         return error
 
     def add_label():
         # Check if label already exists for this data store
-        existing = db((db.data_store_labels.data_store_id == id) &
-                     (db.data_store_labels.label_id == data["label_id"])).select()
+        existing = db(
+            (db.data_store_labels.data_store_id == id)
+            & (db.data_store_labels.label_id == data["label_id"])
+        ).select()
 
         if existing:
             return None  # Already exists
 
         label_assignment_id = db.data_store_labels.insert(
-            data_store_id=id,
-            label_id=data["label_id"]
+            data_store_id=id, label_id=data["label_id"]
         )
         db.commit()
         return db.data_store_labels[label_assignment_id]
@@ -332,8 +389,14 @@ async def remove_data_store_label(id: int, label_id: int):
         return error
 
     def remove_label():
-        assignment = db((db.data_store_labels.data_store_id == id) &
-                       (db.data_store_labels.label_id == label_id)).select().first()
+        assignment = (
+            db(
+                (db.data_store_labels.data_store_id == id)
+                & (db.data_store_labels.label_id == label_id)
+            )
+            .select()
+            .first()
+        )
 
         if not assignment:
             return None

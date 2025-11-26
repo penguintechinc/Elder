@@ -201,19 +201,27 @@ class GroupMembershipService:
         db = self.db
 
         # Check if already a member
-        existing = db(
-            (db.identity_group_memberships.group_id == group_id)
-            & (db.identity_group_memberships.identity_id == requester_id)
-        ).select().first()
+        existing = (
+            db(
+                (db.identity_group_memberships.group_id == group_id)
+                & (db.identity_group_memberships.identity_id == requester_id)
+            )
+            .select()
+            .first()
+        )
         if existing:
             raise ValueError("Already a member of this group")
 
         # Check for existing pending request
-        pending = db(
-            (db.group_access_requests.group_id == group_id)
-            & (db.group_access_requests.requester_id == requester_id)
-            & (db.group_access_requests.status == self.STATUS_PENDING)
-        ).select().first()
+        pending = (
+            db(
+                (db.group_access_requests.group_id == group_id)
+                & (db.group_access_requests.requester_id == requester_id)
+                & (db.group_access_requests.status == self.STATUS_PENDING)
+            )
+            .select()
+            .first()
+        )
         if pending:
             raise ValueError("Already have a pending request for this group")
 
@@ -302,9 +310,8 @@ class GroupMembershipService:
         if not owned_group_ids:
             return {"requests": [], "total": 0, "limit": limit, "offset": offset}
 
-        query = (
-            db.group_access_requests.group_id.belongs(owned_group_ids)
-            & (db.group_access_requests.status == self.STATUS_PENDING)
+        query = db.group_access_requests.group_id.belongs(owned_group_ids) & (
+            db.group_access_requests.status == self.STATUS_PENDING
         )
 
         total = db(query).count()
@@ -488,15 +495,21 @@ class GroupMembershipService:
         for m in memberships:
             identity = db.identities[m.identity_id]
             if identity:
-                members.append({
-                    "membership_id": m.id,
-                    "identity_id": m.identity_id,
-                    "display_name": identity.display_name,
-                    "email": identity.email,
-                    "expires_at": m.expires_at.isoformat() if m.expires_at else None,
-                    "provider_synced": m.provider_synced,
-                    "created_at": m.created_at.isoformat() if m.created_at else None,
-                })
+                members.append(
+                    {
+                        "membership_id": m.id,
+                        "identity_id": m.identity_id,
+                        "display_name": identity.display_name,
+                        "email": identity.email,
+                        "expires_at": (
+                            m.expires_at.isoformat() if m.expires_at else None
+                        ),
+                        "provider_synced": m.provider_synced,
+                        "created_at": (
+                            m.created_at.isoformat() if m.created_at else None
+                        ),
+                    }
+                )
 
         return {"members": members, "total": total, "limit": limit, "offset": offset}
 
@@ -512,10 +525,14 @@ class GroupMembershipService:
         db = self.db
 
         # Check if already a member
-        existing = db(
-            (db.identity_group_memberships.group_id == group_id)
-            & (db.identity_group_memberships.identity_id == identity_id)
-        ).select().first()
+        existing = (
+            db(
+                (db.identity_group_memberships.group_id == group_id)
+                & (db.identity_group_memberships.identity_id == identity_id)
+            )
+            .select()
+            .first()
+        )
         if existing:
             raise ValueError("Already a member of this group")
 
@@ -557,10 +574,14 @@ class GroupMembershipService:
         """Remove a member from a group."""
         db = self.db
 
-        membership = db(
-            (db.identity_group_memberships.group_id == group_id)
-            & (db.identity_group_memberships.identity_id == identity_id)
-        ).select().first()
+        membership = (
+            db(
+                (db.identity_group_memberships.group_id == group_id)
+                & (db.identity_group_memberships.identity_id == identity_id)
+            )
+            .select()
+            .first()
+        )
 
         if not membership:
             raise ValueError("Not a member of this group")
@@ -605,10 +626,14 @@ class GroupMembershipService:
 
         # Member of owning group
         if group.owner_group_id:
-            membership = db(
-                (db.identity_group_memberships.group_id == group.owner_group_id)
-                & (db.identity_group_memberships.identity_id == identity_id)
-            ).select().first()
+            membership = (
+                db(
+                    (db.identity_group_memberships.group_id == group.owner_group_id)
+                    & (db.identity_group_memberships.identity_id == identity_id)
+                )
+                .select()
+                .first()
+            )
             if membership:
                 return True
 
@@ -744,10 +769,14 @@ class GroupMembershipService:
         if not identity:
             return False
 
-        membership = db(
-            (db.identity_group_memberships.group_id == group_id)
-            & (db.identity_group_memberships.identity_id == identity_id)
-        ).select().first()
+        membership = (
+            db(
+                (db.identity_group_memberships.group_id == group_id)
+                & (db.identity_group_memberships.identity_id == identity_id)
+            )
+            .select()
+            .first()
+        )
 
         provider_member_id = membership.provider_member_id if membership else None
         if not provider_member_id:
@@ -845,20 +874,20 @@ class GroupMembershipService:
             group_info = {"id": group.id, "name": group.name}
 
         # Get approvals
-        approvals = db(
-            db.group_access_approvals.request_id == request.id
-        ).select()
+        approvals = db(db.group_access_approvals.request_id == request.id).select()
 
         approval_list = []
         for a in approvals:
             approver = db.identities[a.approver_id]
-            approval_list.append({
-                "approver_id": a.approver_id,
-                "approver_name": approver.display_name if approver else None,
-                "decision": a.decision,
-                "comment": a.comment,
-                "created_at": a.created_at.isoformat() if a.created_at else None,
-            })
+            approval_list.append(
+                {
+                    "approver_id": a.approver_id,
+                    "approver_name": approver.display_name if approver else None,
+                    "decision": a.decision,
+                    "comment": a.comment,
+                    "created_at": a.created_at.isoformat() if a.created_at else None,
+                }
+            )
 
         return {
             "id": request.id,
@@ -869,13 +898,21 @@ class GroupMembershipService:
             "requester": requester_info,
             "status": request.status,
             "reason": request.reason,
-            "expires_at": request.expires_at.isoformat() if request.expires_at else None,
-            "decided_at": request.decided_at.isoformat() if request.decided_at else None,
+            "expires_at": (
+                request.expires_at.isoformat() if request.expires_at else None
+            ),
+            "decided_at": (
+                request.decided_at.isoformat() if request.decided_at else None
+            ),
             "decided_by_id": request.decided_by_id,
             "decision_comment": request.decision_comment,
             "approvals": approval_list,
-            "created_at": request.created_at.isoformat() if request.created_at else None,
-            "updated_at": request.updated_at.isoformat() if request.updated_at else None,
+            "created_at": (
+                request.created_at.isoformat() if request.created_at else None
+            ),
+            "updated_at": (
+                request.updated_at.isoformat() if request.updated_at else None
+            ),
         }
 
     # ==================== Scheduled Tasks ====================
@@ -914,7 +951,11 @@ class GroupMembershipService:
                 group = db.identity_groups[membership.group_id]
 
                 # Sync removal to provider if enabled
-                if group and group.sync_enabled and group.provider != self.PROVIDER_INTERNAL:
+                if (
+                    group
+                    and group.sync_enabled
+                    and group.provider != self.PROVIDER_INTERNAL
+                ):
                     sync_success = self._sync_membership_to_provider(
                         membership.group_id,
                         membership.identity_id,
@@ -947,11 +988,15 @@ class GroupMembershipService:
                 )
 
             except Exception as e:
-                logger.error(f"Error processing expired membership {membership.id}: {e}")
-                results["errors"].append({
-                    "membership_id": membership.id,
-                    "error": str(e),
-                })
+                logger.error(
+                    f"Error processing expired membership {membership.id}: {e}"
+                )
+                results["errors"].append(
+                    {
+                        "membership_id": membership.id,
+                        "error": str(e),
+                    }
+                )
 
         logger.info(
             f"Processed {results['processed']} expired memberships: "
@@ -973,7 +1018,9 @@ class GroupMembershipService:
             Dict with processing results
         """
         db = self.db
-        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)
+        cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+            days=days
+        )
 
         # Find stale pending requests
         stale = db(
@@ -1018,10 +1065,12 @@ class GroupMembershipService:
 
             except Exception as e:
                 logger.error(f"Error processing stale request {request.id}: {e}")
-                results["errors"].append({
-                    "request_id": request.id,
-                    "error": str(e),
-                })
+                results["errors"].append(
+                    {
+                        "request_id": request.id,
+                        "error": str(e),
+                    }
+                )
 
         logger.info(
             f"Processed {results['processed']} stale requests: "

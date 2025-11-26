@@ -308,8 +308,7 @@ class AuditService:
 
         # Get logs
         logs = db(query).select(
-            orderby=~db.audit_logs.created_at,
-            limitby=(offset, offset + limit)
+            orderby=~db.audit_logs.created_at, limitby=(offset, offset + limit)
         )
 
         return {
@@ -355,31 +354,42 @@ class AuditService:
         """
         db = current_app.db
 
-        base_query = (
-            (db.audit_logs.created_at >= start_date)
-            & (db.audit_logs.created_at <= end_date)
+        base_query = (db.audit_logs.created_at >= start_date) & (
+            db.audit_logs.created_at <= end_date
         )
 
         if report_type == "user_access":
             # User access report - all login events
-            query = base_query & (db.audit_logs.action_name.belongs([
-                AuditService.ACTION_LOGIN,
-                AuditService.ACTION_LOGOUT,
-                AuditService.ACTION_LOGIN_FAILED,
-            ]))
+            query = base_query & (
+                db.audit_logs.action_name.belongs(
+                    [
+                        AuditService.ACTION_LOGIN,
+                        AuditService.ACTION_LOGOUT,
+                        AuditService.ACTION_LOGIN_FAILED,
+                    ]
+                )
+            )
             title = "User Access Report"
 
         elif report_type == "permission_changes":
             # Permission changes - role and permission modifications
-            query = base_query & (
-                db.audit_logs.resource_type.belongs([
-                    "portal_user", "portal_user_org_assignment", "role"
-                ])
-            ) & (db.audit_logs.action_name.belongs([
-                AuditService.ACTION_CREATE,
-                AuditService.ACTION_UPDATE,
-                AuditService.ACTION_DELETE,
-            ]))
+            query = (
+                base_query
+                & (
+                    db.audit_logs.resource_type.belongs(
+                        ["portal_user", "portal_user_org_assignment", "role"]
+                    )
+                )
+                & (
+                    db.audit_logs.action_name.belongs(
+                        [
+                            AuditService.ACTION_CREATE,
+                            AuditService.ACTION_UPDATE,
+                            AuditService.ACTION_DELETE,
+                        ]
+                    )
+                )
+            )
             title = "Permission Changes Report"
 
         elif report_type == "data_access":
@@ -389,19 +399,25 @@ class AuditService:
 
         elif report_type == "failed_auth":
             # Failed authentication attempts
-            query = base_query & (db.audit_logs.success == False) & (  # noqa: E712
-                db.audit_logs.action_name.belongs([
-                    AuditService.ACTION_LOGIN,
-                    AuditService.ACTION_LOGIN_FAILED,
-                ])
+            query = (
+                base_query
+                & (db.audit_logs.success == False)
+                & (  # noqa: E712
+                    db.audit_logs.action_name.belongs(
+                        [
+                            AuditService.ACTION_LOGIN,
+                            AuditService.ACTION_LOGIN_FAILED,
+                        ]
+                    )
+                )
             )
             title = "Failed Authentication Report"
 
         elif report_type == "admin_actions":
             # Admin actions
-            query = base_query & db.audit_logs.details.contains({
-                "category": AuditService.CATEGORY_ADMIN
-            })
+            query = base_query & db.audit_logs.details.contains(
+                {"category": AuditService.CATEGORY_ADMIN}
+            )
             title = "Admin Actions Report"
 
         else:
@@ -415,9 +431,9 @@ class AuditService:
         failure_count = total_events - success_count
 
         unique_users = len(set(log.identity_id for log in logs if log.identity_id))
-        unique_resources = len(set(
-            (log.resource_type, log.resource_id) for log in logs if log.resource_id
-        ))
+        unique_resources = len(
+            set((log.resource_type, log.resource_id) for log in logs if log.resource_id)
+        )
 
         return {
             "title": title,
@@ -477,13 +493,13 @@ class AuditService:
             return {"error": "Tenant not found"}
 
         retention_days = tenant.data_retention_days or 90
-        cutoff_date = datetime.datetime.now(datetime.timezone.utc) - \
-            datetime.timedelta(days=retention_days)
+        cutoff_date = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+            days=retention_days
+        )
 
         # Count logs to delete
-        query = (
-            db.audit_logs.details.contains({"tenant_id": tenant_id})
-            & (db.audit_logs.created_at < cutoff_date)
+        query = db.audit_logs.details.contains({"tenant_id": tenant_id}) & (
+            db.audit_logs.created_at < cutoff_date
         )
         count = db(query).count()
 

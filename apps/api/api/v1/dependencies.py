@@ -21,7 +21,14 @@ logger = logging.getLogger(__name__)
 bp = Blueprint("dependencies", __name__)
 
 # Valid resource types for dependencies
-VALID_RESOURCE_TYPES = ["entity", "identity", "project", "milestone", "issue", "organization"]
+VALID_RESOURCE_TYPES = [
+    "entity",
+    "identity",
+    "project",
+    "milestone",
+    "issue",
+    "organization",
+]
 
 # Map resource types to their database tables
 RESOURCE_TABLE_MAP = {
@@ -173,13 +180,30 @@ async def create_dependency():
 
     # Validate resource types
     if source_type not in VALID_RESOURCE_TYPES:
-        return jsonify({"error": f"Invalid source_type. Must be one of: {VALID_RESOURCE_TYPES}"}), 400
+        return (
+            jsonify(
+                {
+                    "error": f"Invalid source_type. Must be one of: {VALID_RESOURCE_TYPES}"
+                }
+            ),
+            400,
+        )
     if target_type not in VALID_RESOURCE_TYPES:
-        return jsonify({"error": f"Invalid target_type. Must be one of: {VALID_RESOURCE_TYPES}"}), 400
+        return (
+            jsonify(
+                {
+                    "error": f"Invalid target_type. Must be one of: {VALID_RESOURCE_TYPES}"
+                }
+            ),
+            400,
+        )
 
     # Prevent self-dependencies (same type and ID)
     if source_type == target_type and source_id == target_id:
-        return jsonify({"error": "Cannot create dependency from resource to itself"}), 400
+        return (
+            jsonify({"error": "Cannot create dependency from resource to itself"}),
+            400,
+        )
 
     # Check if resources exist and dependency doesn't already exist
     def validate_and_create():
@@ -294,9 +318,23 @@ async def update_dependency(id: int):
 
     # Validate resource types if being updated
     if "source_type" in data and data["source_type"] not in VALID_RESOURCE_TYPES:
-        return jsonify({"error": f"Invalid source_type. Must be one of: {VALID_RESOURCE_TYPES}"}), 400
+        return (
+            jsonify(
+                {
+                    "error": f"Invalid source_type. Must be one of: {VALID_RESOURCE_TYPES}"
+                }
+            ),
+            400,
+        )
     if "target_type" in data and data["target_type"] not in VALID_RESOURCE_TYPES:
-        return jsonify({"error": f"Invalid target_type. Must be one of: {VALID_RESOURCE_TYPES}"}), 400
+        return (
+            jsonify(
+                {
+                    "error": f"Invalid target_type. Must be one of: {VALID_RESOURCE_TYPES}"
+                }
+            ),
+            400,
+        )
 
     # Update dependency
     def update_in_db():
@@ -396,7 +434,9 @@ async def create_bulk_dependencies():
             # Get source resource for tenant
             source = get_resource(db, dep_data["source_type"], dep_data["source_id"])
             if not source:
-                raise ValueError(f"Source {dep_data['source_type']} {dep_data['source_id']} not found at index {i}")
+                raise ValueError(
+                    f"Source {dep_data['source_type']} {dep_data['source_id']} not found at index {i}"
+                )
 
             tenant_id = getattr(source, "tenant_id", None)
             if not tenant_id:
@@ -488,10 +528,19 @@ async def get_resource_dependencies(resource_type: str, resource_id: int):
     db = current_app.db
 
     if resource_type not in VALID_RESOURCE_TYPES:
-        return jsonify({"error": f"Invalid resource_type. Must be one of: {VALID_RESOURCE_TYPES}"}), 400
+        return (
+            jsonify(
+                {
+                    "error": f"Invalid resource_type. Must be one of: {VALID_RESOURCE_TYPES}"
+                }
+            ),
+            400,
+        )
 
     # Check if resource exists
-    resource = await run_in_threadpool(lambda: get_resource(db, resource_type, resource_id))
+    resource = await run_in_threadpool(
+        lambda: get_resource(db, resource_type, resource_id)
+    )
     if not resource:
         return jsonify({"error": f"{resource_type.title()} not found"}), 404
 
@@ -501,7 +550,9 @@ async def get_resource_dependencies(resource_type: str, resource_id: int):
         result = {
             "resource_type": resource_type,
             "resource_id": resource_id,
-            "resource_name": getattr(resource, "name", getattr(resource, "username", str(resource_id))),
+            "resource_name": getattr(
+                resource, "name", getattr(resource, "username", str(resource_id))
+            ),
         }
 
         if direction in ("outgoing", "all"):

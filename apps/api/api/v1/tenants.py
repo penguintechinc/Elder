@@ -54,21 +54,26 @@ def list_tenants():
 
     tenants = db(query).select(orderby=db.tenants.name)
 
-    return jsonify([
-        {
-            "id": t.id,
-            "name": t.name,
-            "slug": t.slug,
-            "domain": t.domain,
-            "subscription_tier": t.subscription_tier,
-            "is_active": t.is_active,
-            "data_retention_days": t.data_retention_days,
-            "storage_quota_gb": t.storage_quota_gb,
-            "village_id": t.village_id,
-            "created_at": t.created_at.isoformat() if t.created_at else None,
-        }
-        for t in tenants
-    ]), 200
+    return (
+        jsonify(
+            [
+                {
+                    "id": t.id,
+                    "name": t.name,
+                    "slug": t.slug,
+                    "domain": t.domain,
+                    "subscription_tier": t.subscription_tier,
+                    "is_active": t.is_active,
+                    "data_retention_days": t.data_retention_days,
+                    "storage_quota_gb": t.storage_quota_gb,
+                    "village_id": t.village_id,
+                    "created_at": t.created_at.isoformat() if t.created_at else None,
+                }
+                for t in tenants
+            ]
+        ),
+        200,
+    )
 
 
 @bp.route("/<int:tenant_id>", methods=["GET"])
@@ -84,8 +89,10 @@ def get_tenant(tenant_id):
     """
     # Check permissions - admins or support can view any, tenant admins only their own
     if request.portal_user.get("global_role") not in ["admin", "support"]:
-        if request.portal_user.get("tenant_id") != tenant_id or \
-           request.portal_user.get("tenant_role") != "admin":
+        if (
+            request.portal_user.get("tenant_id") != tenant_id
+            or request.portal_user.get("tenant_role") != "admin"
+        ):
             return jsonify({"error": "Permission denied"}), 403
 
     db = current_app.db
@@ -98,27 +105,38 @@ def get_tenant(tenant_id):
     user_count = db(db.portal_users.tenant_id == tenant_id).count()
     identity_count = db(db.identities.tenant_id == tenant_id).count()
 
-    return jsonify({
-        "id": tenant.id,
-        "name": tenant.name,
-        "slug": tenant.slug,
-        "domain": tenant.domain,
-        "subscription_tier": tenant.subscription_tier,
-        "license_key": tenant.license_key[:20] + "..." if tenant.license_key else None,
-        "settings": tenant.settings,
-        "feature_flags": tenant.feature_flags,
-        "data_retention_days": tenant.data_retention_days,
-        "storage_quota_gb": tenant.storage_quota_gb,
-        "is_active": tenant.is_active,
-        "village_id": tenant.village_id,
-        "created_at": tenant.created_at.isoformat() if tenant.created_at else None,
-        "updated_at": tenant.updated_at.isoformat() if tenant.updated_at else None,
-        "usage": {
-            "organizations": org_count,
-            "portal_users": user_count,
-            "identities": identity_count,
-        },
-    }), 200
+    return (
+        jsonify(
+            {
+                "id": tenant.id,
+                "name": tenant.name,
+                "slug": tenant.slug,
+                "domain": tenant.domain,
+                "subscription_tier": tenant.subscription_tier,
+                "license_key": (
+                    tenant.license_key[:20] + "..." if tenant.license_key else None
+                ),
+                "settings": tenant.settings,
+                "feature_flags": tenant.feature_flags,
+                "data_retention_days": tenant.data_retention_days,
+                "storage_quota_gb": tenant.storage_quota_gb,
+                "is_active": tenant.is_active,
+                "village_id": tenant.village_id,
+                "created_at": (
+                    tenant.created_at.isoformat() if tenant.created_at else None
+                ),
+                "updated_at": (
+                    tenant.updated_at.isoformat() if tenant.updated_at else None
+                ),
+                "usage": {
+                    "organizations": org_count,
+                    "portal_users": user_count,
+                    "identities": identity_count,
+                },
+            }
+        ),
+        200,
+    )
 
 
 @bp.route("", methods=["POST"])
@@ -173,11 +191,16 @@ def create_tenant():
     )
     db.commit()
 
-    return jsonify({
-        "id": tenant_id,
-        "name": name,
-        "slug": slug,
-    }), 201
+    return (
+        jsonify(
+            {
+                "id": tenant_id,
+                "name": name,
+                "slug": slug,
+            }
+        ),
+        201,
+    )
 
 
 @bp.route("/<int:tenant_id>", methods=["PUT"])
@@ -215,8 +238,12 @@ def update_tenant(tenant_id):
 
     # Fields only global admins can update
     global_admin_fields = {
-        "slug", "subscription_tier", "license_key",
-        "data_retention_days", "storage_quota_gb", "is_active"
+        "slug",
+        "subscription_tier",
+        "license_key",
+        "data_retention_days",
+        "storage_quota_gb",
+        "is_active",
     }
 
     updates = {}
@@ -276,8 +303,10 @@ def list_tenant_users(tenant_id):
     """
     # Check permissions
     if request.portal_user.get("global_role") not in ["admin", "support"]:
-        if request.portal_user.get("tenant_id") != tenant_id or \
-           request.portal_user.get("tenant_role") != "admin":
+        if (
+            request.portal_user.get("tenant_id") != tenant_id
+            or request.portal_user.get("tenant_role") != "admin"
+        ):
             return jsonify({"error": "Permission denied"}), 403
 
     db = current_app.db
@@ -285,21 +314,28 @@ def list_tenant_users(tenant_id):
         orderby=db.portal_users.email
     )
 
-    return jsonify([
-        {
-            "id": u.id,
-            "email": u.email,
-            "full_name": u.full_name,
-            "tenant_role": u.tenant_role,
-            "global_role": u.global_role,
-            "is_active": u.is_active,
-            "email_verified": u.email_verified,
-            "mfa_enabled": bool(u.mfa_secret),
-            "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
-            "created_at": u.created_at.isoformat() if u.created_at else None,
-        }
-        for u in users
-    ]), 200
+    return (
+        jsonify(
+            [
+                {
+                    "id": u.id,
+                    "email": u.email,
+                    "full_name": u.full_name,
+                    "tenant_role": u.tenant_role,
+                    "global_role": u.global_role,
+                    "is_active": u.is_active,
+                    "email_verified": u.email_verified,
+                    "mfa_enabled": bool(u.mfa_secret),
+                    "last_login_at": (
+                        u.last_login_at.isoformat() if u.last_login_at else None
+                    ),
+                    "created_at": u.created_at.isoformat() if u.created_at else None,
+                }
+                for u in users
+            ]
+        ),
+        200,
+    )
 
 
 @bp.route("/<int:tenant_id>/users/<int:user_id>", methods=["PUT"])
@@ -325,10 +361,11 @@ def update_tenant_user(tenant_id, user_id):
         return jsonify({"error": "Permission denied"}), 403
 
     db = current_app.db
-    user = db(
-        (db.portal_users.id == user_id)
-        & (db.portal_users.tenant_id == tenant_id)
-    ).select().first()
+    user = (
+        db((db.portal_users.id == user_id) & (db.portal_users.tenant_id == tenant_id))
+        .select()
+        .first()
+    )
 
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -374,10 +411,11 @@ def delete_tenant_user(tenant_id, user_id):
         return jsonify({"error": "Permission denied"}), 403
 
     db = current_app.db
-    user = db(
-        (db.portal_users.id == user_id)
-        & (db.portal_users.tenant_id == tenant_id)
-    ).select().first()
+    user = (
+        db((db.portal_users.id == user_id) & (db.portal_users.tenant_id == tenant_id))
+        .select()
+        .first()
+    )
 
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -402,8 +440,10 @@ def get_tenant_stats(tenant_id):
     """
     # Check permissions
     if request.portal_user.get("global_role") not in ["admin", "support"]:
-        if request.portal_user.get("tenant_id") != tenant_id or \
-           request.portal_user.get("tenant_role") != "admin":
+        if (
+            request.portal_user.get("tenant_id") != tenant_id
+            or request.portal_user.get("tenant_role") != "admin"
+        ):
             return jsonify({"error": "Permission denied"}), 403
 
     db = current_app.db
@@ -426,7 +466,9 @@ def get_tenant_stats(tenant_id):
         },
         "identities": db(db.identities.tenant_id == tenant_id).count(),
         "idp_configurations": db(db.idp_configurations.tenant_id == tenant_id).count(),
-        "scim_configurations": db(db.scim_configurations.tenant_id == tenant_id).count(),
+        "scim_configurations": db(
+            db.scim_configurations.tenant_id == tenant_id
+        ).count(),
     }
 
     return jsonify(stats), 200

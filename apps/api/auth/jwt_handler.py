@@ -127,7 +127,9 @@ def get_current_user() -> Optional[Row]:
         logger.debug("Token verification failed, returning None")
         return None
 
-    logger.debug(f"Token verified, looking up user with ID: {payload.get('sub')}, type: {payload.get('type')}")
+    logger.debug(
+        f"Token verified, looking up user with ID: {payload.get('sub')}, type: {payload.get('type')}"
+    )
     db = current_app.db
 
     try:
@@ -151,20 +153,24 @@ def get_current_user() -> Optional[Row]:
             class PortalUserIdentity:
                 def __init__(self, pu):
                     self.id = pu.id
-                    self.username = pu.email.split('@')[0] if pu.email else f"user_{pu.id}"
+                    self.username = (
+                        pu.email.split("@")[0] if pu.email else f"user_{pu.id}"
+                    )
                     self.email = pu.email
                     self.display_name = pu.full_name or self.username
                     self.is_active = bool(pu.is_active)
-                    self.is_superuser = pu.global_role == 'admin'
+                    self.is_superuser = pu.global_role == "admin"
                     self.tenant_id = pu.tenant_id
-                    self.portal_role = pu.global_role or 'observer'
+                    self.portal_role = pu.global_role or "observer"
                     self._portal_user = pu
 
                 def get(self, key, default=None):
                     return getattr(self, key, default)
 
             synthetic_identity = PortalUserIdentity(portal_user)
-            logger.debug(f"Created synthetic identity for portal user: {synthetic_identity.email}")
+            logger.debug(
+                f"Created synthetic identity for portal user: {synthetic_identity.email}"
+            )
             g.current_user = synthetic_identity
             return synthetic_identity
 
@@ -184,6 +190,7 @@ def get_current_user() -> Optional[Row]:
         return identity
     except Exception as e:
         import traceback
+
         logger.error(f"Error looking up user: {e} - {traceback.format_exc()}")
         # Rollback transaction on error to prevent transaction state issues
         try:

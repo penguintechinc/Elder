@@ -30,11 +30,15 @@ class OIDCService:
             IdP configuration dict or None
         """
         db = current_app.db
-        config = db(
-            (db.idp_configurations.id == idp_id)
-            & (db.idp_configurations.idp_type == "oidc")
-            & (db.idp_configurations.is_active == True)  # noqa: E712
-        ).select().first()
+        config = (
+            db(
+                (db.idp_configurations.id == idp_id)
+                & (db.idp_configurations.idp_type == "oidc")
+                & (db.idp_configurations.is_active == True)  # noqa: E712
+            )
+            .select()
+            .first()
+        )
 
         if config:
             return OIDCService._config_to_dict(config)
@@ -42,7 +46,9 @@ class OIDCService:
         return None
 
     @staticmethod
-    def get_idp_config_by_tenant(tenant_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    def get_idp_config_by_tenant(
+        tenant_id: Optional[int] = None,
+    ) -> Optional[Dict[str, Any]]:
         """Get OIDC IdP configuration for a tenant or global.
 
         Args:
@@ -54,21 +60,29 @@ class OIDCService:
         db = current_app.db
         if tenant_id:
             # Try tenant-specific IdP first
-            config = db(
-                (db.idp_configurations.tenant_id == tenant_id)
-                & (db.idp_configurations.idp_type == "oidc")
-                & (db.idp_configurations.is_active == True)  # noqa: E712
-            ).select().first()
+            config = (
+                db(
+                    (db.idp_configurations.tenant_id == tenant_id)
+                    & (db.idp_configurations.idp_type == "oidc")
+                    & (db.idp_configurations.is_active == True)  # noqa: E712
+                )
+                .select()
+                .first()
+            )
 
             if config:
                 return OIDCService._config_to_dict(config)
 
         # Fall back to global IdP
-        config = db(
-            (db.idp_configurations.tenant_id == None)  # noqa: E711
-            & (db.idp_configurations.idp_type == "oidc")
-            & (db.idp_configurations.is_active == True)  # noqa: E712
-        ).select().first()
+        config = (
+            db(
+                (db.idp_configurations.tenant_id == None)  # noqa: E711
+                & (db.idp_configurations.idp_type == "oidc")
+                & (db.idp_configurations.is_active == True)  # noqa: E712
+            )
+            .select()
+            .first()
+        )
 
         if config:
             return OIDCService._config_to_dict(config)
@@ -88,7 +102,8 @@ class OIDCService:
             "oidc_issuer_url": config.oidc_issuer_url,
             "oidc_scopes": config.oidc_scopes or "openid profile email",
             "oidc_response_type": config.oidc_response_type or "code",
-            "oidc_token_endpoint_auth_method": config.oidc_token_endpoint_auth_method or "client_secret_basic",
+            "oidc_token_endpoint_auth_method": config.oidc_token_endpoint_auth_method
+            or "client_secret_basic",
             "attribute_mappings": config.attribute_mappings or {},
             "jit_provisioning_enabled": config.jit_provisioning_enabled,
             "default_role": config.default_role,
@@ -121,9 +136,7 @@ class OIDCService:
 
     @staticmethod
     def get_authorization_url(
-        idp_id: int,
-        redirect_uri: str,
-        state: Optional[str] = None
+        idp_id: int, redirect_uri: str, state: Optional[str] = None
     ) -> Dict[str, Any]:
         """Generate OIDC authorization URL.
 
@@ -141,7 +154,9 @@ class OIDCService:
 
         try:
             # Discover provider configuration
-            discovery = OIDCService.discover_configuration(idp_config["oidc_issuer_url"])
+            discovery = OIDCService.discover_configuration(
+                idp_config["oidc_issuer_url"]
+            )
             authorization_endpoint = discovery.get("authorization_endpoint")
 
             if not authorization_endpoint:
@@ -176,9 +191,7 @@ class OIDCService:
 
     @staticmethod
     def exchange_code_for_tokens(
-        idp_id: int,
-        code: str,
-        redirect_uri: str
+        idp_id: int, code: str, redirect_uri: str
     ) -> Dict[str, Any]:
         """Exchange authorization code for tokens.
 
@@ -196,7 +209,9 @@ class OIDCService:
 
         try:
             # Discover provider configuration
-            discovery = OIDCService.discover_configuration(idp_config["oidc_issuer_url"])
+            discovery = OIDCService.discover_configuration(
+                idp_config["oidc_issuer_url"]
+            )
             token_endpoint = discovery.get("token_endpoint")
 
             if not token_endpoint:
@@ -206,7 +221,9 @@ class OIDCService:
             client = OAuth2Session(
                 client_id=idp_config["oidc_client_id"],
                 client_secret=idp_config["oidc_client_secret"],
-                token_endpoint_auth_method=idp_config["oidc_token_endpoint_auth_method"],
+                token_endpoint_auth_method=idp_config[
+                    "oidc_token_endpoint_auth_method"
+                ],
             )
 
             # Exchange code for tokens
@@ -246,7 +263,9 @@ class OIDCService:
 
         try:
             # Discover provider configuration
-            discovery = OIDCService.discover_configuration(idp_config["oidc_issuer_url"])
+            discovery = OIDCService.discover_configuration(
+                idp_config["oidc_issuer_url"]
+            )
             jwks_uri = discovery.get("jwks_uri")
 
             if not jwks_uri:
@@ -278,7 +297,7 @@ class OIDCService:
                 algorithms=["RS256"],
                 audience=idp_config["oidc_client_id"],
                 issuer=idp_config["oidc_issuer_url"],
-                options={"verify_exp": True}
+                options={"verify_exp": True},
             )
 
             return claims
@@ -308,7 +327,9 @@ class OIDCService:
 
         try:
             # Discover provider configuration
-            discovery = OIDCService.discover_configuration(idp_config["oidc_issuer_url"])
+            discovery = OIDCService.discover_configuration(
+                idp_config["oidc_issuer_url"]
+            )
             userinfo_endpoint = discovery.get("userinfo_endpoint")
 
             if not userinfo_endpoint:
@@ -342,7 +363,9 @@ class OIDCService:
 
         try:
             # Discover provider configuration
-            discovery = OIDCService.discover_configuration(idp_config["oidc_issuer_url"])
+            discovery = OIDCService.discover_configuration(
+                idp_config["oidc_issuer_url"]
+            )
             token_endpoint = discovery.get("token_endpoint")
 
             if not token_endpoint:
@@ -352,7 +375,9 @@ class OIDCService:
             client = OAuth2Session(
                 client_id=idp_config["oidc_client_id"],
                 client_secret=idp_config["oidc_client_secret"],
-                token_endpoint_auth_method=idp_config["oidc_token_endpoint_auth_method"],
+                token_endpoint_auth_method=idp_config[
+                    "oidc_token_endpoint_auth_method"
+                ],
             )
 
             # Refresh tokens
@@ -378,7 +403,7 @@ class OIDCService:
         tenant_id: int,
         idp_config: Dict[str, Any],
         id_token_claims: Dict[str, Any],
-        userinfo: Optional[Dict[str, Any]] = None
+        userinfo: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Just-in-time provision a user from OIDC claims.
 
@@ -410,10 +435,14 @@ class OIDCService:
             return {"error": "Email claim not found in OIDC response"}
 
         # Check if user exists
-        existing = db(
-            (db.portal_users.email == email.lower())
-            & (db.portal_users.tenant_id == tenant_id)
-        ).select().first()
+        existing = (
+            db(
+                (db.portal_users.email == email.lower())
+                & (db.portal_users.tenant_id == tenant_id)
+            )
+            .select()
+            .first()
+        )
 
         if existing:
             # Update last login
@@ -452,7 +481,11 @@ class OIDCService:
         }
 
     @staticmethod
-    def logout(idp_id: int, id_token_hint: Optional[str] = None, post_logout_redirect_uri: Optional[str] = None) -> Dict[str, Any]:
+    def logout(
+        idp_id: int,
+        id_token_hint: Optional[str] = None,
+        post_logout_redirect_uri: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """Initiate OIDC logout (RP-Initiated Logout).
 
         Args:
@@ -469,7 +502,9 @@ class OIDCService:
 
         try:
             # Discover provider configuration
-            discovery = OIDCService.discover_configuration(idp_config["oidc_issuer_url"])
+            discovery = OIDCService.discover_configuration(
+                idp_config["oidc_issuer_url"]
+            )
             end_session_endpoint = discovery.get("end_session_endpoint")
 
             if not end_session_endpoint:

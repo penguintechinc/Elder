@@ -117,22 +117,26 @@ def test_create_dependency(client, db):
     # Create two entities
     entity1 = client.post(
         "/api/v1/entities",
-        data=json.dumps({
-            "name": "Web Server",
-            "entity_type": "compute",
-            "organization_id": org_id,
-        }),
+        data=json.dumps(
+            {
+                "name": "Web Server",
+                "entity_type": "compute",
+                "organization_id": org_id,
+            }
+        ),
         content_type="application/json",
     )
     entity1_id = json.loads(entity1.data)["id"]
 
     entity2 = client.post(
         "/api/v1/entities",
-        data=json.dumps({
-            "name": "Database",
-            "entity_type": "compute",
-            "organization_id": org_id,
-        }),
+        data=json.dumps(
+            {
+                "name": "Database",
+                "entity_type": "compute",
+                "organization_id": org_id,
+            }
+        ),
         content_type="application/json",
     )
     entity2_id = json.loads(entity2.data)["id"]

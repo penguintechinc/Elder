@@ -19,7 +19,7 @@ from apps.api.utils.pydal_helpers import (
     query_delete,
     commit_db,
     PaginationParams,
-    paginated_query
+    paginated_query,
 )
 
 
@@ -27,14 +27,14 @@ from apps.api.utils.pydal_helpers import (
 def app():
     """Create Flask app for testing."""
     app = Flask(__name__)
-    app.config['TESTING'] = True
+    app.config["TESTING"] = True
     return app
 
 
 @pytest.fixture
 def mock_request():
     """Mock Flask request for pagination testing."""
-    with patch('apps.api.utils.pydal_helpers.request') as mock_req:
+    with patch("apps.api.utils.pydal_helpers.request") as mock_req:
         mock_req.args = Mock()
         yield mock_req
 
@@ -43,7 +43,7 @@ class TestPyDALHelpers:
     """Test PyDAL helper functions."""
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_get_by_id_success(self, mock_threadpool):
         """Test successful get by ID."""
         mock_record = Mock()
@@ -59,7 +59,7 @@ class TestPyDALHelpers:
         mock_threadpool.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_get_by_id_not_found(self, mock_threadpool):
         """Test get by ID when record not found."""
         mock_table = Mock()
@@ -71,7 +71,7 @@ class TestPyDALHelpers:
         assert result is None
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_query_count(self, mock_threadpool):
         """Test query count."""
         mock_query = Mock()
@@ -84,7 +84,7 @@ class TestPyDALHelpers:
         mock_threadpool.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_query_select_basic(self, mock_threadpool):
         """Test basic query select."""
         mock_rows = [Mock(id=1), Mock(id=2)]
@@ -98,7 +98,7 @@ class TestPyDALHelpers:
         mock_threadpool.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_query_select_with_orderby_and_limit(self, mock_threadpool):
         """Test query select with orderby and limitby."""
         mock_rows = [Mock(id=1)]
@@ -112,7 +112,7 @@ class TestPyDALHelpers:
         mock_threadpool.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_insert_record(self, mock_threadpool):
         """Test insert record."""
         mock_table = Mock()
@@ -125,7 +125,7 @@ class TestPyDALHelpers:
         mock_threadpool.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_update_record_success(self, mock_threadpool):
         """Test successful update record."""
         mock_record = Mock()
@@ -140,7 +140,7 @@ class TestPyDALHelpers:
         mock_threadpool.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_update_record_not_found(self, mock_threadpool):
         """Test update record when not found."""
         mock_table = Mock()
@@ -152,7 +152,7 @@ class TestPyDALHelpers:
         assert result is False
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_delete_record_success(self, mock_threadpool):
         """Test successful delete record."""
         mock_record = Mock()
@@ -167,7 +167,7 @@ class TestPyDALHelpers:
         mock_threadpool.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_delete_record_not_found(self, mock_threadpool):
         """Test delete record when not found."""
         mock_table = Mock()
@@ -179,7 +179,7 @@ class TestPyDALHelpers:
         assert result is False
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_query_update(self, mock_threadpool):
         """Test query update."""
         mock_query = Mock()
@@ -192,7 +192,7 @@ class TestPyDALHelpers:
         mock_threadpool.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_query_delete(self, mock_threadpool):
         """Test query delete."""
         mock_query = Mock()
@@ -205,7 +205,7 @@ class TestPyDALHelpers:
         mock_threadpool.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_commit_db(self, mock_threadpool):
         """Test database commit."""
         mock_db = Mock()
@@ -240,6 +240,7 @@ class TestPaginationParams:
 
     def test_from_request_custom_values(self, mock_request):
         """Test from_request with custom values."""
+
         def mock_get(key, default, type=None):
             if key == "page":
                 return 3
@@ -257,6 +258,7 @@ class TestPaginationParams:
 
     def test_from_request_max_per_page(self, mock_request):
         """Test from_request enforces max per_page."""
+
         def mock_get(key, default, type=None):
             if key == "page":
                 return 1
@@ -295,7 +297,7 @@ class TestPaginationParams:
         assert pages == 3  # 50, 50, 25
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.pydal_helpers.run_in_threadpool')
+    @patch("apps.api.utils.pydal_helpers.run_in_threadpool")
     async def test_paginated_query(self, mock_threadpool):
         """Test paginated_query function."""
         mock_rows = [Mock(id=1), Mock(id=2)]

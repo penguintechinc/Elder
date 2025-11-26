@@ -74,15 +74,11 @@ def parse_village_id(village_id: str) -> dict:
     Returns:
         dict: {'tenant': str, 'org': str, 'item': str}
     """
-    parts = village_id.split('-')
+    parts = village_id.split("-")
     if len(parts) != 3:
         raise ValueError(f"Invalid Village ID format: {village_id}")
 
-    return {
-        'tenant': parts[0],
-        'org': parts[1],
-        'item': parts[2]
-    }
+    return {"tenant": parts[0], "org": parts[1], "item": parts[2]}
 
 
 # Legacy function for backward compatibility during transition

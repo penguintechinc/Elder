@@ -17,7 +17,7 @@ from apps.api.utils.crud_helpers import CrudHelper
 def app():
     """Create Flask app for testing."""
     app = Flask(__name__)
-    app.config['TESTING'] = True
+    app.config["TESTING"] = True
     return app
 
 
@@ -42,17 +42,11 @@ class TestCrudHelperList:
     """Test CrudHelper.list_resources method."""
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.crud_helpers.current_app')
-    @patch('apps.api.utils.crud_helpers.PaginationParams')
-    @patch('apps.api.utils.crud_helpers.run_in_threadpool')
+    @patch("apps.api.utils.crud_helpers.current_app")
+    @patch("apps.api.utils.crud_helpers.PaginationParams")
+    @patch("apps.api.utils.crud_helpers.run_in_threadpool")
     async def test_list_resources_basic(
-        self,
-        mock_threadpool,
-        mock_pagination_class,
-        mock_app,
-        app,
-        mock_table,
-        mock_db
+        self, mock_threadpool, mock_pagination_class, mock_app, app, mock_table, mock_db
     ):
         """Test basic list resources."""
         with app.app_context():
@@ -76,8 +70,7 @@ class TestCrudHelperList:
 
             # Execute
             response, status_code = await CrudHelper.list_resources(
-                mock_table,
-                resource_type="Entity"
+                mock_table, resource_type="Entity"
             )
 
             # Verify
@@ -90,17 +83,11 @@ class TestCrudHelperList:
             assert data["pages"] == 1
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.crud_helpers.current_app')
-    @patch('apps.api.utils.crud_helpers.PaginationParams')
-    @patch('apps.api.utils.crud_helpers.run_in_threadpool')
+    @patch("apps.api.utils.crud_helpers.current_app")
+    @patch("apps.api.utils.crud_helpers.PaginationParams")
+    @patch("apps.api.utils.crud_helpers.run_in_threadpool")
     async def test_list_resources_with_filter(
-        self,
-        mock_threadpool,
-        mock_pagination_class,
-        mock_app,
-        app,
-        mock_table,
-        mock_db
+        self, mock_threadpool, mock_pagination_class, mock_app, app, mock_table, mock_db
     ):
         """Test list resources with custom filter."""
         with app.app_context():
@@ -119,9 +106,7 @@ class TestCrudHelperList:
                 return query
 
             response, status_code = await CrudHelper.list_resources(
-                mock_table,
-                resource_type="Entity",
-                filter_fn=filter_fn
+                mock_table, resource_type="Entity", filter_fn=filter_fn
             )
 
             assert status_code == 200
@@ -134,10 +119,10 @@ class TestCrudHelperCreate:
     """Test CrudHelper.create_resource method."""
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.crud_helpers.current_app')
-    @patch('apps.api.utils.crud_helpers.request')
-    @patch('apps.api.utils.crud_helpers.run_in_threadpool')
-    @patch('apps.api.utils.crud_helpers.get_by_id')
+    @patch("apps.api.utils.crud_helpers.current_app")
+    @patch("apps.api.utils.crud_helpers.request")
+    @patch("apps.api.utils.crud_helpers.run_in_threadpool")
+    @patch("apps.api.utils.crud_helpers.get_by_id")
     async def test_create_resource_success(
         self,
         mock_get_by_id,
@@ -146,24 +131,27 @@ class TestCrudHelperCreate:
         mock_app,
         app,
         mock_table,
-        mock_db
+        mock_db,
     ):
         """Test successful resource creation."""
         with app.app_context():
             mock_app.db = mock_db
-            mock_request.get_json = Mock(return_value={"name": "Test", "type": "server"})
+            mock_request.get_json = Mock(
+                return_value={"name": "Test", "type": "server"}
+            )
 
             # Mock insert
             mock_threadpool.return_value = 1
 
             # Mock get created record
             mock_record = Mock()
-            mock_record.as_dict = Mock(return_value={"id": 1, "name": "Test", "type": "server"})
+            mock_record.as_dict = Mock(
+                return_value={"id": 1, "name": "Test", "type": "server"}
+            )
             mock_get_by_id.return_value = mock_record
 
             response, status_code = await CrudHelper.create_resource(
-                mock_table,
-                resource_type="Entity"
+                mock_table, resource_type="Entity"
             )
 
             assert status_code == 201
@@ -172,15 +160,14 @@ class TestCrudHelperCreate:
             assert data["name"] == "Test"
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.crud_helpers.request')
+    @patch("apps.api.utils.crud_helpers.request")
     async def test_create_resource_no_json(self, mock_request, app, mock_table):
         """Test create resource with no JSON body."""
         with app.app_context():
             mock_request.get_json = Mock(return_value=None)
 
             response, status_code = await CrudHelper.create_resource(
-                mock_table,
-                resource_type="Entity"
+                mock_table, resource_type="Entity"
             )
 
             assert status_code == 400
@@ -188,21 +175,16 @@ class TestCrudHelperCreate:
             assert "JSON" in data["error"]
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.crud_helpers.request')
+    @patch("apps.api.utils.crud_helpers.request")
     async def test_create_resource_missing_required_field(
-        self,
-        mock_request,
-        app,
-        mock_table
+        self, mock_request, app, mock_table
     ):
         """Test create resource with missing required field."""
         with app.app_context():
             mock_request.get_json = Mock(return_value={"name": "Test"})
 
             response, status_code = await CrudHelper.create_resource(
-                mock_table,
-                resource_type="Entity",
-                required_fields=["name", "type"]
+                mock_table, resource_type="Entity", required_fields=["name", "type"]
             )
 
             assert status_code == 400
@@ -214,13 +196,8 @@ class TestCrudHelperGet:
     """Test CrudHelper.get_resource method."""
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.crud_helpers.validate_resource_exists')
-    async def test_get_resource_success(
-        self,
-        mock_validate,
-        app,
-        mock_table
-    ):
+    @patch("apps.api.utils.crud_helpers.validate_resource_exists")
+    async def test_get_resource_success(self, mock_validate, app, mock_table):
         """Test successful get resource."""
         with app.app_context():
             mock_record = Mock()
@@ -228,9 +205,7 @@ class TestCrudHelperGet:
             mock_validate.return_value = (mock_record, None)
 
             response, status_code = await CrudHelper.get_resource(
-                mock_table,
-                1,
-                resource_type="Entity"
+                mock_table, 1, resource_type="Entity"
             )
 
             assert status_code == 200
@@ -239,23 +214,17 @@ class TestCrudHelperGet:
             assert data["name"] == "Test"
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.crud_helpers.validate_resource_exists')
-    async def test_get_resource_not_found(
-        self,
-        mock_validate,
-        app,
-        mock_table
-    ):
+    @patch("apps.api.utils.crud_helpers.validate_resource_exists")
+    async def test_get_resource_not_found(self, mock_validate, app, mock_table):
         """Test get resource when not found."""
         with app.app_context():
             from apps.api.utils.api_responses import ApiResponse
+
             error_response = ApiResponse.not_found("Entity", 999)
             mock_validate.return_value = (None, error_response)
 
             response, status_code = await CrudHelper.get_resource(
-                mock_table,
-                999,
-                resource_type="Entity"
+                mock_table, 999, resource_type="Entity"
             )
 
             assert status_code == 404
@@ -265,10 +234,10 @@ class TestCrudHelperUpdate:
     """Test CrudHelper.update_resource method."""
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.crud_helpers.current_app')
-    @patch('apps.api.utils.crud_helpers.request')
-    @patch('apps.api.utils.crud_helpers.validate_resource_exists')
-    @patch('apps.api.utils.crud_helpers.run_in_threadpool')
+    @patch("apps.api.utils.crud_helpers.current_app")
+    @patch("apps.api.utils.crud_helpers.request")
+    @patch("apps.api.utils.crud_helpers.validate_resource_exists")
+    @patch("apps.api.utils.crud_helpers.run_in_threadpool")
     async def test_update_resource_success(
         self,
         mock_threadpool,
@@ -277,7 +246,7 @@ class TestCrudHelperUpdate:
         mock_app,
         app,
         mock_table,
-        mock_db
+        mock_db,
     ):
         """Test successful resource update."""
         with app.app_context():
@@ -294,9 +263,7 @@ class TestCrudHelperUpdate:
             mock_threadpool.return_value = mock_updated
 
             response, status_code = await CrudHelper.update_resource(
-                mock_table,
-                1,
-                resource_type="Entity"
+                mock_table, 1, resource_type="Entity"
             )
 
             assert status_code == 200
@@ -304,27 +271,22 @@ class TestCrudHelperUpdate:
             assert data["name"] == "Updated"
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.crud_helpers.request')
-    @patch('apps.api.utils.crud_helpers.validate_resource_exists')
+    @patch("apps.api.utils.crud_helpers.request")
+    @patch("apps.api.utils.crud_helpers.validate_resource_exists")
     async def test_update_resource_not_found(
-        self,
-        mock_validate,
-        mock_request,
-        app,
-        mock_table
+        self, mock_validate, mock_request, app, mock_table
     ):
         """Test update resource when not found."""
         with app.app_context():
             mock_request.get_json = Mock(return_value={"name": "Updated"})
 
             from apps.api.utils.api_responses import ApiResponse
+
             error_response = ApiResponse.not_found("Entity", 999)
             mock_validate.return_value = (None, error_response)
 
             response, status_code = await CrudHelper.update_resource(
-                mock_table,
-                999,
-                resource_type="Entity"
+                mock_table, 999, resource_type="Entity"
             )
 
             assert status_code == 404
@@ -334,17 +296,11 @@ class TestCrudHelperDelete:
     """Test CrudHelper.delete_resource method."""
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.crud_helpers.current_app')
-    @patch('apps.api.utils.crud_helpers.validate_resource_exists')
-    @patch('apps.api.utils.crud_helpers.run_in_threadpool')
+    @patch("apps.api.utils.crud_helpers.current_app")
+    @patch("apps.api.utils.crud_helpers.validate_resource_exists")
+    @patch("apps.api.utils.crud_helpers.run_in_threadpool")
     async def test_delete_resource_success(
-        self,
-        mock_threadpool,
-        mock_validate,
-        mock_app,
-        app,
-        mock_table,
-        mock_db
+        self, mock_threadpool, mock_validate, mock_app, app, mock_table, mock_db
     ):
         """Test successful resource deletion."""
         with app.app_context():
@@ -356,32 +312,24 @@ class TestCrudHelperDelete:
             mock_threadpool.return_value = None
 
             response, status_code = await CrudHelper.delete_resource(
-                mock_table,
-                1,
-                resource_type="Entity"
+                mock_table, 1, resource_type="Entity"
             )
 
             assert status_code == 204
             assert response == ""
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.crud_helpers.validate_resource_exists')
-    async def test_delete_resource_not_found(
-        self,
-        mock_validate,
-        app,
-        mock_table
-    ):
+    @patch("apps.api.utils.crud_helpers.validate_resource_exists")
+    async def test_delete_resource_not_found(self, mock_validate, app, mock_table):
         """Test delete resource when not found."""
         with app.app_context():
             from apps.api.utils.api_responses import ApiResponse
+
             error_response = ApiResponse.not_found("Entity", 999)
             mock_validate.return_value = (None, error_response)
 
             response, status_code = await CrudHelper.delete_resource(
-                mock_table,
-                999,
-                resource_type="Entity"
+                mock_table, 999, resource_type="Entity"
             )
 
             assert status_code == 404

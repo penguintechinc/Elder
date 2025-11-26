@@ -18,12 +18,12 @@ from .pydal_helpers import (
     insert_record,
     update_record,
     delete_record,
-    commit_db
+    commit_db,
 )
 from .validation_helpers import (
     validate_json_body,
     validate_required_fields,
-    validate_resource_exists
+    validate_resource_exists,
 )
 
 
@@ -44,7 +44,7 @@ class CrudHelper:
         orderby: Optional[Any] = None,
         transform_fn: Optional[Callable[[Any], Dict]] = None,
         default_per_page: int = 50,
-        max_per_page: int = 1000
+        max_per_page: int = 1000,
     ) -> tuple[Any, int]:
         """
         Generic list endpoint with pagination and optional filtering.
@@ -86,7 +86,7 @@ class CrudHelper:
             query = filter_fn(query)
 
         # Default ordering if not specified
-        if orderby is None and hasattr(table, 'created_at'):
+        if orderby is None and hasattr(table, "created_at"):
             orderby = ~table.created_at
 
         # Execute paginated query
@@ -94,7 +94,7 @@ class CrudHelper:
             total = db(query).count()
             rows = db(query).select(
                 orderby=orderby,
-                limitby=(pagination.offset, pagination.offset + pagination.per_page)
+                limitby=(pagination.offset, pagination.offset + pagination.per_page),
             )
             return rows, total
 
@@ -111,12 +111,13 @@ class CrudHelper:
 
         # Build response using PaginatedResponse pattern
         from apps.api.models.dataclasses import PaginatedResponse
+
         response = PaginatedResponse(
             items=items,
             total=total,
             page=pagination.page,
             per_page=pagination.per_page,
-            pages=pages
+            pages=pages,
         )
 
         return jsonify(asdict(response)), 200
@@ -129,7 +130,7 @@ class CrudHelper:
         validate_fn: Optional[Callable[[Dict], Optional[tuple]]] = None,
         pre_insert_fn: Optional[Callable[[Dict], Dict]] = None,
         post_insert_fn: Optional[Callable[[int, Any], None]] = None,
-        transform_fn: Optional[Callable[[Any], Dict]] = None
+        transform_fn: Optional[Callable[[Any], Dict]] = None,
     ) -> tuple[Any, int]:
         """
         Generic create endpoint with validation.
@@ -200,7 +201,9 @@ class CrudHelper:
             return ApiResponse.created(result)
 
         except Exception as e:
-            return ApiResponse.internal_error(f"Failed to create {resource_type}: {str(e)}")
+            return ApiResponse.internal_error(
+                f"Failed to create {resource_type}: {str(e)}"
+            )
 
     @staticmethod
     async def get_resource(
@@ -208,7 +211,7 @@ class CrudHelper:
         resource_id: int,
         resource_type: str = "Resource",
         transform_fn: Optional[Callable[[Any], Dict]] = None,
-        include_related_fn: Optional[Callable[[Any], Dict]] = None
+        include_related_fn: Optional[Callable[[Any], Dict]] = None,
     ) -> tuple[Any, int]:
         """
         Generic get endpoint by ID.
@@ -231,7 +234,9 @@ class CrudHelper:
             )
         """
         # Get resource
-        resource, error = await validate_resource_exists(table, resource_id, resource_type)
+        resource, error = await validate_resource_exists(
+            table, resource_id, resource_type
+        )
         if error:
             return error
 
@@ -257,7 +262,7 @@ class CrudHelper:
         validate_fn: Optional[Callable[[Dict, Any], Optional[tuple]]] = None,
         pre_update_fn: Optional[Callable[[Dict, Any], Dict]] = None,
         post_update_fn: Optional[Callable[[int, Dict, Any], None]] = None,
-        transform_fn: Optional[Callable[[Any], Dict]] = None
+        transform_fn: Optional[Callable[[Any], Dict]] = None,
     ) -> tuple[Any, int]:
         """
         Generic update endpoint by ID.
@@ -291,7 +296,9 @@ class CrudHelper:
             return error
 
         # Verify resource exists
-        resource, error = await validate_resource_exists(table, resource_id, resource_type)
+        resource, error = await validate_resource_exists(
+            table, resource_id, resource_type
+        )
         if error:
             return error
 
@@ -310,8 +317,8 @@ class CrudHelper:
             update_dict = data.copy()
 
         # Remove non-updateable fields
-        update_dict.pop('id', None)
-        update_dict.pop('created_at', None)
+        update_dict.pop("id", None)
+        update_dict.pop("created_at", None)
 
         # Pre-update modifications
         if pre_update_fn:
@@ -340,7 +347,9 @@ class CrudHelper:
             return ApiResponse.success(result)
 
         except Exception as e:
-            return ApiResponse.internal_error(f"Failed to update {resource_type}: {str(e)}")
+            return ApiResponse.internal_error(
+                f"Failed to update {resource_type}: {str(e)}"
+            )
 
     @staticmethod
     async def delete_resource(
@@ -349,7 +358,7 @@ class CrudHelper:
         resource_type: str = "Resource",
         validate_fn: Optional[Callable[[Any], Optional[tuple]]] = None,
         pre_delete_fn: Optional[Callable[[Any], None]] = None,
-        post_delete_fn: Optional[Callable[[int], None]] = None
+        post_delete_fn: Optional[Callable[[int], None]] = None,
     ) -> tuple[Any, int]:
         """
         Generic delete endpoint by ID.
@@ -375,7 +384,9 @@ class CrudHelper:
         db = current_app.db
 
         # Verify resource exists
-        resource, error = await validate_resource_exists(table, resource_id, resource_type)
+        resource, error = await validate_resource_exists(
+            table, resource_id, resource_type
+        )
         if error:
             return error
 
@@ -403,4 +414,6 @@ class CrudHelper:
             return ApiResponse.no_content()
 
         except Exception as e:
-            return ApiResponse.internal_error(f"Failed to delete {resource_type}: {str(e)}")
+            return ApiResponse.internal_error(
+                f"Failed to delete {resource_type}: {str(e)}"
+            )

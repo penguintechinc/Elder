@@ -225,8 +225,10 @@ async def update_project(id: int):
     # If organization is being changed, validate and get tenant
     org_tenant_id = None
     if "organization_id" in data:
+
         def get_org():
             return db.organizations[data["organization_id"]]
+
         org = await run_in_threadpool(get_org)
         if not org:
             return jsonify({"error": "Organization not found"}), 404

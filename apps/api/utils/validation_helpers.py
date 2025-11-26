@@ -12,7 +12,7 @@ from .api_responses import ApiResponse
 
 
 async def validate_organization_and_get_tenant(
-    org_id: int
+    org_id: int,
 ) -> Tuple[Optional[Any], Optional[int], Optional[Tuple[Any, int]]]:
     """
     Validate that an organization exists and has a tenant assigned.
@@ -54,7 +54,7 @@ async def validate_organization_and_get_tenant(
 
 
 async def validate_tenant_exists(
-    tenant_id: int
+    tenant_id: int,
 ) -> Tuple[Optional[Any], Optional[Tuple[Any, int]]]:
     """
     Validate that a tenant exists.
@@ -91,8 +91,7 @@ async def validate_tenant_exists(
 
 
 def validate_required_fields(
-    data: dict,
-    required_fields: list
+    data: dict, required_fields: list
 ) -> Optional[Tuple[Any, int]]:
     """
     Validate that all required fields are present in the data dict.
@@ -147,9 +146,7 @@ def validate_json_body(data: Any) -> Optional[Tuple[Any, int]]:
 
 
 async def validate_resource_exists(
-    table: Any,
-    resource_id: int,
-    resource_type: str = "Resource"
+    table: Any, resource_id: int, resource_type: str = "Resource"
 ) -> Tuple[Optional[Any], Optional[Tuple[Any, int]]]:
     """
     Validate that a resource exists in a PyDAL table.
@@ -174,6 +171,7 @@ async def validate_resource_exists(
         if error:
             return error
     """
+
     def get_resource():
         return table[resource_id]
 
@@ -186,9 +184,7 @@ async def validate_resource_exists(
 
 
 def validate_pagination_params(
-    page: int,
-    per_page: int,
-    max_per_page: int = 1000
+    page: int, per_page: int, max_per_page: int = 1000
 ) -> Optional[Tuple[Any, int]]:
     """
     Validate pagination parameters.
@@ -225,9 +221,7 @@ def validate_pagination_params(
 
 
 def validate_enum_value(
-    value: str,
-    allowed_values: list,
-    field_name: str = "value"
+    value: str, allowed_values: list, field_name: str = "value"
 ) -> Optional[Tuple[Any, int]]:
     """
     Validate that a value is in a list of allowed values (enum validation).
@@ -256,7 +250,5 @@ def validate_enum_value(
     """
     if value not in allowed_values:
         allowed_str = ", ".join(allowed_values)
-        return ApiResponse.bad_request(
-            f"{field_name} must be one of: {allowed_str}"
-        )
+        return ApiResponse.bad_request(f"{field_name} must be one of: {allowed_str}")
     return None

@@ -47,7 +47,9 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
@@ -59,7 +61,13 @@ def define_all_tables(db):
     db.define_table(
         "identities",
         # v2.2.0: Multi-tenancy support
-        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
         # v2.0.0: Identity type validation for IAM unification
         Field(
             "identity_type",
@@ -117,7 +125,9 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
@@ -183,11 +193,24 @@ def define_all_tables(db):
         Field("certificate", "text"),  # X.509 certificate
         # OIDC-specific fields (v3.0.0)
         Field("oidc_client_id", "string", length=512),  # OIDC Client ID
-        Field("oidc_client_secret", "string", length=512),  # OIDC Client Secret (encrypted)
-        Field("oidc_issuer_url", "string", length=1024),  # OIDC Issuer URL (.well-known/openid-configuration)
-        Field("oidc_scopes", "string", length=512, default="openid profile email"),  # Space-separated scopes
-        Field("oidc_response_type", "string", length=50, default="code"),  # OAuth2 response type
-        Field("oidc_token_endpoint_auth_method", "string", length=100, default="client_secret_basic"),  # Token endpoint auth method
+        Field(
+            "oidc_client_secret", "string", length=512
+        ),  # OIDC Client Secret (encrypted)
+        Field(
+            "oidc_issuer_url", "string", length=1024
+        ),  # OIDC Issuer URL (.well-known/openid-configuration)
+        Field(
+            "oidc_scopes", "string", length=512, default="openid profile email"
+        ),  # Space-separated scopes
+        Field(
+            "oidc_response_type", "string", length=50, default="code"
+        ),  # OAuth2 response type
+        Field(
+            "oidc_token_endpoint_auth_method",
+            "string",
+            length=100,
+            default="client_secret_basic",
+        ),  # Token endpoint auth method
         # Common fields
         Field("attribute_mappings", "json"),  # Map IdP attributes to user fields
         Field("jit_provisioning_enabled", "boolean", default=True, notnull=True),
@@ -246,10 +269,14 @@ def define_all_tables(db):
         Field("owner_identity_id", "integer"),  # Reference to identities (added later)
         Field("owner_group_id", "integer"),  # Self-reference to identity_groups
         # Approval workflow settings
-        Field("approval_mode", "string", length=20, default="any"),  # any, all, threshold
+        Field(
+            "approval_mode", "string", length=20, default="any"
+        ),  # any, all, threshold
         Field("approval_threshold", "integer", default=1),
         # Multi-provider configuration
-        Field("provider", "string", length=50, default="internal"),  # internal, ldap, okta
+        Field(
+            "provider", "string", length=50, default="internal"
+        ),  # internal, ldap, okta
         Field("provider_group_id", "string", length=512),  # Provider-specific group ID
         Field("sync_enabled", "boolean", default=False),
         Field(
@@ -369,7 +396,17 @@ def define_all_tables(db):
             "string",
             length=50,
             notnull=True,
-            requires=IS_IN_SET(["aws", "gcp", "azure", "kubernetes", "network", "http_screenshot", "banner"]),
+            requires=IS_IN_SET(
+                [
+                    "aws",
+                    "gcp",
+                    "azure",
+                    "kubernetes",
+                    "network",
+                    "http_screenshot",
+                    "banner",
+                ]
+            ),
         ),
         Field("config_json", "json", notnull=True),  # Provider-specific configuration
         Field("schedule_interval", "integer", default=3600, notnull=True),  # seconds
@@ -522,7 +559,9 @@ def define_all_tables(db):
         ),
         # Expiration support (Enterprise feature)
         Field("expires_at", "datetime"),
-        Field("granted_via_request_id", "integer"),  # Reference to group_access_requests
+        Field(
+            "granted_via_request_id", "integer"
+        ),  # Reference to group_access_requests
         # Provider sync tracking
         Field("provider_synced", "boolean", default=False),
         Field("provider_synced_at", "datetime"),
@@ -542,9 +581,7 @@ def define_all_tables(db):
         Field(
             "group_id", "reference identity_groups", notnull=True, ondelete="CASCADE"
         ),
-        Field(
-            "requester_id", "reference identities", notnull=True, ondelete="CASCADE"
-        ),
+        Field("requester_id", "reference identities", notnull=True, ondelete="CASCADE"),
         Field(
             "status", "string", length=20, default="pending"
         ),  # pending, approved, denied, expired, cancelled
@@ -577,9 +614,7 @@ def define_all_tables(db):
             notnull=True,
             ondelete="CASCADE",
         ),
-        Field(
-            "approver_id", "reference identities", notnull=True, ondelete="CASCADE"
-        ),
+        Field("approver_id", "reference identities", notnull=True, ondelete="CASCADE"),
         Field("decision", "string", length=20, notnull=True),  # approved, denied
         Field("comment", "text"),
         Field(
@@ -749,7 +784,9 @@ def define_all_tables(db):
             length=50,
             notnull=True,
             default="running",
-            requires=IS_IN_SET(["running", "completed", "success", "failed", "partial"]),
+            requires=IS_IN_SET(
+                ["running", "completed", "success", "failed", "partial"]
+            ),
         ),
         Field("entities_discovered", "integer", default=0, notnull=True),
         Field("entities_created", "integer", default=0, notnull=True),
@@ -778,7 +815,13 @@ def define_all_tables(db):
     db.define_table(
         "organizations",
         # v2.2.0: Multi-tenancy support
-        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
         Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
         Field("description", "text"),
         Field(
@@ -806,7 +849,9 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
@@ -828,7 +873,9 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
@@ -959,7 +1006,9 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
@@ -988,7 +1037,9 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
@@ -1062,7 +1113,9 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
@@ -1091,7 +1144,9 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
@@ -1498,7 +1553,9 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
@@ -1629,7 +1686,9 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
@@ -1688,7 +1747,10 @@ def define_all_tables(db):
         "crypto_keys",
         Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
         Field(
-            "key_provider_id", "reference key_providers", notnull=True, ondelete="CASCADE"
+            "key_provider_id",
+            "reference key_providers",
+            notnull=True,
+            ondelete="CASCADE",
         ),
         Field(
             "provider_key_id", "string", length=512, notnull=True
@@ -1809,7 +1871,13 @@ def define_all_tables(db):
     # Software table (depends on: organizations, identities) - v2.3.0: Software tracking
     db.define_table(
         "software",
-        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
         Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
         Field("description", "text"),
         Field(
@@ -1818,7 +1886,9 @@ def define_all_tables(db):
             notnull=True,
             ondelete="CASCADE",
         ),
-        Field("purchasing_poc_id", "reference identities", ondelete="SET NULL"),  # Who bought it
+        Field(
+            "purchasing_poc_id", "reference identities", ondelete="SET NULL"
+        ),  # Who bought it
         Field(
             "license_url",
             "string",
@@ -1849,7 +1919,9 @@ def define_all_tables(db):
                 ]
             ),
         ),
-        Field("seats", "integer", requires=IS_INT_IN_RANGE(0, None)),  # Number of seats/licenses
+        Field(
+            "seats", "integer", requires=IS_INT_IN_RANGE(0, None)
+        ),  # Number of seats/licenses
         Field("cost_monthly", "decimal(10,2)"),  # Monthly cost
         Field("renewal_date", "date"),  # When license renews
         Field("vendor", "string", length=255),  # Software vendor
@@ -1867,14 +1939,22 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
     # Services table (depends on: organizations, identities) - v2.3.0: Microservice tracking
     db.define_table(
         "services",
-        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
         Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
         Field("description", "text"),
         Field(
@@ -1885,7 +1965,9 @@ def define_all_tables(db):
         ),
         Field("domains", "list:string"),  # Domain associations (app.example.com, etc.)
         Field("paths", "list:string"),  # API paths (/api/v1/users, etc.)
-        Field("poc_identity_id", "reference identities", ondelete="SET NULL"),  # Point of contact
+        Field(
+            "poc_identity_id", "reference identities", ondelete="SET NULL"
+        ),  # Point of contact
         Field(
             "language",
             "string",
@@ -1939,7 +2021,9 @@ def define_all_tables(db):
                 )
             ),
         ),
-        Field("deployment_type", "string", length=100),  # e.g., "blue-green", "canary", "rolling"
+        Field(
+            "deployment_type", "string", length=100
+        ),  # e.g., "blue-green", "canary", "rolling"
         Field("is_public", "boolean", default=False, notnull=True),
         Field("port", "integer"),  # Service port
         Field("health_endpoint", "string", length=255),  # e.g., /healthz
@@ -1966,15 +2050,25 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
     # IPAM Prefixes table (depends on: organizations) - v2.3.0: IP Address Management
     db.define_table(
         "ipam_prefixes",
-        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
-        Field("prefix", "string", length=50, notnull=True, requires=IS_NOT_EMPTY()),  # CIDR notation
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "prefix", "string", length=50, notnull=True, requires=IS_NOT_EMPTY()
+        ),  # CIDR notation
         Field("description", "text"),
         Field(
             "organization_id",
@@ -1982,7 +2076,9 @@ def define_all_tables(db):
             notnull=True,
             ondelete="CASCADE",
         ),
-        Field("parent_id", "reference ipam_prefixes", ondelete="CASCADE"),  # Hierarchical CIDR
+        Field(
+            "parent_id", "reference ipam_prefixes", ondelete="CASCADE"
+        ),  # Hierarchical CIDR
         Field("vlan_id", "integer"),
         Field("vrf", "string", length=100),  # VRF name
         Field(
@@ -1992,8 +2088,12 @@ def define_all_tables(db):
             default="active",
             requires=IS_IN_SET(["active", "reserved", "deprecated", "container"]),
         ),
-        Field("role", "string", length=100),  # e.g., "production", "development", "management"
-        Field("is_pool", "boolean", default=False, notnull=True),  # Is this a pool for allocation?
+        Field(
+            "role", "string", length=100
+        ),  # e.g., "production", "development", "management"
+        Field(
+            "is_pool", "boolean", default=False, notnull=True
+        ),  # Is this a pool for allocation?
         Field("site", "string", length=255),  # Physical site/location
         Field("region", "string", length=100),  # Cloud region
         Field("tags", "list:string"),
@@ -2007,15 +2107,25 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
     # IPAM IP Addresses table (depends on: ipam_prefixes) - v2.3.0: Individual IP tracking
     db.define_table(
         "ipam_addresses",
-        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
-        Field("address", "string", length=50, notnull=True, requires=IS_NOT_EMPTY()),  # IP address
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "address", "string", length=50, notnull=True, requires=IS_NOT_EMPTY()
+        ),  # IP address
         Field("prefix_id", "reference ipam_prefixes", notnull=True, ondelete="CASCADE"),
         Field("dns_name", "string", length=255),  # FQDN
         Field("description", "text"),
@@ -2028,7 +2138,9 @@ def define_all_tables(db):
         ),
         Field("assigned_object_type", "string", length=50),  # entity, service, etc.
         Field("assigned_object_id", "integer"),  # ID of assigned object
-        Field("nat_inside_id", "reference ipam_addresses", ondelete="SET NULL"),  # NAT mapping
+        Field(
+            "nat_inside_id", "reference ipam_addresses", ondelete="SET NULL"
+        ),  # NAT mapping
         Field("tags", "list:string"),
         Field(
             "created_at",
@@ -2040,15 +2152,25 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
     # IPAM VLANs table (depends on: organizations) - v2.3.0: VLAN management
     db.define_table(
         "ipam_vlans",
-        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
-        Field("vid", "integer", notnull=True, requires=IS_INT_IN_RANGE(1, 4095)),  # VLAN ID
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "vid", "integer", notnull=True, requires=IS_INT_IN_RANGE(1, 4095)
+        ),  # VLAN ID
         Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
         Field("description", "text"),
         Field(
@@ -2077,14 +2199,22 @@ def define_all_tables(db):
             "datetime",
             update=lambda: datetime.datetime.now(datetime.timezone.utc),
         ),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
     # Certificates table (depends on: tenants, organizations, identities, builtin_secrets) - v2.4.0
     db.define_table(
         "certificates",
-        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
         Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
         Field("description", "text"),
         Field(
@@ -2165,7 +2295,9 @@ def define_all_tables(db):
         Field("certificate_fingerprint_sha256", "string", length=64),
         Field("serial_number", "string", length=255),
         # Key storage reference
-        Field("private_key_secret_id", "reference builtin_secrets", ondelete="SET NULL"),
+        Field(
+            "private_key_secret_id", "reference builtin_secrets", ondelete="SET NULL"
+        ),
         # Usage tracking
         Field("entities_using", "json"),
         Field("services_using", "list:integer"),
@@ -2176,11 +2308,15 @@ def define_all_tables(db):
         Field("auto_renew", "boolean", default=False, notnull=True),
         Field("renewal_days_before", "integer", default=30),
         Field("last_renewed_at", "datetime"),
-        Field("renewal_method", "string", length=50),  # acme_http, acme_dns, manual, api
+        Field(
+            "renewal_method", "string", length=50
+        ),  # acme_http, acme_dns, manual, api
         # ACME/Let's Encrypt specific
         Field("acme_account_url", "string", length=512),
         Field("acme_order_url", "string", length=512),
-        Field("acme_challenge_type", "string", length=50),  # http-01, dns-01, tls-alpn-01
+        Field(
+            "acme_challenge_type", "string", length=50
+        ),  # http-01, dns-01, tls-alpn-01
         # Revocation information
         Field("is_revoked", "boolean", default=False, notnull=True),
         Field("revoked_at", "datetime"),
@@ -2222,16 +2358,26 @@ def define_all_tables(db):
         ),
         Field("created_by_id", "reference identities", ondelete="SET NULL"),
         Field("updated_by_id", "reference identities", ondelete="SET NULL"),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         migrate=False,
     )
 
     # Data Stores table (depends on: tenants, organizations, identities, crypto_keys) - v2.4.0: Data inventory management
     db.define_table(
         "data_stores",
-        Field("tenant_id", "reference tenants", default=1, notnull=True, ondelete="CASCADE"),
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
         Field("organization_id", "reference organizations", ondelete="CASCADE"),
-        Field("village_id", "string", length=32, unique=True, default=generate_village_id),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
         Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
         Field("description", "text"),
         Field(
@@ -2240,10 +2386,23 @@ def define_all_tables(db):
             length=50,
             default="other",
             requires=IS_IN_SET(
-                ["s3", "gcs", "azure_blob", "disk", "nas", "san", "database", "data_lake", "hdfs", "other"]
+                [
+                    "s3",
+                    "gcs",
+                    "azure_blob",
+                    "disk",
+                    "nas",
+                    "san",
+                    "database",
+                    "data_lake",
+                    "hdfs",
+                    "other",
+                ]
             ),
         ),
-        Field("storage_provider", "string", length=100),  # AWS, GCP, Azure, On-Premise, Wasabi, Backblaze, MinIO
+        Field(
+            "storage_provider", "string", length=100
+        ),  # AWS, GCP, Azure, On-Premise, Wasabi, Backblaze, MinIO
         Field("location_region", "string", length=50),  # us-west-1, eu-west-1, etc.
         Field("location_physical", "string", length=255),  # Dallas, TX; Frankfurt, DE
         Field(
@@ -2272,7 +2431,9 @@ def define_all_tables(db):
             requires=IS_IN_SET(["iam", "acl", "rbac", "public", "private"]),
         ),
         Field("poc_identity_id", "reference identities", ondelete="SET NULL"),
-        Field("compliance_frameworks", "json"),  # array like ["SOC2", "HIPAA", "GDPR", "PCI-DSS"]
+        Field(
+            "compliance_frameworks", "json"
+        ),  # array like ["SOC2", "HIPAA", "GDPR", "PCI-DSS"]
         Field("contains_pii", "boolean", default=False),
         Field("contains_phi", "boolean", default=False),
         Field("contains_pci", "boolean", default=False),
@@ -2297,7 +2458,9 @@ def define_all_tables(db):
     # Data Store Labels table (depends on: data_stores, labels) - v2.4.0: Labeling for data stores
     db.define_table(
         "data_store_labels",
-        Field("data_store_id", "reference data_stores", notnull=True, ondelete="CASCADE"),
+        Field(
+            "data_store_id", "reference data_stores", notnull=True, ondelete="CASCADE"
+        ),
         Field("label_id", "reference labels", notnull=True, ondelete="CASCADE"),
         Field(
             "created_at",

@@ -105,7 +105,15 @@ class DiscoveryService:
     ) -> Dict[str, Any]:
         """Create a new discovery job."""
         # Validate provider type
-        valid_providers = ["aws", "gcp", "azure", "kubernetes", "network", "http_screenshot", "banner"]
+        valid_providers = [
+            "aws",
+            "gcp",
+            "azure",
+            "kubernetes",
+            "network",
+            "http_screenshot",
+            "banner",
+        ]
         if provider.lower() not in valid_providers:
             raise Exception(
                 f"Invalid provider: {provider}. Must be one of {valid_providers}"

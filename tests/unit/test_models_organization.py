@@ -18,8 +18,7 @@ class TestOrganizationModel:
         """Test creating a basic organization."""
         with app.app_context():
             org = Organization(
-                name="Test Organization",
-                description="A test organization"
+                name="Test Organization", description="A test organization"
             )
             db.session.add(org)
             db.session.commit()
@@ -53,7 +52,7 @@ class TestOrganizationModel:
         with app.app_context():
             org = Organization(
                 name="Metadata Org",
-                metadata={"region": "us-west", "tier": "production"}
+                metadata={"region": "us-west", "tier": "production"},
             )
             db.session.add(org)
             db.session.commit()
@@ -66,8 +65,7 @@ class TestOrganizationModel:
         """Test LDAP DN assignment."""
         with app.app_context():
             org = Organization(
-                name="LDAP Org",
-                ldap_dn="ou=engineering,dc=example,dc=com"
+                name="LDAP Org", ldap_dn="ou=engineering,dc=example,dc=com"
             )
             db.session.add(org)
             db.session.commit()
@@ -77,10 +75,7 @@ class TestOrganizationModel:
     def test_organization_saml_group(self, app):
         """Test SAML group assignment."""
         with app.app_context():
-            org = Organization(
-                name="SAML Org",
-                saml_group="engineering-team"
-            )
+            org = Organization(name="SAML Org", saml_group="engineering-team")
             db.session.add(org)
             db.session.commit()
 

@@ -74,7 +74,10 @@ async def list_entities():
             run_in_threadpool(
                 lambda: db(query).select(
                     orderby=db.entities.name,
-                    limitby=(pagination.offset, pagination.offset + pagination.per_page)
+                    limitby=(
+                        pagination.offset,
+                        pagination.offset + pagination.per_page,
+                    ),
                 )
             )
         )
@@ -120,11 +123,15 @@ async def create_entity():
         return error
 
     # Validate required fields
-    if error := validate_required_fields(data, ["name", "entity_type", "organization_id"]):
+    if error := validate_required_fields(
+        data, ["name", "entity_type", "organization_id"]
+    ):
         return error
 
     # Get organization to derive tenant_id using helper
-    org, tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+    org, tenant_id, error = await validate_organization_and_get_tenant(
+        data["organization_id"]
+    )
     if error:
         return error
 
@@ -207,7 +214,9 @@ async def update_entity(id: int):
     # If organization is being changed, validate and get tenant
     org_tenant_id = None
     if "organization_id" in data:
-        org, org_tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+        org, org_tenant_id, error = await validate_organization_and_get_tenant(
+            data["organization_id"]
+        )
         if error:
             return error
 
@@ -266,13 +275,13 @@ async def delete_entity(id: int):
     def check_and_delete():
         # Check outgoing dependencies (this entity depends on others)
         outgoing_count = db(
-            (db.dependencies.source_type == "entity") &
-            (db.dependencies.source_id == id)
+            (db.dependencies.source_type == "entity")
+            & (db.dependencies.source_id == id)
         ).count()
         # Check incoming dependencies (others depend on this entity)
         incoming_count = db(
-            (db.dependencies.target_type == "entity") &
-            (db.dependencies.target_id == id)
+            (db.dependencies.target_type == "entity")
+            & (db.dependencies.target_id == id)
         ).count()
 
         total_deps = outgoing_count + incoming_count
@@ -281,7 +290,7 @@ async def delete_entity(id: int):
                 ApiResponse.bad_request(
                     f"Cannot delete entity with {total_deps} dependencies. Remove dependencies first."
                 ),
-                False
+                False,
             )
 
         # Delete entity
@@ -331,8 +340,8 @@ async def get_entity_dependencies(id: int):
         if direction in ("outgoing", "all"):
             # Entities this entity depends on
             outgoing = db(
-                (db.dependencies.source_type == "entity") &
-                (db.dependencies.source_id == id)
+                (db.dependencies.source_type == "entity")
+                & (db.dependencies.source_id == id)
             ).select()
             result["depends_on"] = [
                 {
@@ -348,8 +357,8 @@ async def get_entity_dependencies(id: int):
         if direction in ("incoming", "all"):
             # Entities that depend on this entity
             incoming = db(
-                (db.dependencies.target_type == "entity") &
-                (db.dependencies.target_id == id)
+                (db.dependencies.target_type == "entity")
+                & (db.dependencies.target_id == id)
             ).select()
             result["depended_by"] = [
                 {

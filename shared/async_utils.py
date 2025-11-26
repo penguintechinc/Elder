@@ -107,6 +107,7 @@ async def run_in_threadpool(
                 except Exception as rollback_error:
                     # Log but don't fail on rollback errors
                     import logging
+
                     logging.error(f"Failed to rollback transaction: {rollback_error}")
 
                 raise  # Re-raise the original error

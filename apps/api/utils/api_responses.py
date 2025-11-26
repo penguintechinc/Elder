@@ -13,11 +13,7 @@ class ApiResponse:
     """Standardized API response helpers for consistent response formatting."""
 
     @staticmethod
-    def error(
-        message: str,
-        status_code: int = 400,
-        **kwargs
-    ) -> Tuple[Any, int]:
+    def error(message: str, status_code: int = 400, **kwargs) -> Tuple[Any, int]:
         """
         Generate a standard error response.
 
@@ -37,10 +33,7 @@ class ApiResponse:
         return jsonify(response_data), status_code
 
     @staticmethod
-    def validation_error(
-        field: str,
-        message: str = "is required"
-    ) -> Tuple[Any, int]:
+    def validation_error(field: str, message: str = "is required") -> Tuple[Any, int]:
         """
         Generate a validation error response.
 
@@ -54,15 +47,11 @@ class ApiResponse:
         Example:
             return ApiResponse.validation_error("name", "must be at least 3 characters")
         """
-        return jsonify({
-            "error": f"{field} {message}",
-            "field": field
-        }), 400
+        return jsonify({"error": f"{field} {message}", "field": field}), 400
 
     @staticmethod
     def not_found(
-        resource_type: str = "Resource",
-        resource_id: Optional[Any] = None
+        resource_type: str = "Resource", resource_id: Optional[Any] = None
     ) -> Tuple[Any, int]:
         """
         Generate a not found error response.
@@ -100,9 +89,7 @@ class ApiResponse:
         return jsonify({"error": message}), 403
 
     @staticmethod
-    def unauthorized(
-        message: str = "Authentication required"
-    ) -> Tuple[Any, int]:
+    def unauthorized(message: str = "Authentication required") -> Tuple[Any, int]:
         """
         Generate an unauthorized response.
 
@@ -118,10 +105,7 @@ class ApiResponse:
         return jsonify({"error": message}), 401
 
     @staticmethod
-    def success(
-        data: Any,
-        status_code: int = 200
-    ) -> Tuple[Any, int]:
+    def success(data: Any, status_code: int = 200) -> Tuple[Any, int]:
         """
         Generate a success response.
 
@@ -199,9 +183,7 @@ class ApiResponse:
         return jsonify({"error": message}), 409
 
     @staticmethod
-    def internal_error(
-        message: str = "Internal server error"
-    ) -> Tuple[Any, int]:
+    def internal_error(message: str = "Internal server error") -> Tuple[Any, int]:
         """
         Generate an internal server error response.
 

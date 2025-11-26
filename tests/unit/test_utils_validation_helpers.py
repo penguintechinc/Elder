@@ -15,7 +15,7 @@ from apps.api.utils.validation_helpers import (
     validate_json_body,
     validate_resource_exists,
     validate_pagination_params,
-    validate_enum_value
+    validate_enum_value,
 )
 
 
@@ -97,7 +97,9 @@ class TestValidationHelpers:
 
     def test_validate_enum_value_invalid(self):
         """Test enum validation with invalid value."""
-        response, status_code = validate_enum_value("invalid", ["active", "inactive"], "status")
+        response, status_code = validate_enum_value(
+            "invalid", ["active", "inactive"], "status"
+        )
         assert status_code == 400
         error_msg = response.get_json()["error"]
         assert "status" in error_msg
@@ -105,13 +107,10 @@ class TestValidationHelpers:
         assert "inactive" in error_msg
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.validation_helpers.current_app')
-    @patch('apps.api.utils.validation_helpers.run_in_threadpool')
+    @patch("apps.api.utils.validation_helpers.current_app")
+    @patch("apps.api.utils.validation_helpers.run_in_threadpool")
     async def test_validate_organization_and_get_tenant_success(
-        self,
-        mock_threadpool,
-        mock_app,
-        app
+        self, mock_threadpool, mock_app, app
     ):
         """Test successful organization and tenant validation."""
         with app.app_context():
@@ -127,13 +126,10 @@ class TestValidationHelpers:
             assert error is None
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.validation_helpers.current_app')
-    @patch('apps.api.utils.validation_helpers.run_in_threadpool')
+    @patch("apps.api.utils.validation_helpers.current_app")
+    @patch("apps.api.utils.validation_helpers.run_in_threadpool")
     async def test_validate_organization_and_get_tenant_not_found(
-        self,
-        mock_threadpool,
-        mock_app,
-        app
+        self, mock_threadpool, mock_app, app
     ):
         """Test organization validation when org not found."""
         with app.app_context():
@@ -148,13 +144,10 @@ class TestValidationHelpers:
             assert status_code == 404
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.validation_helpers.current_app')
-    @patch('apps.api.utils.validation_helpers.run_in_threadpool')
+    @patch("apps.api.utils.validation_helpers.current_app")
+    @patch("apps.api.utils.validation_helpers.run_in_threadpool")
     async def test_validate_organization_and_get_tenant_no_tenant(
-        self,
-        mock_threadpool,
-        mock_app,
-        app
+        self, mock_threadpool, mock_app, app
     ):
         """Test organization validation when org has no tenant."""
         with app.app_context():
@@ -173,14 +166,9 @@ class TestValidationHelpers:
             assert "tenant" in response.get_json()["error"]
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.validation_helpers.current_app')
-    @patch('apps.api.utils.validation_helpers.run_in_threadpool')
-    async def test_validate_tenant_exists_success(
-        self,
-        mock_threadpool,
-        mock_app,
-        app
-    ):
+    @patch("apps.api.utils.validation_helpers.current_app")
+    @patch("apps.api.utils.validation_helpers.run_in_threadpool")
+    async def test_validate_tenant_exists_success(self, mock_threadpool, mock_app, app):
         """Test successful tenant validation."""
         with app.app_context():
             mock_tenant = Mock()
@@ -193,13 +181,10 @@ class TestValidationHelpers:
             assert error is None
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.validation_helpers.current_app')
-    @patch('apps.api.utils.validation_helpers.run_in_threadpool')
+    @patch("apps.api.utils.validation_helpers.current_app")
+    @patch("apps.api.utils.validation_helpers.run_in_threadpool")
     async def test_validate_tenant_exists_not_found(
-        self,
-        mock_threadpool,
-        mock_app,
-        app
+        self, mock_threadpool, mock_app, app
     ):
         """Test tenant validation when not found."""
         with app.app_context():
@@ -213,7 +198,7 @@ class TestValidationHelpers:
             assert status_code == 404
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.validation_helpers.run_in_threadpool')
+    @patch("apps.api.utils.validation_helpers.run_in_threadpool")
     async def test_validate_resource_exists_success(self, mock_threadpool, app):
         """Test successful resource existence validation."""
         with app.app_context():
@@ -228,7 +213,7 @@ class TestValidationHelpers:
             assert error is None
 
     @pytest.mark.asyncio
-    @patch('apps.api.utils.validation_helpers.run_in_threadpool')
+    @patch("apps.api.utils.validation_helpers.run_in_threadpool")
     async def test_validate_resource_exists_not_found(self, mock_threadpool, app):
         """Test resource existence validation when not found."""
         with app.app_context():

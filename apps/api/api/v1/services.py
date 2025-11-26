@@ -64,7 +64,9 @@ async def list_services():
             query &= db.services.language == request.args.get("language")
 
         if request.args.get("deployment_method"):
-            query &= db.services.deployment_method == request.args.get("deployment_method")
+            query &= db.services.deployment_method == request.args.get(
+                "deployment_method"
+            )
 
         if request.args.get("status"):
             query &= db.services.status == request.args.get("status")
@@ -79,7 +81,8 @@ async def list_services():
         # Get count and rows
         total = db(query).count()
         rows = db(query).select(
-            orderby=~db.services.created_at, limitby=(pagination.offset, pagination.offset + pagination.per_page)
+            orderby=~db.services.created_at,
+            limitby=(pagination.offset, pagination.offset + pagination.per_page),
         )
 
         return total, rows
@@ -136,14 +139,18 @@ async def create_service():
         return error
 
     # Get organization to derive tenant_id using helper
-    org, tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+    org, tenant_id, error = await validate_organization_and_get_tenant(
+        data["organization_id"]
+    )
     if error:
         return error
 
     # Validate poc_identity_id if provided
     if data.get("poc_identity_id"):
+
         def get_identity():
             return db.identities[data["poc_identity_id"]]
+
         identity = await run_in_threadpool(get_identity)
         if not identity:
             return ApiResponse.not_found("POC identity", data["poc_identity_id"])
@@ -243,14 +250,18 @@ async def update_service(id: int):
     # If organization is being changed, validate and get tenant
     org_tenant_id = None
     if "organization_id" in data:
-        org, org_tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+        org, org_tenant_id, error = await validate_organization_and_get_tenant(
+            data["organization_id"]
+        )
         if error:
             return error
 
     # Validate poc_identity_id if provided
     if "poc_identity_id" in data and data["poc_identity_id"]:
+
         def get_identity():
             return db.identities[data["poc_identity_id"]]
+
         identity = await run_in_threadpool(get_identity)
         if not identity:
             return ApiResponse.not_found("POC identity", data["poc_identity_id"])
@@ -263,10 +274,24 @@ async def update_service(id: int):
         # Update fields
         update_dict = {}
         updateable_fields = [
-            "name", "description", "domains", "paths", "poc_identity_id",
-            "language", "deployment_method", "deployment_type", "is_public",
-            "port", "health_endpoint", "repository_url", "documentation_url",
-            "sla_uptime", "sla_response_time_ms", "notes", "tags", "status"
+            "name",
+            "description",
+            "domains",
+            "paths",
+            "poc_identity_id",
+            "language",
+            "deployment_method",
+            "deployment_type",
+            "is_public",
+            "port",
+            "health_endpoint",
+            "repository_url",
+            "documentation_url",
+            "sla_uptime",
+            "sla_response_time_ms",
+            "notes",
+            "tags",
+            "status",
         ]
 
         for field in updateable_fields:

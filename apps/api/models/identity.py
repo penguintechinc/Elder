@@ -75,7 +75,7 @@ class Identity(Base, IDMixin, TimestampMixin):
         Boolean,
         default=False,
         nullable=False,
-        comment="Requires password change on next login"
+        comment="Requires password change on next login",
     )
 
     # Last activity

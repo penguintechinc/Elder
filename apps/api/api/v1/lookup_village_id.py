@@ -97,17 +97,23 @@ async def lookup_village_id(village_id: str):
     result = await run_in_threadpool(search_tables)
 
     if not result:
-        return jsonify({
-            "error": f"Resource with village_id '{village_id}' not found"
-        }), 404
+        return (
+            jsonify({"error": f"Resource with village_id '{village_id}' not found"}),
+            404,
+        )
 
     # Build redirect URL
     url_template = RESOURCE_URL_MAP.get(result["resource_type"], "/{type}/{id}")
     redirect_url = url_template.format(id=result["resource_id"])
 
-    return jsonify({
-        "village_id": village_id,
-        "resource_type": result["resource_type"],
-        "resource_id": result["resource_id"],
-        "redirect_url": redirect_url,
-    }), 200
+    return (
+        jsonify(
+            {
+                "village_id": village_id,
+                "resource_type": result["resource_type"],
+                "resource_id": result["resource_id"],
+                "redirect_url": redirect_url,
+            }
+        ),
+        200,
+    )

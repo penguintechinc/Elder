@@ -22,19 +22,47 @@ bp = Blueprint("certificates", __name__)
 
 # Valid certificate creators
 VALID_CREATORS = [
-    "digicert", "letsencrypt", "self_signed", "sectigo", "globalsign",
-    "godaddy", "entrust", "certbot", "acme", "comodo", "thawte",
-    "geotrust", "rapidssl", "internal_ca", "other"
+    "digicert",
+    "letsencrypt",
+    "self_signed",
+    "sectigo",
+    "globalsign",
+    "godaddy",
+    "entrust",
+    "certbot",
+    "acme",
+    "comodo",
+    "thawte",
+    "geotrust",
+    "rapidssl",
+    "internal_ca",
+    "other",
 ]
 
 # Valid certificate types
 VALID_CERT_TYPES = [
-    "ca_root", "ca_intermediate", "server_cert", "client_cert",
-    "code_signing", "wildcard", "san", "ecc", "rsa", "email", "other"
+    "ca_root",
+    "ca_intermediate",
+    "server_cert",
+    "client_cert",
+    "code_signing",
+    "wildcard",
+    "san",
+    "ecc",
+    "rsa",
+    "email",
+    "other",
 ]
 
 # Valid certificate statuses
-VALID_STATUSES = ["active", "expiring_soon", "expired", "revoked", "pending", "archived"]
+VALID_STATUSES = [
+    "active",
+    "expiring_soon",
+    "expired",
+    "revoked",
+    "pending",
+    "archived",
+]
 
 # Valid validation types
 VALID_VALIDATION_TYPES = ["DV", "OV", "EV"]
@@ -89,7 +117,9 @@ async def list_certificates():
         query = db.certificates.id > 0
 
         if request.args.get("organization_id"):
-            query &= db.certificates.organization_id == request.args.get("organization_id", type=int)
+            query &= db.certificates.organization_id == request.args.get(
+                "organization_id", type=int
+            )
         if request.args.get("creator"):
             query &= db.certificates.creator == request.args.get("creator")
         if request.args.get("cert_type"):
@@ -102,15 +132,15 @@ async def list_certificates():
         if request.args.get("search"):
             search = f"%{request.args.get('search')}%"
             query &= (
-                (db.certificates.name.ilike(search)) |
-                (db.certificates.description.ilike(search)) |
-                (db.certificates.common_name.ilike(search))
+                (db.certificates.name.ilike(search))
+                | (db.certificates.description.ilike(search))
+                | (db.certificates.common_name.ilike(search))
             )
 
         total = db(query).count()
         rows = db(query).select(
             orderby=~db.certificates.created_at,
-            limitby=(pagination.offset, pagination.offset + pagination.per_page)
+            limitby=(pagination.offset, pagination.offset + pagination.per_page),
         )
         return total, rows
 
@@ -126,7 +156,7 @@ async def list_certificates():
             cert_dict["status"] = calculate_certificate_status(
                 row.expiration_date,
                 row.renewal_days_before or 30,
-                row.is_revoked or False
+                row.is_revoked or False,
             )
         items.append(cert_dict)
 
@@ -158,38 +188,62 @@ async def create_certificate():
     if error := validate_json_body(data):
         return error
 
-    if error := validate_required_fields(data, ["name", "organization_id", "cert_type", "creator", "issue_date", "expiration_date"]):
+    if error := validate_required_fields(
+        data,
+        [
+            "name",
+            "organization_id",
+            "cert_type",
+            "creator",
+            "issue_date",
+            "expiration_date",
+        ],
+    ):
         return error
 
     if error := validate_enum_value(data.get("creator"), VALID_CREATORS, "creator"):
         return error
 
-    if error := validate_enum_value(data.get("cert_type"), VALID_CERT_TYPES, "cert_type"):
+    if error := validate_enum_value(
+        data.get("cert_type"), VALID_CERT_TYPES, "cert_type"
+    ):
         return error
 
     if data.get("validation_type"):
-        if error := validate_enum_value(data["validation_type"], VALID_VALIDATION_TYPES, "validation_type"):
+        if error := validate_enum_value(
+            data["validation_type"], VALID_VALIDATION_TYPES, "validation_type"
+        ):
             return error
 
     if data.get("renewal_method"):
-        if error := validate_enum_value(data["renewal_method"], VALID_RENEWAL_METHODS, "renewal_method"):
+        if error := validate_enum_value(
+            data["renewal_method"], VALID_RENEWAL_METHODS, "renewal_method"
+        ):
             return error
 
     if data.get("acme_challenge_type"):
-        if error := validate_enum_value(data["acme_challenge_type"], VALID_ACME_CHALLENGES, "acme_challenge_type"):
+        if error := validate_enum_value(
+            data["acme_challenge_type"], VALID_ACME_CHALLENGES, "acme_challenge_type"
+        ):
             return error
 
     if data.get("ct_log_status"):
-        if error := validate_enum_value(data["ct_log_status"], VALID_CT_LOG_STATUSES, "ct_log_status"):
+        if error := validate_enum_value(
+            data["ct_log_status"], VALID_CT_LOG_STATUSES, "ct_log_status"
+        ):
             return error
 
-    org, tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+    org, tenant_id, error = await validate_organization_and_get_tenant(
+        data["organization_id"]
+    )
     if error:
         return error
 
     # Validate private_key_secret_id if provided
     if data.get("private_key_secret_id"):
-        secret, error = await validate_resource_exists(db.builtin_secrets, data["private_key_secret_id"], "Built-in Secret")
+        secret, error = await validate_resource_exists(
+            db.builtin_secrets, data["private_key_secret_id"], "Built-in Secret"
+        )
         if error:
             return error
 
@@ -206,7 +260,9 @@ async def create_certificate():
         # Calculate initial status
         renewal_days_before = data.get("renewal_days_before", 30)
         is_revoked = data.get("is_revoked", False)
-        calculated_status = calculate_certificate_status(expiration_date, renewal_days_before, is_revoked)
+        calculated_status = calculate_certificate_status(
+            expiration_date, renewal_days_before, is_revoked
+        )
 
         cert_id = db.certificates.insert(
             tenant_id=tenant_id,
@@ -275,7 +331,9 @@ async def get_certificate(id: int):
     """Get a single certificate entry by ID."""
     db = current_app.db
 
-    certificate, error = await validate_resource_exists(db.certificates, id, "Certificate")
+    certificate, error = await validate_resource_exists(
+        db.certificates, id, "Certificate"
+    )
     if error:
         return error
 
@@ -285,7 +343,7 @@ async def get_certificate(id: int):
         cert_dict["status"] = calculate_certificate_status(
             certificate.expiration_date,
             certificate.renewal_days_before or 30,
-            certificate.is_revoked or False
+            certificate.is_revoked or False,
         )
 
     return ApiResponse.success(cert_dict)
@@ -307,33 +365,47 @@ async def update_certificate(id: int):
             return error
 
     if data.get("cert_type"):
-        if error := validate_enum_value(data["cert_type"], VALID_CERT_TYPES, "cert_type"):
+        if error := validate_enum_value(
+            data["cert_type"], VALID_CERT_TYPES, "cert_type"
+        ):
             return error
 
     if data.get("validation_type"):
-        if error := validate_enum_value(data["validation_type"], VALID_VALIDATION_TYPES, "validation_type"):
+        if error := validate_enum_value(
+            data["validation_type"], VALID_VALIDATION_TYPES, "validation_type"
+        ):
             return error
 
     if data.get("renewal_method"):
-        if error := validate_enum_value(data["renewal_method"], VALID_RENEWAL_METHODS, "renewal_method"):
+        if error := validate_enum_value(
+            data["renewal_method"], VALID_RENEWAL_METHODS, "renewal_method"
+        ):
             return error
 
     if data.get("acme_challenge_type"):
-        if error := validate_enum_value(data["acme_challenge_type"], VALID_ACME_CHALLENGES, "acme_challenge_type"):
+        if error := validate_enum_value(
+            data["acme_challenge_type"], VALID_ACME_CHALLENGES, "acme_challenge_type"
+        ):
             return error
 
     if data.get("ct_log_status"):
-        if error := validate_enum_value(data["ct_log_status"], VALID_CT_LOG_STATUSES, "ct_log_status"):
+        if error := validate_enum_value(
+            data["ct_log_status"], VALID_CT_LOG_STATUSES, "ct_log_status"
+        ):
             return error
 
     org_tenant_id = None
     if "organization_id" in data:
-        org, org_tenant_id, error = await validate_organization_and_get_tenant(data["organization_id"])
+        org, org_tenant_id, error = await validate_organization_and_get_tenant(
+            data["organization_id"]
+        )
         if error:
             return error
 
     if data.get("private_key_secret_id"):
-        secret, error = await validate_resource_exists(db.builtin_secrets, data["private_key_secret_id"], "Built-in Secret")
+        secret, error = await validate_resource_exists(
+            db.builtin_secrets, data["private_key_secret_id"], "Built-in Secret"
+        )
         if error:
             return error
 
@@ -344,20 +416,50 @@ async def update_certificate(id: int):
 
         update_dict = {}
         updateable_fields = [
-            "name", "description", "creator", "cert_type",
-            "common_name", "subject_alternative_names", "organization_unit",
-            "locality", "state_province", "country",
-            "issuer_common_name", "issuer_organization",
-            "key_algorithm", "key_size", "signature_algorithm",
-            "certificate_pem", "certificate_fingerprint_sha1", "certificate_fingerprint_sha256",
-            "serial_number", "private_key_secret_id",
-            "entities_using", "services_using", "file_path", "vault_path",
-            "auto_renew", "renewal_days_before", "last_renewed_at", "renewal_method",
-            "acme_account_url", "acme_order_url", "acme_challenge_type",
-            "is_revoked", "revoked_at", "revocation_reason",
-            "validation_type", "ct_log_status", "ocsp_must_staple",
-            "cost_annual", "purchase_date", "vendor",
-            "notes", "tags", "custom_metadata", "is_active"
+            "name",
+            "description",
+            "creator",
+            "cert_type",
+            "common_name",
+            "subject_alternative_names",
+            "organization_unit",
+            "locality",
+            "state_province",
+            "country",
+            "issuer_common_name",
+            "issuer_organization",
+            "key_algorithm",
+            "key_size",
+            "signature_algorithm",
+            "certificate_pem",
+            "certificate_fingerprint_sha1",
+            "certificate_fingerprint_sha256",
+            "serial_number",
+            "private_key_secret_id",
+            "entities_using",
+            "services_using",
+            "file_path",
+            "vault_path",
+            "auto_renew",
+            "renewal_days_before",
+            "last_renewed_at",
+            "renewal_method",
+            "acme_account_url",
+            "acme_order_url",
+            "acme_challenge_type",
+            "is_revoked",
+            "revoked_at",
+            "revocation_reason",
+            "validation_type",
+            "ct_log_status",
+            "ocsp_must_staple",
+            "cost_annual",
+            "purchase_date",
+            "vendor",
+            "notes",
+            "tags",
+            "custom_metadata",
+            "is_active",
         ]
 
         for field in updateable_fields:
@@ -394,11 +496,20 @@ async def update_certificate(id: int):
             update_dict["not_after"] = not_after
 
         # Recalculate status if relevant fields changed
-        if any(field in update_dict for field in ["expiration_date", "is_revoked", "renewal_days_before"]):
-            expiration_date = update_dict.get("expiration_date", certificate.expiration_date)
-            renewal_days_before = update_dict.get("renewal_days_before", certificate.renewal_days_before or 30)
+        if any(
+            field in update_dict
+            for field in ["expiration_date", "is_revoked", "renewal_days_before"]
+        ):
+            expiration_date = update_dict.get(
+                "expiration_date", certificate.expiration_date
+            )
+            renewal_days_before = update_dict.get(
+                "renewal_days_before", certificate.renewal_days_before or 30
+            )
             is_revoked = update_dict.get("is_revoked", certificate.is_revoked or False)
-            update_dict["status"] = calculate_certificate_status(expiration_date, renewal_days_before, is_revoked)
+            update_dict["status"] = calculate_certificate_status(
+                expiration_date, renewal_days_before, is_revoked
+            )
 
         if update_dict:
             db(db.certificates.id == id).update(**update_dict)
@@ -417,7 +528,7 @@ async def update_certificate(id: int):
         cert_dict["status"] = calculate_certificate_status(
             certificate.expiration_date,
             certificate.renewal_days_before or 30,
-            certificate.is_revoked or False
+            certificate.is_revoked or False,
         )
 
     return ApiResponse.success(cert_dict)
@@ -430,7 +541,9 @@ async def delete_certificate(id: int):
     """Delete a certificate entry."""
     db = current_app.db
 
-    certificate, error = await validate_resource_exists(db.certificates, id, "Certificate")
+    certificate, error = await validate_resource_exists(
+        db.certificates, id, "Certificate"
+    )
     if error:
         return error
 

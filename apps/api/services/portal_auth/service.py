@@ -51,10 +51,14 @@ class PortalAuthService:
             }
 
         # Check if email already exists in this tenant
-        existing = database.db(
-            (database.db.portal_users.email == email.lower())
-            & (database.db.portal_users.tenant_id == tenant_id)
-        ).select().first()
+        existing = (
+            database.db(
+                (database.db.portal_users.email == email.lower())
+                & (database.db.portal_users.tenant_id == tenant_id)
+            )
+            .select()
+            .first()
+        )
 
         if existing:
             return {"error": "Email already registered in this tenant"}
@@ -97,10 +101,14 @@ class PortalAuthService:
         Returns:
             User dict on success, error dict on failure
         """
-        user = database.db(
-            (database.db.portal_users.email == email.lower())
-            & (database.db.portal_users.tenant_id == tenant_id)
-        ).select().first()
+        user = (
+            database.db(
+                (database.db.portal_users.email == email.lower())
+                & (database.db.portal_users.tenant_id == tenant_id)
+            )
+            .select()
+            .first()
+        )
 
         if not user:
             return {"error": "Invalid credentials"}
@@ -127,7 +135,9 @@ class PortalAuthService:
             if attempts >= PortalAuthService.MAX_LOGIN_ATTEMPTS:
                 updates["locked_until"] = datetime.datetime.now(
                     datetime.timezone.utc
-                ) + datetime.timedelta(minutes=PortalAuthService.LOCKOUT_DURATION_MINUTES)
+                ) + datetime.timedelta(
+                    minutes=PortalAuthService.LOCKOUT_DURATION_MINUTES
+                )
 
             user.update_record(**updates)
             database.db.commit()
@@ -217,10 +227,7 @@ class PortalAuthService:
 
         # Generate provisioning URI for authenticator apps
         totp = pyotp.TOTP(secret)
-        provisioning_uri = totp.provisioning_uri(
-            name=user.email,
-            issuer_name="Elder"
-        )
+        provisioning_uri = totp.provisioning_uri(name=user.email, issuer_name="Elder")
 
         return {
             "secret": secret,
@@ -293,14 +300,21 @@ class PortalAuthService:
         Returns:
             Reset token (in production, send via email)
         """
-        user = database.db(
-            (database.db.portal_users.email == email.lower())
-            & (database.db.portal_users.tenant_id == tenant_id)
-        ).select().first()
+        user = (
+            database.db(
+                (database.db.portal_users.email == email.lower())
+                & (database.db.portal_users.tenant_id == tenant_id)
+            )
+            .select()
+            .first()
+        )
 
         if not user:
             # Don't reveal if user exists
-            return {"success": True, "message": "If the email exists, a reset link will be sent"}
+            return {
+                "success": True,
+                "message": "If the email exists, a reset link will be sent",
+            }
 
         # Generate reset token
         reset_token = secrets.token_urlsafe(32)
@@ -326,10 +340,20 @@ class PortalAuthService:
             Assignment dict or error
         """
         # Check if assignment exists
-        existing = database.db(
-            (database.db.portal_user_org_assignments.portal_user_id == portal_user_id)
-            & (database.db.portal_user_org_assignments.organization_id == organization_id)
-        ).select().first()
+        existing = (
+            database.db(
+                (
+                    database.db.portal_user_org_assignments.portal_user_id
+                    == portal_user_id
+                )
+                & (
+                    database.db.portal_user_org_assignments.organization_id
+                    == organization_id
+                )
+            )
+            .select()
+            .first()
+        )
 
         if existing:
             # Update existing assignment
@@ -366,9 +390,7 @@ class PortalAuthService:
             database.db.portal_user_org_assignments.portal_user_id == portal_user_id
         ).select()
 
-        org_roles = {
-            a.organization_id: a.role for a in org_assignments
-        }
+        org_roles = {a.organization_id: a.role for a in org_assignments}
 
         return {
             "user_id": user.id,

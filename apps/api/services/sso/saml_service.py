@@ -28,19 +28,27 @@ class SAMLService:
         db = current_app.db
         if tenant_id:
             # Try tenant-specific IdP first
-            config = db(
-                (db.idp_configurations.tenant_id == tenant_id)
-                & (db.idp_configurations.is_active == True)  # noqa: E712
-            ).select().first()
+            config = (
+                db(
+                    (db.idp_configurations.tenant_id == tenant_id)
+                    & (db.idp_configurations.is_active == True)  # noqa: E712
+                )
+                .select()
+                .first()
+            )
 
             if config:
                 return SAMLService._config_to_dict(config)
 
         # Fall back to global IdP
-        config = db(
-            (db.idp_configurations.tenant_id == None)  # noqa: E711
-            & (db.idp_configurations.is_active == True)  # noqa: E712
-        ).select().first()
+        config = (
+            db(
+                (db.idp_configurations.tenant_id == None)  # noqa: E711
+                & (db.idp_configurations.is_active == True)  # noqa: E712
+            )
+            .select()
+            .first()
+        )
 
         if config:
             return SAMLService._config_to_dict(config)
@@ -62,24 +70,29 @@ class SAMLService:
 
         # Add SAML-specific fields
         if config.idp_type == "saml":
-            result.update({
-                "entity_id": config.entity_id,
-                "metadata_url": config.metadata_url,
-                "sso_url": config.sso_url,
-                "slo_url": config.slo_url,
-                "certificate": config.certificate,
-            })
+            result.update(
+                {
+                    "entity_id": config.entity_id,
+                    "metadata_url": config.metadata_url,
+                    "sso_url": config.sso_url,
+                    "slo_url": config.slo_url,
+                    "certificate": config.certificate,
+                }
+            )
 
         # Add OIDC-specific fields
         elif config.idp_type == "oidc":
-            result.update({
-                "oidc_client_id": config.oidc_client_id,
-                "oidc_client_secret": config.oidc_client_secret,
-                "oidc_issuer_url": config.oidc_issuer_url,
-                "oidc_scopes": config.oidc_scopes or "openid profile email",
-                "oidc_response_type": config.oidc_response_type or "code",
-                "oidc_token_endpoint_auth_method": config.oidc_token_endpoint_auth_method or "client_secret_basic",
-            })
+            result.update(
+                {
+                    "oidc_client_id": config.oidc_client_id,
+                    "oidc_client_secret": config.oidc_client_secret,
+                    "oidc_issuer_url": config.oidc_issuer_url,
+                    "oidc_scopes": config.oidc_scopes or "openid profile email",
+                    "oidc_response_type": config.oidc_response_type or "code",
+                    "oidc_token_endpoint_auth_method": config.oidc_token_endpoint_auth_method
+                    or "client_secret_basic",
+                }
+            )
 
         return result
 
@@ -142,7 +155,8 @@ class SAMLService:
             oidc_issuer_url=oidc_issuer_url,
             oidc_scopes=oidc_scopes or "openid profile email",
             oidc_response_type=oidc_response_type or "code",
-            oidc_token_endpoint_auth_method=oidc_token_endpoint_auth_method or "client_secret_basic",
+            oidc_token_endpoint_auth_method=oidc_token_endpoint_auth_method
+            or "client_secret_basic",
             attribute_mappings=attribute_mappings or {},
             jit_provisioning_enabled=jit_provisioning_enabled,
             default_role=default_role,
@@ -170,11 +184,22 @@ class SAMLService:
 
         # Filter allowed fields
         allowed_fields = {
-            "name", "entity_id", "metadata_url", "sso_url", "slo_url",
-            "certificate", "attribute_mappings", "jit_provisioning_enabled",
-            "default_role", "is_active",
-            "oidc_client_id", "oidc_client_secret", "oidc_issuer_url",
-            "oidc_scopes", "oidc_response_type", "oidc_token_endpoint_auth_method"
+            "name",
+            "entity_id",
+            "metadata_url",
+            "sso_url",
+            "slo_url",
+            "certificate",
+            "attribute_mappings",
+            "jit_provisioning_enabled",
+            "default_role",
+            "is_active",
+            "oidc_client_id",
+            "oidc_client_secret",
+            "oidc_issuer_url",
+            "oidc_scopes",
+            "oidc_response_type",
+            "oidc_token_endpoint_auth_method",
         }
         updates = {k: v for k, v in kwargs.items() if k in allowed_fields}
 
@@ -206,9 +231,7 @@ class SAMLService:
 
     @staticmethod
     def process_saml_response(
-        tenant_id: int,
-        saml_response: str,
-        relay_state: Optional[str] = None
+        tenant_id: int, saml_response: str, relay_state: Optional[str] = None
     ) -> dict:
         """Process SAML response and authenticate user.
 
@@ -236,15 +259,12 @@ class SAMLService:
 
         return {
             "error": "SAML response processing not yet implemented",
-            "note": "Requires python3-saml library configuration"
+            "note": "Requires python3-saml library configuration",
         }
 
     @staticmethod
     def jit_provision_user(
-        tenant_id: int,
-        email: str,
-        idp_config: dict,
-        attributes: dict
+        tenant_id: int, email: str, idp_config: dict, attributes: dict
     ) -> dict:
         """Just-in-time provision a user from SAML attributes.
 
@@ -259,10 +279,14 @@ class SAMLService:
         """
         db = current_app.db
         # Check if user exists
-        existing = db(
-            (db.portal_users.email == email.lower())
-            & (db.portal_users.tenant_id == tenant_id)
-        ).select().first()
+        existing = (
+            db(
+                (db.portal_users.email == email.lower())
+                & (db.portal_users.tenant_id == tenant_id)
+            )
+            .select()
+            .first()
+        )
 
         if existing:
             # Update last login

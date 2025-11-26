@@ -105,8 +105,10 @@ def get_compliance_report(report_type):
         Compliance report with summary and events
     """
     # Check permissions - only admins can generate reports
-    if request.portal_user.get("global_role") not in ["admin", "support"] and \
-       request.portal_user.get("tenant_role") != "admin":
+    if (
+        request.portal_user.get("global_role") not in ["admin", "support"]
+        and request.portal_user.get("tenant_role") != "admin"
+    ):
         return jsonify({"error": "Admin permission required"}), 403
 
     # Get tenant ID
@@ -191,8 +193,10 @@ def cleanup_old_logs():
         Cleanup result with count of deleted logs
     """
     # Check permissions - only admins can cleanup
-    if request.portal_user.get("global_role") != "admin" and \
-       request.portal_user.get("tenant_role") != "admin":
+    if (
+        request.portal_user.get("global_role") != "admin"
+        and request.portal_user.get("tenant_role") != "admin"
+    ):
         return jsonify({"error": "Admin permission required"}), 403
 
     data = request.get_json() or {}
@@ -228,8 +232,10 @@ def export_logs():
         Exported audit logs
     """
     # Check permissions
-    if request.portal_user.get("global_role") not in ["admin", "support"] and \
-       request.portal_user.get("tenant_role") != "admin":
+    if (
+        request.portal_user.get("global_role") not in ["admin", "support"]
+        and request.portal_user.get("tenant_role") != "admin"
+    ):
         return jsonify({"error": "Admin permission required"}), 403
 
     tenant_id = request.args.get("tenant_id", type=int)
@@ -277,26 +283,39 @@ def export_logs():
         writer = csv.writer(output)
 
         # Header
-        writer.writerow([
-            "id", "action", "resource_type", "resource_id",
-            "success", "ip_address", "created_at"
-        ])
+        writer.writerow(
+            [
+                "id",
+                "action",
+                "resource_type",
+                "resource_id",
+                "success",
+                "ip_address",
+                "created_at",
+            ]
+        )
 
         # Rows
         for log in result["logs"]:
-            writer.writerow([
-                log["id"],
-                log["action"],
-                log["resource_type"],
-                log["resource_id"],
-                log["success"],
-                log["ip_address"],
-                log["created_at"],
-            ])
+            writer.writerow(
+                [
+                    log["id"],
+                    log["action"],
+                    log["resource_type"],
+                    log["resource_id"],
+                    log["success"],
+                    log["ip_address"],
+                    log["created_at"],
+                ]
+            )
 
-        return output.getvalue(), 200, {
-            "Content-Type": "text/csv",
-            "Content-Disposition": f"attachment; filename=audit_logs_{tenant_id}.csv"
-        }
+        return (
+            output.getvalue(),
+            200,
+            {
+                "Content-Type": "text/csv",
+                "Content-Disposition": f"attachment; filename=audit_logs_{tenant_id}.csv",
+            },
+        )
 
     return jsonify(result), 200

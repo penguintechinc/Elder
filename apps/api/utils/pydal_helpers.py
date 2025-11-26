@@ -47,10 +47,7 @@ async def query_count(query: Any) -> int:
 
 
 async def query_select(
-    query: Any,
-    orderby: Optional[Any] = None,
-    limitby: Optional[tuple] = None,
-    **kwargs
+    query: Any, orderby: Optional[Any] = None, limitby: Optional[tuple] = None, **kwargs
 ) -> List[Any]:
     """
     Execute a select query with async support.
@@ -72,12 +69,13 @@ async def query_select(
             limitby=(offset, offset + per_page)
         )
     """
+
     def do_select():
         select_kwargs = {}
         if orderby is not None:
-            select_kwargs['orderby'] = orderby
+            select_kwargs["orderby"] = orderby
         if limitby is not None:
-            select_kwargs['limitby'] = limitby
+            select_kwargs["limitby"] = limitby
         select_kwargs.update(kwargs)
         return query.select(**select_kwargs)
 
@@ -103,6 +101,7 @@ async def insert_record(table: Any, **data) -> int:
             organization_id=org_id
         )
     """
+
     def do_insert():
         record_id = table.insert(**data)
         return record_id
@@ -110,11 +109,7 @@ async def insert_record(table: Any, **data) -> int:
     return await run_in_threadpool(do_insert)
 
 
-async def update_record(
-    table: Any,
-    record_id: int,
-    **data
-) -> bool:
+async def update_record(table: Any, record_id: int, **data) -> bool:
     """
     Update a record by ID with async support.
 
@@ -134,6 +129,7 @@ async def update_record(
             status="active"
         )
     """
+
     def do_update():
         record = table[record_id]
         if not record:
@@ -161,6 +157,7 @@ async def delete_record(table: Any, record_id: int) -> bool:
         if not success:
             return ApiResponse.not_found("Entity")
     """
+
     def do_delete():
         record = table[record_id]
         if not record:
@@ -225,12 +222,7 @@ class PaginationParams:
     Helper class for extracting and managing pagination parameters from Flask requests.
     """
 
-    def __init__(
-        self,
-        page: int,
-        per_page: int,
-        offset: int
-    ):
+    def __init__(self, page: int, per_page: int, offset: int):
         """
         Initialize pagination parameters.
 
@@ -245,9 +237,7 @@ class PaginationParams:
 
     @classmethod
     def from_request(
-        cls,
-        default_per_page: int = 50,
-        max_per_page: int = 1000
+        cls, default_per_page: int = 50, max_per_page: int = 1000
     ) -> "PaginationParams":
         """
         Extract pagination parameters from Flask request.
@@ -268,8 +258,7 @@ class PaginationParams:
         """
         page = request.args.get("page", 1, type=int)
         per_page = min(
-            request.args.get("per_page", default_per_page, type=int),
-            max_per_page
+            request.args.get("per_page", default_per_page, type=int), max_per_page
         )
         offset = (page - 1) * per_page
 
@@ -296,9 +285,7 @@ class PaginationParams:
 
 
 async def paginated_query(
-    query: Any,
-    pagination: PaginationParams,
-    orderby: Optional[Any] = None
+    query: Any, pagination: PaginationParams, orderby: Optional[Any] = None
 ) -> tuple[List[Any], int]:
     """
     Execute a paginated query with count.
@@ -325,7 +312,7 @@ async def paginated_query(
     rows = await query_select(
         query,
         orderby=orderby,
-        limitby=(pagination.offset, pagination.offset + pagination.per_page)
+        limitby=(pagination.offset, pagination.offset + pagination.per_page),
     )
 
     return rows, total

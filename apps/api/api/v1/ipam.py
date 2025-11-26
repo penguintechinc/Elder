@@ -278,8 +278,10 @@ async def update_prefix(id: int):
     # If organization is being changed, validate and get tenant
     org_tenant_id = None
     if "organization_id" in data:
+
         def get_org():
             return db.organizations[data["organization_id"]]
+
         org = await run_in_threadpool(get_org)
         if not org:
             return jsonify({"error": "Organization not found"}), 404
@@ -570,8 +572,10 @@ async def update_address(id: int):
 
     # If prefix is being changed, validate it
     if "prefix_id" in data:
+
         def get_prefix():
             return db.ipam_prefixes[data["prefix_id"]]
+
         prefix = await run_in_threadpool(get_prefix)
         if not prefix:
             return jsonify({"error": "Prefix not found"}), 404
@@ -859,8 +863,10 @@ async def update_vlan(id: int):
     # If organization is being changed, validate and get tenant
     org_tenant_id = None
     if "organization_id" in data:
+
         def get_org():
             return db.organizations[data["organization_id"]]
+
         org = await run_in_threadpool(get_org)
         if not org:
             return jsonify({"error": "Organization not found"}), 404

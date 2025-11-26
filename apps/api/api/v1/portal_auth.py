@@ -17,6 +17,7 @@ bp = Blueprint("portal_auth", __name__)
 
 def portal_token_required(f):
     """Decorator to require portal user JWT authentication."""
+
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
@@ -100,12 +101,19 @@ def register():
 
     # Resolve tenant_id from slug if not provided
     if not tenant_id and tenant_slug:
-        tenant_record = database.db(database.db.tenants.slug == tenant_slug).select().first()
+        tenant_record = (
+            database.db(database.db.tenants.slug == tenant_slug).select().first()
+        )
         if tenant_record:
             tenant_id = tenant_record.id
 
     if not all([tenant_id, email, password]):
-        return jsonify({"error": "tenant (or tenant_id), email, and password are required"}), 400
+        return (
+            jsonify(
+                {"error": "tenant (or tenant_id), email, and password are required"}
+            ),
+            400,
+        )
 
     # Verify tenant exists
     tenant = database.db.tenants[tenant_id]
@@ -126,10 +134,15 @@ def register():
     # Generate tokens
     tokens = generate_tokens(result)
 
-    return jsonify({
-        "user": result,
-        **tokens,
-    }), 201
+    return (
+        jsonify(
+            {
+                "user": result,
+                **tokens,
+            }
+        ),
+        201,
+    )
 
 
 @bp.route("/login", methods=["POST"])
@@ -161,7 +174,12 @@ def login():
             tenant_id = tenant.id
 
     if not all([tenant_id, email, password]):
-        return jsonify({"error": "tenant (or tenant_id), email, and password are required"}), 400
+        return (
+            jsonify(
+                {"error": "tenant (or tenant_id), email, and password are required"}
+            ),
+            400,
+        )
 
     result = PortalAuthService.authenticate(tenant_id, email, password)
 
@@ -174,10 +192,15 @@ def login():
     # Generate tokens
     tokens = generate_tokens(result)
 
-    return jsonify({
-        "user": result,
-        **tokens,
-    }), 200
+    return (
+        jsonify(
+            {
+                "user": result,
+                **tokens,
+            }
+        ),
+        200,
+    )
 
 
 @bp.route("/mfa/verify", methods=["POST"])
@@ -209,10 +232,15 @@ def verify_mfa():
     # Generate tokens
     tokens = generate_tokens(result)
 
-    return jsonify({
-        "user": result,
-        **tokens,
-    }), 200
+    return (
+        jsonify(
+            {
+                "user": result,
+                **tokens,
+            }
+        ),
+        200,
+    )
 
 
 @bp.route("/mfa/enable", methods=["POST"])
@@ -372,17 +400,22 @@ def get_current_user():
 
     permissions = PortalAuthService.get_user_permissions(user_id)
 
-    return jsonify({
-        "id": user.id,
-        "email": user.email,
-        "full_name": user.full_name,
-        "tenant_id": user.tenant_id,
-        "tenant_role": user.tenant_role,
-        "global_role": user.global_role,
-        "mfa_enabled": bool(user.mfa_secret),
-        "email_verified": user.email_verified,
-        "permissions": permissions,
-    }), 200
+    return (
+        jsonify(
+            {
+                "id": user.id,
+                "email": user.email,
+                "full_name": user.full_name,
+                "tenant_id": user.tenant_id,
+                "tenant_role": user.tenant_role,
+                "global_role": user.global_role,
+                "mfa_enabled": bool(user.mfa_secret),
+                "email_verified": user.email_verified,
+                "permissions": permissions,
+            }
+        ),
+        200,
+    )
 
 
 @bp.route("/org-assignments", methods=["POST"])
@@ -401,8 +434,10 @@ def assign_org_role():
         Assignment result
     """
     # Check if user has admin permissions
-    if request.portal_user.get("global_role") != "admin" and \
-       request.portal_user.get("tenant_role") != "admin":
+    if (
+        request.portal_user.get("global_role") != "admin"
+        and request.portal_user.get("tenant_role") != "admin"
+    ):
         return jsonify({"error": "Admin permission required"}), 403
 
     data = request.get_json()
@@ -414,7 +449,12 @@ def assign_org_role():
     role = data.get("role")
 
     if not all([portal_user_id, organization_id, role]):
-        return jsonify({"error": "portal_user_id, organization_id, and role are required"}), 400
+        return (
+            jsonify(
+                {"error": "portal_user_id, organization_id, and role are required"}
+            ),
+            400,
+        )
 
     if role not in ["admin", "maintainer", "reader"]:
         return jsonify({"error": "Invalid role"}), 400

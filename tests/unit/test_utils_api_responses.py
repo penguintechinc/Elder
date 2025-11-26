@@ -43,9 +43,7 @@ class TestApiResponse:
         """Test error response with additional fields."""
         with app.app_context():
             response, status_code = ApiResponse.error(
-                "Validation failed",
-                field="email",
-                constraint="format"
+                "Validation failed", field="email", constraint="format"
             )
 
             assert status_code == 400
