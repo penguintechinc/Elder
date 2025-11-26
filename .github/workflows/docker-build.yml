@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: [ main ]
 
+# Required for pushing to GHCR from organization
+permissions:
+  contents: read
+  packages: write
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME_API: ${{ github.repository_owner }}/elder-api
