@@ -92,6 +92,42 @@ This release includes database schema changes that require migration.
   - `granted_via_request_id`: Link to access request
 - **API Endpoints**: Full workflow at `/api/v1/group-membership`
 
+#### Authentik Identity Provider Connector (Enterprise Feature)
+- **Bidirectional Group Sync**: Full sync with Authentik IdP
+  - Sync users and groups from Authentik API v3
+  - Write-back support: add/remove members from groups
+  - Bearer token authentication
+  - Pagination support for large directories
+- **Configuration Settings**: Added to connector settings
+  - `authentik_enabled`, `authentik_domain`, `authentik_api_token`
+  - `authentik_sync_interval`, `authentik_sync_users`, `authentik_sync_groups`
+  - `authentik_write_back_enabled`, `authentik_verify_ssl`
+- **Entity Mappings**:
+  - Users → identity (employee/serviceAccount based on attributes)
+  - Groups → identity_group with nested group support
+- **File**: `apps/connector/connectors/authentik_connector.py` (474 lines)
+
+#### OIDC SSO Support (Enterprise Feature)
+- **OpenID Connect**: Full OIDC support alongside existing SAML
+  - OIDC Discovery (.well-known/openid-configuration)
+  - Authorization Code Flow with JWT validation using JWKS
+  - Just-in-Time (JIT) user provisioning
+  - Token refresh capability
+  - RP-Initiated Logout support
+- **Database Schema**: New OIDC fields in `idp_configurations` table
+  - `oidc_client_id`, `oidc_client_secret`, `oidc_issuer_url`
+  - `oidc_scopes`, `oidc_response_type`, `oidc_token_endpoint_auth_method`
+- **API Endpoints**: 5 new endpoints at `/api/v1/sso/oidc/`
+  - `GET /sso/oidc/authorize/<idp_id>` - Initiate OIDC login
+  - `GET /sso/oidc/callback` - Handle callback with code exchange
+  - `POST /sso/oidc/logout/<idp_id>` - OIDC logout
+  - `GET /sso/oidc/userinfo/<idp_id>` - Get user info from IdP
+  - `POST /sso/oidc/refresh/<idp_id>` - Refresh access token
+- **Supported Providers**:
+  - Google Workspace, Microsoft Azure AD/Entra ID, Okta, Auth0
+  - Keycloak, GitLab, GitHub, and any OIDC-compliant provider
+- **File**: `apps/api/services/sso/oidc_service.py` (496 lines)
+
 ### 🐛 Bug Fixes
 
 #### API Endpoint Fixes (20 endpoints fixed)
@@ -118,6 +154,8 @@ This release includes database schema changes that require migration.
 - `apps/api/services/group_membership/service.py` - Group membership service
 - `apps/api/services/group_membership/ldap_connector.py` - LDAP sync connector
 - `apps/api/services/group_membership/okta_connector.py` - Okta sync connector
+- `apps/api/services/sso/oidc_service.py` (496 lines) - OIDC SSO service
+- `apps/connector/connectors/authentik_connector.py` (474 lines) - Authentik IdP connector
 - `apps/api/migrations/007_v300_data_stores_group_membership.sql` - v3.0.0 migration
 - `web/src/pages/DataStores.tsx` (500+ lines) - Data Stores management UI
 
@@ -138,9 +176,10 @@ This release includes database schema changes that require migration.
 
 ### 📊 Statistics
 
-- **Total API Endpoints**: 92 (added 8 data-stores + group-membership endpoints)
+- **Total API Endpoints**: 97 (added 8 data-stores + group-membership + 5 OIDC endpoints)
 - **Total Database Tables**: 33 (added data_stores, data_store_labels, group_access_requests, group_access_approvals)
 - **Frontend Pages**: 36 (added Data Stores page)
+- **Connectors**: 8 (added Authentik connector)
 
 ### ⬆️ Migration Notes
 
