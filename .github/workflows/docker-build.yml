@@ -160,7 +160,7 @@ jobs:
           api:
             image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api:${{ github.ref_name }}
             ports:
-              - "4000:8000"
+              - "4000:5000"
             environment:
               - DATABASE_URL=postgres://test_user:test_pass@postgres:5432/test_db
               - REDIS_URL=redis://:test_pass@redis:6379/0
@@ -180,7 +180,7 @@ jobs:
               redis:
                 condition: service_healthy
             healthcheck:
-              test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+              test: ["CMD", "curl", "-f", "http://localhost:5000/healthz"]
               interval: 30s
               timeout: 10s
               retries: 5
@@ -209,7 +209,7 @@ jobs:
     - name: Test API endpoints
       run: |
         # Test health endpoints
-        curl -f http://localhost:4000/healthz || curl -f http://localhost:8080/health
+        curl -f http://localhost:4000/healthz
         curl -f http://localhost:3000/ || echo "Web health check skipped"
 
         # Test API functionality
@@ -282,7 +282,7 @@ jobs:
       run: |
         # Start minimal test environment
         docker run -d --name api-perf \
-          -p 8080:8080 \
+          -p 8080:5000 \
           -e LICENSE_KEY=PENG-TEST-TEST-TEST-TEST-ABCD \
           -e PRODUCT_NAME=perf-test \
           ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api:${{ github.ref_name }}
