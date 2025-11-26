@@ -180,6 +180,7 @@ def _register_blueprints(app: Flask) -> None:
     # Import blueprints (async versions where available)
     from apps.api.api.v1 import audit  # Phase 8: Audit System Enhancement
     from apps.api.api.v1 import audit_enterprise  # v2.2.0: Enhanced Audit & Compliance
+    from apps.api.api.v1 import logs  # Admin Log Viewer
     from apps.api.api.v1 import backup  # Phase 10: Backup & Data Management
     from apps.api.api.v1 import builtin_secrets  # v2.0.0: Built-in Secrets Storage
     from apps.api.api.v1 import certificates  # v2.4.0: Certificate Management
@@ -261,6 +262,7 @@ def _register_blueprints(app: Flask) -> None:
         discovery.bp, url_prefix=f"{api_prefix}/discovery"
     )  # Phase 5
     app.register_blueprint(audit.bp, url_prefix=f"{api_prefix}/audit")  # Phase 8
+    app.register_blueprint(logs.bp, url_prefix=f"{api_prefix}/logs")  # Admin Log Viewer
     app.register_blueprint(webhooks.bp, url_prefix=f"{api_prefix}/webhooks")  # Phase 9
     app.register_blueprint(search.bp, url_prefix=f"{api_prefix}/search")  # Phase 10
     app.register_blueprint(backup.bp, url_prefix=f"{api_prefix}/backup")  # Phase 10
@@ -348,7 +350,8 @@ def _register_error_handlers(app: Flask) -> None:
     @app.errorhandler(400)
     def bad_request(error):
         """Handle 400 Bad Request."""
-        return jsonify({"error": "Bad Request", "message": str(error)}), 400
+        logger.warning("bad_request", error=str(error))
+        return jsonify({"error": "Bad Request", "message": "Invalid request"}), 400
 
     @app.errorhandler(401)
     def unauthorized(error):

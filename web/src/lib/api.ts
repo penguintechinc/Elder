@@ -1830,6 +1830,22 @@ class ApiClient {
     const response = await this.client.get(`/id/${villageId}`)
     return response.data
   }
+
+  // Admin Logs (global admin only)
+  async getLogs(): Promise<{ lines: string[]; total: number; log_file: string }> {
+    const response = await this.client.get('/logs')
+    return response.data
+  }
+
+  async searchLogs(query: string): Promise<{
+    lines: string[]
+    total_matches: number
+    query: string
+    log_file: string
+  }> {
+    const response = await this.client.get('/logs/search', { params: { q: query } })
+    return response.data
+  }
 }
 
 export const api = new ApiClient()

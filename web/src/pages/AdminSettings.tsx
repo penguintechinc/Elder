@@ -1,9 +1,23 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Settings, Shield, Database, Clock, CheckCircle, XCircle } from 'lucide-react'
+import {
+  Settings,
+  Shield,
+  Database,
+  Clock,
+  CheckCircle,
+  XCircle,
+  FileText,
+  Search,
+  RefreshCw,
+} from 'lucide-react'
 import api from '@/lib/api'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 
 export default function AdminSettings() {
+  const [logSearch, setLogSearch] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
+
   const { data: health } = useQuery({
     queryKey: ['health'],
     queryFn: () => api.health(),
@@ -14,6 +28,45 @@ export default function AdminSettings() {
     queryKey: ['portal-profile'],
     queryFn: () => api.getPortalProfile(),
   })
+
+  const isAdmin = profile?.global_role === 'admin'
+
+  const {
+    data: logs,
+    isLoading: logsLoading,
+    refetch: refetchLogs,
+  } = useQuery({
+    queryKey: ['admin-logs'],
+    queryFn: () => api.getLogs(),
+    enabled: isAdmin && !isSearching,
+  })
+
+  const {
+    data: searchResults,
+    isLoading: searchLoading,
+    refetch: refetchSearch,
+  } = useQuery({
+    queryKey: ['admin-logs-search', logSearch],
+    queryFn: () => api.searchLogs(logSearch),
+    enabled: isAdmin && isSearching && logSearch.length > 0,
+  })
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (logSearch.trim()) {
+      setIsSearching(true)
+      refetchSearch()
+    }
+  }
+
+  const handleClearSearch = () => {
+    setLogSearch('')
+    setIsSearching(false)
+    refetchLogs()
+  }
+
+  const displayedLogs = isSearching ? searchResults : logs
+  const isLoadingLogs = isSearching ? searchLoading : logsLoading
 
   return (
     <div className="p-6">
@@ -76,7 +129,8 @@ export default function AdminSettings() {
                 <span className="text-green-400">Active</span>
               </div>
               <p className="text-sm text-slate-500 pt-2 border-t border-slate-700">
-                Upgrade to Professional or Enterprise for advanced features like SSO, SCIM, and priority support.
+                Upgrade to Professional or Enterprise for advanced features like SSO, SCIM, and
+                priority support.
               </p>
             </div>
           </CardContent>
@@ -155,6 +209,89 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
       </div>
+
+      {/* System Logs - Admin Only */}
+      {isAdmin && (
+        <div className="mt-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between w-full">
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  System Logs
+                </h2>
+                <button
+                  onClick={() => (isSearching ? refetchSearch() : refetchLogs())}
+                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded"
+                  title="Refresh logs"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isLoadingLogs ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* Search Bar */}
+              <form onSubmit={handleSearch} className="flex gap-2 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={logSearch}
+                    onChange={(e) => setLogSearch(e.target.value)}
+                    placeholder="Search logs..."
+                    className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-600 rounded text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                  disabled={!logSearch.trim()}
+                >
+                  Search
+                </button>
+                {isSearching && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-500"
+                  >
+                    Clear
+                  </button>
+                )}
+              </form>
+
+              {/* Log Info */}
+              <div className="flex items-center justify-between text-sm text-slate-400 mb-2">
+                <span>
+                  {isSearching
+                    ? `${searchResults?.total_matches || 0} matches for "${searchResults?.query}"`
+                    : `${logs?.total || 0} total lines`}
+                </span>
+                <span>Showing last {displayedLogs?.lines?.length || 0} lines</span>
+              </div>
+
+              {/* Log Content */}
+              <div className="bg-slate-900 rounded border border-slate-700 p-4 max-h-96 overflow-auto font-mono text-xs">
+                {isLoadingLogs ? (
+                  <div className="text-slate-400 text-center py-4">Loading logs...</div>
+                ) : displayedLogs?.lines?.length ? (
+                  <pre className="text-slate-300 whitespace-pre-wrap break-all">
+                    {displayedLogs.lines.join('\n')}
+                  </pre>
+                ) : (
+                  <div className="text-slate-500 text-center py-4">
+                    {isSearching ? 'No matches found' : 'No logs available'}
+                  </div>
+                )}
+              </div>
+
+              {displayedLogs?.log_file && (
+                <div className="mt-2 text-xs text-slate-500">Log file: {displayedLogs.log_file}</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
