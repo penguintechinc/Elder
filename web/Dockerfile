@@ -1,6 +1,10 @@
 # Build stage
 FROM node:18-slim AS builder
 
+# Build arguments for Vite
+ARG VITE_API_URL=http://localhost:4000
+ENV VITE_API_URL=$VITE_API_URL
+
 WORKDIR /app
 
 # Copy package files

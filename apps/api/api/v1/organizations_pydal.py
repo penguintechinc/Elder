@@ -14,6 +14,17 @@ from apps.api.models.dataclasses import (
     from_pydal_row,
     from_pydal_rows,
 )
+from apps.api.utils.api_responses import ApiResponse
+from apps.api.utils.pydal_helpers import (
+    PaginationParams,
+    commit_db,
+    get_by_id,
+    insert_record,
+)
+from apps.api.utils.validation_helpers import (
+    validate_json_body,
+    validate_required_fields,
+)
 from shared.async_utils import run_in_threadpool
 
 logger = logging.getLogger(__name__)
@@ -38,9 +49,8 @@ async def list_organizations():
     """
     db = current_app.db
 
-    # Get pagination params
-    page = request.args.get("page", 1, type=int)
-    per_page = min(request.args.get("per_page", 50, type=int), 1000)
+    # Extract pagination parameters using helper
+    pagination = PaginationParams.from_request()
 
     # Build query
     query = db.organizations.id > 0
@@ -56,21 +66,19 @@ async def list_organizations():
         # Case-insensitive search using PostgreSQL ILIKE
         query &= db.organizations.name.ilike(f"%{search_term}%")
 
-    # Calculate pagination
-    offset = (page - 1) * per_page
-
-    # Execute database queries in a single thread pool task to avoid cursor issues
+    # Execute database queries in a single thread pool task
     def get_orgs():
         total = db(query).count()
         rows = db(query).select(
-            orderby=db.organizations.name, limitby=(offset, offset + per_page)
+            orderby=db.organizations.name,
+            limitby=(pagination.offset, pagination.offset + pagination.per_page),
         )
         return total, rows
 
     total, rows = await run_in_threadpool(get_orgs)
 
     # Calculate total pages
-    pages = (total + per_page - 1) // per_page if total > 0 else 0
+    pages = pagination.calculate_pages(total)
 
     # Convert PyDAL rows to DTOs
     items = from_pydal_rows(rows, OrganizationDTO)
@@ -79,8 +87,8 @@ async def list_organizations():
     response = PaginatedResponse(
         items=[asdict(item) for item in items],
         total=total,
-        page=page,
-        per_page=per_page,
+        page=pagination.page,
+        per_page=pagination.per_page,
         pages=pages,
     )
 
@@ -100,11 +108,15 @@ async def create_organization():
         400: Validation error
     """
     db = current_app.db
-    data = request.get_json() or {}
 
-    # Validate required fields
-    if not data.get("name"):
-        return jsonify({"error": "Name is required"}), 400
+    # Get and validate JSON body using helper
+    data = request.get_json() or {}
+    if error := validate_json_body(data):
+        return error
+
+    # Validate required fields using helper
+    if error := validate_required_fields(data, ["name"]):
+        return error
 
     # Create request DTO
     create_req = CreateOrganizationRequest(
@@ -118,18 +130,16 @@ async def create_organization():
         owner_group_id=data.get("owner_group_id"),
     )
 
-    # Insert organization in thread pool
+    # Insert organization using helper
     try:
-        org_id = await run_in_threadpool(
-            lambda: db.organizations.insert(**asdict(create_req))
-        )
-        await run_in_threadpool(lambda: db.commit())
+        org_id = await insert_record(db.organizations, **asdict(create_req))
+        await commit_db(db)
 
-        # Fetch created org
-        org_row = await run_in_threadpool(lambda: db.organizations[org_id])
+        # Fetch created org using helper
+        org_row = await get_by_id(db.organizations, org_id)
         org_dto = from_pydal_row(org_row, OrganizationDTO)
 
-        return jsonify(asdict(org_dto)), 201
+        return ApiResponse.created(asdict(org_dto))
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
@@ -151,12 +161,13 @@ async def get_organization(id: int):
     """
     db = current_app.db
 
-    org_row = await run_in_threadpool(lambda: db.organizations[id])
+    # Get organization using helper
+    org_row = await get_by_id(db.organizations, id)
     if not org_row:
-        return jsonify({"error": "Organization Unit not found"}), 404
+        return ApiResponse.not_found("Organization Unit")
 
     org_dto = from_pydal_row(org_row, OrganizationDTO)
-    return jsonify(asdict(org_dto)), 200
+    return ApiResponse.success(asdict(org_dto))
 
 
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])
@@ -176,15 +187,18 @@ async def update_organization(id: int):
     """
     db = current_app.db
 
-    org_row = await run_in_threadpool(lambda: db.organizations[id])
+    # Verify organization exists using helper
+    org_row = await get_by_id(db.organizations, id)
     if not org_row:
-        return jsonify({"error": "Organization Unit not found"}), 404
+        return ApiResponse.not_found("Organization Unit")
 
+    # Get and validate JSON body
     data = request.get_json() or {}
+    if error := validate_json_body(data):
+        return error
 
-    # Build update DTO with only provided fields
-    update_fields = {}
-    for field in [
+    # Build update dict with only provided fields
+    updateable_fields = [
         "name",
         "description",
         "organization_type",
@@ -193,27 +207,31 @@ async def update_organization(id: int):
         "saml_group",
         "owner_identity_id",
         "owner_group_id",
-    ]:
+    ]
+
+    update_fields = {}
+    for field in updateable_fields:
         if field in data:
             update_fields[field] = data[field]
 
-    if update_fields:
-        try:
-            await run_in_threadpool(
-                lambda: db(db.organizations.id == id).update(**update_fields)
-            )
-            await run_in_threadpool(lambda: db.commit())
+    if not update_fields:
+        return ApiResponse.bad_request("No fields to update")
 
-            # Fetch updated org
-            org_row = await run_in_threadpool(lambda: db.organizations[id])
-            org_dto = from_pydal_row(org_row, OrganizationDTO)
-            return jsonify(asdict(org_dto)), 200
+    # Update organization
+    try:
+        await run_in_threadpool(
+            lambda: db(db.organizations.id == id).update(**update_fields)
+        )
+        await commit_db(db)
 
-        except Exception as e:
-            await run_in_threadpool(lambda: db.rollback())
-            return log_error_and_respond(logger, e, "Failed to process request", 500)
+        # Fetch updated org using helper
+        org_row = await get_by_id(db.organizations, id)
+        org_dto = from_pydal_row(org_row, OrganizationDTO)
+        return ApiResponse.success(asdict(org_dto))
 
-    return jsonify({"error": "No fields to update"}), 400
+    except Exception as e:
+        await run_in_threadpool(lambda: db.rollback())
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:id>", methods=["DELETE"])
@@ -231,22 +249,24 @@ async def delete_organization(id: int):
     """
     db = current_app.db
 
-    org_row = await run_in_threadpool(lambda: db.organizations[id])
+    # Verify organization exists using helper
+    org_row = await get_by_id(db.organizations, id)
     if not org_row:
-        return jsonify({"error": "Organization Unit not found"}), 404
+        return ApiResponse.not_found("Organization Unit")
 
-    # Check if OU has children (concurrent check in TaskGroup)
+    # Check if OU has children
     children_count = await run_in_threadpool(
         lambda: db(db.organizations.parent_id == id).count()
     )
 
     if children_count > 0:
-        return jsonify({"error": "Cannot delete Organization Unit with child OUs"}), 400
+        return ApiResponse.bad_request("Cannot delete Organization Unit with child OUs")
 
+    # Delete organization
     try:
         await run_in_threadpool(lambda: db.organizations.__delitem__(id))
-        await run_in_threadpool(lambda: db.commit())
-        return "", 204
+        await commit_db(db)
+        return ApiResponse.no_content()
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
@@ -271,13 +291,13 @@ async def get_organization_graph(id: int):
     """
     db = current_app.db
 
-    # Check if organization exists
+    # Check if organization exists using helper
     try:
-        org_row = await run_in_threadpool(lambda: db.organizations[id])
+        org_row = await get_by_id(db.organizations, id)
         if org_row is None:
-            return jsonify({"error": "Organization Unit not found"}), 404
+            return ApiResponse.not_found("Organization Unit")
     except Exception:
-        return jsonify({"error": "Organization Unit not found"}), 404
+        return ApiResponse.not_found("Organization Unit")
 
     # Get depth parameter
     depth = min(request.args.get("depth", 3, type=int), 10)
@@ -396,18 +416,21 @@ async def get_organization_graph(id: int):
 
     # Get dependencies between entities
     entity_ids = list(visited_entities)
+    # Dependencies table uses source_type/source_id, not source_entity_id
     dependencies = await run_in_threadpool(
         lambda: db(
-            (db.dependencies.source_entity_id.belongs(entity_ids))
-            & (db.dependencies.target_entity_id.belongs(entity_ids))
+            (db.dependencies.source_type == "entity")
+            & (db.dependencies.source_id.belongs(entity_ids))
+            & (db.dependencies.target_type == "entity")
+            & (db.dependencies.target_id.belongs(entity_ids))
         ).select()
     )
 
     for dep in dependencies:
         edges.append(
             {
-                "from": f"entity-{dep.source_entity_id}",
-                "to": f"entity-{dep.target_entity_id}",
+                "from": f"entity-{dep.source_id}",
+                "to": f"entity-{dep.target_id}",
                 "label": dep.dependency_type or "depends",
             }
         )

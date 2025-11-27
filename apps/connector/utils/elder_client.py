@@ -42,6 +42,18 @@ class Entity:
     is_active: bool = True
 
 
+@dataclass
+class Dependency:
+    """Dependency/relationship data model."""
+
+    source_entity_id: int
+    target_entity_id: int
+    dependency_type: str  # uses, requires, contains, connects_to, etc.
+    description: Optional[str] = None
+    attributes: Optional[Dict[str, Any]] = None
+    is_active: bool = True
+
+
 class ElderAPIClient:
     """Client for interacting with Elder REST API."""
 
@@ -330,6 +342,105 @@ class ElderAPIClient:
             type=entity.entity_type,
         )
         return await self._request("PATCH", f"/entities/{entity_id}", json=data)
+
+    # Dependency operations
+    async def list_dependencies(
+        self,
+        page: int = 1,
+        per_page: int = 100,
+        source_entity_id: Optional[int] = None,
+        target_entity_id: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """
+        List dependencies with pagination.
+
+        Args:
+            page: Page number
+            per_page: Items per page
+            source_entity_id: Filter by source entity ID
+            target_entity_id: Filter by target entity ID
+
+        Returns:
+            Paginated list of dependencies
+        """
+        params = {"page": page, "per_page": per_page}
+        if source_entity_id is not None:
+            params["source_entity_id"] = source_entity_id
+        if target_entity_id is not None:
+            params["target_entity_id"] = target_entity_id
+
+        return await self._request("GET", "/dependencies", params=params)
+
+    async def create_dependency(self, dep: Dependency) -> Dict[str, Any]:
+        """
+        Create a new dependency/relationship.
+
+        Args:
+            dep: Dependency data
+
+        Returns:
+            Created dependency
+        """
+        data = {
+            "source_entity_id": dep.source_entity_id,
+            "target_entity_id": dep.target_entity_id,
+            "dependency_type": dep.dependency_type,
+            "description": dep.description,
+            "attributes": dep.attributes or {},
+            "is_active": dep.is_active,
+        }
+        # Remove None values
+        data = {k: v for k, v in data.items() if v is not None}
+
+        logger.info(
+            "Creating dependency",
+            source=dep.source_entity_id,
+            target=dep.target_entity_id,
+            type=dep.dependency_type,
+        )
+        return await self._request("POST", "/dependencies", json=data)
+
+    async def get_or_create_dependency(
+        self,
+        source_entity_id: int,
+        target_entity_id: int,
+        dependency_type: str,
+        description: Optional[str] = None,
+        attributes: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Get existing dependency or create new one.
+
+        Args:
+            source_entity_id: Source entity ID
+            target_entity_id: Target entity ID
+            dependency_type: Type of dependency
+            description: Optional description
+            attributes: Optional attributes
+
+        Returns:
+            Existing or created dependency
+        """
+        # Check if dependency already exists
+        existing = await self.list_dependencies(
+            source_entity_id=source_entity_id,
+            target_entity_id=target_entity_id,
+        )
+
+        for dep in existing.get("items", []):
+            if dep.get("dependency_type") == dependency_type:
+                return dep
+
+        # Create new dependency
+        return await self.create_dependency(
+            Dependency(
+                source_entity_id=source_entity_id,
+                target_entity_id=target_entity_id,
+                dependency_type=dependency_type,
+                description=description,
+                attributes=attributes,
+            )
+        )
 
     async def health_check(self) -> bool:
         """

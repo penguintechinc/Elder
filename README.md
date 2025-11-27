@@ -3,14 +3,13 @@
 [![Continuous Integration](https://github.com/penguintechinc/elder/actions/workflows/ci.yml/badge.svg)](https://github.com/penguintechinc/elder/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/penguintechinc/elder/actions/workflows/docker-build.yml/badge.svg)](https://github.com/penguintechinc/elder/actions/workflows/docker-build.yml)
 [![Test Coverage](https://codecov.io/gh/penguintechinc/elder/branch/main/graph/badge.svg)](https://codecov.io/gh/penguintechinc/elder)
-[![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](https://github.com/penguintechinc/elder/releases)
+[![Version](https://img.shields.io/badge/version-3.0.0-green.svg)](https://github.com/penguintechinc/elder/releases)
 [![Python](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/)
-[![Go](https://img.shields.io/badge/go-1.23-blue.svg)](https://golang.org/)
 [![Node.js](https://img.shields.io/badge/node.js-18+-green.svg)](https://nodejs.org/)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)*
+[![License: Limited AGPL v3](https://img.shields.io/badge/License-Limited_AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)*
 [![Docker](https://img.shields.io/badge/docker-latest-blue.svg)](https://hub.docker.com/r/penguintechinc/elder)
 
-_*Personal and Internal Use Only_
+_*Limited AGPL v3 with preamble for fair use - Personal and Internal Use Only_
 
 ```
 ███████╗██╗     ██████╗ ███████╗██████╗
@@ -37,219 +36,204 @@ Entity, Element, and Relationship Tracking System
 
 Elder provides visibility into your infrastructure and organizational relationships through:
 
-- **Entity Tracking**: Datacenters, VPCs, Subnets, Compute Devices, Network Devices, Users, and Security Issues
-- **Dependency Mapping**: Visualize "depends on" relationships between entities
-- **Organizational Hierarchy**: Manage entities within Company → Department → Teams structure
-- **LDAP/SAML Integration**: Sync organizational structure with directory services
-- **Role-Based Access Control**: Granular permissions with super admin, org admin, editor, and viewer roles
-- **Interactive Visualization**: Zoom, pan, and explore entity relationships with vis.js
-- **Comprehensive APIs**: Both REST and gRPC for maximum flexibility
-- **Enterprise Features**: Audit logging, MFA, SSO, and license management
+- **Entity Tracking**: Datacenters, VPCs, Compute, Network, Storage, Security, and Applications
+- **Data Store Tracking**: S3, GCS, Azure Blob, NAS, SAN, databases with compliance metadata
+- **Dependency Mapping**: Visualize relationships between entities
+- **Organizational Hierarchy**: Manage Company → Department → Team structures
+- **Unified IAM**: Manage identities across AWS, Azure, GCP, Okta, LDAP with group management
+- **SSO Integration**: SAML 2.0, OpenID Connect (OIDC), and SCIM 2.0 provisioning
+- **Secrets Management**: Integrate with Vault, AWS Secrets Manager, GCP Secret Manager
+- **Network Topology**: Track VPCs, subnets, peering, VPN connections
+- **Project Sync**: Bi-directional sync with GitHub, GitLab, Jira, Trello, OpenProject
+- **Enterprise Features**: Audit logging, RBAC, MFA, SSO, multi-tenant, license management
 
 ## Screenshots
 
-### Organization Network Map
-
-<a href="docs/screenshots/elder-organization-map.png" target="_blank">
-  <img src="docs/screenshots/elder-organization-map.png" alt="Organization Network Map" style="max-width: 100%; cursor: pointer;">
-</a>
-
-*Interactive network visualization showing organizational relationships with React Flow. Nodes represent organizations and entities, while edges show parent-child and dependency relationships. **Click to view full size.***
-
-### Dashboard & Core Features
+### Login & Dashboard
 
 <table>
 <tr>
 <td width="50%">
-
-<a href="docs/screenshots/elder-organizationunits.png" target="_blank">
-  <img src="docs/screenshots/elder-organizationunits.png" alt="Organizations" style="max-width: 100%; cursor: pointer;">
+<a href="docs/screenshots/login.png" target="_blank">
+  <img src="docs/screenshots/login.png" alt="Login" style="max-width: 100%;">
 </a>
-
-*Hierarchical organization management with types, metadata, and relationship tracking. **Click to enlarge.***
-
+<p align="center"><em>Login</em></p>
 </td>
 <td width="50%">
-
-<a href="docs/screenshots/elder-entities.png" target="_blank">
-  <img src="docs/screenshots/elder-entities.png" alt="Entities" style="max-width: 100%; cursor: pointer;">
+<a href="docs/screenshots/dashboard.png" target="_blank">
+  <img src="docs/screenshots/dashboard.png" alt="Dashboard" style="max-width: 100%;">
 </a>
-
-*Entity tracking for datacenters, compute, network devices, and more. **Click to enlarge.***
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-<a href="docs/screenshots/elder-dependencies.png" target="_blank">
-  <img src="docs/screenshots/elder-dependencies.png" alt="Dependencies" style="max-width: 100%; cursor: pointer;">
-</a>
-
-*Dependency mapping and relationship visualization between entities. **Click to enlarge.***
-
-</td>
-<td width="50%">
-
-<a href="docs/screenshots/elder-identities.png" target="_blank">
-  <img src="docs/screenshots/elder-identities.png" alt="Identities" style="max-width: 100%; cursor: pointer;">
-</a>
-
-*User and group management with role-based access control. **Click to enlarge.***
-
+<p align="center"><em>Dashboard</em></p>
 </td>
 </tr>
 </table>
 
-### Project Management Features
-
-<table>
-<tr>
-<td width="33%">
-
-<a href="docs/screenshots/elder-projects.png" target="_blank">
-  <img src="docs/screenshots/elder-projects.png" alt="Projects" style="max-width: 100%; cursor: pointer;">
-</a>
-
-*Project tracking and organization. **Click to enlarge.***
-
-</td>
-<td width="33%">
-
-<a href="docs/screenshots/elder-milestones.png" target="_blank">
-  <img src="docs/screenshots/elder-milestones.png" alt="Milestones" style="max-width: 100%; cursor: pointer;">
-</a>
-
-*Milestone management for project planning. **Click to enlarge.***
-
-</td>
-<td width="33%">
-
-<a href="docs/screenshots/elder-labels.png" target="_blank">
-  <img src="docs/screenshots/elder-labels.png" alt="Labels" style="max-width: 100%; cursor: pointer;">
-</a>
-
-*Customizable labels for categorization. **Click to enlarge.***
-
-</td>
-</tr>
-</table>
-
-### Enterprise & Integration Features
+### Asset Management
 
 <table>
 <tr>
 <td width="50%">
-
-<a href="docs/screenshots/Elder-IAM.png" target="_blank">
-  <img src="docs/screenshots/Elder-IAM.png" alt="IAM Integration" style="max-width: 100%; cursor: pointer;">
+<a href="docs/screenshots/organizations.png" target="_blank">
+  <img src="docs/screenshots/organizations.png" alt="Organizations" style="max-width: 100%;">
 </a>
-
-*AWS IAM integration for identity and access management. **Click to enlarge.***
-
+<p align="center"><em>Organizations</em></p>
 </td>
 <td width="50%">
-
-<a href="docs/screenshots/Elder-Secrets.png" target="_blank">
-  <img src="docs/screenshots/Elder-Secrets.png" alt="Secrets Management" style="max-width: 100%; cursor: pointer;">
+<a href="docs/screenshots/entities.png" target="_blank">
+  <img src="docs/screenshots/entities.png" alt="Entities" style="max-width: 100%;">
 </a>
-
-*Secrets management with AWS Secrets Manager integration. **Click to enlarge.***
-
+<p align="center"><em>Entities</em></p>
 </td>
 </tr>
 <tr>
 <td width="50%">
-
-<a href="docs/screenshots/Elder-GoogleWorkspaces.png" target="_blank">
-  <img src="docs/screenshots/Elder-GoogleWorkspaces.png" alt="Google Workspace" style="max-width: 100%; cursor: pointer;">
+<a href="docs/screenshots/software.png" target="_blank">
+  <img src="docs/screenshots/software.png" alt="Software" style="max-width: 100%;">
 </a>
-
-*Google Workspace integration for user and group synchronization. **Click to enlarge.***
-
+<p align="center"><em>Software</em></p>
 </td>
 <td width="50%">
-
-<a href="docs/screenshots/Elder-AlertWebhooks.png" target="_blank">
-  <img src="docs/screenshots/Elder-AlertWebhooks.png" alt="Webhooks" style="max-width: 100%; cursor: pointer;">
+<a href="docs/screenshots/services.png" target="_blank">
+  <img src="docs/screenshots/services.png" alt="Services" style="max-width: 100%;">
 </a>
-
-*Webhook integration for real-time event notifications. **Click to enlarge.***
-
+<p align="center"><em>Services</em></p>
 </td>
 </tr>
 <tr>
 <td width="50%">
-
-<a href="docs/screenshots/Elder-Discovery.png" target="_blank">
-  <img src="docs/screenshots/Elder-Discovery.png" alt="Discovery" style="max-width: 100%; cursor: pointer;">
+<a href="docs/screenshots/data-stores.png" target="_blank">
+  <img src="docs/screenshots/data-stores.png" alt="Data Stores" style="max-width: 100%;">
 </a>
-
-*Automated infrastructure discovery and entity creation. **Click to enlarge.***
-
+<p align="center"><em>Data Stores (v3.0.0)</em></p>
 </td>
 <td width="50%">
-
-<a href="docs/screenshots/Elder-Updated-Org.png" target="_blank">
-  <img src="docs/screenshots/Elder-Updated-Org.png" alt="Organization Detail" style="max-width: 100%; cursor: pointer;">
+<a href="docs/screenshots/dependencies.png" target="_blank">
+  <img src="docs/screenshots/dependencies.png" alt="Dependencies" style="max-width: 100%;">
 </a>
-
-*Enhanced organization detail view with comprehensive metadata. **Click to enlarge.***
-
+<p align="center"><em>Dependencies</em></p>
 </td>
 </tr>
 </table>
 
-## Features
+### Project Tracking
+
+<table>
+<tr>
+<td width="50%">
+<a href="docs/screenshots/projects.png" target="_blank">
+  <img src="docs/screenshots/projects.png" alt="Projects" style="max-width: 100%;">
+</a>
+<p align="center"><em>Projects</em></p>
+</td>
+<td width="50%">
+<a href="docs/screenshots/issues.png" target="_blank">
+  <img src="docs/screenshots/issues.png" alt="Issues" style="max-width: 100%;">
+</a>
+<p align="center"><em>Issues</em></p>
+</td>
+</tr>
+</table>
+
+### Security & Identity
+
+<table>
+<tr>
+<td width="50%">
+<a href="docs/screenshots/identities.png" target="_blank">
+  <img src="docs/screenshots/identities.png" alt="Identity Center" style="max-width: 100%;">
+</a>
+<p align="center"><em>Identity Center</em></p>
+</td>
+<td width="50%">
+<a href="docs/screenshots/secrets.png" target="_blank">
+  <img src="docs/screenshots/secrets.png" alt="Secrets Management" style="max-width: 100%;">
+</a>
+<p align="center"><em>Secrets Management</em></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<a href="docs/screenshots/keys.png" target="_blank">
+  <img src="docs/screenshots/keys.png" alt="API Keys" style="max-width: 100%;">
+</a>
+<p align="center"><em>API Keys</em></p>
+</td>
+<td width="50%">
+<a href="docs/screenshots/certificates.png" target="_blank">
+  <img src="docs/screenshots/certificates.png" alt="Certificates" style="max-width: 100%;">
+</a>
+<p align="center"><em>Certificates</em></p>
+</td>
+</tr>
+</table>
+
+### Discovery & Profile
+
+<table>
+<tr>
+<td width="50%">
+<a href="docs/screenshots/discovery.png" target="_blank">
+  <img src="docs/screenshots/discovery.png" alt="Discovery" style="max-width: 100%;">
+</a>
+<p align="center"><em>Discovery</em></p>
+</td>
+<td width="50%">
+<a href="docs/screenshots/profile.png" target="_blank">
+  <img src="docs/screenshots/profile.png" alt="Profile" style="max-width: 100%;">
+</a>
+<p align="center"><em>Profile</em></p>
+</td>
+</tr>
+</table>
+
+## Key Features
 
 ### Core Capabilities
-
-- ✅ **Multi-Entity Support**: Track 7 entity types with custom metadata
+- ✅ **Multi-Entity Support**: 8 entity categories with 30+ sub-types
 - ✅ **Hierarchical Organizations**: Unlimited depth organizational structures
 - ✅ **Dependency Graphs**: Visualize complex entity relationships
 - ✅ **Full RBAC**: Role-based permissions with org-scoped access
-- ✅ **Multi-Auth**: Local, SAML, OAuth2, and LDAP authentication
-- ✅ **RESTful API**: Complete OpenAPI 3.0 documented REST API
-- ✅ **gRPC API**: High-performance gRPC for machine-to-machine communication
+- ✅ **Multi-Auth**: Local, SAML, OAuth2, OIDC, and LDAP authentication
+- ✅ **RESTful & gRPC APIs**: Complete API coverage
 - ✅ **Audit Logging**: Comprehensive audit trail for compliance
-- ✅ **Real-time Updates**: WebSocket support for live graph updates
-- ✅ **Import/Export**: JSON, YAML, and CSV data exchange
 
-### Entity Types & Sub-Types (New in v1.2.0!)
+### v3.0.0 Highlights (Latest)
+- **OpenID Connect (OIDC)**: Full OIDC support alongside SAML for SSO integration
+- **Data Stores Tracking**: Track S3, GCS, Azure Blob, NAS, SAN, databases, and data lakes with compliance metadata (PII, PHI, PCI flags)
+- **Group Membership Management**: Approval workflows, access requests, owner reviews, and multi-provider write-back (LDAP + Okta)
+- **Okta Connector**: Full Okta identity provider with bidirectional sync and group management
+- **SCIM 2.0 Provisioning**: Complete SCIM user provisioning with JIT provisioning support
+- **Enhanced Key Management**: Improved crypto key schema with provider ARN, key types, and state tracking
 
-Elder now supports **categorized entity types with sub-types** for more granular infrastructure tracking:
-
-| Category | Sub-Types | Examples |
-|----------|-----------|----------|
-| **Network** | Router, Switch, Firewall, Load Balancer, VPN Gateway, DNS Server, Proxy | Cisco Router, F5 Load Balancer, pfSense Firewall |
-| **Compute** | Physical Server, Virtual Machine, Container, Kubernetes Pod | EC2 instance, Docker container, bare metal server |
-| **Storage** | SAN, NAS, Object Storage, Block Storage, File Share | AWS S3, NetApp NAS, iSCSI SAN |
-| **Datacenter** | Physical Datacenter, Cloud Region, Availability Zone, VPC, On-Premises | us-east-1, Azure East US, Corporate HQ |
-| **Security** | Firewall, IDS/IPS, WAF, Antivirus, DLP, SIEM | Palo Alto FW, Snort IDS, Cloudflare WAF |
-| **Application** | Web Server, App Server, Database, Message Queue, Cache | Nginx, Tomcat, PostgreSQL, Redis, RabbitMQ |
-| **Service** | API Gateway, CDN, Email Service, Monitoring, Backup | CloudFront CDN, SendGrid, Prometheus, Veeam |
-| **Identity** | User, Service Account, Group, Role | Employee account, Jenkins SA, Security admins |
-
-**Default Metadata Support**: Each entity type can have pre-configured metadata fields that appear automatically during entity creation.
+### v2.x Highlights
+- **Unified Identity Center**: Single page for all identity types (Users, Groups, Service Accounts, API Keys)
+- **Multi-backend Secrets**: HashiCorp Vault, AWS Secrets Manager, GCP Secret Manager, Infisical
+- **Network Topology**: VPCs, Subnets, Firewalls, Load Balancers with connection mapping
+- **Project Sync**: Bi-directional sync with GitHub, GitLab, Jira, Trello, OpenProject
+- **Cloud Connectors**: AWS, GCP, Kubernetes, Google Workspace, LDAP, iBoss, vCenter, FleetDM
+- **SSL/TLS Certificate Management**: Track certificates with expiration, renewal, and compliance
+- **Village ID System**: Universal hierarchical identifiers for all resources
 
 ### License Tiers
 
-Elder integrates with the [PenguinTech License Server](https://license.penguintech.io) for feature gating:
+Elder uses a fair-use licensing model with the Limited AGPL v3 license:
 
-| Tier | Features | Limits |
-|------|----------|--------|
-| **Community** | Basic tracking, local auth | Up to 100 entities |
-| **Professional** | SAML/OAuth2, advanced visualization | Unlimited entities |
-| **Enterprise** | All features + LDAP sync, audit logging, gRPC API, SSO | Unlimited |
+- **Personal & Internal Use**: Free for individual and internal organizational use
+- **Commercial Use**: Requires a commercial license from Penguin Tech Inc
+- **Modifications**: Must be shared under the same license terms (AGPL)
+- **SaaS Deployment**: Requires commercial license if providing Elder as a service
+
+For commercial licensing inquiries: sales@penguintech.io
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.13+
-- Docker & Docker Compose
-- Database: PostgreSQL 15+ (recommended, via Docker), or MySQL, SQLite, Oracle, MSSQL, etc.
-- Redis 7+ (via Docker)
+- **Docker & Docker Compose V2**: Required for all services
+- **Python 3.12+**: Backend API (included in Docker)
+- **Node.js 18+**: Web UI build (included in Docker)
+- **PostgreSQL 17**: Database (included in Docker Compose)
+- **Redis 7**: Cache and session storage (included in Docker Compose)
 
 ### Installation
 
@@ -258,391 +242,152 @@ Elder integrates with the [PenguinTech License Server](https://license.penguinte
 git clone https://github.com/penguintechinc/elder.git
 cd elder
 
-# Run setup (installs dependencies and creates .env)
+# Run setup
 make setup
 
-# Edit .env with your configuration
+# Edit configuration
 nano .env
 
 # Start development environment
 make dev
-
-# In another terminal, run database migrations
-make db-migrate
-
-# Start the API
-make dev-api
-```
-
-The Elder API will be available at `http://localhost:4000` and the Web UI at `http://localhost:3005`
-
-### Docker Deployment
-
-```bash
-# Start all services with docker-compose
-make dev-all
-
-# Check service health
-make health
-
-# View logs
-make dev-logs
 ```
 
 Access the services:
 - **Elder Web UI**: http://localhost:3005
 - **Elder API**: http://localhost:4000
-- **Prometheus**: http://localhost:9091
-- **Grafana**: http://localhost:4001 (admin/admin)
+- **API Docs**: http://localhost:4000/api/docs
+
+### Docker Deployment
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Check health
+curl http://localhost:4000/healthz
+```
 
 ## Configuration
 
-Elder is configured via environment variables. Key settings:
+Key environment variables:
 
 ```bash
-# Flask
-FLASK_ENV=development
-SECRET_KEY=your-secret-key
-
-# Database (PyDAL supports PostgreSQL, MySQL, SQLite, Oracle, MSSQL, and more)
+# Database (PyDAL supports PostgreSQL, MySQL, SQLite, Oracle, MSSQL)
 DATABASE_URL=postgresql://elder:password@localhost:5432/elder
-# Alternative examples:
-# DATABASE_URL=mysql://user:password@localhost:3306/elder
-# DATABASE_URL=sqlite://storage.db
 
 # Redis
 REDIS_URL=redis://:password@localhost:6379/0
 
 # Authentication
 SAML_ENABLED=true
-SAML_METADATA_URL=https://your-idp.com/metadata
+OIDC_ENABLED=true
 OAUTH2_ENABLED=true
-OAUTH2_CLIENT_ID=your-client-id
 LDAP_ENABLED=true
-LDAP_HOST=ldap.example.com
 
 # License (optional)
 LICENSE_KEY=PENG-XXXX-XXXX-XXXX-XXXX-XXXX
 
-# Admin User (created on first run if set)
+# Admin User
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=change-me
 ADMIN_EMAIL=admin@example.com
 ```
 
-See `.env` for full configuration options.
-
-## Database Support
-
-Elder uses **PyDAL** (Python Database Abstraction Layer) for maximum database flexibility. This allows you to choose the database backend that best fits your needs without changing any application code.
-
-### Supported Databases
-
-- ✅ **PostgreSQL** (Recommended for production)
-- ✅ **MySQL** / MariaDB
-- ✅ **SQLite** (Perfect for development and small deployments)
-- ✅ **Oracle**
-- ✅ **Microsoft SQL Server**
-- ✅ **Firebird**
-- ✅ **DB2**
-- ✅ **Informix**
-- ✅ **Ingres**
-- ✅ And many more via PyDAL adapters
-
-### Database Configuration Examples
-
-```bash
-# PostgreSQL (Recommended)
-DATABASE_URL=postgresql://user:password@localhost:5432/elder
-
-# MySQL
-DATABASE_URL=mysql://user:password@localhost:3306/elder
-
-# SQLite (Great for development)
-DATABASE_URL=sqlite://storage.db
-
-# Microsoft SQL Server
-DATABASE_URL=mssql://user:password@localhost:1433/elder
-
-# Oracle
-DATABASE_URL=oracle://user:password@localhost:1521/elder
-```
-
-### Why PyDAL?
-
-- **Database Agnostic**: Write once, run on any supported database
-- **Automatic Migrations**: Schema changes are handled automatically
-- **Security**: Built-in protection against SQL injection
-- **Performance**: Connection pooling and query optimization
-- **Simplicity**: Clean, Pythonic API for database operations
-- **Validators**: Comprehensive input validation at the database layer
-
-## API Documentation
-
-### REST API
-
-Elder provides a comprehensive REST API following OpenAPI 3.0 specification:
-
-```bash
-# Organizations
-GET    /api/v1/organizations
-POST   /api/v1/organizations
-GET    /api/v1/organizations/{id}
-PATCH  /api/v1/organizations/{id}
-DELETE /api/v1/organizations/{id}
-
-# Entities
-GET    /api/v1/entities
-POST   /api/v1/entities
-GET    /api/v1/entities/{id}
-PATCH  /api/v1/entities/{id}
-DELETE /api/v1/entities/{id}
-
-# Dependencies
-GET    /api/v1/dependencies
-POST   /api/v1/dependencies
-DELETE /api/v1/dependencies/{id}
-
-# Entity Types (New in v1.2.0)
-GET    /api/v1/entity-types/
-GET    /api/v1/entity-types/{type}
-GET    /api/v1/entity-types/{type}/subtypes
-GET    /api/v1/entity-types/{type}/metadata
-GET    /api/v1/entity-types/{type}/{sub_type}/metadata
-
-# Issue Types (New in v1.2.0)
-GET    /api/v1/issue-types
-POST   /api/v1/issue-types
-GET    /api/v1/issue-types/{id}
-PATCH  /api/v1/issue-types/{id}
-DELETE /api/v1/issue-types/{id}
-
-# Webhooks (New in v1.2.0)
-GET    /api/v1/webhooks
-POST   /api/v1/webhooks
-GET    /api/v1/webhooks/{id}
-PATCH  /api/v1/webhooks/{id}
-DELETE /api/v1/webhooks/{id}
-GET    /api/v1/webhooks/{id}/deliveries
-
-# Graph Visualization
-GET    /api/v1/graph
-GET    /api/v1/graph?organization_id={id}
-GET    /api/v1/graph?entity_id={id}&depth=2
-
-# Authentication
-POST   /api/v1/auth/login
-POST   /api/v1/auth/logout
-GET    /api/v1/auth/saml/login
-GET    /api/v1/auth/oauth2/authorize
-
-# Monitoring
-GET    /healthz
-GET    /metrics
-```
-
-Full API documentation available at `/api/docs` (Swagger UI).
-
-### gRPC API
-
-Elder also provides a gRPC API for high-performance integrations:
-
-```protobuf
-service ElderService {
-  rpc ListEntities(ListEntitiesRequest) returns (ListEntitiesResponse);
-  rpc GetEntity(GetEntityRequest) returns (Entity);
-  rpc CreateEntity(CreateEntityRequest) returns (Entity);
-  rpc UpdateEntity(UpdateEntityRequest) returns (Entity);
-  rpc DeleteEntity(DeleteEntityRequest) returns (Empty);
-  rpc GetDependencyGraph(GetDependencyGraphRequest) returns (DependencyGraph);
-}
-```
-
-gRPC server runs on port `50051` by default.
-
-## Development
-
-### Common Commands
-
-```bash
-# Development
-make dev                # Start postgres and redis
-make dev-api            # Start Flask API locally
-make dev-all            # Start all services
-make dev-logs           # View logs
-make dev-stop           # Stop all services
-
-# Testing
-make test               # Run all tests
-make test-unit          # Unit tests only
-make test-integration   # Integration tests only
-make test-coverage      # Generate coverage report
-make lint               # Run linters
-make format             # Format code
-
-# Database
-make db-migrate         # Run migrations
-make db-create-migration # Create new migration
-make db-reset           # Reset database (WARNING: destroys data)
-make db-shell           # Open PostgreSQL shell
-make db-backup          # Create backup
-
-# Docker
-make docker-build       # Build Docker image
-make docker-scan        # Scan for vulnerabilities
-
-# Version
-make version            # Show current version
-make version-bump-patch # Bump patch version
-make version-bump-minor # Bump minor version
-make version-bump-major # Bump major version
-```
-
-### Testing
-
-Elder has comprehensive test coverage:
-
-```bash
-# Run all tests with coverage
-make test
-
-# Run specific test types
-make test-unit
-make test-integration
-
-# Generate HTML coverage report
-make test-coverage
-# Open htmlcov/index.html
-```
-
-### Code Quality
-
-Elder follows strict code quality standards:
-
-```bash
-# Format code
-make format
-
-# Check formatting
-make format-check
-
-# Run linters
-make lint
-```
-
 ## Architecture
-
-Elder is built on a modern, scalable architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Client Layer                         │
-│  Web UI (vis.js) │ REST Clients │ gRPC Clients          │
+│  React UI │ REST Clients │ gRPC Clients                 │
 └─────────────────────────────────────────────────────────┘
                             │
 ┌─────────────────────────────────────────────────────────┐
 │                   API Layer                             │
-│  Flask REST API │ gRPC Server │ WebSocket               │
-│  Authentication │ Authorization (RBAC) │ Rate Limiting  │
-└─────────────────────────────────────────────────────────┘
-                            │
-┌─────────────────────────────────────────────────────────┐
-│                 Business Logic Layer                    │
-│  Entity Management │ Dependency Tracking                │
-│  Organization Hierarchy │ Audit Logging                 │
+│  Flask REST │ gRPC Server │ WebSocket                   │
+│  JWT Auth │ RBAC │ Rate Limiting                        │
 └─────────────────────────────────────────────────────────┘
                             │
 ┌─────────────────────────────────────────────────────────┐
 │                   Data Layer                            │
-│  Database via PyDAL (PostgreSQL, MySQL, SQLite, etc.)  │
-│  Redis (Cache, Sessions, Real-time)                     │
+│  PyDAL (PostgreSQL, MySQL, SQLite, etc.)               │
+│  Redis (Cache, Sessions)                                │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ### Technology Stack
 
-- **Backend**: Flask (Python 3.13), PyDAL (Database Abstraction Layer)
-- **Database**: Multi-database support via PyDAL
-  - **Supported**: PostgreSQL, MySQL, SQLite, Oracle, MSSQL, Firebird, DB2, Informix, Ingres, and more
-  - **Recommended**: PostgreSQL 15+ with connection pooling
-  - **Development**: SQLite for quick local development
-- **Cache**: Redis 7+ or Valkey for sessions and caching
-- **APIs**: REST (OpenAPI 3.0), gRPC (protobuf)
-- **Auth**: SAML (python3-saml), OAuth2 (Authlib), LDAP
-- **Frontend**: Modern React UI (TypeScript, Vite, ReactFlow, React Query, Tailwind CSS)
+- **Backend**: Flask (Python 3.13), PyDAL
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, ReactFlow
+- **Database**: PostgreSQL (recommended), MySQL, SQLite, Oracle, MSSQL
+- **Cache**: Redis / Valkey
+- **APIs**: REST (OpenAPI 3.0), gRPC
+- **Auth**: JWT, SAML, OIDC, OAuth2, LDAP, SCIM 2.0
+- **Connectors**: AWS, GCP, Kubernetes, Okta, LDAP, vCenter, FleetDM, iBoss
 - **Monitoring**: Prometheus, Grafana
-- **Container**: Docker, docker-compose
-- **Orchestration**: Kubernetes with Helm charts
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [API Reference](docs/API.md) | REST & gRPC API documentation |
+| [Database Schema](docs/DATABASE.md) | Database structure and PyDAL usage |
+| [Sync Documentation](docs/SYNC.md) | Project management sync setup |
+| [Backup Configuration](docs/S3_BACKUP_CONFIGURATION.md) | S3 backup setup |
+| [Usage Guide](docs/USAGE.md) | User guide and workflows |
+| [Contributing](docs/CONTRIBUTING.md) | Contribution guidelines |
+| [Release Notes](docs/RELEASE_NOTES.md) | Version history |
+
+## Development
+
+```bash
+# Development
+make dev              # Start postgres and redis
+make dev-api          # Start Flask API
+make dev-all          # Start all services
+
+# Testing
+make test             # Run all tests
+make lint             # Run linters
+make format           # Format code
+
+# Docker
+make docker-build     # Build Docker image
+make docker-scan      # Scan for vulnerabilities
+```
 
 ## Security
 
-Elder implements security best practices:
-
-- ✅ **Authentication**: Multi-factor authentication support
-- ✅ **Authorization**: Fine-grained RBAC with org-scoped permissions
-- ✅ **TLS**: Enforce TLS 1.3 for all connections
-- ✅ **Input Validation**: Comprehensive validation with PyDAL validators and marshmallow
-- ✅ **SQL Injection Prevention**: PyDAL ORM with parameterized queries and automatic escaping
-- ✅ **XSS Prevention**: Jinja2 auto-escaping
-- ✅ **CSRF Protection**: Flask-WTF CSRF tokens
-- ✅ **Rate Limiting**: Request rate limiting to prevent abuse
-- ✅ **Audit Logging**: Comprehensive audit trail
-- ✅ **Secrets Management**: Environment variables, never in code
-- ✅ **Container Scanning**: Trivy vulnerability scanning
-
-## Deployment
-
-### Production Deployment
-
-```bash
-# Build production Docker image
-make docker-build
-
-# Scan for vulnerabilities
-make docker-scan
-
-# Build multi-architecture images
-make docker-build-multiarch
-
-# Push to registry
-make docker-push
-```
-
-### Kubernetes Deployment
-
-Kubernetes manifests and Helm charts are available in `infrastructure/k8s/`:
-
-```bash
-# Deploy with kubectl
-kubectl apply -f infrastructure/k8s/
-
-# Or deploy with Helm
-helm install elder infrastructure/helm/elder
-```
-
-## Monitoring
-
-Elder includes built-in monitoring and observability:
-
-- **Metrics**: Prometheus metrics at `/metrics`
-- **Health Checks**: `/healthz` endpoint
-- **Structured Logging**: JSON-formatted logs
-- **Grafana Dashboards**: Pre-configured dashboards
-- **Distributed Tracing**: OpenTelemetry support
+- ✅ Multi-factor authentication
+- ✅ Fine-grained RBAC with org-scoped permissions
+- ✅ TLS 1.3 enforcement
+- ✅ Input validation with PyDAL validators
+- ✅ SQL injection prevention
+- ✅ Audit logging
+- ✅ Container scanning with Trivy
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+We welcome contributions! Please see [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
 
 ## License
 
-Elder is licensed under the Limited AGPL v3 with Fair Use Preamble. See [LICENSE.md](LICENSE.md) for details.
+Elder is licensed under the Limited AGPL v3 with Fair Use Preamble. See [LICENSE.md](docs/LICENSE.md) for details.
+
+**License Highlights:**
+- **Personal & Internal Use**: Free under AGPL-3.0
+- **Commercial Use**: Requires commercial license
+- **SaaS Deployment**: Requires commercial license if providing Elder as a service
+
+### Contributor Employer Exception (GPL-2.0 Grant)
+
+Companies employing official contributors receive GPL-2.0 access to community features:
+
+- **Perpetual for Contributed Versions**: GPL-2.0 rights to versions where the employee contributed remain valid permanently, even after the employee leaves the company
+- **Attribution Required**: Employee must be credited in CONTRIBUTORS, AUTHORS, commit history, or release notes
+- **Future Versions**: New versions released after employment ends require standard licensing
+- **Community Only**: Enterprise features still require a commercial license
+
+This exception rewards contributors by providing lasting fair use rights to their employers. See [LICENSE.md](docs/LICENSE.md) for full terms.
 
 ## Support
 
@@ -650,59 +395,22 @@ Elder is licensed under the Limited AGPL v3 with Fair Use Preamble. See [LICENSE
 - **Documentation**: [docs.penguintech.io/elder](https://docs.penguintech.io/elder)
 - **Issues**: [GitHub Issues](https://github.com/penguintechinc/elder/issues)
 - **Email**: support@penguintech.io
-- **License Server**: [license.penguintech.io](https://license.penguintech.io)
 
-## Project Status
+## Default Login Credentials
 
-**Current Version:** 1.2.0 - Enhanced Entity Management 🚀
+For local development and testing, Elder creates a default admin user:
 
-Elder v1.2.0 introduces comprehensive entity type categorization with sub-types, issue type management, webhook integration, and project-based views for improved infrastructure tracking and workflow automation.
+| Field | Value |
+|-------|-------|
+| **URL** | http://localhost:3005 |
+| **Email** | admin@localhost |
+| **Password** | admin123 |
+| **Tenant** | System (ID: 1) |
 
-**Completed Phases:**
-- ✅ Phase 1: Foundation & Core Models
-- ✅ Phase 2: REST API (79 endpoints)
-- ✅ Phase 3: Authentication & Authorization (JWT, SAML, OAuth2, RBAC)
-- ✅ Phase 4: Modern React UI (TypeScript, React Query, ReactFlow)
-- ✅ Phase 5: gRPC API (45 RPC methods, Envoy proxy)
-- ✅ Phase 6: Enterprise Features (Issues, Projects, Milestones, Labels, Resource Roles, Metadata)
-- ✅ Phase 8: Infrastructure & DevOps (CI/CD, Kubernetes, Helm)
-- ✅ Phase 9: Websites & Documentation
-- ✅ Phase 10: Testing & Polish
-- ✅ v1.0.0: Production UI/UX, Enhanced Issue Management, Branding Integration
-- ✅ v1.2.0: Entity Type Categories, Issue Types, Webhook Integration, Project Views
-
-**New in v1.2.0:**
-- **Entity Type Categories with Sub-Types**: 8 main categories (Network, Compute, Storage, Datacenter, Security, Application, Service, Identity) with 30+ sub-types
-- **Default Metadata Templates**: Pre-configured metadata fields for each entity type that appear automatically during creation
-- **Issue Type Management**: Customizable issue types (Bug, Feature Request, Task, Documentation, etc.) with descriptions
-- **Webhook Integration**: HTTP webhook support for real-time event notifications on entity changes, issue updates, and more
-- **Project-Based Views**: Filter and view issues within the context of specific projects
-- **Enhanced Entity Creation**: Category-based entity creation with dynamic sub-type selection and metadata fields
-- **REST API Enhancements**: New endpoints for entity types, issue types, and webhook management
-
-**v1.0.0 Highlights:**
-- Enhanced issue creation with organization/entity assignment and labels
-- Modal-first UI pattern for improved workflow efficiency
-- Clickable dashboard navigation and anchor link scrolling
-- Organization type management (Department, Team, Collection, etc.)
-- Complete Elder branding integration
-- Network graph visualization with ReactFlow
-- Comprehensive project management features
-
-**Optional Future Enhancements:**
-- Phase 6a: Advanced Features (LDAP sync, WebSocket updates, bulk operations)
-- Phase 7: License Integration Refinement
-- Advanced webhook retry logic and delivery tracking
-- Custom entity type definitions
-
-See [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) for detailed release history.
-
-## Acknowledgments
-
-Elder is developed and maintained by [Penguin Tech Inc](https://www.penguintech.io).
+> **Warning**: Change the default password immediately in production environments by setting the `ADMIN_PASSWORD` environment variable before first startup.
 
 ---
 
 **Elder** - Know Your Infrastructure, Understand Your Dependencies
 
-© 2024 Penguin Tech Inc. All rights reserved.
+© 2025 Penguin Tech Inc. All rights reserved.

@@ -20,6 +20,37 @@ logger = logging.getLogger(__name__)
 
 bp = Blueprint("dependencies", __name__)
 
+# Valid resource types for dependencies
+VALID_RESOURCE_TYPES = [
+    "entity",
+    "identity",
+    "project",
+    "milestone",
+    "issue",
+    "organization",
+]
+
+# Map resource types to their database tables
+RESOURCE_TABLE_MAP = {
+    "entity": "entities",
+    "identity": "identities",
+    "project": "projects",
+    "milestone": "milestones",
+    "issue": "issues",
+    "organization": "organizations",
+}
+
+
+def get_resource(db, resource_type: str, resource_id: int):
+    """Get a resource by type and ID."""
+    table_name = RESOURCE_TABLE_MAP.get(resource_type)
+    if not table_name:
+        return None
+    table = getattr(db, table_name, None)
+    if not table:
+        return None
+    return table[resource_id]
+
 
 @bp.route("", methods=["GET"])
 @login_required
@@ -30,8 +61,10 @@ async def list_dependencies():
     Query Parameters:
         - page: Page number (default: 1)
         - per_page: Items per page (default: 50, max: 1000)
-        - source_entity_id: Filter by source entity ID
-        - target_entity_id: Filter by target entity ID
+        - source_type: Filter by source type (entity, identity, project, etc.)
+        - source_id: Filter by source ID
+        - target_type: Filter by target type
+        - target_id: Filter by target ID
         - dependency_type: Filter by dependency type
 
     Returns:
@@ -47,13 +80,19 @@ async def list_dependencies():
     query = db.dependencies.id > 0
 
     # Apply filters
-    if request.args.get("source_entity_id"):
-        source_id = request.args.get("source_entity_id", type=int)
-        query &= db.dependencies.source_entity_id == source_id
+    if request.args.get("source_type"):
+        query &= db.dependencies.source_type == request.args.get("source_type")
 
-    if request.args.get("target_entity_id"):
-        target_id = request.args.get("target_entity_id", type=int)
-        query &= db.dependencies.target_entity_id == target_id
+    if request.args.get("source_id"):
+        source_id = request.args.get("source_id", type=int)
+        query &= db.dependencies.source_id == source_id
+
+    if request.args.get("target_type"):
+        query &= db.dependencies.target_type == request.args.get("target_type")
+
+    if request.args.get("target_id"):
+        target_id = request.args.get("target_id", type=int)
+        query &= db.dependencies.target_id == target_id
 
     if request.args.get("dependency_type"):
         dep_type = request.args.get("dependency_type")
@@ -96,16 +135,24 @@ async def list_dependencies():
 
 
 @bp.route("", methods=["POST"])
+@login_required
 async def create_dependency():
     """
-    Create a new dependency relationship.
+    Create a new dependency relationship between any resource types.
 
     Request Body:
-        JSON object with dependency fields
+        {
+            "source_type": "entity",
+            "source_id": 1,
+            "target_type": "identity",
+            "target_id": 5,
+            "dependency_type": "manages",
+            "metadata": {}
+        }
 
     Returns:
         201: Created dependency
-        400: Validation error or invalid entity IDs
+        400: Validation error or invalid resource IDs
         409: Dependency already exists
     """
     db = current_app.db
@@ -115,37 +162,68 @@ async def create_dependency():
         return jsonify({"error": "Request body must be JSON"}), 400
 
     # Validate required fields
-    if not data.get("source_entity_id"):
-        return jsonify({"error": "source_entity_id is required"}), 400
-    if not data.get("target_entity_id"):
-        return jsonify({"error": "target_entity_id is required"}), 400
+    if not data.get("source_type"):
+        return jsonify({"error": "source_type is required"}), 400
+    if not data.get("source_id"):
+        return jsonify({"error": "source_id is required"}), 400
+    if not data.get("target_type"):
+        return jsonify({"error": "target_type is required"}), 400
+    if not data.get("target_id"):
+        return jsonify({"error": "target_id is required"}), 400
     if not data.get("dependency_type"):
         return jsonify({"error": "dependency_type is required"}), 400
 
-    source_id = data["source_entity_id"]
-    target_id = data["target_entity_id"]
+    source_type = data["source_type"]
+    source_id = data["source_id"]
+    target_type = data["target_type"]
+    target_id = data["target_id"]
 
-    # Prevent self-dependencies
-    if source_id == target_id:
-        return jsonify({"error": "Cannot create dependency from entity to itself"}), 400
+    # Validate resource types
+    if source_type not in VALID_RESOURCE_TYPES:
+        return (
+            jsonify(
+                {
+                    "error": f"Invalid source_type. Must be one of: {VALID_RESOURCE_TYPES}"
+                }
+            ),
+            400,
+        )
+    if target_type not in VALID_RESOURCE_TYPES:
+        return (
+            jsonify(
+                {
+                    "error": f"Invalid target_type. Must be one of: {VALID_RESOURCE_TYPES}"
+                }
+            ),
+            400,
+        )
 
-    # Check if entities exist and dependency doesn't already exist
+    # Prevent self-dependencies (same type and ID)
+    if source_type == target_type and source_id == target_id:
+        return (
+            jsonify({"error": "Cannot create dependency from resource to itself"}),
+            400,
+        )
+
+    # Check if resources exist and dependency doesn't already exist
     def validate_and_create():
-        # Check if source entity exists
-        source = db.entities[source_id]
+        # Check if source resource exists
+        source = get_resource(db, source_type, source_id)
         if not source:
-            return {"error": f"Source entity {source_id} not found"}, 400, None
+            return {"error": f"Source {source_type} {source_id} not found"}, 404, None
 
-        # Check if target entity exists
-        target = db.entities[target_id]
+        # Check if target resource exists
+        target = get_resource(db, target_type, target_id)
         if not target:
-            return {"error": f"Target entity {target_id} not found"}, 400, None
+            return {"error": f"Target {target_type} {target_id} not found"}, 404, None
 
         # Check if dependency already exists
         existing = (
             db(
-                (db.dependencies.source_entity_id == source_id)
-                & (db.dependencies.target_entity_id == target_id)
+                (db.dependencies.source_type == source_type)
+                & (db.dependencies.source_id == source_id)
+                & (db.dependencies.target_type == target_type)
+                & (db.dependencies.target_id == target_id)
                 & (db.dependencies.dependency_type == data["dependency_type"])
             )
             .select()
@@ -159,10 +237,18 @@ async def create_dependency():
                 None,
             )
 
+        # Get tenant from source resource
+        tenant_id = getattr(source, "tenant_id", None)
+        if not tenant_id:
+            return {"error": f"Source {source_type} must have a tenant"}, 400, None
+
         # Create dependency
         dep_id = db.dependencies.insert(
-            source_entity_id=source_id,
-            target_entity_id=target_id,
+            tenant_id=tenant_id,
+            source_type=source_type,
+            source_id=source_id,
+            target_type=target_type,
+            target_id=target_id,
             dependency_type=data["dependency_type"],
             metadata=data.get("metadata"),
         )
@@ -203,15 +289,16 @@ async def get_dependency(id: int):
 
 
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])
+@login_required
 async def update_dependency(id: int):
     """
-    Update a dependency (edit relationship type or metadata).
+    Update a dependency (edit relationship type, metadata, or endpoints).
 
     Path Parameters:
         - id: Dependency ID
 
     Request Body:
-        JSON object with fields to update (dependency_type and/or metadata)
+        JSON object with fields to update
 
     Returns:
         200: Updated dependency
@@ -229,6 +316,26 @@ async def update_dependency(id: int):
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
+    # Validate resource types if being updated
+    if "source_type" in data and data["source_type"] not in VALID_RESOURCE_TYPES:
+        return (
+            jsonify(
+                {
+                    "error": f"Invalid source_type. Must be one of: {VALID_RESOURCE_TYPES}"
+                }
+            ),
+            400,
+        )
+    if "target_type" in data and data["target_type"] not in VALID_RESOURCE_TYPES:
+        return (
+            jsonify(
+                {
+                    "error": f"Invalid target_type. Must be one of: {VALID_RESOURCE_TYPES}"
+                }
+            ),
+            400,
+        )
+
     # Update dependency
     def update_in_db():
         update_fields = {}
@@ -236,6 +343,14 @@ async def update_dependency(id: int):
             update_fields["dependency_type"] = data["dependency_type"]
         if "metadata" in data:
             update_fields["metadata"] = data["metadata"]
+        if "source_type" in data:
+            update_fields["source_type"] = data["source_type"]
+        if "source_id" in data:
+            update_fields["source_id"] = data["source_id"]
+        if "target_type" in data:
+            update_fields["target_type"] = data["target_type"]
+        if "target_id" in data:
+            update_fields["target_id"] = data["target_id"]
 
         db(db.dependencies.id == id).update(**update_fields)
         db.commit()
@@ -248,6 +363,7 @@ async def update_dependency(id: int):
 
 
 @bp.route("/<int:id>", methods=["DELETE"])
+@login_required
 async def delete_dependency(id: int):
     """
     Delete a dependency relationship.
@@ -275,6 +391,7 @@ async def delete_dependency(id: int):
 
 
 @bp.route("/bulk", methods=["POST"])
+@login_required
 async def create_bulk_dependencies():
     """
     Create multiple dependencies at once.
@@ -303,17 +420,35 @@ async def create_bulk_dependencies():
         created_ids = []
         for i, dep_data in enumerate(data):
             # Validate required fields
-            if not dep_data.get("source_entity_id"):
-                raise ValueError(f"source_entity_id required at index {i}")
-            if not dep_data.get("target_entity_id"):
-                raise ValueError(f"target_entity_id required at index {i}")
+            if not dep_data.get("source_type"):
+                raise ValueError(f"source_type required at index {i}")
+            if not dep_data.get("source_id"):
+                raise ValueError(f"source_id required at index {i}")
+            if not dep_data.get("target_type"):
+                raise ValueError(f"target_type required at index {i}")
+            if not dep_data.get("target_id"):
+                raise ValueError(f"target_id required at index {i}")
             if not dep_data.get("dependency_type"):
                 raise ValueError(f"dependency_type required at index {i}")
 
+            # Get source resource for tenant
+            source = get_resource(db, dep_data["source_type"], dep_data["source_id"])
+            if not source:
+                raise ValueError(
+                    f"Source {dep_data['source_type']} {dep_data['source_id']} not found at index {i}"
+                )
+
+            tenant_id = getattr(source, "tenant_id", None)
+            if not tenant_id:
+                raise ValueError(f"Source must have tenant at index {i}")
+
             # Create dependency
             dep_id = db.dependencies.insert(
-                source_entity_id=dep_data["source_entity_id"],
-                target_entity_id=dep_data["target_entity_id"],
+                tenant_id=tenant_id,
+                source_type=dep_data["source_type"],
+                source_id=dep_data["source_id"],
+                target_type=dep_data["target_type"],
+                target_id=dep_data["target_id"],
                 dependency_type=dep_data["dependency_type"],
                 metadata=dep_data.get("metadata"),
             )
@@ -335,6 +470,7 @@ async def create_bulk_dependencies():
 
 
 @bp.route("/bulk", methods=["DELETE"])
+@login_required
 async def delete_bulk_dependencies():
     """
     Delete multiple dependencies at once.
@@ -369,3 +505,91 @@ async def delete_bulk_dependencies():
     deleted = await run_in_threadpool(delete_all)
 
     return jsonify({"deleted": deleted, "requested": len(ids)}), 200
+
+
+@bp.route("/resource/<resource_type>/<int:resource_id>", methods=["GET"])
+@login_required
+async def get_resource_dependencies(resource_type: str, resource_id: int):
+    """
+    Get all dependencies for a specific resource.
+
+    Path Parameters:
+        - resource_type: Type of resource (entity, identity, project, etc.)
+        - resource_id: Resource ID
+
+    Query Parameters:
+        - direction: 'outgoing', 'incoming', or 'all' (default)
+
+    Returns:
+        200: Dependencies for the resource
+        400: Invalid resource type
+        404: Resource not found
+    """
+    db = current_app.db
+
+    if resource_type not in VALID_RESOURCE_TYPES:
+        return (
+            jsonify(
+                {
+                    "error": f"Invalid resource_type. Must be one of: {VALID_RESOURCE_TYPES}"
+                }
+            ),
+            400,
+        )
+
+    # Check if resource exists
+    resource = await run_in_threadpool(
+        lambda: get_resource(db, resource_type, resource_id)
+    )
+    if not resource:
+        return jsonify({"error": f"{resource_type.title()} not found"}), 404
+
+    direction = request.args.get("direction", "all")
+
+    def get_deps():
+        result = {
+            "resource_type": resource_type,
+            "resource_id": resource_id,
+            "resource_name": getattr(
+                resource, "name", getattr(resource, "username", str(resource_id))
+            ),
+        }
+
+        if direction in ("outgoing", "all"):
+            # This resource depends on others
+            outgoing = db(
+                (db.dependencies.source_type == resource_type)
+                & (db.dependencies.source_id == resource_id)
+            ).select()
+            result["depends_on"] = [
+                {
+                    "id": dep.id,
+                    "target_type": dep.target_type,
+                    "target_id": dep.target_id,
+                    "dependency_type": dep.dependency_type,
+                    "metadata": dep.metadata,
+                }
+                for dep in outgoing
+            ]
+
+        if direction in ("incoming", "all"):
+            # Others depend on this resource
+            incoming = db(
+                (db.dependencies.target_type == resource_type)
+                & (db.dependencies.target_id == resource_id)
+            ).select()
+            result["depended_by"] = [
+                {
+                    "id": dep.id,
+                    "source_type": dep.source_type,
+                    "source_id": dep.source_id,
+                    "dependency_type": dep.dependency_type,
+                    "metadata": dep.metadata,
+                }
+                for dep in incoming
+            ]
+
+        return result
+
+    result = await run_in_threadpool(get_deps)
+    return jsonify(result), 200

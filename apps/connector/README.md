@@ -1,6 +1,6 @@
 # Elder Connector Service
 
-The Elder Connector Service synchronizes data from external sources (AWS, GCP, Google Workspace, LDAP/LDAPS) into Elder.
+The Elder Connector Service synchronizes data from external sources (AWS, GCP, Google Workspace, LDAP/LDAPS, Okta, Authentik) into Elder.
 
 ## Documentation
 
@@ -44,7 +44,10 @@ apps/connector/
 │   ├── aws_connector.py
 │   ├── gcp_connector.py
 │   ├── google_workspace_connector.py
-│   └── ldap_connector.py
+│   ├── ldap_connector.py
+│   ├── okta_connector.py          # Enterprise
+│   ├── authentik_connector.py     # Enterprise
+│   └── group_operations.py        # Write-back support
 ├── config/             # Configuration management
 ├── utils/              # Utilities (API client, logger)
 ├── main.py             # Service orchestrator

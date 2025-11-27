@@ -4,10 +4,15 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Search, Trash2, Edit } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
+import { invalidateCache } from '@/lib/invalidateCache'
+import { confirmDelete } from '@/lib/confirmActions'
 import type { Organization } from '@/types'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import { FormConfig } from '@/types/form'
 
 export default function Organizations() {
   const [search, setSearch] = useState('')
@@ -26,18 +31,50 @@ export default function Organizations() {
   }, [initialParentId])
 
   const { data, isLoading } = useQuery({
-    queryKey: ['organizations', search],
+    queryKey: queryKeys.organizations.list({ search }),
     queryFn: () => api.getOrganizations({ search }),
+  })
+
+  // Fetch tenants for dropdown
+  const { data: tenants } = useQuery({
+    queryKey: ['tenants'],
+    queryFn: () => api.getTenants(),
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (data: { name: string; description?: string; parent_id?: number; tenant_id: number }) =>
+      api.createOrganization(data),
+    onSuccess: async () => {
+      await invalidateCache.organizations(queryClient)
+      setShowCreateModal(false)
+      toast.success('Organization created successfully')
+      if (initialParentId) {
+        navigate('/organizations', { replace: true })
+      }
+    },
+    onError: (error) => {
+      console.error('Create organization error:', error)
+      toast.error('Failed to create organization')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { name: string; description?: string; tenant_id?: number } }) =>
+      api.updateOrganization(id, data),
+    onSuccess: async () => {
+      await invalidateCache.organizations(queryClient)
+      setEditingOrg(null)
+      toast.success('Organization updated successfully')
+    },
+    onError: () => {
+      toast.error('Failed to update organization')
+    },
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteOrganization(id),
-    onSuccess: async (_data, deletedId) => {
-      // Invalidate all organization queries to force refetch
-      await queryClient.invalidateQueries({
-        queryKey: ['organizations'],
-        refetchType: 'all'
-      })
+    onSuccess: async () => {
+      await invalidateCache.organizations(queryClient)
       toast.success('Organization deleted successfully')
     },
     onError: () => {
@@ -46,9 +83,92 @@ export default function Organizations() {
   })
 
   const handleDelete = (id: number, name: string) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      deleteMutation.mutate(id)
+    confirmDelete(name, () => deleteMutation.mutate(id))
+  }
+
+  // Form configurations
+  const tenantOptions = tenants?.map((tenant: any) => ({
+    value: tenant.id,
+    label: `${tenant.name}${tenant.id === 1 ? ' (Global)' : ''}`
+  })) || []
+
+  const createFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter organization name'
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'Enter description (optional)',
+        rows: 3
+      },
+      {
+        name: 'tenant_id',
+        label: 'Tenant',
+        type: 'select',
+        required: true,
+        options: tenantOptions,
+        defaultValue: 1
+      }
+    ],
+    submitLabel: 'Create'
+  }
+
+  const editFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter organization name'
+      },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'textarea',
+        placeholder: 'Enter description (optional)',
+        rows: 3
+      },
+      {
+        name: 'tenant_id',
+        label: 'Tenant',
+        type: 'select',
+        required: true,
+        options: tenantOptions
+      }
+    ],
+    submitLabel: 'Update'
+  }
+
+  const handleCreate = (formData: Record<string, any>) => {
+    const data: { name: string; description?: string; parent_id?: number; tenant_id: number } = {
+      name: formData.name,
+      description: formData.description || undefined,
+      tenant_id: formData.tenant_id,
     }
+    if (initialParentId) {
+      data.parent_id = parseInt(initialParentId)
+    }
+    createMutation.mutate(data)
+  }
+
+  const handleUpdate = (formData: Record<string, any>) => {
+    if (!editingOrg) return
+    updateMutation.mutate({
+      id: editingOrg.id,
+      data: {
+        name: formData.name,
+        description: formData.description || undefined,
+        tenant_id: formData.tenant_id,
+      }
+    })
   }
 
   return (
@@ -131,195 +251,35 @@ export default function Organizations() {
       )}
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <CreateOrganizationModal
-          initialParentId={initialParentId}
-          onClose={() => {
-            setShowCreateModal(false)
-            // Clear query params when closing modal
-            if (initialParentId) {
-              navigate('/organizations', { replace: true })
-            }
-          }}
-          onSuccess={() => {
-            setShowCreateModal(false)
-            toast.success('Organization created successfully')
-            // Clear query params on success
-            if (initialParentId) {
-              navigate('/organizations', { replace: true })
-            }
-          }}
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false)
+          if (initialParentId) {
+            navigate('/organizations', { replace: true })
+          }
+        }}
+        title="Create Organization Unit"
+        config={createFormConfig}
+        initialValues={{ tenant_id: 1 }}
+        onSubmit={handleCreate}
+        isLoading={createMutation.isPending}
+      />
 
       {/* Edit Modal */}
-      {editingOrg && (
-        <EditOrganizationModal
-          organization={editingOrg}
-          onClose={() => setEditingOrg(null)}
-          onSuccess={() => {
-            setEditingOrg(null)
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
-interface CreateOrganizationModalProps {
-  initialParentId?: string | null
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function CreateOrganizationModal({ initialParentId, onClose, onSuccess }: CreateOrganizationModalProps) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-
-  const queryClient = useQueryClient()
-
-  const createMutation = useMutation({
-    mutationFn: (data: { name: string; description?: string; parent_id?: number }) =>
-      api.createOrganization(data),
-    onSuccess: async (newOrg) => {
-      // Invalidate all organization queries to force refetch
-      await queryClient.invalidateQueries({
-        queryKey: ['organizations'],
-        refetchType: 'all'
-      })
-      onSuccess()
-    },
-    onError: (error) => {
-      console.error('Create organization error:', error)
-      toast.error('Failed to create organization')
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const data: { name: string; description?: string; parent_id?: number } = {
-      name,
-      description: description || undefined
-    }
-    if (initialParentId) {
-      data.parent_id = parseInt(initialParentId)
-    }
-    createMutation.mutate(data)
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Create Organization Unit</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter organization name"
-            />
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter description (optional)"
-                rows={3}
-                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={createMutation.isPending}>
-                Create
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
-interface EditOrganizationModalProps {
-  organization: Organization
-  onClose: () => void
-  onSuccess: () => void
-}
-
-function EditOrganizationModal({ organization, onClose, onSuccess }: EditOrganizationModalProps) {
-  const [name, setName] = useState(organization.name)
-  const [description, setDescription] = useState(organization.description || '')
-  const queryClient = useQueryClient()
-
-  const updateMutation = useMutation({
-    mutationFn: (data: { name: string; description?: string }) =>
-      api.updateOrganization(organization.id, data),
-    onSuccess: async (updatedOrg) => {
-      // Invalidate all organization queries to force refetch
-      await queryClient.invalidateQueries({
-        queryKey: ['organizations'],
-        refetchType: 'all'
-      })
-      toast.success('Organization updated successfully')
-      onSuccess()
-    },
-    onError: () => {
-      toast.error('Failed to update organization')
-    },
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    updateMutation.mutate({ name, description: description || undefined })
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Edit Organization Unit</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter organization name"
-            />
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter description (optional)"
-                rows={3}
-                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={updateMutation.isPending}>
-                Update
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+      <ModalFormBuilder
+        isOpen={!!editingOrg}
+        onClose={() => setEditingOrg(null)}
+        title="Edit Organization Unit"
+        config={editFormConfig}
+        initialValues={editingOrg ? {
+          name: editingOrg.name,
+          description: editingOrg.description || '',
+          tenant_id: editingOrg.tenant_id || 1
+        } : undefined}
+        onSubmit={handleUpdate}
+        isLoading={updateMutation.isPending}
+      />
     </div>
   )
 }

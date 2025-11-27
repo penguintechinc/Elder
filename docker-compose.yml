@@ -47,9 +47,11 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
     container_name: elder-web
     ports:
-      - "${WEB_PORT:-3000}:80"
+      - "${WEB_PORT:-3005}:80"
     depends_on:
       - api
     networks:
@@ -77,8 +79,8 @@ services:
       - JWT_ACCESS_TOKEN_HOURS=${JWT_ACCESS_TOKEN_HOURS:-4}
       - JWT_REFRESH_TOKEN_DAYS=${JWT_REFRESH_TOKEN_DAYS:-30}
 
-      # CORS Configuration
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3002}
+      # Site URL (used to build CORS origins dynamically)
+      - SITE_URL=${SITE_URL:-http://localhost:3005}
 
       # Database - Use individual components for flexibility
       - DB_TYPE=postgres
@@ -142,6 +144,31 @@ services:
       - ./apps:/app/apps
       - ./shared:/app/shared
       - pydal_migrations:/app/instance
+
+  # Scanner Service for local network scans
+  scanner:
+    build:
+      context: ./apps/scanner
+      dockerfile: Dockerfile
+      args:
+        SCANNER_POLL_INTERVAL: ${SCANNER_POLL_INTERVAL:-300}
+    container_name: elder-scanner
+    environment:
+      - SCANNER_POLL_INTERVAL=${SCANNER_POLL_INTERVAL:-300}
+      - ELDER_API_URL=http://api:5000
+      - ELDER_API_TOKEN=${SCANNER_API_TOKEN:-}
+      - SCREENSHOT_DIR=/app/screenshots
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      api:
+        condition: service_healthy
+    cap_add:
+      - NET_ADMIN  # Required for masscan raw sockets
+    restart: unless-stopped
+    networks:
+      - elder-network
+    volumes:
+      - scanner_screenshots:/app/screenshots
 
   # Prometheus Monitoring
   prometheus:
@@ -360,6 +387,8 @@ volumes:
   pydal_migrations:
     driver: local
   connector_credentials:
+    driver: local
+  scanner_screenshots:
     driver: local
 
 networks:

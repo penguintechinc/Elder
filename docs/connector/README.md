@@ -1,6 +1,6 @@
 # Elder Connector Service
 
-The Elder Connector Service synchronizes data from external sources (AWS, GCP, Google Workspace, LDAP/LDAPS) into the Elder infrastructure management platform.
+The Elder Connector Service synchronizes data from external sources (AWS, GCP, Google Workspace, LDAP/LDAPS, Okta, Authentik) into the Elder infrastructure management platform.
 
 ## Features
 
@@ -8,6 +8,8 @@ The Elder Connector Service synchronizes data from external sources (AWS, GCP, G
 - **GCP Integration**: Sync Compute Engine instances, VPC networks, Cloud Storage buckets
 - **Google Workspace Integration**: Sync users, groups, and organizational units
 - **LDAP/LDAPS Integration**: Sync directory services including users, groups, and organizational units
+- **Okta Integration** (Enterprise): Sync users and groups with bidirectional group membership write-back
+- **Authentik Integration** (Enterprise): Sync users and groups with bidirectional group membership write-back
 - **Scheduled Synchronization**: Configurable sync intervals for each connector
 - **Health Monitoring**: Built-in health checks and Prometheus metrics
 - **Auto-Organization Creation**: Automatically creates organizational hierarchies in Elder
@@ -164,6 +166,63 @@ LDAP_PORT=636
 LDAP_USE_SSL=true
 LDAP_VERIFY_CERT=true
 ```
+
+### Okta Connector (Enterprise)
+
+```bash
+OKTA_ENABLED=false                         # Enable Okta connector
+OKTA_DOMAIN=                               # Okta domain (e.g., dev-123456.okta.com)
+OKTA_API_TOKEN=                            # Okta API token (SSWS token)
+OKTA_SYNC_INTERVAL=3600                    # Sync interval in seconds
+OKTA_SYNC_USERS=true                       # Sync users to Elder identities
+OKTA_SYNC_GROUPS=true                      # Sync groups to Elder identity_groups
+OKTA_WRITE_BACK_ENABLED=false              # Enable group membership write-back
+```
+
+**Resources Synced:**
+- Users → Elder identities (identity_type: `human`)
+- Groups (OKTA_GROUP type only) → Elder identity_groups
+- Group Memberships → Bidirectional sync (when write-back enabled)
+
+**Write-Back Features:**
+- Add members to Okta groups from Elder
+- Remove members from Okta groups from Elder
+- Sync group membership changes back to Okta
+
+**Setup:**
+1. Create API token in Okta admin console
+2. Grant necessary permissions for user/group read access
+3. Enable write-back only if modifying Okta groups is intended
+
+### Authentik Connector (Enterprise)
+
+```bash
+AUTHENTIK_ENABLED=false                    # Enable Authentik connector
+AUTHENTIK_DOMAIN=                          # Authentik domain (e.g., auth.example.com)
+AUTHENTIK_API_TOKEN=                       # Authentik API token (Bearer token)
+AUTHENTIK_SYNC_INTERVAL=3600               # Sync interval in seconds
+AUTHENTIK_SYNC_USERS=true                  # Sync users to Elder identities
+AUTHENTIK_SYNC_GROUPS=true                 # Sync groups to Elder identity_groups
+AUTHENTIK_WRITE_BACK_ENABLED=true          # Enable group membership write-back
+AUTHENTIK_VERIFY_SSL=true                  # Verify SSL certificate
+```
+
+**Resources Synced:**
+- Users → Elder identities (identity_type: `employee` or `serviceAccount`)
+- Groups → Elder identity_groups (includes nested groups)
+- Group Memberships → Bidirectional sync (when write-back enabled)
+
+**API Endpoints Used:**
+- `GET /api/v3/core/users/` - User sync
+- `GET /api/v3/core/groups/` - Group sync
+- `POST /api/v3/core/groups/{pk}/add_user/` - Add member (write-back)
+- `POST /api/v3/core/groups/{pk}/remove_user/` - Remove member (write-back)
+
+**Setup:**
+1. Create API token in Authentik admin interface
+2. Grant token appropriate permissions for user/group management
+3. Enable write-back for bidirectional group membership sync
+4. Set `AUTHENTIK_VERIFY_SSL=false` if using self-signed certificates (not recommended)
 
 ### Organization Mapping
 

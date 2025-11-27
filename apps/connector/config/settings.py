@@ -123,6 +123,131 @@ class Settings(BaseSettings):
         description="LDAP sync interval in seconds (default: 1 hour)",
     )
 
+    # Okta Configuration (Enterprise)
+    okta_enabled: bool = Field(
+        default=False,
+        description="Enable Okta connector (Enterprise feature)",
+    )
+    okta_domain: Optional[str] = Field(
+        default=None,
+        description="Okta organization domain (e.g., dev-123456.okta.com)",
+    )
+    okta_api_token: Optional[str] = Field(
+        default=None,
+        description="Okta API token (SSWS token) for authentication",
+    )
+    okta_sync_interval: int = Field(
+        default=3600,
+        description="Okta sync interval in seconds (default: 1 hour)",
+    )
+    okta_sync_users: bool = Field(
+        default=True,
+        description="Sync users from Okta to Elder identities",
+    )
+    okta_sync_groups: bool = Field(
+        default=True,
+        description="Sync groups from Okta to Elder identity_groups",
+    )
+    okta_write_back_enabled: bool = Field(
+        default=False,
+        description="Enable write-back of group membership changes to Okta",
+    )
+
+    # Authentik Configuration (Enterprise)
+    authentik_enabled: bool = Field(
+        default=False,
+        description="Enable Authentik connector (Enterprise feature)",
+    )
+    authentik_domain: Optional[str] = Field(
+        default=None,
+        description="Authentik domain (e.g., auth.example.com)",
+    )
+    authentik_api_token: Optional[str] = Field(
+        default=None,
+        description="Authentik API token (Bearer token from admin)",
+    )
+    authentik_sync_interval: int = Field(
+        default=3600,
+        description="Authentik sync interval in seconds (default: 1 hour)",
+    )
+    authentik_sync_users: bool = Field(
+        default=True,
+        description="Sync users from Authentik to Elder identities",
+    )
+    authentik_sync_groups: bool = Field(
+        default=True,
+        description="Sync groups from Authentik to Elder identity_groups",
+    )
+    authentik_write_back_enabled: bool = Field(
+        default=True,
+        description="Enable write-back of group membership changes to Authentik",
+    )
+    authentik_verify_ssl: bool = Field(
+        default=True,
+        description="Verify SSL certificate for Authentik API",
+    )
+
+    # iBoss Configuration
+    iboss_enabled: bool = Field(default=False, description="Enable iBoss connector")
+    iboss_api_url: str = Field(
+        default="https://api.iboss.com",
+        description="iBoss API base URL",
+    )
+    iboss_api_key: Optional[str] = Field(
+        default=None,
+        description="iBoss API key for authentication",
+    )
+    iboss_tenant_id: Optional[str] = Field(
+        default=None,
+        description="iBoss tenant ID",
+    )
+    iboss_sync_interval: int = Field(
+        default=3600,
+        description="iBoss sync interval in seconds (default: 1 hour)",
+    )
+
+    # VMware vCenter Configuration
+    vcenter_enabled: bool = Field(default=False, description="Enable vCenter connector")
+    vcenter_host: Optional[str] = Field(
+        default=None,
+        description="vCenter server hostname or IP",
+    )
+    vcenter_port: int = Field(
+        default=443,
+        description="vCenter server port",
+    )
+    vcenter_username: Optional[str] = Field(
+        default=None,
+        description="vCenter username",
+    )
+    vcenter_password: Optional[str] = Field(
+        default=None,
+        description="vCenter password",
+    )
+    vcenter_verify_ssl: bool = Field(
+        default=True,
+        description="Verify SSL certificate for vCenter",
+    )
+    vcenter_sync_interval: int = Field(
+        default=3600,
+        description="vCenter sync interval in seconds (default: 1 hour)",
+    )
+
+    # FleetDM Configuration
+    fleetdm_enabled: bool = Field(default=False, description="Enable FleetDM connector")
+    fleetdm_url: str = Field(
+        default="https://fleet.example.com",
+        description="FleetDM server URL",
+    )
+    fleetdm_api_token: Optional[str] = Field(
+        default=None,
+        description="FleetDM API token for authentication",
+    )
+    fleetdm_sync_interval: int = Field(
+        default=3600,
+        description="FleetDM sync interval in seconds (default: 1 hour)",
+    )
+
     # Elder Organization Mapping
     default_organization_id: Optional[int] = Field(
         default=None,

@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Key, TestTube, Trash2, Edit, Eye, EyeOff } from 'lucide-react'
+import { Plus, Key, TestTube, Trash2, Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import { FormConfig } from '@/types/form'
 
 const PROVIDER_TYPES = [
   { value: 'aws_secrets_manager', label: 'AWS Secrets Manager' },
@@ -143,7 +145,7 @@ export default function Secrets() {
       )}
 
       {showCreateModal && (
-        <CreateProviderModal
+        <CreateSecretProviderModal
           onClose={() => setShowCreateModal(false)}
           onSuccess={async () => {
             await queryClient.invalidateQueries({
@@ -168,12 +170,11 @@ export default function Secrets() {
   )
 }
 
-function CreateProviderModal({ onClose, onSuccess }: any) {
-  const [name, setName] = useState('')
-  const [providerType, setProviderType] = useState('aws_secrets_manager')
-  const [description, setDescription] = useState('')
-  const [orgId, setOrgId] = useState('')
-  const [config, setConfig] = useState('{}')
+function CreateSecretProviderModal({ onClose, onSuccess }: any) {
+  const [formValues, setFormValues] = useState<Record<string, any>>({
+    provider: 'aws_secrets_manager',
+  })
+  const [showModal, setShowModal] = useState(true)
 
   const { data: orgs } = useQuery({
     queryKey: ['organizations'],
@@ -184,6 +185,7 @@ function CreateProviderModal({ onClose, onSuccess }: any) {
     mutationFn: (data: any) => api.createSecretProvider(data),
     onSuccess: () => {
       toast.success('Provider created successfully')
+      setShowModal(false)
       onSuccess()
     },
     onError: () => {
@@ -191,21 +193,114 @@ function CreateProviderModal({ onClose, onSuccess }: any) {
     },
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  // Get dynamic help text based on provider type
+  const getConfigHelpText = (providerType: string): string => {
+    switch (providerType) {
+      case 'aws_secrets_manager':
+        return 'AWS: region, access_key_id, secret_access_key'
+      case 'gcp_secret_manager':
+        return 'GCP: project_id, credentials (JSON key)'
+      case 'infisical':
+        return 'Infisical: site_url, client_id, client_secret'
+      case 'hashicorp_vault':
+        return 'HashiCorp Vault: address, token, mount_path'
+      default:
+        return 'Enter configuration as valid JSON'
+    }
+  }
+
+  const formConfig: FormConfig = {
+    fields: [
+      {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Production Secrets',
+      },
+      {
+        name: 'provider',
+        label: 'Provider Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'aws_secrets_manager', label: 'AWS Secrets Manager' },
+          { value: 'gcp_secret_manager', label: 'GCP Secret Manager' },
+          { value: 'infisical', label: 'Infisical' },
+          { value: 'hashicorp_vault', label: 'HashiCorp Vault' },
+        ],
+        defaultValue: 'aws_secrets_manager',
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select organization' },
+          ...(orgs?.items || []).map((o: any) => ({
+            value: String(o.id),
+            label: o.name,
+          })),
+        ],
+      },
+      {
+        name: 'config_json',
+        label: 'Configuration (JSON)',
+        type: 'textarea',
+        required: true,
+        rows: 8,
+        placeholder: '{\n  "region": "us-east-1",\n  "access_key_id": "...",\n  "secret_access_key": "..."\n}',
+        helpText: getConfigHelpText(formValues.provider || 'aws_secrets_manager'),
+        validate: (value: any) => {
+          if (!value) return undefined
+          try {
+            JSON.parse(value)
+            return undefined
+          } catch {
+            return 'Configuration must be valid JSON'
+          }
+        },
+      },
+    ],
+    submitLabel: 'Create Provider',
+    cancelLabel: 'Cancel',
+  }
+
+  const handleModalClose = () => {
+    setShowModal(false)
+    onClose()
+  }
+
+  const handleSubmit = (data: Record<string, any>) => {
     try {
-      const parsedConfig = JSON.parse(config)
+      const parsedConfig = JSON.parse(data.config_json)
       createMutation.mutate({
-        name,
-        provider_type: providerType,
-        organization_id: parseInt(orgId),
+        name: data.name,
+        provider_type: data.provider,
+        organization_id: parseInt(data.organization_id),
         config: parsedConfig,
-        description: description || undefined,
       })
     } catch (err) {
       toast.error('Invalid JSON configuration')
     }
   }
+
+  return (
+    <SecretProviderFormModal
+      isOpen={showModal}
+      onClose={handleModalClose}
+      config={formConfig}
+      onSubmit={handleSubmit}
+      isLoading={createMutation.isPending}
+      onValuesChange={setFormValues}
+    />
+  )
+}
+
+// Wrapper component that handles dynamic help text by re-rendering the config
+function SecretProviderFormModal({ isOpen, onClose, config, onSubmit, isLoading, onValuesChange }: any) {
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -214,74 +309,130 @@ function CreateProviderModal({ onClose, onSuccess }: any) {
           <h2 className="text-xl font-semibold text-white">Add Secret Provider</h2>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Name"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Production Secrets"
-            />
-            <Select
-              label="Provider Type"
-              required
-              value={providerType}
-              onChange={(e) => setProviderType(e.target.value)}
-              options={PROVIDER_TYPES}
-            />
-            <Select
-              label="Organization"
-              required
-              value={orgId}
-              onChange={(e) => setOrgId(e.target.value)}
-              options={[
-                { value: '', label: 'Select organization' },
-                ...(orgs?.items || []).map((o: any) => ({
-                  value: o.id,
-                  label: o.name,
-                })),
-              ]}
-            />
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={2}
-                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Configuration (JSON)
-              </label>
-              <textarea
-                value={config}
-                onChange={(e) => setConfig(e.target.value)}
-                rows={8}
-                className="block w-full px-4 py-2 text-sm font-mono bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500"
-                placeholder={'{\n  "region": "us-east-1",\n  "access_key_id": "...",\n  "secret_access_key": "..."\n}'}
-              />
-              <p className="text-xs text-slate-500 mt-1">
-                {providerType === 'aws_secrets_manager' && 'AWS: region, access_key_id, secret_access_key'}
-                {providerType === 'gcp_secret_manager' && 'GCP: project_id, credentials (JSON key)'}
-                {providerType === 'infisical' && 'Infisical: site_url, client_id, client_secret'}
-              </p>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={createMutation.isPending}>
-                Create Provider
-              </Button>
-            </div>
-          </form>
+          <ModalFormBuilderWithDynamicHelp
+            config={config}
+            onSubmit={onSubmit}
+            onCancel={onClose}
+            isLoading={isLoading}
+            onValuesChange={onValuesChange}
+          />
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+// FormBuilder wrapper that updates config based on form values
+function ModalFormBuilderWithDynamicHelp({ config, onSubmit, onCancel, isLoading, onValuesChange }: any) {
+  const [values, setValues] = useState<Record<string, any>>(() => {
+    const defaults: Record<string, any> = {}
+    config.fields.forEach((f: any) => {
+      defaults[f.name] = f.defaultValue || ''
+    })
+    return defaults
+  })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleChange = (name: string, value: any) => {
+    const newValues = { ...values, [name]: value }
+    setValues(newValues)
+    onValuesChange(newValues)
+    if (errors[name]) delete errors[name]
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const newErrors: Record<string, string> = {}
+
+    config.fields.forEach((field: any) => {
+      if (field.required && !values[field.name]) {
+        newErrors[field.name] = `${field.label} is required`
+      }
+      if (field.validate && values[field.name]) {
+        const error = field.validate(values[field.name])
+        if (error) newErrors[field.name] = error
+      }
+    })
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
+    onSubmit(values)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {config.fields.map((field: any) => {
+        const value = values[field.name]
+        const error = errors[field.name]
+        const helpText = field.type === 'textarea' && field.helpText ? field.helpText : undefined
+
+        if (field.type === 'select') {
+          return (
+            <div key={field.name}>
+              <Select
+                label={field.label}
+                required={field.required}
+                value={value}
+                onChange={(e) => handleChange(field.name, e.target.value)}
+                options={field.options}
+              />
+              {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+            </div>
+          )
+        }
+
+        if (field.type === 'textarea') {
+          return (
+            <div key={field.name}>
+              <label className="text-sm font-medium text-yellow-500">{field.label}</label>
+              <textarea
+                required={field.required}
+                value={value || ''}
+                onChange={(e) => handleChange(field.name, e.target.value)}
+                placeholder={field.placeholder}
+                rows={field.rows || 4}
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 mt-1"
+              />
+              {helpText && <p className="text-xs text-slate-500 mt-1">{helpText}</p>}
+              {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+            </div>
+          )
+        }
+
+        return (
+          <div key={field.name}>
+            <Input
+              label={field.label}
+              required={field.required}
+              value={value || ''}
+              onChange={(e) => handleChange(field.name, e.target.value)}
+              placeholder={field.placeholder}
+            />
+            {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+          </div>
+        )
+      })}
+
+      <div className="flex gap-3 pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50"
+        >
+          {isLoading ? 'Saving...' : 'Create Provider'}
+        </button>
+      </div>
+    </form>
   )
 }
 

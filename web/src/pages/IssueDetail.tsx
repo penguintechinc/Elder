@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Edit, Trash2, MessageSquare, Tag, User, Link as LinkIcon,
-  Send, X, Plus
+  Send, X, Plus, Copy
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
@@ -238,7 +238,7 @@ export default function IssueDetail() {
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault()
     if (newComment.trim()) {
-      addCommentMutation.mutate(newComment)
+      addCommentMutation.mutate(newComment.trim())
     }
   }
 
@@ -341,6 +341,29 @@ export default function IssueDetail() {
                   Created {new Date(issue.created_at).toLocaleString()}
                 </span>
               </div>
+              {issue.village_id && (
+                <div className="mt-4 pt-4 border-t border-slate-700">
+                  <dt className="text-sm font-medium text-slate-400">Village ID</dt>
+                  <dd className="mt-1 flex items-center gap-2">
+                    <a
+                      href={`/id/${issue.village_id}`}
+                      className="text-sm text-primary-400 hover:text-primary-300 font-mono"
+                    >
+                      {issue.village_id}
+                    </a>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/id/${issue.village_id}`)
+                        toast.success('Village ID URL copied to clipboard')
+                      }}
+                      className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+                      title="Copy shareable link"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                  </dd>
+                </div>
+              )}
             </CardContent>
           </Card>
 

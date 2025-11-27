@@ -44,6 +44,7 @@ PyJWT==2.10.1
 bcrypt==4.2.1
 cryptography==44.0.1
 python-jose[cryptography]==3.3.0
+pyotp==2.9.0
 
 # HTTP & API Clients
 requests==2.32.4

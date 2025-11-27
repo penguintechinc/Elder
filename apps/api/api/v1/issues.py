@@ -139,6 +139,18 @@ async def create_issue():
     # Validate required fields
     if not data.get("title"):
         return jsonify({"error": "title is required"}), 400
+    if not data.get("organization_id"):
+        return jsonify({"error": "organization_id is required"}), 400
+
+    # Get organization to derive tenant_id
+    def get_org():
+        return db.organizations[data["organization_id"]]
+
+    org = await run_in_threadpool(get_org)
+    if not org:
+        return jsonify({"error": "Organization not found"}), 404
+    if not org.tenant_id:
+        return jsonify({"error": "Organization must have a tenant"}), 400
 
     # Capture current_user before thread pool (Flask g doesn't propagate to threads)
     current_user_id = g.current_user.id
@@ -153,7 +165,8 @@ async def create_issue():
             issue_type=data.get("issue_type", "other"),
             reporter_id=current_user_id,
             assignee_id=data.get("assignee_id"),
-            organization_id=data.get("organization_id"),
+            organization_id=data["organization_id"],
+            tenant_id=org.tenant_id,
             is_incident=data.get("is_incident", 0),
         )
         db.commit()
@@ -246,6 +259,20 @@ async def update_issue(id: int):
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
+    # If organization is being changed, validate and get tenant
+    org_tenant_id = None
+    if "organization_id" in data:
+
+        def get_org():
+            return db.organizations[data["organization_id"]]
+
+        org = await run_in_threadpool(get_org)
+        if not org:
+            return jsonify({"error": "Organization not found"}), 404
+        if not org.tenant_id:
+            return jsonify({"error": "Organization must have a tenant"}), 400
+        org_tenant_id = org.tenant_id
+
     def update():
         # Check if issue exists
         issue = db.issues[id]
@@ -268,6 +295,9 @@ async def update_issue(id: int):
             update_fields["priority"] = data["priority"]
         if "assignee_id" in data:
             update_fields["assignee_id"] = data["assignee_id"]
+        if "organization_id" in data:
+            update_fields["organization_id"] = data["organization_id"]
+            update_fields["tenant_id"] = org_tenant_id
 
         # Update issue
         db(db.issues.id == id).update(**update_fields)

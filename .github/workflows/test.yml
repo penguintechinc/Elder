@@ -37,13 +37,13 @@ jobs:
           pip install flake8 black isort mypy
 
       - name: Run flake8
-        run: flake8 apps/ shared/
+        run: flake8 apps/ shared/ --exclude=apps/api/grpc/generated
 
       - name: Run black
         run: black --check apps/ shared/ --exclude=apps/api/grpc/generated
 
       - name: Run isort
-        run: isort --check-only apps/ shared/ --skip apps/api/grpc/generated
+        run: isort --check-only --profile black apps/ shared/ --skip apps/api/grpc/generated
 
       - name: Run mypy
         run: mypy apps/ shared/ --ignore-missing-imports --exclude apps/api/grpc/generated
@@ -188,7 +188,10 @@ jobs:
         run: make generate-grpc
 
       - name: Run database migrations
-        run: alembic upgrade head
+        run: |
+          # Skip alembic - project migrated from SQLAlchemy to PyDAL
+          # PyDAL handles table creation automatically
+          echo "Database migrations skipped (using PyDAL auto-schema)"
         env:
           DATABASE_URL: postgresql://elder_test:test_password@localhost:5432/elder_test
 
@@ -219,6 +222,7 @@ jobs:
           context: .
           file: ./apps/api/Dockerfile
           push: false
+          load: true  # Load to local Docker daemon for testing
           tags: elder-api:test
           cache-from: type=gha
           cache-to: type=gha,mode=max

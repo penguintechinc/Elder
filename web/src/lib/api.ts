@@ -250,6 +250,19 @@ class ApiClient {
     return response.data
   }
 
+  async getMap(params?: {
+    tenant_id?: number
+    organization_id?: number
+    resource_types?: string
+    entity_types?: string
+    include_hierarchical?: boolean
+    include_dependencies?: boolean
+    limit?: number
+  }) {
+    const response = await this.client.get('/graph/map', { params })
+    return response.data
+  }
+
   // Identities
   async getIdentities(params?: { page?: number; per_page?: number; search?: string; organization_id?: number }) {
     const response = await this.client.get('/identities', { params })
@@ -290,6 +303,115 @@ class ApiClient {
 
   async createIdentityGroup(data: { name: string; description?: string }) {
     const response = await this.client.post('/identities/groups', data)
+    return response.data
+  }
+
+  // ===========================
+  // Group Membership Management (Enterprise)
+  // ===========================
+
+  // List groups with ownership/member info
+  async getGroupMembershipGroups(params?: {
+    include_members?: boolean
+    include_pending?: boolean
+    limit?: number
+    offset?: number
+  }) {
+    const response = await this.client.get('/group-membership/groups', { params })
+    return response.data
+  }
+
+  // Get group details
+  async getGroupMembershipGroup(groupId: number) {
+    const response = await this.client.get(`/group-membership/groups/${groupId}`)
+    return response.data
+  }
+
+  // Update group ownership/settings
+  async updateGroupMembershipGroup(groupId: number, data: Partial<{
+    owner_identity_id: number
+    owner_group_id: number
+    approval_mode: 'any' | 'all' | 'threshold'
+    approval_threshold: number
+    provider: 'internal' | 'ldap' | 'okta'
+    provider_group_id: string
+    sync_enabled: boolean
+  }>) {
+    const response = await this.client.patch(`/group-membership/groups/${groupId}`, data)
+    return response.data
+  }
+
+  // Create access request for a group
+  async createGroupAccessRequest(groupId: number, data: {
+    reason?: string
+    expires_at?: string
+  }) {
+    const response = await this.client.post(`/group-membership/groups/${groupId}/requests`, data)
+    return response.data
+  }
+
+  // List access requests for a group (owners only)
+  async getGroupAccessRequests(groupId: number, params?: {
+    status?: 'pending' | 'approved' | 'denied' | 'cancelled'
+    limit?: number
+    offset?: number
+  }) {
+    const response = await this.client.get(`/group-membership/groups/${groupId}/requests`, { params })
+    return response.data
+  }
+
+  // List pending requests for groups owned by current user
+  async getPendingGroupAccessRequests(params?: { limit?: number; offset?: number }) {
+    const response = await this.client.get('/group-membership/requests/pending', { params })
+    return response.data
+  }
+
+  // Approve an access request
+  async approveGroupAccessRequest(requestId: number, data?: { comment?: string }) {
+    const response = await this.client.post(`/group-membership/requests/${requestId}/approve`, data || {})
+    return response.data
+  }
+
+  // Deny an access request
+  async denyGroupAccessRequest(requestId: number, data?: { comment?: string }) {
+    const response = await this.client.post(`/group-membership/requests/${requestId}/deny`, data || {})
+    return response.data
+  }
+
+  // Cancel own access request
+  async cancelGroupAccessRequest(requestId: number) {
+    const response = await this.client.delete(`/group-membership/requests/${requestId}`)
+    return response.data
+  }
+
+  // Bulk approve multiple requests
+  async bulkApproveGroupAccessRequests(data: {
+    request_ids: number[]
+    comment?: string
+  }) {
+    const response = await this.client.post('/group-membership/requests/bulk-approve', data)
+    return response.data
+  }
+
+  // List members of a group
+  async getGroupMembers(groupId: number, params?: { limit?: number; offset?: number }) {
+    const response = await this.client.get(`/group-membership/groups/${groupId}/members`, { params })
+    return response.data
+  }
+
+  // Add member to group (owner/admin only)
+  async addGroupMember(groupId: number, data: {
+    identity_id: number
+    expires_at?: string
+    provider_member_id?: string
+  }) {
+    const response = await this.client.post(`/group-membership/groups/${groupId}/members`, data)
+    return response.data
+  }
+
+  // Remove member from group
+  async removeGroupMember(groupId: number, identityId: number) {
+    const response = await this.client.delete(`/group-membership/groups/${groupId}/members/${identityId}`)
     return response.data
   }
 
@@ -473,6 +595,57 @@ class ApiClient {
 
   async getMilestoneIssues(id: number) {
     const response = await this.client.get(`/milestones/${id}/issues`)
+    return response.data
+  }
+
+  // Software
+  async getSoftware(params?: {
+    page?: number
+    per_page?: number
+    organization_id?: number
+    software_type?: string
+    search?: string
+  }) {
+    const response = await this.client.get('/software', { params })
+    return response.data
+  }
+
+  async getSoftwareById(id: number) {
+    const response = await this.client.get(`/software/${id}`)
+    return response.data
+  }
+
+  async createSoftware(data: {
+    name: string
+    vendor?: string
+    software_type: string
+    version?: string
+    seats?: number
+    cost_monthly?: number
+    renewal_date?: string
+    license_url?: string
+    organization_id: number
+  }) {
+    const response = await this.client.post('/software', data)
+    return response.data
+  }
+
+  async updateSoftware(id: number, data: Partial<{
+    name: string
+    vendor: string
+    software_type: string
+    version: string
+    seats: number
+    cost_monthly: number
+    renewal_date: string
+    license_url: string
+  }>) {
+    const response = await this.client.put(`/software/${id}`, data)
+    return response.data
+  }
+
+  async deleteSoftware(id: number) {
+    const response = await this.client.delete(`/software/${id}`)
     return response.data
   }
 
@@ -729,7 +902,16 @@ class ApiClient {
     schedule?: string
     enabled?: boolean
   }) {
-    const response = await this.client.post('/discovery/jobs', data)
+    // Map frontend field names to backend field names
+    const payload = {
+      name: data.name,
+      provider: data.provider_type,  // Backend expects 'provider' not 'provider_type'
+      organization_id: data.organization_id,
+      config: data.config,
+      schedule_interval: data.schedule ? parseInt(data.schedule) : undefined,
+      description: data.name,  // Use name as description if not provided
+    }
+    const response = await this.client.post('/discovery/jobs', payload)
     return response.data
   }
 
@@ -1051,6 +1233,617 @@ class ApiClient {
     const response = await this.client.post('/builtin-secrets/test-connection', {
       organization_id: organizationId
     })
+    return response.data
+  }
+
+  // v2.2.0 Enterprise Edition - Portal Authentication
+  async portalLogin(email: string, password: string, tenant?: string) {
+    const response = await this.client.post('/portal-auth/login', {
+      email,
+      password,
+      tenant: tenant || 'system'
+    })
+    if (response.data.access_token) {
+      localStorage.setItem('elder_token', response.data.access_token)
+      if (response.data.refresh_token) {
+        localStorage.setItem('elder_refresh_token', response.data.refresh_token)
+      }
+    }
+    return response.data
+  }
+
+  async portalRegister(data: {
+    email: string
+    password: string
+    full_name?: string
+    tenant?: string
+  }) {
+    const response = await this.client.post('/portal-auth/register', {
+      ...data,
+      tenant: data.tenant || 'system'
+    })
+    return response.data
+  }
+
+  async portalMfaVerify(code: string) {
+    const response = await this.client.post('/portal-auth/mfa/verify', { code })
+    return response.data
+  }
+
+  async portalMfaEnable() {
+    const response = await this.client.post('/portal-auth/mfa/enable')
+    return response.data
+  }
+
+  async portalMfaDisable(code: string) {
+    const response = await this.client.post('/portal-auth/mfa/disable', { code })
+    return response.data
+  }
+
+  async portalRefreshToken() {
+    const refreshToken = localStorage.getItem('elder_refresh_token')
+    const response = await this.client.post('/portal-auth/refresh', { refresh_token: refreshToken })
+    if (response.data.access_token) {
+      localStorage.setItem('elder_token', response.data.access_token)
+    }
+    return response.data
+  }
+
+  async getPortalProfile() {
+    const response = await this.client.get('/portal-auth/me')
+    return response.data
+  }
+
+  // v2.2.0 Enterprise Edition - Tenant Management
+  async getTenants(params?: { is_active?: boolean; subscription_tier?: string }) {
+    const response = await this.client.get('/tenants', { params })
+    return response.data
+  }
+
+  async getTenant(id: number) {
+    const response = await this.client.get(`/tenants/${id}`)
+    return response.data
+  }
+
+  async createTenant(data: {
+    name: string
+    slug: string
+    domain?: string
+    subscription_tier?: string
+    license_key?: string
+    settings?: Record<string, any>
+    feature_flags?: Record<string, boolean>
+    data_retention_days?: number
+    storage_quota_gb?: number
+  }) {
+    const response = await this.client.post('/tenants', data)
+    return response.data
+  }
+
+  async updateTenant(id: number, data: Partial<{
+    name: string
+    slug: string
+    domain: string
+    subscription_tier: string
+    license_key: string
+    settings: Record<string, any>
+    feature_flags: Record<string, boolean>
+    data_retention_days: number
+    storage_quota_gb: number
+    is_active: boolean
+  }>) {
+    const response = await this.client.put(`/tenants/${id}`, data)
+    return response.data
+  }
+
+  async deleteTenant(id: number) {
+    const response = await this.client.delete(`/tenants/${id}`)
+    return response.data
+  }
+
+  async getTenantUsers(tenantId: number) {
+    const response = await this.client.get(`/tenants/${tenantId}/users`)
+    return response.data
+  }
+
+  async updateTenantUser(tenantId: number, userId: number, data: Partial<{
+    full_name: string
+    tenant_role: string
+    global_role: string
+    is_active: boolean
+  }>) {
+    const response = await this.client.put(`/tenants/${tenantId}/users/${userId}`, data)
+    return response.data
+  }
+
+  async deleteTenantUser(tenantId: number, userId: number) {
+    const response = await this.client.delete(`/tenants/${tenantId}/users/${userId}`)
+    return response.data
+  }
+
+  async getTenantStats(tenantId: number) {
+    const response = await this.client.get(`/tenants/${tenantId}/stats`)
+    return response.data
+  }
+
+  // v2.2.0 Enterprise Edition - SSO/SAML/SCIM Configuration
+  async getIdPConfigs(tenantId?: number) {
+    const response = await this.client.get('/sso/idp-configs', {
+      params: tenantId ? { tenant_id: tenantId } : undefined
+    })
+    return response.data
+  }
+
+  async getIdPConfig(id: number) {
+    const response = await this.client.get(`/sso/idp-configs/${id}`)
+    return response.data
+  }
+
+  async createIdPConfig(data: {
+    name: string
+    idp_type?: string
+    tenant_id?: number
+    entity_id?: string
+    metadata_url?: string
+    sso_url?: string
+    slo_url?: string
+    certificate?: string
+    attribute_mappings?: Record<string, string>
+    jit_provisioning_enabled?: boolean
+    default_role?: string
+  }) {
+    const response = await this.client.post('/sso/idp-configs', data)
+    return response.data
+  }
+
+  async updateIdPConfig(id: number, data: Partial<{
+    name: string
+    entity_id: string
+    metadata_url: string
+    sso_url: string
+    slo_url: string
+    certificate: string
+    attribute_mappings: Record<string, string>
+    jit_provisioning_enabled: boolean
+    default_role: string
+    is_active: boolean
+  }>) {
+    const response = await this.client.put(`/sso/idp-configs/${id}`, data)
+    return response.data
+  }
+
+  async deleteIdPConfig(id: number) {
+    const response = await this.client.delete(`/sso/idp-configs/${id}`)
+    return response.data
+  }
+
+  async getSCIMConfig(tenantId: number) {
+    const response = await this.client.get(`/sso/scim/${tenantId}`)
+    return response.data
+  }
+
+  async createSCIMConfig(tenantId: number, endpointUrl?: string) {
+    const response = await this.client.post(`/sso/scim/${tenantId}`, { endpoint_url: endpointUrl })
+    return response.data
+  }
+
+  async regenerateSCIMToken(tenantId: number) {
+    const response = await this.client.post(`/sso/scim/${tenantId}/regenerate-token`)
+    return response.data
+  }
+
+  async getSPMetadata(tenantId?: number) {
+    const response = await this.client.get('/sso/saml/metadata', {
+      params: tenantId ? { tenant_id: tenantId } : undefined
+    })
+    return response.data
+  }
+
+  // v2.2.0 Enterprise Edition - Audit Logs & Compliance
+  async getAuditLogs(params?: {
+    tenant_id?: number
+    resource_type?: string
+    resource_id?: number
+    action?: string
+    category?: string
+    identity_id?: number
+    portal_user_id?: number
+    start_date?: string
+    end_date?: string
+    success?: boolean
+    limit?: number
+    offset?: number
+  }) {
+    const response = await this.client.get('/audit/logs', { params })
+    return response.data
+  }
+
+  async getComplianceReport(tenantId: number, reportType: string, startDate: string, endDate: string) {
+    const response = await this.client.get('/audit/reports', {
+      params: {
+        tenant_id: tenantId,
+        report_type: reportType,
+        start_date: startDate,
+        end_date: endDate
+      }
+    })
+    return response.data
+  }
+
+  async getAuditRetentionPolicy(tenantId: number) {
+    const response = await this.client.get(`/audit/retention/${tenantId}`)
+    return response.data
+  }
+
+  async cleanupAuditLogs(tenantId: number) {
+    const response = await this.client.post(`/audit/cleanup/${tenantId}`)
+    return response.data
+  }
+
+  async exportAuditLogs(params: {
+    tenant_id?: number
+    start_date?: string
+    end_date?: string
+    format?: 'json' | 'csv'
+  }) {
+    const response = await this.client.get('/audit/export', { params })
+    return response.data
+  }
+
+  // IPAM - IP Address Management
+  async getIpamPrefixes(params?: {
+    organization_id?: number
+    parent_id?: number
+    status?: string
+    is_pool?: boolean
+    vrf_id?: number
+  }) {
+    const response = await this.client.get('/ipam/prefixes', { params })
+    return response.data
+  }
+
+  async getIpamPrefixTree(id: number) {
+    const response = await this.client.get(`/ipam/prefixes/${id}/tree`)
+    return response.data
+  }
+
+  async getIpamPrefix(id: number) {
+    const response = await this.client.get(`/ipam/prefixes/${id}`)
+    return response.data
+  }
+
+  async createIpamPrefix(data: {
+    prefix: string
+    organization_id: number
+    description?: string
+    status?: string
+    is_pool?: boolean
+    parent_id?: number
+    vrf_id?: number
+    vlan_id?: number
+    role?: string
+    tenant_id?: number
+  }) {
+    const response = await this.client.post('/ipam/prefixes', data)
+    return response.data
+  }
+
+  async updateIpamPrefix(id: number, data: Partial<{
+    prefix: string
+    description: string
+    status: string
+    is_pool: boolean
+    parent_id: number
+    vrf_id: number
+    vlan_id: number
+    role: string
+  }>) {
+    const response = await this.client.put(`/ipam/prefixes/${id}`, data)
+    return response.data
+  }
+
+  async deleteIpamPrefix(id: number) {
+    const response = await this.client.delete(`/ipam/prefixes/${id}`)
+    return response.data
+  }
+
+  async getIpamAddresses(params?: {
+    organization_id?: number
+    prefix_id?: number
+    status?: string
+    dns_name?: string
+  }) {
+    const response = await this.client.get('/ipam/addresses', { params })
+    return response.data
+  }
+
+  async getIpamAddress(id: number) {
+    const response = await this.client.get(`/ipam/addresses/${id}`)
+    return response.data
+  }
+
+  async createIpamAddress(data: {
+    address: string
+    organization_id: number
+    prefix_id?: number
+    description?: string
+    status?: string
+    dns_name?: string
+    tenant_id?: number
+  }) {
+    const response = await this.client.post('/ipam/addresses', data)
+    return response.data
+  }
+
+  async updateIpamAddress(id: number, data: Partial<{
+    address: string
+    description: string
+    status: string
+    dns_name: string
+    prefix_id: number
+  }>) {
+    const response = await this.client.put(`/ipam/addresses/${id}`, data)
+    return response.data
+  }
+
+  async deleteIpamAddress(id: number) {
+    const response = await this.client.delete(`/ipam/addresses/${id}`)
+    return response.data
+  }
+
+  async getIpamVlans(params?: {
+    organization_id?: number
+    vid?: number
+    name?: string
+    status?: string
+    group_id?: number
+  }) {
+    const response = await this.client.get('/ipam/vlans', { params })
+    return response.data
+  }
+
+  async getIpamVlan(id: number) {
+    const response = await this.client.get(`/ipam/vlans/${id}`)
+    return response.data
+  }
+
+  async createIpamVlan(data: {
+    vid: number
+    name: string
+    organization_id: number
+    description?: string
+    status?: string
+    group_id?: number
+    tenant_id?: number
+  }) {
+    const response = await this.client.post('/ipam/vlans', data)
+    return response.data
+  }
+
+  async updateIpamVlan(id: number, data: Partial<{
+    vid: number
+    name: string
+    description: string
+    status: string
+    group_id: number
+  }>) {
+    const response = await this.client.put(`/ipam/vlans/${id}`, data)
+    return response.data
+  }
+
+  async deleteIpamVlan(id: number) {
+    const response = await this.client.delete(`/ipam/vlans/${id}`)
+    return response.data
+  }
+
+  // ===========================
+  // Data Stores (Community)
+  // ===========================
+
+  async getDataStores(params?: {
+    page?: number
+    per_page?: number
+    organization_id?: number
+    data_classification?: string
+    storage_type?: string
+    location_region?: string
+    contains_pii?: boolean
+    contains_phi?: boolean
+    contains_pci?: boolean
+    compliance_framework?: string
+    poc_identity_id?: number
+    search?: string
+  }) {
+    const response = await this.client.get('/data-stores', { params })
+    return response.data
+  }
+
+  async getDataStore(id: number) {
+    const response = await this.client.get(`/data-stores/${id}`)
+    return response.data
+  }
+
+  async createDataStore(data: {
+    name: string
+    description?: string
+    organization_id: number
+    data_classification: string
+    storage_type: string
+    location_region?: string
+    contains_pii?: boolean
+    contains_phi?: boolean
+    contains_pci?: boolean
+    compliance_framework?: string
+    poc_identity_id?: number
+  }) {
+    const response = await this.client.post('/data-stores', data)
+    return response.data
+  }
+
+  async updateDataStore(id: number, data: Partial<{
+    name: string
+    description: string
+    data_classification: string
+    storage_type: string
+    location_region: string
+    contains_pii: boolean
+    contains_phi: boolean
+    contains_pci: boolean
+    compliance_framework: string
+    poc_identity_id: number
+  }>) {
+    const response = await this.client.put(`/data-stores/${id}`, data)
+    return response.data
+  }
+
+  async deleteDataStore(id: number) {
+    const response = await this.client.delete(`/data-stores/${id}`)
+    return response.data
+  }
+
+  async getDataStoreLabels(id: number) {
+    const response = await this.client.get(`/data-stores/${id}/labels`)
+    return response.data
+  }
+
+  async addDataStoreLabel(id: number, labelId: number) {
+    const response = await this.client.post(`/data-stores/${id}/labels/${labelId}`)
+    return response.data
+  }
+
+  async removeDataStoreLabel(id: number, labelId: number) {
+    const response = await this.client.delete(`/data-stores/${id}/labels/${labelId}`)
+    return response.data
+  }
+
+  // Services (Microservice Tracking)
+  async getServices(params?: {
+    page?: number
+    per_page?: number
+    organization_id?: number
+    language?: string
+    deployment_method?: string
+    status?: string
+    search?: string
+  }) {
+    const response = await this.client.get('/services', { params })
+    return response.data
+  }
+
+  async getServiceById(id: number) {
+    const response = await this.client.get(`/services/${id}`)
+    return response.data
+  }
+
+  async createService(data: {
+    name: string
+    organization_id: number
+    description?: string
+    language?: string
+    deployment_method?: string
+    is_public?: boolean
+    domains?: string[]
+    paths?: string[]
+    port?: number
+    status?: string
+  }) {
+    const response = await this.client.post('/services', data)
+    return response.data
+  }
+
+  async updateService(id: number, data: Partial<{
+    name: string
+    description: string
+    language: string
+    deployment_method: string
+    is_public: boolean
+    domains: string[]
+    paths: string[]
+    port: number
+    status: string
+  }>) {
+    const response = await this.client.put(`/services/${id}`, data)
+    return response.data
+  }
+
+  async deleteService(id: number) {
+    const response = await this.client.delete(`/services/${id}`)
+    return response.data
+  }
+
+  // Certificates
+  async getCertificates(params?: {
+    page?: number
+    per_page?: number
+    search?: string
+    organization_id?: number
+  }) {
+    const response = await this.client.get('/certificates', { params })
+    return response.data
+  }
+
+  async getCertificate(id: number) {
+    const response = await this.client.get(`/certificates/${id}`)
+    return response.data
+  }
+
+  async createCertificate(data: {
+    name: string
+    description?: string
+    organization_id: number
+    creator: string
+    cert_type: string
+    common_name?: string
+    issue_date: string
+    expiration_date: string
+    auto_renew?: boolean
+    certificate_pem?: string
+  }) {
+    const response = await this.client.post('/certificates', data)
+    return response.data
+  }
+
+  async updateCertificate(id: number, data: Partial<{
+    name: string
+    description: string
+    organization_id: number
+    creator: string
+    cert_type: string
+    common_name: string
+    issue_date: string
+    expiration_date: string
+    auto_renew: boolean
+    certificate_pem: string
+    status: string
+  }>) {
+    const response = await this.client.put(`/certificates/${id}`, data)
+    return response.data
+  }
+
+  async deleteCertificate(id: number) {
+    const response = await this.client.delete(`/certificates/${id}`)
+    return response.data
+  }
+
+  // Village ID Resolution
+  async resolveVillageId(villageId: string) {
+    const response = await this.client.get(`/id/${villageId}`)
+    return response.data
+  }
+
+  // Admin Logs (global admin only)
+  async getLogs(): Promise<{ lines: string[]; total: number; log_file: string }> {
+    const response = await this.client.get('/logs')
+    return response.data
+  }
+
+  async searchLogs(query: string): Promise<{
+    lines: string[]
+    total_matches: number
+    query: string
+    log_file: string
+  }> {
+    const response = await this.client.get('/logs/search', { params: { q: query } })
     return response.data
   }
 }

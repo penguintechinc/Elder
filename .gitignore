@@ -66,6 +66,7 @@ downloads/
 eggs/
 .eggs/
 lib/
+!web/src/lib/
 lib64/
 parts/
 sdist/
@@ -353,6 +354,8 @@ junit.xml
 # Crash recovery and planning files (contain sensitive information)
 .PLAN
 .TODO
+.REQUIREMENTS
+.FUTURE
 
 # Version management
 .version.backup
@@ -447,4 +450,4 @@ vagrant/.TODO
 .TODO
 
 *.local.json
-.claude/
+.claude/.mcp.json

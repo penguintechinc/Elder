@@ -179,14 +179,25 @@ def _register_blueprints(app: Flask) -> None:
     """
     # Import blueprints (async versions where available)
     from apps.api.api.v1 import audit  # Phase 8: Audit System Enhancement
+    from apps.api.api.v1 import audit_enterprise  # v2.2.0: Enhanced Audit & Compliance
     from apps.api.api.v1 import backup  # Phase 10: Backup & Data Management
     from apps.api.api.v1 import builtin_secrets  # v2.0.0: Built-in Secrets Storage
+    from apps.api.api.v1 import certificates  # v2.4.0: Certificate Management
+    from apps.api.api.v1 import data_stores  # v3.0.0: Data Store Tracking
     from apps.api.api.v1 import discovery  # Phase 5: Cloud Auto-Discovery
+    from apps.api.api.v1 import group_membership  # v3.x: Group Membership Management
     from apps.api.api.v1 import iam  # Phase 4: IAM Integration
+    from apps.api.api.v1 import ipam  # v2.3.0: IP Address Management
     from apps.api.api.v1 import keys  # Phase 3: Keys Management
+    from apps.api.api.v1 import logs  # Admin Log Viewer
     from apps.api.api.v1 import networking  # v2.0.0: Networking Resources & Topology
+    from apps.api.api.v1 import portal_auth  # v2.2.0: Portal User Authentication
     from apps.api.api.v1 import search  # Phase 10: Advanced Search
     from apps.api.api.v1 import secrets  # Phase 2: Secrets Management
+    from apps.api.api.v1 import services  # v2.3.0: Services Tracking
+    from apps.api.api.v1 import software  # v2.3.0: Software Tracking
+    from apps.api.api.v1 import sso  # v2.2.0: SSO/SAML/SCIM
+    from apps.api.api.v1 import tenants  # v2.2.0: Tenant Management
     from apps.api.api.v1 import webhooks  # Phase 9: Webhook & Notification System
     from apps.api.api.v1 import (  # Phase 7: Google Workspace Integration
         api_keys,
@@ -200,6 +211,7 @@ def _register_blueprints(app: Flask) -> None:
         issues,
         labels,
         lookup,
+        lookup_village_id,
         metadata,
         milestones,
         organization_tree,
@@ -238,6 +250,9 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(milestones.bp, url_prefix=f"{api_prefix}/milestones")
     app.register_blueprint(organization_tree.bp, url_prefix=f"{api_prefix}")
     app.register_blueprint(sync.bp, url_prefix=f"{api_prefix}/sync")
+    app.register_blueprint(
+        group_membership.bp, url_prefix=f"{api_prefix}/group-membership"
+    )  # v3.x: Group Membership Management
 
     # v1.2.0 Feature blueprints
     app.register_blueprint(secrets.bp, url_prefix=f"{api_prefix}/secrets")  # Phase 2
@@ -247,6 +262,7 @@ def _register_blueprints(app: Flask) -> None:
         discovery.bp, url_prefix=f"{api_prefix}/discovery"
     )  # Phase 5
     app.register_blueprint(audit.bp, url_prefix=f"{api_prefix}/audit")  # Phase 8
+    app.register_blueprint(logs.bp, url_prefix=f"{api_prefix}/logs")  # Admin Log Viewer
     app.register_blueprint(webhooks.bp, url_prefix=f"{api_prefix}/webhooks")  # Phase 9
     app.register_blueprint(search.bp, url_prefix=f"{api_prefix}/search")  # Phase 10
     app.register_blueprint(backup.bp, url_prefix=f"{api_prefix}/backup")  # Phase 10
@@ -262,8 +278,42 @@ def _register_blueprints(app: Flask) -> None:
         builtin_secrets.bp
     )  # Built-in secrets already has /api/v1/builtin-secrets prefix
 
+    # v2.2.0 Enterprise Edition blueprints
+    app.register_blueprint(
+        portal_auth.bp, url_prefix=f"{api_prefix}/portal-auth"
+    )  # Portal user authentication
+    app.register_blueprint(sso.bp, url_prefix=f"{api_prefix}/sso")  # SSO/SAML/SCIM
+    app.register_blueprint(
+        audit_enterprise.bp, url_prefix=f"{api_prefix}/audit-enterprise"
+    )  # Enhanced audit & compliance
+    app.register_blueprint(
+        tenants.bp, url_prefix=f"{api_prefix}/tenants"
+    )  # Tenant management
+
+    # v2.3.0 Feature blueprints
+    app.register_blueprint(
+        software.bp, url_prefix=f"{api_prefix}/software"
+    )  # Software tracking
+    app.register_blueprint(
+        services.bp, url_prefix=f"{api_prefix}/services"
+    )  # Services tracking
+    app.register_blueprint(
+        ipam.bp, url_prefix=f"{api_prefix}/ipam"
+    )  # IP Address Management
+    app.register_blueprint(
+        data_stores.bp, url_prefix=f"{api_prefix}/data-stores"
+    )  # v3.0.0: Data Store Tracking (Community)
+
+    # v2.4.0 Feature blueprints
+    app.register_blueprint(
+        certificates.bp, url_prefix=f"{api_prefix}/certificates"
+    )  # Certificate management
+
     # Public lookup endpoint (no /api/v1 prefix for cleaner URLs)
     app.register_blueprint(lookup.bp, url_prefix="/lookup")
+
+    # Village ID lookup endpoint (no prefix - accessible at /id/{village_id})
+    app.register_blueprint(lookup_village_id.bp, url_prefix="")
 
     # Web UI blueprint (root routes)
     app.register_blueprint(web.bp, url_prefix="")
@@ -298,7 +348,8 @@ def _register_error_handlers(app: Flask) -> None:
     @app.errorhandler(400)
     def bad_request(error):
         """Handle 400 Bad Request."""
-        return jsonify({"error": "Bad Request", "message": str(error)}), 400
+        logger.warning("bad_request", error=str(error))
+        return jsonify({"error": "Bad Request", "message": "Invalid request"}), 400
 
     @app.errorhandler(401)
     def unauthorized(error):

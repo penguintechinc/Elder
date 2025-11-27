@@ -105,6 +105,9 @@ def get_current_user() -> Optional[Row]:
     """
     Get current authenticated user from request context.
 
+    Supports both identity tokens (API/service auth) and portal_user tokens (web UI auth).
+    For portal_user tokens, creates a synthetic identity-like object for compatibility.
+
     Returns:
         PyDAL Row representing identity or None
     """
@@ -124,22 +127,77 @@ def get_current_user() -> Optional[Row]:
         logger.debug("Token verification failed, returning None")
         return None
 
-    logger.debug(f"Token verified, looking up user with ID: {payload.get('sub')}")
+    logger.debug(
+        f"Token verified, looking up user with ID: {payload.get('sub')}, type: {payload.get('type')}"
+    )
     db = current_app.db
-    user_id = int(payload["sub"])  # Convert string back to integer
-    identity = db.identities[user_id]
 
-    if not identity:
-        logger.warning(f"User not found in database with ID: {payload.get('sub')}")
+    try:
+        user_id = int(payload["sub"])  # Convert string back to integer
+        token_type = payload.get("type", "access")
+
+        # Handle portal_user tokens (from web UI login)
+        if token_type == "portal_user":
+            portal_user = db.portal_users[user_id]
+            if not portal_user:
+                logger.warning(f"Portal user not found with ID: {user_id}")
+                return None
+
+            # Check is_active - use truthy check like the portal_auth service
+            if not portal_user.is_active:
+                logger.warning(f"Portal user {portal_user.email} is not active")
+                return None
+
+            # Create a synthetic identity-like object from portal_user for API compatibility
+            # This allows portal users to access APIs without a linked identity
+            class PortalUserIdentity:
+                def __init__(self, pu):
+                    self.id = pu.id
+                    self.username = (
+                        pu.email.split("@")[0] if pu.email else f"user_{pu.id}"
+                    )
+                    self.email = pu.email
+                    self.display_name = pu.full_name or self.username
+                    self.is_active = bool(pu.is_active)
+                    self.is_superuser = pu.global_role == "admin"
+                    self.tenant_id = pu.tenant_id
+                    self.portal_role = pu.global_role or "observer"
+                    self._portal_user = pu
+
+                def get(self, key, default=None):
+                    return getattr(self, key, default)
+
+            synthetic_identity = PortalUserIdentity(portal_user)
+            logger.debug(
+                f"Created synthetic identity for portal user: {synthetic_identity.email}"
+            )
+            g.current_user = synthetic_identity
+            return synthetic_identity
+
+        # Handle regular identity tokens
+        identity = db.identities[user_id]
+
+        if not identity:
+            logger.warning(f"User not found in database with ID: {payload.get('sub')}")
+            return None
+
+        if not identity.is_active:
+            logger.warning(f"User {identity.username} is not active")
+            return None
+
+        logger.debug(f"Authentication successful for user: {identity.username}")
+        g.current_user = identity
+        return identity
+    except Exception as e:
+        import traceback
+
+        logger.error(f"Error looking up user: {e} - {traceback.format_exc()}")
+        # Rollback transaction on error to prevent transaction state issues
+        try:
+            db.rollback()
+        except Exception as rollback_error:
+            logger.error(f"Error rolling back transaction: {rollback_error}")
         return None
-
-    if not identity.is_active:
-        logger.warning(f"User {identity.username} is not active")
-        return None
-
-    logger.debug(f"Authentication successful for user: {identity.username}")
-    g.current_user = identity
-    return identity
 
 
 def verify_password(identity: Row, password: str) -> bool:

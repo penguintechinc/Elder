@@ -54,11 +54,37 @@ class Config:
     )
     JWT_ALGORITHM = "HS256"
 
-    # CORS
-    CORS_ORIGINS = config(
-        "CORS_ORIGINS",
-        default="http://localhost:3000,http://localhost:3001,http://localhost:3002",
-    ).split(",")
+    # CORS - Build origins from SITE_URL
+    SITE_URL = config("SITE_URL", default="http://localhost")
+
+    @staticmethod
+    def _build_cors_origins():
+        from urllib.parse import urlparse
+
+        site_url = config("SITE_URL", default="http://localhost:3000")
+        parsed = urlparse(site_url)
+        scheme = parsed.scheme or "http"
+        hostname = parsed.hostname or "localhost"
+        port = parsed.port
+
+        origins = []
+
+        # Add the configured SITE_URL as primary origin
+        if port:
+            origins.append(f"{scheme}://{hostname}:{port}")
+        else:
+            origins.append(f"{scheme}://{hostname}")
+
+        # For localhost/dev, add common development ports
+        if hostname in ("localhost", "127.0.0.1"):
+            for dev_port in [3000, 3001, 3002, 3005, 5173, 8080]:
+                origin = f"{scheme}://{hostname}:{dev_port}"
+                if origin not in origins:
+                    origins.append(origin)
+
+        return origins
+
+    CORS_ORIGINS = _build_cors_origins.__func__()
     CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     CORS_ALLOW_HEADERS = [
         "Content-Type",

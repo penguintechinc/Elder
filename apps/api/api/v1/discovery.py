@@ -289,3 +289,88 @@ def get_all_discovery_history():
 
     except Exception as e:
         return log_error_and_respond(logger, e, "Failed to process request", 500)
+
+
+# Scanner service endpoints
+
+
+@bp.route("/jobs/pending", methods=["GET"])
+def get_pending_jobs():
+    """
+    Get pending scan jobs for the scanner service.
+
+    This endpoint is called by the scanner container to fetch jobs ready to run.
+    Jobs are considered pending if they have schedule_interval=0 (one-time run)
+    and haven't been run yet, or scheduled jobs that are due.
+
+    Returns:
+        200: List of pending jobs
+    """
+    try:
+        service = get_discovery_service()
+        jobs = service.get_pending_jobs()
+        return jsonify({"jobs": jobs}), 200
+
+    except Exception as e:
+        return log_error_and_respond(logger, e, "Failed to get pending jobs", 500)
+
+
+@bp.route("/jobs/<int:job_id>/start", methods=["POST"])
+def start_job(job_id):
+    """
+    Mark a job as running.
+
+    Called by the scanner service when it picks up a job.
+
+    Returns:
+        200: Job marked as running
+        404: Job not found
+    """
+    try:
+        service = get_discovery_service()
+        result = service.mark_job_running(job_id)
+        return jsonify(result), 200
+
+    except Exception as e:
+        if "not found" in str(e).lower():
+            return log_error_and_respond(logger, e, "Job not found", 404)
+        return log_error_and_respond(logger, e, "Failed to start job", 500)
+
+
+@bp.route("/jobs/<int:job_id>/complete", methods=["POST"])
+def complete_job(job_id):
+    """
+    Submit job results and mark as completed.
+
+    Called by the scanner service when a job finishes.
+
+    Request body:
+        {
+            "success": true,
+            "results": {...},
+            "error_message": null
+        }
+
+    Returns:
+        200: Results recorded
+        404: Job not found
+    """
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({"error": "Request body required"}), 400
+
+        service = get_discovery_service()
+        result = service.complete_job(
+            job_id=job_id,
+            success=data.get("success", False),
+            results=data.get("results", {}),
+            error_message=data.get("error_message"),
+        )
+        return jsonify(result), 200
+
+    except Exception as e:
+        if "not found" in str(e).lower():
+            return log_error_and_respond(logger, e, "Job not found", 404)
+        return log_error_and_respond(logger, e, "Failed to complete job", 500)

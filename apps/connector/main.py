@@ -10,6 +10,7 @@ from flask import Flask, jsonify
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
 
 from apps.connector.config.settings import settings
+from apps.connector.connectors.authentik_connector import AuthentikConnector
 from apps.connector.connectors.aws_connector import AWSConnector
 from apps.connector.connectors.base import BaseConnector, SyncResult
 from apps.connector.connectors.gcp_connector import GCPConnector
@@ -17,6 +18,7 @@ from apps.connector.connectors.google_workspace_connector import (
     GoogleWorkspaceConnector,
 )
 from apps.connector.connectors.ldap_connector import LDAPConnector
+from apps.connector.connectors.okta_connector import OktaConnector
 from apps.connector.utils.logger import configure_logging, get_logger
 
 # Configure logging
@@ -112,6 +114,8 @@ class ConnectorService:
                             "gcp_enabled": settings.gcp_enabled,
                             "google_workspace_enabled": settings.google_workspace_enabled,
                             "ldap_enabled": settings.ldap_enabled,
+                            "okta_enabled": settings.okta_enabled,
+                            "authentik_enabled": settings.authentik_enabled,
                         },
                     }
                 ),
@@ -137,6 +141,14 @@ class ConnectorService:
         if settings.ldap_enabled:
             logger.info("LDAP connector enabled")
             self.connectors.append(LDAPConnector())
+
+        if settings.okta_enabled:
+            logger.info("Okta connector enabled (Enterprise)")
+            self.connectors.append(OktaConnector())
+
+        if settings.authentik_enabled:
+            logger.info("Authentik connector enabled (Enterprise)")
+            self.connectors.append(AuthentikConnector())
 
         if not self.connectors:
             logger.warning("No connectors enabled! Check your configuration.")
@@ -250,6 +262,10 @@ class ConnectorService:
                 interval = settings.google_workspace_sync_interval
             elif isinstance(connector, LDAPConnector):
                 interval = settings.ldap_sync_interval
+            elif isinstance(connector, OktaConnector):
+                interval = settings.okta_sync_interval
+            elif isinstance(connector, AuthentikConnector):
+                interval = settings.authentik_sync_interval
             else:
                 interval = 3600  # Default to 1 hour
 

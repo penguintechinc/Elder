@@ -131,6 +131,16 @@ async def create_project():
     if not data.get("organization_id"):
         return jsonify({"error": "organization_id is required"}), 400
 
+    # Get organization to derive tenant_id
+    def get_org():
+        return db.organizations[data["organization_id"]]
+
+    org = await run_in_threadpool(get_org)
+    if not org:
+        return jsonify({"error": "Organization not found"}), 404
+    if not org.tenant_id:
+        return jsonify({"error": "Organization must have a tenant"}), 400
+
     def create():
         # Create project
         project_id = db.projects.insert(
@@ -138,6 +148,7 @@ async def create_project():
             description=data.get("description"),
             status=data.get("status", "active"),
             organization_id=data["organization_id"],
+            tenant_id=org.tenant_id,
             start_date=data.get("start_date"),
             end_date=data.get("end_date"),
         )
@@ -211,6 +222,20 @@ async def update_project(id: int):
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
+    # If organization is being changed, validate and get tenant
+    org_tenant_id = None
+    if "organization_id" in data:
+
+        def get_org():
+            return db.organizations[data["organization_id"]]
+
+        org = await run_in_threadpool(get_org)
+        if not org:
+            return jsonify({"error": "Organization not found"}), 404
+        if not org.tenant_id:
+            return jsonify({"error": "Organization must have a tenant"}), 400
+        org_tenant_id = org.tenant_id
+
     def update():
         project = db.projects[id]
         if not project:
@@ -228,6 +253,9 @@ async def update_project(id: int):
             update_dict["start_date"] = data["start_date"]
         if "end_date" in data:
             update_dict["end_date"] = data["end_date"]
+        if "organization_id" in data:
+            update_dict["organization_id"] = data["organization_id"]
+            update_dict["tenant_id"] = org_tenant_id
 
         if update_dict:
             db(db.projects.id == id).update(**update_dict)

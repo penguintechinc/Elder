@@ -189,7 +189,20 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
       return [];
     }
 
-    const converted = graphEdges.map((edge, index) => {
+    // Create a set of valid node IDs for quick lookup
+    const validNodeIds = new Set(graphNodes.map(n => n.id));
+
+    // Filter out edges where source or target doesn't exist
+    const validEdges = graphEdges.filter(edge => {
+      const sourceExists = validNodeIds.has(edge.from);
+      const targetExists = validNodeIds.has(edge.to);
+      if (!sourceExists || !targetExists) {
+        console.log(`NetworkGraph: Filtering out edge from ${edge.from} to ${edge.to} - source exists: ${sourceExists}, target exists: ${targetExists}`);
+      }
+      return sourceExists && targetExists;
+    });
+
+    const converted = validEdges.map((edge, index) => {
       console.log(`NetworkGraph: Processing edge ${index}:`, edge);
 
       // Different colors for different edge types
@@ -224,7 +237,7 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
     console.log('NetworkGraph: Total edges converted:', converted.length);
     console.log('NetworkGraph: Final edges array:', converted);
     return converted;
-  }, [graphEdges]);
+  }, [graphEdges, graphNodes]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);

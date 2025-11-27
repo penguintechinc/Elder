@@ -4,11 +4,9 @@ Unit tests for Entity model.
 These tests are isolated and do not require network connections or external services.
 """
 
-import pytest
-from datetime import datetime
+from apps.api import db
 from apps.api.models.entity import Entity, EntityType
 from apps.api.models.organization import Organization
-from apps.api import db
 
 
 class TestEntityModel:
@@ -25,7 +23,7 @@ class TestEntityModel:
                 name="Test Server",
                 entity_type=EntityType.COMPUTE,
                 organization_id=org.id,
-                description="A test server"
+                description="A test server",
             )
             db.session.add(entity)
             db.session.commit()
@@ -54,9 +52,7 @@ class TestEntityModel:
 
             for entity_type, name in entity_types:
                 entity = Entity(
-                    name=name,
-                    entity_type=entity_type,
-                    organization_id=org.id
+                    name=name, entity_type=entity_type, organization_id=org.id
                 )
                 db.session.add(entity)
 
@@ -78,11 +74,7 @@ class TestEntityModel:
                 name="Server with metadata",
                 entity_type=EntityType.COMPUTE,
                 organization_id=org.id,
-                metadata={
-                    "cpu": "8 cores",
-                    "memory": "32GB",
-                    "os": "Ubuntu 22.04"
-                }
+                metadata={"cpu": "8 cores", "memory": "32GB", "os": "Ubuntu 22.04"},
             )
             db.session.add(entity)
             db.session.commit()
@@ -102,7 +94,7 @@ class TestEntityModel:
             entity = Entity(
                 name="Unique Entity",
                 entity_type=EntityType.COMPUTE,
-                organization_id=org.id
+                organization_id=org.id,
             )
             db.session.add(entity)
             db.session.commit()
@@ -120,7 +112,7 @@ class TestEntityModel:
             entity = Entity(
                 name="Test Entity",
                 entity_type=EntityType.COMPUTE,
-                organization_id=org.id
+                organization_id=org.id,
             )
             db.session.add(entity)
             db.session.commit()
@@ -140,7 +132,7 @@ class TestEntityModel:
             entity = Entity(
                 name="Original Name",
                 entity_type=EntityType.COMPUTE,
-                organization_id=org.id
+                organization_id=org.id,
             )
             db.session.add(entity)
             db.session.commit()
@@ -163,9 +155,7 @@ class TestEntityModel:
             db.session.commit()
 
             entity = Entity(
-                name="Delete Me",
-                entity_type=EntityType.COMPUTE,
-                organization_id=org.id
+                name="Delete Me", entity_type=EntityType.COMPUTE, organization_id=org.id
             )
             db.session.add(entity)
             db.session.commit()
@@ -184,9 +174,15 @@ class TestEntityModel:
             db.session.add(org)
             db.session.commit()
 
-            entity1 = Entity(name="Entity 1", entity_type=EntityType.COMPUTE, organization_id=org.id)
-            entity2 = Entity(name="Entity 2", entity_type=EntityType.NETWORK, organization_id=org.id)
-            entity3 = Entity(name="Entity 3", entity_type=EntityType.SUBNET, organization_id=org.id)
+            entity1 = Entity(
+                name="Entity 1", entity_type=EntityType.COMPUTE, organization_id=org.id
+            )
+            entity2 = Entity(
+                name="Entity 2", entity_type=EntityType.NETWORK, organization_id=org.id
+            )
+            entity3 = Entity(
+                name="Entity 3", entity_type=EntityType.SUBNET, organization_id=org.id
+            )
 
             db.session.add_all([entity1, entity2, entity3])
             db.session.commit()
@@ -201,17 +197,27 @@ class TestEntityModel:
             db.session.add(org)
             db.session.commit()
 
-            compute1 = Entity(name="Server 1", entity_type=EntityType.COMPUTE, organization_id=org.id)
-            compute2 = Entity(name="Server 2", entity_type=EntityType.COMPUTE, organization_id=org.id)
-            network = Entity(name="Router 1", entity_type=EntityType.NETWORK, organization_id=org.id)
+            compute1 = Entity(
+                name="Server 1", entity_type=EntityType.COMPUTE, organization_id=org.id
+            )
+            compute2 = Entity(
+                name="Server 2", entity_type=EntityType.COMPUTE, organization_id=org.id
+            )
+            network = Entity(
+                name="Router 1", entity_type=EntityType.NETWORK, organization_id=org.id
+            )
 
             db.session.add_all([compute1, compute2, network])
             db.session.commit()
 
-            compute_entities = Entity.query.filter_by(entity_type=EntityType.COMPUTE).all()
+            compute_entities = Entity.query.filter_by(
+                entity_type=EntityType.COMPUTE
+            ).all()
             assert len(compute_entities) == 2
 
-            network_entities = Entity.query.filter_by(entity_type=EntityType.NETWORK).all()
+            network_entities = Entity.query.filter_by(
+                entity_type=EntityType.NETWORK
+            ).all()
             assert len(network_entities) == 1
 
     def test_entity_repr(self, app):
@@ -224,7 +230,7 @@ class TestEntityModel:
             entity = Entity(
                 name="Test Entity",
                 entity_type=EntityType.COMPUTE,
-                organization_id=org.id
+                organization_id=org.id,
             )
             db.session.add(entity)
             db.session.commit()

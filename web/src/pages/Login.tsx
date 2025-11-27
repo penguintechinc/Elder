@@ -8,8 +8,9 @@ import Input from '@/components/Input'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 
 export default function Login() {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [tenant, setTenant] = useState('Global')
   const navigate = useNavigate()
 
   // Check if guest login is enabled
@@ -23,28 +24,29 @@ export default function Login() {
   })
 
   const loginMutation = useMutation({
-    mutationFn: ({ username, password }: { username: string; password: string }) =>
-      api.login(username, password),
+    mutationFn: ({ email, password, tenant }: { email: string; password: string; tenant: string }) =>
+      api.portalLogin(email, password, tenant === 'Global' ? 'system' : tenant),
     onSuccess: () => {
       toast.success('Login successful!')
       navigate('/')
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Login failed')
+      toast.error(error.response?.data?.error || 'Login failed')
     },
   })
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
-    loginMutation.mutate({ username, password })
+    loginMutation.mutate({ email, password, tenant })
   }
 
   const handleGuestLogin = () => {
     // Login as guest user
     if (guestConfig?.username) {
       loginMutation.mutate({
-        username: guestConfig.username,
+        email: `${guestConfig.username}@localhost`,
         password: guestConfig.username, // Guest password defaults to same as username
+        tenant: 'Global',
       })
     }
   }
@@ -69,13 +71,13 @@ export default function Login() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
-                label="Username"
-                type="text"
+                label="Email"
+                type="email"
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
-                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                autoComplete="email"
               />
               <Input
                 label="Password"
@@ -86,6 +88,17 @@ export default function Login() {
                 placeholder="Enter your password"
                 autoComplete="current-password"
               />
+              <Input
+                label="Tenant"
+                type="text"
+                value={tenant}
+                onChange={(e) => setTenant(e.target.value)}
+                placeholder="Global"
+                autoComplete="off"
+              />
+              <p className="text-xs text-gray-500 -mt-2">
+                Leave as "Global" for system-wide access
+              </p>
               <div className="flex flex-col gap-3 pt-4">
                 <Button
                   type="submit"

@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Shield, Users, User, Bot, Building2, Cloud, RefreshCw, Search, Filter, Key } from 'lucide-react'
+import { Plus, Shield, Users, User, Bot, Cloud, RefreshCw, Search, Link2, Trash2, Building2, Box, Server } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
+import ModalFormBuilder from '@/components/ModalFormBuilder'
+import GroupMembershipManager from '@/components/GroupMembershipManager'
+import { FormConfig } from '@/types/form'
+import { getStatusColor } from '@/lib/colorHelpers'
 
 const TABS = ['All Identities', 'Providers', 'Groups & Roles', 'Relationships'] as const
 type Tab = typeof TABS[number]
@@ -15,7 +19,7 @@ const PROVIDER_TYPES = [
   { value: 'local', label: 'Local Database', icon: Shield },
   { value: 'aws_iam', label: 'AWS IAM', icon: Cloud },
   { value: 'gcp_iam', label: 'GCP IAM', icon: Cloud },
-  { value: 'azure_ad', label: 'Azure AD', icon: Building2 },
+  { value: 'azure_ad', label: 'Azure AD', icon: Cloud },
   { value: 'google_workspace', label: 'Google Workspace', icon: Cloud },
   { value: 'kubernetes', label: 'Kubernetes RBAC', icon: Shield },
 ]
@@ -30,6 +34,286 @@ const IDENTITY_TYPES = [
   { value: 'other', label: 'Other', icon: User, color: 'slate' },
 ]
 
+// IdentityRelationshipsTab - Displays identity-to-resource relationships using the dependencies API
+function IdentityRelationshipsTab() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedType, setSelectedType] = useState<string>('')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const queryClient = useQueryClient()
+
+  // Fetch identity relationships (dependencies where source or target is identity)
+  const { data: relationships, isLoading } = useQuery({
+    queryKey: ['identity-relationships'],
+    queryFn: async () => {
+      // Get dependencies where source is identity
+      const sourceResp = await api.get('/dependencies', { params: { source_type: 'identity', per_page: 100 } })
+      // Get dependencies where target is identity
+      const targetResp = await api.get('/dependencies', { params: { target_type: 'identity', per_page: 100 } })
+
+      const sourceItems = sourceResp.data?.items || []
+      const targetItems = targetResp.data?.items || []
+
+      // Combine and deduplicate
+      const allItems = [...sourceItems]
+      targetItems.forEach((item: any) => {
+        if (!allItems.find((existing: any) => existing.id === item.id)) {
+          allItems.push(item)
+        }
+      })
+      return allItems
+    }
+  })
+
+  // Delete relationship mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/dependencies/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['identity-relationships'] })
+      toast.success('Relationship removed')
+    },
+    onError: () => toast.error('Failed to remove relationship')
+  })
+
+  // Filter relationships
+  const filteredRelationships = (relationships || []).filter((rel: any) => {
+    const matchesSearch = !searchQuery ||
+      rel.source_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rel.target_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rel.dependency_type?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesType = !selectedType ||
+      rel.source_type === selectedType ||
+      rel.target_type === selectedType
+    return matchesSearch && matchesType
+  })
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'identity': return User
+      case 'entity': return Server
+      case 'organization': return Building2
+      case 'project': return Box
+      default: return Link2
+    }
+  }
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'identity': return 'text-blue-400 bg-blue-500/10'
+      case 'entity': return 'text-green-400 bg-green-500/10'
+      case 'organization': return 'text-purple-400 bg-purple-500/10'
+      case 'project': return 'text-orange-400 bg-orange-500/10'
+      default: return 'text-slate-400 bg-slate-500/10'
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header with stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Total Relationships</p>
+                <p className="text-2xl font-bold text-white">{relationships?.length || 0}</p>
+              </div>
+              <Link2 className="w-8 h-8 text-blue-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Entity Links</p>
+                <p className="text-2xl font-bold text-white">
+                  {(relationships || []).filter((r: any) => r.source_type === 'entity' || r.target_type === 'entity').length}
+                </p>
+              </div>
+              <Server className="w-8 h-8 text-green-400" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-slate-400 text-sm">Organization Links</p>
+                <p className="text-2xl font-bold text-white">
+                  {(relationships || []).filter((r: any) => r.source_type === 'organization' || r.target_type === 'organization').length}
+                </p>
+              </div>
+              <Building2 className="w-8 h-8 text-purple-400" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex-1 min-w-[200px]">
+              <Input
+                placeholder="Search relationships..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                leftIcon={<Search className="w-4 h-4" />}
+              />
+            </div>
+            <Select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="w-48"
+            >
+              <option value="">All Types</option>
+              <option value="entity">Entities</option>
+              <option value="organization">Organizations</option>
+              <option value="project">Projects</option>
+            </Select>
+            <Button onClick={() => setShowAddModal(true)}>
+              <Plus className="w-4 h-4 mr-2" /> Add Relationship
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Relationships List */}
+      <Card>
+        <CardHeader>
+          <h3 className="text-lg font-semibold text-white">Identity Relationships</h3>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <RefreshCw className="w-6 h-6 text-slate-400 animate-spin" />
+            </div>
+          ) : filteredRelationships.length === 0 ? (
+            <div className="text-center py-12">
+              <Link2 className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+              <p className="text-slate-400 mb-2">No identity relationships found</p>
+              <p className="text-sm text-slate-500">
+                Create relationships to map identities to entities, organizations, and resources
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredRelationships.map((rel: any) => {
+                const SourceIcon = getTypeIcon(rel.source_type)
+                const TargetIcon = getTypeIcon(rel.target_type)
+                return (
+                  <div key={rel.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors">
+                    <div className="flex items-center gap-4">
+                      {/* Source */}
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-lg ${getTypeColor(rel.source_type)}`}>
+                          <SourceIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{rel.source_name || `${rel.source_type} #${rel.source_id}`}</p>
+                          <p className="text-xs text-slate-500 capitalize">{rel.source_type}</p>
+                        </div>
+                      </div>
+
+                      {/* Arrow with relationship type */}
+                      <div className="flex items-center gap-2 px-4">
+                        <div className="h-px w-8 bg-slate-600" />
+                        <span className="text-xs text-slate-400 px-2 py-1 bg-slate-700 rounded">
+                          {rel.dependency_type || 'related'}
+                        </span>
+                        <div className="h-px w-8 bg-slate-600" />
+                        <span className="text-slate-500">→</span>
+                      </div>
+
+                      {/* Target */}
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-lg ${getTypeColor(rel.target_type)}`}>
+                          <TargetIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium">{rel.target_name || `${rel.target_type} #${rel.target_id}`}</p>
+                          <p className="text-xs text-slate-500 capitalize">{rel.target_type}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteMutation.mutate(rel.id)}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add Relationship Modal - using ModalFormBuilder */}
+      <ModalFormBuilder
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Add Identity Relationship"
+        config={{
+          fields: [
+            {
+              name: 'source_type',
+              label: 'Source Type',
+              type: 'select',
+              required: true,
+              options: [
+                { value: 'identity', label: 'Identity' },
+                { value: 'entity', label: 'Entity' },
+                { value: 'organization', label: 'Organization' },
+                { value: 'project', label: 'Project' },
+              ]
+            },
+            { name: 'source_id', label: 'Source ID', type: 'number', required: true },
+            {
+              name: 'target_type',
+              label: 'Target Type',
+              type: 'select',
+              required: true,
+              options: [
+                { value: 'identity', label: 'Identity' },
+                { value: 'entity', label: 'Entity' },
+                { value: 'organization', label: 'Organization' },
+                { value: 'project', label: 'Project' },
+              ]
+            },
+            { name: 'target_id', label: 'Target ID', type: 'number', required: true },
+            {
+              name: 'dependency_type',
+              label: 'Relationship Type',
+              type: 'select',
+              required: true,
+              options: [
+                { value: 'owns', label: 'Owns' },
+                { value: 'manages', label: 'Manages' },
+                { value: 'administers', label: 'Administers' },
+                { value: 'accesses', label: 'Has Access To' },
+                { value: 'member_of', label: 'Member Of' },
+                { value: 'related', label: 'Related To' },
+              ]
+            },
+            { name: 'description', label: 'Description', type: 'textarea' },
+          ]
+        }}
+        onSubmit={async (data) => {
+          await api.post('/dependencies', data)
+          queryClient.invalidateQueries({ queryKey: ['identity-relationships'] })
+          setShowAddModal(false)
+          toast.success('Relationship created')
+        }}
+      />
+    </div>
+  )
+}
+
 export default function IAM() {
   const [activeTab, setActiveTab] = useState<Tab>('All Identities')
   const [searchQuery, setSearchQuery] = useState('')
@@ -42,35 +326,9 @@ export default function IAM() {
   const [modalType, setModalType] = useState<'identity' | 'provider'>('identity')
   const queryClient = useQueryClient()
 
-  // Password generator function
-  const generatePassword = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    let password = ''
-    for (let i = 0; i < 14; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return password
-  }
-
-  // Identity form state
-  const [identityUsername, setIdentityUsername] = useState('')
-  const [identityEmail, setIdentityEmail] = useState('')
-  const [identityFullName, setIdentityFullName] = useState('')
-  const [identityType, setIdentityType] = useState('employee')
-  const [identityAuthProvider, setIdentityAuthProvider] = useState('local')
-  const [identityPassword, setIdentityPassword] = useState('')
-
-  // Edit form state
-  const [editEmail, setEditEmail] = useState('')
-  const [editFullName, setEditFullName] = useState('')
-  const [editPassword, setEditPassword] = useState('')
-  const [editIsActive, setEditIsActive] = useState(true)
-  const [editMfaEnabled, setEditMfaEnabled] = useState(false)
-
-  // Provider form state
+  // Provider form state (keeping these for provider modal which has complex conditional fields)
   const [providerName, setProviderName] = useState('')
   const [providerType, setProviderType] = useState('aws_iam')
-  const [providerConfig, setProviderConfig] = useState('')
 
   // AWS IAM specific fields
   const [awsRegion, setAwsRegion] = useState('us-east-1')
@@ -96,6 +354,13 @@ export default function IAM() {
   const [k8sToken, setK8sToken] = useState('')
   const [k8sCaCert, setK8sCaCert] = useState('')
 
+  // Fetch organizations for dropdown
+  const { data: organizations } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: () => api.getOrganizations(),
+  })
+
+
   // Fetch all identity sources
   const { data: localIdentities } = useQuery({
     queryKey: ['identities', searchQuery, typeFilter],
@@ -116,6 +381,153 @@ export default function IAM() {
     queryFn: () => api.getGoogleWorkspaceProviders(),
   })
 
+  // Form configs for identity creation
+  const createIdentityFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'username',
+        label: 'Username',
+        type: 'username',
+        required: true,
+        placeholder: 'Enter username',
+      },
+      {
+        name: 'email',
+        label: 'Email',
+        type: 'email',
+        required: true,
+        placeholder: 'Enter email',
+      },
+      {
+        name: 'full_name',
+        label: 'Full Name',
+        type: 'text',
+        required: true,
+        placeholder: 'Enter full name',
+      },
+      {
+        name: 'identity_type',
+        label: 'Identity Type',
+        type: 'select',
+        required: true,
+        defaultValue: 'employee',
+        options: IDENTITY_TYPES.map(t => ({ value: t.value, label: t.label })),
+      },
+      {
+        name: 'auth_provider',
+        label: 'Authentication Provider',
+        type: 'select',
+        required: true,
+        defaultValue: 'local',
+        options: [
+          { value: 'local', label: 'Local App' },
+          { value: 'ldap', label: 'LDAP' },
+          { value: 'saml', label: 'SAML' },
+          { value: 'oauth2', label: 'OAuth2' },
+        ],
+      },
+      {
+        name: 'password',
+        label: 'Password',
+        type: 'password_generate',
+        required: true,
+        placeholder: 'Enter or generate password',
+        showWhen: (values) => values.auth_provider === 'local',
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select organization' },
+          ...(organizations?.items?.map((org: any) => ({
+            value: org.id,
+            label: org.name,
+          })) || []),
+        ],
+      },
+      {
+        name: 'is_portal_user',
+        label: 'Create as Portal User',
+        type: 'checkbox',
+        defaultValue: false,
+        helpText: 'Portal users can log in to the Elder web interface',
+      },
+      {
+        name: 'portal_role',
+        label: 'Portal Role',
+        type: 'select',
+        required: true,
+        defaultValue: 'viewer',
+        showWhen: (values) => values.is_portal_user === true,
+        options: [
+          { value: 'viewer', label: 'Viewer - Read-only access' },
+          { value: 'editor', label: 'Editor - Can modify data' },
+          { value: 'admin', label: 'Admin - Full access' },
+        ],
+      },
+      {
+        name: 'must_change_password',
+        label: 'Require password change on first login',
+        type: 'checkbox',
+        defaultValue: true,
+        showWhen: (values) => values.is_portal_user === true,
+      },
+    ],
+    submitLabel: 'Create Identity',
+  }
+
+  // Form config for editing identity
+  const editIdentityFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'email',
+        label: 'Email',
+        type: 'email',
+        placeholder: 'user@example.com',
+      },
+      {
+        name: 'full_name',
+        label: 'Full Name',
+        type: 'text',
+        placeholder: 'John Doe',
+      },
+      {
+        name: 'organization_id',
+        label: 'Organization',
+        type: 'select',
+        required: true,
+        options: [
+          { value: '', label: 'Select organization' },
+          ...(organizations?.items?.map((org: any) => ({
+            value: org.id,
+            label: org.name,
+          })) || []),
+        ],
+      },
+      {
+        name: 'password',
+        label: 'New Password (leave blank to keep current)',
+        type: 'password_generate',
+        placeholder: 'Enter or generate new password',
+      },
+      {
+        name: 'is_active',
+        label: 'Active',
+        type: 'checkbox',
+        defaultValue: true,
+      },
+      {
+        name: 'mfa_enabled',
+        label: 'MFA Enabled',
+        type: 'checkbox',
+        defaultValue: false,
+      },
+    ],
+    submitLabel: 'Update Identity',
+  }
+
   // Create identity mutation
   const createIdentityMutation = useMutation({
     mutationFn: (data: any) => api.createIdentity(data),
@@ -126,13 +538,6 @@ export default function IAM() {
       })
       toast.success('Identity created successfully')
       setShowCreateModal(false)
-      // Reset form
-      setIdentityUsername('')
-      setIdentityEmail('')
-      setIdentityFullName('')
-      setIdentityType('employee')
-      setIdentityAuthProvider('local')
-      setIdentityPassword('')
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to create identity')
@@ -150,12 +555,6 @@ export default function IAM() {
       toast.success('Identity updated successfully')
       setShowEditModal(false)
       setSelectedIdentity(null)
-      // Reset edit form
-      setEditEmail('')
-      setEditFullName('')
-      setEditPassword('')
-      setEditIsActive(true)
-      setEditMfaEnabled(false)
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to update identity')
@@ -175,52 +574,79 @@ export default function IAM() {
       // Reset form
       setProviderName('')
       setProviderType('aws_iam')
-      setProviderConfig('')
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to create provider')
     },
   })
 
-  const handleCreateIdentity = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleCreateIdentity = (formData: Record<string, any>) => {
     const identityData: any = {
-      username: identityUsername,
-      email: identityEmail,
-      full_name: identityFullName,
-      identity_type: identityType,
-      auth_provider: identityAuthProvider,
+      username: formData.username,
+      email: formData.email,
+      full_name: formData.full_name,
+      identity_type: formData.identity_type,
+      auth_provider: formData.auth_provider,
     }
 
     // Only include password for local auth provider
-    if (identityAuthProvider === 'local') {
-      identityData.password = identityPassword
+    if (formData.auth_provider === 'local' && formData.password) {
+      identityData.password = formData.password
+    }
+
+    // Include organization and derive tenant_id from it
+    if (formData.organization_id) {
+      identityData.organization_id = formData.organization_id
+      // Get tenant_id from the selected organization
+      const selectedOrg = organizations?.items?.find((org: any) => org.id === formData.organization_id)
+      if (selectedOrg?.tenant_id) {
+        identityData.tenant_id = selectedOrg.tenant_id
+      }
+    }
+
+    // Include portal user fields if enabled
+    if (formData.is_portal_user) {
+      identityData.is_portal_user = true
+      identityData.portal_role = formData.portal_role
+      identityData.must_change_password = formData.must_change_password
     }
 
     createIdentityMutation.mutate(identityData)
   }
 
-  const handleUpdateIdentity = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleUpdateIdentity = (formData: Record<string, any>) => {
     if (!selectedIdentity) return
 
     const updateData: any = {}
 
     // Only include fields that have been changed
-    if (editEmail !== (selectedIdentity.email || '')) {
-      updateData.email = editEmail
+    if (formData.email !== (selectedIdentity.email || '')) {
+      updateData.email = formData.email
     }
-    if (editFullName !== (selectedIdentity.displayName || selectedIdentity.full_name || '')) {
-      updateData.full_name = editFullName
+    if (formData.full_name !== (selectedIdentity.displayName || selectedIdentity.full_name || '')) {
+      updateData.full_name = formData.full_name
     }
-    if (editPassword) {
-      updateData.password = editPassword
+    if (formData.password) {
+      updateData.password = formData.password
     }
-    if (editIsActive !== (selectedIdentity.is_active !== false)) {
-      updateData.is_active = editIsActive
+    if (formData.is_active !== (selectedIdentity.is_active !== false)) {
+      updateData.is_active = formData.is_active
     }
-    if (editMfaEnabled !== (selectedIdentity.mfa_enabled || false)) {
-      updateData.mfa_enabled = editMfaEnabled
+    if (formData.mfa_enabled !== (selectedIdentity.mfa_enabled || false)) {
+      updateData.mfa_enabled = formData.mfa_enabled
+    }
+
+    // Check if organization changed
+    const currentOrgId = selectedIdentity.organization_id || ''
+    if (formData.organization_id !== currentOrgId) {
+      updateData.organization_id = formData.organization_id || null
+      // Derive tenant_id from the selected organization
+      if (formData.organization_id) {
+        const selectedOrg = organizations?.items?.find((org: any) => org.id === formData.organization_id)
+        if (selectedOrg?.tenant_id) {
+          updateData.tenant_id = selectedOrg.tenant_id
+        }
+      }
     }
 
     // Only submit if there are changes
@@ -288,7 +714,7 @@ export default function IAM() {
     }
 
     createProviderMutation.mutate({
-      name: providerName,
+      name: providerName.trim(),
       provider_type: providerType,
       config,
       enabled: true,
@@ -332,7 +758,7 @@ export default function IAM() {
     return <User className="w-5 h-5 text-slate-400" />
   }
 
-  const getTypeColor = (type: string) => {
+  const getIdentityTypeColor = (type: string) => {
     const identityType = IDENTITY_TYPES.find(t => t.value === type)
     return identityType
       ? `bg-${identityType.color}-500/20 text-${identityType.color}-400`
@@ -530,7 +956,7 @@ export default function IAM() {
                             <h3 className="text-lg font-semibold text-white">
                               {identity.displayName}
                             </h3>
-                            <span className={`px-2 py-1 text-xs font-medium rounded ${getTypeColor(identity.type)}`}>
+                            <span className={`px-2 py-1 text-xs font-medium rounded ${getIdentityTypeColor(identity.type)}`}>
                               {IDENTITY_TYPES.find(t => t.value === identity.type)?.label || identity.type}
                             </span>
                             <span className={`px-2 py-1 text-xs font-medium rounded ${getSourceBadge(identity.source)}`}>
@@ -563,12 +989,6 @@ export default function IAM() {
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedIdentity(identity)
-                            // Pre-populate edit form
-                            setEditEmail(identity.email || '')
-                            setEditFullName(identity.displayName || identity.full_name || '')
-                            setEditPassword('')
-                            setEditIsActive(identity.is_active !== false)
-                            setEditMfaEnabled(identity.mfa_enabled || false)
                             setShowEditModal(true)
                           }}
                         >
@@ -632,7 +1052,7 @@ export default function IAM() {
                     </div>
                   </div>
                   <span className={`px-3 py-1 text-xs font-medium rounded ${
-                    provider.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                    getStatusColor(provider.enabled ? 'active' : 'inactive')
                   }`}>
                     {provider.enabled ? 'Enabled' : 'Disabled'}
                   </span>
@@ -663,7 +1083,7 @@ export default function IAM() {
                     </div>
                   </div>
                   <span className={`px-3 py-1 text-xs font-medium rounded ${
-                    provider.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                    getStatusColor(provider.enabled ? 'active' : 'inactive')
                   }`}>
                     {provider.enabled ? 'Enabled' : 'Disabled'}
                   </span>
@@ -711,139 +1131,49 @@ export default function IAM() {
 
       {/* Groups & Roles Tab */}
       {activeTab === 'Groups & Roles' && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Users className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Groups & Roles</h3>
-            <p className="text-slate-400 mb-4">
-              View and manage groups, roles, and permissions across all identity providers
-            </p>
-            <p className="text-sm text-slate-500">Coming soon in next update</p>
-          </CardContent>
-        </Card>
+        <GroupMembershipManager />
       )}
 
       {/* Relationships Tab */}
       {activeTab === 'Relationships' && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Shield className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">Identity Relationships</h3>
-            <p className="text-slate-400 mb-4">
-              Map identities to entities, organizations, and resources
-            </p>
-            <p className="text-sm text-slate-500">Coming soon in next update</p>
-          </CardContent>
-        </Card>
+        <IdentityRelationshipsTab />
       )}
 
       {/* Create Identity Modal */}
-      {showCreateModal && modalType === 'identity' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <h2 className="text-xl font-semibold text-white">Create Identity</h2>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreateIdentity} className="space-y-4">
-                <Input
-                  label="Username"
-                  required
-                  value={identityUsername}
-                  onChange={(e) => setIdentityUsername(e.target.value)}
-                  placeholder="Enter username"
-                />
-                <Input
-                  label="Email"
-                  type="email"
-                  required
-                  value={identityEmail}
-                  onChange={(e) => setIdentityEmail(e.target.value)}
-                  placeholder="Enter email"
-                />
-                <Input
-                  label="Full Name"
-                  required
-                  value={identityFullName}
-                  onChange={(e) => setIdentityFullName(e.target.value)}
-                  placeholder="Enter full name"
-                />
-                <Select
-                  label="Identity Type"
-                  required
-                  value={identityType}
-                  onChange={(e) => setIdentityType(e.target.value)}
-                >
-                  {IDENTITY_TYPES.map(type => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
-                  ))}
-                </Select>
-                <Select
-                  label="Authentication Provider"
-                  required
-                  value={identityAuthProvider}
-                  onChange={(e) => setIdentityAuthProvider(e.target.value)}
-                >
-                  <option value="local">Local App</option>
-                  <option value="ldap">LDAP</option>
-                  <option value="saml">SAML</option>
-                  <option value="oauth2">OAuth2</option>
-                </Select>
-                {identityAuthProvider === 'local' && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-300">Password</label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="password"
-                        required
-                        value={identityPassword}
-                        onChange={(e) => setIdentityPassword(e.target.value)}
-                        placeholder="Enter password"
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const newPassword = generatePassword()
-                          setIdentityPassword(newPassword)
-                          toast.success('Password generated')
-                        }}
-                        title="Generate random password"
-                      >
-                        <Key className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setShowCreateModal(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={createIdentityMutation.isPending}
-                    className="flex-1"
-                  >
-                    {createIdentityMutation.isPending ? 'Creating...' : 'Create Identity'}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <ModalFormBuilder
+        isOpen={showCreateModal && modalType === 'identity'}
+        onClose={() => setShowCreateModal(false)}
+        title="Create Identity"
+        config={createIdentityFormConfig}
+        onSubmit={handleCreateIdentity}
+        isLoading={createIdentityMutation.isPending}
+      />
+
+      {/* Edit Identity Modal */}
+      <ModalFormBuilder
+        isOpen={showEditModal && selectedIdentity !== null}
+        onClose={() => {
+          setShowEditModal(false)
+          setSelectedIdentity(null)
+        }}
+        title="Edit Identity"
+        config={editIdentityFormConfig}
+        initialValues={selectedIdentity ? {
+          email: selectedIdentity.email || '',
+          full_name: selectedIdentity.displayName || selectedIdentity.full_name || '',
+          organization_id: selectedIdentity.organization_id || '',
+          password: '',
+          is_active: selectedIdentity.is_active !== false,
+          mfa_enabled: selectedIdentity.mfa_enabled || false,
+        } : undefined}
+        onSubmit={handleUpdateIdentity}
+        isLoading={updateIdentityMutation.isPending}
+      />
 
       {/* Create Provider Modal */}
       {showCreateModal && modalType === 'provider' && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <h2 className="text-xl font-semibold text-white">Add Identity Provider</h2>
             </CardHeader>
@@ -1123,114 +1453,6 @@ export default function IAM() {
                   Close
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Edit Identity Modal */}
-      {showEditModal && selectedIdentity && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl">
-            <CardHeader>
-              <h2 className="text-xl font-semibold text-white">Edit Identity</h2>
-              <p className="text-sm text-slate-400 mt-1">
-                Update identity details for {selectedIdentity.displayName || selectedIdentity.username}
-              </p>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleUpdateIdentity} className="space-y-4">
-                <Input
-                  label="Email"
-                  type="email"
-                  value={editEmail}
-                  onChange={(e) => setEditEmail(e.target.value)}
-                  placeholder="user@example.com"
-                />
-
-                <Input
-                  label="Full Name"
-                  type="text"
-                  value={editFullName}
-                  onChange={(e) => setEditFullName(e.target.value)}
-                  placeholder="John Doe"
-                />
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">New Password (leave blank to keep current)</label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="password"
-                      value={editPassword}
-                      onChange={(e) => setEditPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const newPassword = generatePassword()
-                        setEditPassword(newPassword)
-                        toast.success('Password generated')
-                      }}
-                      title="Generate random password"
-                    >
-                      <Key className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editIsActive}
-                      onChange={(e) => setEditIsActive(e.target.checked)}
-                      className="rounded border-slate-600 bg-slate-700 text-primary-500 focus:ring-primary-500"
-                    />
-                    Active
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={editMfaEnabled}
-                      onChange={(e) => setEditMfaEnabled(e.target.checked)}
-                      className="rounded border-slate-600 bg-slate-700 text-primary-500 focus:ring-primary-500"
-                    />
-                    MFA Enabled
-                  </label>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setShowEditModal(false)
-                      setSelectedIdentity(null)
-                      // Reset form
-                      setEditEmail('')
-                      setEditFullName('')
-                      setEditPassword('')
-                      setEditIsActive(true)
-                      setEditMfaEnabled(false)
-                    }}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={updateIdentityMutation.isPending}
-                    className="flex-1"
-                  >
-                    {updateIdentityMutation.isPending ? 'Updating...' : 'Update Identity'}
-                  </Button>
-                </div>
-              </form>
             </CardContent>
           </Card>
         </div>

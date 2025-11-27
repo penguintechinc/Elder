@@ -3,7 +3,7 @@
 import json
 import logging
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 
 from apps.api.auth.decorators import login_required
 from apps.api.logging_config import log_error_and_respond
@@ -309,7 +309,7 @@ def list_saved_searches():
 
         limit = request.args.get("limit", 50, type=int)
 
-        searches = service.list_saved_searches(user_id=current_user.id, limit=limit)
+        searches = service.list_saved_searches(user_id=g.current_user.id, limit=limit)
 
         return jsonify({"searches": searches, "count": len(searches)}), 200
 
@@ -353,7 +353,7 @@ def create_saved_search():
         service = get_search_service()
 
         search = service.create_saved_search(
-            user_id=current_user.id,
+            user_id=g.current_user.id,
             name=data["name"],
             query=data["query"],
             resource_type=data["resource_type"],
@@ -380,7 +380,9 @@ def get_saved_search(search_id):
     try:
         service = get_search_service()
 
-        search = service.get_saved_search(search_id=search_id, user_id=current_user.id)
+        search = service.get_saved_search(
+            search_id=search_id, user_id=g.current_user.id
+        )
 
         return jsonify(search), 200
 
@@ -411,7 +413,7 @@ def execute_saved_search(search_id):
         offset = request.args.get("offset", 0, type=int)
 
         results = service.execute_saved_search(
-            search_id=search_id, user_id=current_user.id, limit=limit, offset=offset
+            search_id=search_id, user_id=g.current_user.id, limit=limit, offset=offset
         )
 
         return jsonify(results), 200
@@ -450,7 +452,7 @@ def update_saved_search(search_id):
 
         search = service.update_saved_search(
             search_id=search_id,
-            user_id=current_user.id,
+            user_id=g.current_user.id,
             name=data.get("name"),
             query=data.get("query"),
             filters=data.get("filters"),
@@ -479,7 +481,7 @@ def delete_saved_search(search_id):
         service = get_search_service()
 
         result = service.delete_saved_search(
-            search_id=search_id, user_id=current_user.id
+            search_id=search_id, user_id=g.current_user.id
         )
 
         return jsonify(result), 200
@@ -534,6 +536,13 @@ def search_suggestions():
     Returns:
         200: Search suggestions
     """
+    db = current_app.db
+    # Ensure clean transaction state
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+
     try:
         service = get_search_service()
 
@@ -548,4 +557,5 @@ def search_suggestions():
         return jsonify({"suggestions": suggestions, "count": len(suggestions)}), 200
 
     except Exception as e:
+        db.rollback()  # Rollback on error
         return log_error_and_respond(logger, e, "Failed to process request", 500)

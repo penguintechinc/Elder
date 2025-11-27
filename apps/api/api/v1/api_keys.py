@@ -4,7 +4,7 @@ import hashlib
 import secrets
 from dataclasses import asdict
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import get_current_user, login_required
 from apps.api.models.dataclasses import (
@@ -14,7 +14,6 @@ from apps.api.models.dataclasses import (
     from_pydal_rows,
 )
 from shared.async_utils import run_in_threadpool
-from shared.database import db
 
 bp = Blueprint("api_keys", __name__)
 
@@ -41,6 +40,7 @@ def generate_api_key() -> tuple[str, str, str]:
 @login_required
 async def list_api_keys():
     """List all API keys for the current user."""
+    db = current_app.db
     user = get_current_user()
 
     # Get pagination parameters
@@ -101,6 +101,7 @@ async def list_api_keys():
 @login_required
 async def create_api_key():
     """Create a new API key for the current user."""
+    db = current_app.db
     user = get_current_user()
 
     # Parse request data
@@ -153,6 +154,7 @@ async def create_api_key():
 @login_required
 async def delete_api_key(key_id: int):
     """Delete (revoke) an API key."""
+    db = current_app.db
     user = get_current_user()
 
     # Verify the key belongs to the current user

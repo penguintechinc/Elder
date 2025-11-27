@@ -1,6 +1,7 @@
 """Pytest configuration and fixtures for Elder tests."""
 
 import pytest
+
 from apps.api.main import create_app
 from shared.database import db as _db
 

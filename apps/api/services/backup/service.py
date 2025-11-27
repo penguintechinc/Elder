@@ -28,7 +28,7 @@ class BackupService:
             db: PyDAL database instance
         """
         self.db = db
-        self.backup_dir = os.getenv("BACKUP_DIR", "/var/lib/elder/backups")
+        self.backup_dir = os.getenv("BACKUP_DIR", "/tmp/elder/backups")
 
         # Ensure backup directory exists
         os.makedirs(self.backup_dir, exist_ok=True)

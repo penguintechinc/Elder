@@ -27,6 +27,13 @@ def list_retention_policies():
     """
     try:
         db = current_app.db
+
+        # Ensure clean transaction state
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+
         policies = db(db.audit_retention_policies.id > 0).select(
             orderby=db.audit_retention_policies.resource_type
         )
@@ -39,6 +46,7 @@ def list_retention_policies():
         )
 
     except Exception as e:
+        db.rollback()  # Rollback failed transaction
         return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
@@ -54,6 +62,13 @@ def get_retention_policy(policy_id):
     """
     try:
         db = current_app.db
+
+        # Ensure clean transaction state
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+
         policy = db.audit_retention_policies[policy_id]
 
         if not policy:
@@ -62,6 +77,7 @@ def get_retention_policy(policy_id):
         return jsonify(policy.as_dict()), 200
 
     except Exception as e:
+        db.rollback()  # Rollback failed transaction
         return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
@@ -96,6 +112,12 @@ def create_retention_policy():
 
         db = current_app.db
 
+        # Ensure clean transaction state
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+
         # Check if policy already exists for this resource type
         existing = (
             db(db.audit_retention_policies.resource_type == data["resource_type"])
@@ -125,6 +147,7 @@ def create_retention_policy():
         return jsonify(policy.as_dict()), 201
 
     except Exception as e:
+        db.rollback()  # Rollback failed transaction
         return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
@@ -151,6 +174,13 @@ def update_retention_policy(policy_id):
             return jsonify({"error": "Request body required"}), 400
 
         db = current_app.db
+
+        # Ensure clean transaction state
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+
         policy = db.audit_retention_policies[policy_id]
 
         if not policy:
@@ -170,6 +200,7 @@ def update_retention_policy(policy_id):
         return jsonify(policy.as_dict()), 200
 
     except Exception as e:
+        db.rollback()  # Rollback failed transaction
         return log_error_and_respond(logger, e, "Failed to process request", 400)
 
 
@@ -185,6 +216,13 @@ def delete_retention_policy(policy_id):
     """
     try:
         db = current_app.db
+
+        # Ensure clean transaction state
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+
         policy = db.audit_retention_policies[policy_id]
 
         if not policy:
@@ -196,6 +234,7 @@ def delete_retention_policy(policy_id):
         return jsonify({"message": "Retention policy deleted successfully"}), 200
 
     except Exception as e:
+        db.rollback()  # Rollback failed transaction
         return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
@@ -216,6 +255,13 @@ def cleanup_audit_logs():
     """
     try:
         db = current_app.db
+
+        # Ensure clean transaction state
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+
         dry_run = request.args.get("dry_run", "true").lower() == "true"
 
         # Get all enabled retention policies
@@ -261,4 +307,5 @@ def cleanup_audit_logs():
         )
 
     except Exception as e:
+        db.rollback()  # Rollback failed transaction
         return log_error_and_respond(logger, e, "Failed to process request", 500)

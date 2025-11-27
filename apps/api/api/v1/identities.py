@@ -153,6 +153,18 @@ async def create_identity():
         return jsonify({"error": "identity_type is required"}), 400
     if not data.get("auth_provider"):
         return jsonify({"error": "auth_provider is required"}), 400
+    if not data.get("organization_id"):
+        return jsonify({"error": "organization_id is required"}), 400
+
+    # Get organization to derive tenant_id
+    def get_org():
+        return db.organizations[data["organization_id"]]
+
+    org = await run_in_threadpool(get_org)
+    if not org:
+        return jsonify({"error": "Organization not found"}), 404
+    if not org.tenant_id:
+        return jsonify({"error": "Organization must have a tenant"}), 400
 
     # Create identity
     def create():
@@ -169,9 +181,13 @@ async def create_identity():
             "email": data.get("email"),
             "full_name": data.get("full_name"),
             "auth_provider_id": data.get("auth_provider_id"),
+            "organization_id": data["organization_id"],
+            "tenant_id": org.tenant_id,
             "is_active": data.get("is_active", True),
             "is_superuser": data.get("is_superuser", False),
             "mfa_enabled": data.get("mfa_enabled", False),
+            "portal_role": data.get("portal_role", "viewer"),
+            "must_change_password": data.get("must_change_password", False),
         }
 
         # Hash password if provided (for local auth)
@@ -253,6 +269,20 @@ async def update_identity(id: int):
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
+    # If organization is being changed, validate and get tenant
+    org_tenant_id = None
+    if "organization_id" in data:
+
+        def get_org():
+            return db.organizations[data["organization_id"]]
+
+        org = await run_in_threadpool(get_org)
+        if not org:
+            return jsonify({"error": "Organization not found"}), 404
+        if not org.tenant_id:
+            return jsonify({"error": "Organization must have a tenant"}), 400
+        org_tenant_id = org.tenant_id
+
     # Update identity
     def update():
         update_fields = {}
@@ -267,6 +297,9 @@ async def update_identity(id: int):
             update_fields["is_active"] = data["is_active"]
         if "mfa_enabled" in data:
             update_fields["mfa_enabled"] = data["mfa_enabled"]
+        if "organization_id" in data:
+            update_fields["organization_id"] = data["organization_id"]
+            update_fields["tenant_id"] = org_tenant_id
 
         db(db.identities.id == id).update(**update_fields)
         db.commit()

@@ -1,0 +1,3 @@
+# Elder Scanner Service Dependencies
+httpx>=0.25.0
+playwright>=1.40.0
