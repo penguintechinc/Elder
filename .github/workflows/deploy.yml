@@ -1,9 +1,10 @@
 name: Deploy to Environments
 
 on:
-  push:
-    branches: [ main ]
-    tags: [ 'v*' ]
+  # Disabled automatic deployment on push - requires manual trigger
+  # push:
+  #   branches: [ main ]
+  #   tags: [ 'v*' ]
   workflow_dispatch:
     inputs:
       environment:
@@ -23,10 +24,31 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  # Check if deployment is configured
+  check-config:
+    runs-on: ubuntu-latest
+    outputs:
+      aws-configured: ${{ steps.check.outputs.aws-configured }}
+    steps:
+      - name: Check AWS configuration
+        id: check
+        run: |
+          if [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ] && [ -n "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ] && [ -n "${{ secrets.AWS_REGION }}" ]; then
+            echo "aws-configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "aws-configured=false" >> $GITHUB_OUTPUT
+            echo "⚠️ AWS credentials not configured. Skipping deployment."
+            echo "To enable deployments, configure the following secrets:"
+            echo "  - AWS_ACCESS_KEY_ID"
+            echo "  - AWS_SECRET_ACCESS_KEY"
+            echo "  - AWS_REGION"
+          fi
+
   # Deploy to staging environment
   deploy-staging:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    needs: check-config
+    if: needs.check-config.outputs.aws-configured == 'true' && (github.event.inputs.environment == 'staging' || github.event.inputs.environment == '')
     environment:
       name: staging
       url: https://staging.your-domain.com
@@ -97,11 +119,11 @@ jobs:
   # Deploy to production environment
   deploy-production:
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    needs: check-config
+    if: needs.check-config.outputs.aws-configured == 'true' && github.event.inputs.environment == 'production'
     environment:
       name: production
       url: https://your-domain.com
-    needs: []  # Remove staging dependency for manual deploys
 
     steps:
     - name: Checkout code
@@ -296,8 +318,8 @@ jobs:
   # Rollback functionality
   rollback:
     runs-on: ubuntu-latest
-    if: failure() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-    needs: [deploy-staging, deploy-production]
+    needs: [check-config, deploy-staging, deploy-production]
+    if: failure() && needs.check-config.outputs.aws-configured == 'true'
     environment:
       name: rollback
 

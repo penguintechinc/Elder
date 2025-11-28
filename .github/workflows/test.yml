@@ -9,6 +9,11 @@ on:
 env:
   PYTHON_VERSION: '3.13'
 
+# Permissions needed for various actions
+permissions:
+  contents: read
+  security-events: write  # Required for uploading SARIF results
+
 jobs:
   lint:
     name: Lint Code
