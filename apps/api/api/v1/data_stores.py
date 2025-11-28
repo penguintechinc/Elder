@@ -19,18 +19,26 @@ from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("data_stores", __name__)
 
-# Valid storage types
+# Valid storage types - aligned with frontend DataStores.tsx
 VALID_STORAGE_TYPES = [
+    "database",
+    "file_storage",
+    "data_warehouse",
+    "data_lake",
+    "cache",
+    "message_queue",
+    "search_index",
+    "time_series",
+    "blob_storage",
+    "other",
+    # Legacy/cloud-specific types for backwards compatibility
     "s3",
     "gcs",
     "azure_blob",
     "disk",
     "nas",
     "san",
-    "database",
-    "data_lake",
     "hdfs",
-    "other",
 ]
 
 # Valid data classifications
