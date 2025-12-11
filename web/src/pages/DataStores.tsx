@@ -198,6 +198,13 @@ export default function DataStores() {
         defaultValue: 'us-east-1',
       },
       {
+        name: 'location_region_other',
+        label: 'Custom Region/Location',
+        type: 'text',
+        placeholder: 'Enter custom location or region',
+        showWhen: (values: Record<string, any>) => values.location_region === 'other',
+      },
+      {
         name: 'contains_pii',
         label: 'Contains Personally Identifiable Information (PII)',
         type: 'checkbox',
@@ -244,13 +251,18 @@ export default function DataStores() {
   }
 
   const handleCreateSubmit = (data: Record<string, any>) => {
+    // Use custom region if "other" is selected
+    const locationRegion = data.location_region === 'other'
+      ? data.location_region_other?.trim()
+      : data.location_region
+
     createMutation.mutate({
       name: data.name?.trim(),
       description: data.description?.trim() || undefined,
       organization_id: parseInt(data.organization_id),
       data_classification: data.data_classification,
       storage_type: data.storage_type,
-      location_region: data.location_region || undefined,
+      location_region: locationRegion || undefined,
       contains_pii: data.contains_pii || false,
       contains_phi: data.contains_phi || false,
       contains_pci: data.contains_pci || false,
@@ -260,12 +272,17 @@ export default function DataStores() {
   }
 
   const handleEditSubmit = (data: Record<string, any>) => {
+    // Use custom region if "other" is selected
+    const locationRegion = data.location_region === 'other'
+      ? data.location_region_other?.trim()
+      : data.location_region
+
     updateMutation.mutate({
       name: data.name?.trim(),
       description: data.description?.trim() || undefined,
       data_classification: data.data_classification,
       storage_type: data.storage_type,
-      location_region: data.location_region || undefined,
+      location_region: locationRegion || undefined,
       contains_pii: data.contains_pii || false,
       contains_phi: data.contains_phi || false,
       contains_pci: data.contains_pci || false,
@@ -461,28 +478,24 @@ export default function DataStores() {
       )}
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <ModalFormBuilder
-          title="Add Data Store"
-          config={createFormConfig}
-          onSubmit={handleCreateSubmit}
-          onClose={() => setShowCreateModal(false)}
-          isLoading={createMutation.isPending}
-          submitLabel="Add"
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={showCreateModal}
+        title="Add Data Store"
+        config={createFormConfig}
+        onSubmit={handleCreateSubmit}
+        onClose={() => setShowCreateModal(false)}
+        isLoading={createMutation.isPending}
+      />
 
       {/* Edit Modal */}
-      {editingDataStore && (
-        <ModalFormBuilder
-          title="Edit Data Store"
-          config={editFormConfig}
-          onSubmit={handleEditSubmit}
-          onClose={() => setEditingDataStore(null)}
-          isLoading={updateMutation.isPending}
-          submitLabel="Update"
-        />
-      )}
+      <ModalFormBuilder
+        isOpen={!!editingDataStore}
+        title="Edit Data Store"
+        config={editFormConfig}
+        onSubmit={handleEditSubmit}
+        onClose={() => setEditingDataStore(null)}
+        isLoading={updateMutation.isPending}
+      />
 
       {/* View Details Modal */}
       {viewingDataStore && (

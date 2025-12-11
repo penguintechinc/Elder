@@ -261,11 +261,57 @@ Access the services:
 
 ```bash
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # Check health
 curl http://localhost:4000/healthz
 ```
+
+### Kubernetes Deployment
+
+Elder supports deployment to Kubernetes clusters (MicroK8s, kind, k3s, or standard Kubernetes) using Helm.
+
+**Quick Local Deployment:**
+
+```bash
+# Install to local Kubernetes cluster
+cd infrastructure/helm/elder
+helm dependency update
+helm install elder . \
+  --set config.secretKey="$(openssl rand -base64 32)" \
+  --set postgresql.auth.password="$(openssl rand -base64 32)" \
+  --set redis.auth.password="$(openssl rand -base64 32)"
+
+# Wait for deployment
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=elder --timeout=5m
+
+# Access via port-forward
+kubectl port-forward svc/elder-api 8080:80
+kubectl port-forward svc/elder-web 3000:80
+```
+
+**GitHub Actions CI/CD:**
+
+Elder includes automated Kubernetes deployment via GitHub Actions. To set up:
+
+```bash
+# 1. Run the setup script on your cluster
+./scripts/k8s/setup-github-serviceaccount.sh
+
+# 2. Add the output secrets to GitHub:
+#    - KUBE_CONFIG
+#    - K8S_NAMESPACE
+#    - SECRET_KEY
+#    - POSTGRES_PASSWORD
+#    - REDIS_PASSWORD
+
+# 3. Push to main branch - automatic deployment!
+```
+
+**Resources:**
+- 📖 [Local Kubernetes Setup Guide](docs/deployment/local-kubernetes-setup.md)
+- 🔧 [GitHub Actions Kubernetes Deployment](docs/deployment/github-actions-k8s.md)
+- ⚙️ [Helm Chart Documentation](infrastructure/helm/elder/README.md)
 
 ## Configuration
 

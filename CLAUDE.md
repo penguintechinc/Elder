@@ -371,8 +371,9 @@ docker compose down -v
 - Multi-language testing (Go, Python, Node.js)
 - Parallel test execution for performance
 - Code coverage reporting
-- Security scanning integration
+- Security scanning integration (bandit, Safety, Trivy)
 - Performance regression testing
+- **See detailed workflow documentation:** [docs/WORKFLOWS.md](docs/WORKFLOWS.md)
 
 ### Build Pipeline
 - **Multi-architecture Docker builds** (amd64/arm64) using separate parallel workflows
@@ -381,7 +382,7 @@ docker compose down -v
 - **Optimized build times**: Prioritize speed while maintaining full functionality
 - Dependency caching for faster builds
 - Artifact management and versioning
-- Container registry integration
+- Container registry integration (ghcr.io)
 - Build optimization and layer caching
 
 ### Deployment Pipeline
@@ -391,10 +392,32 @@ docker compose down -v
 - Health check validation
 - Automated database migrations
 
+### Version Management & Release Automation
+- **Version File Monitoring**: `.version` file path triggers automated releases
+- **Epoch64 Timestamp Detection**: Extracts Unix timestamp from version (vMajor.Minor.Patch.epoch64)
+- **Semantic Version Extraction**: Intelligently parses version components
+- **Pre-release Creation**: Automatic GitHub pre-release generation
+- **Release Notes Generation**: Version, epoch64, and commit details included
+- **Duplicate Prevention**: Checks for existing releases before creation
+- **Example Version Format**: `3.0.0.1764083000` (Major.Minor.Patch.epoch64)
+
+### Security Scanning
+- **Code Security**:
+  - bandit for Python security analysis
+  - Safety for Python dependencies
+  - Trivy for container images and filesystem
+  - SARIF report generation for GitHub Security tab
+
+- **Dependency Security**:
+  - Pre-commit hooks block vulnerable dependencies
+  - GitHub Dependabot alerts monitoring
+  - Regular security audits
+
 ### Quality Gates
-- Required code review process
+- Required code review process (2+ approvals)
 - Automated testing requirements
 - Security scan pass requirements
+- Code quality standards (see [docs/STANDARDS.md](docs/STANDARDS.md))
 - Performance benchmark validation
 - Documentation update verification
 

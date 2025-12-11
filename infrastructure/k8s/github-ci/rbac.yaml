@@ -1,0 +1,59 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-ci-deployer
+  namespace: elder
+  labels:
+    app.kubernetes.io/name: elder
+    app.kubernetes.io/component: ci-cd
+    app.kubernetes.io/managed-by: github-actions
+rules:
+# Deployments, ReplicaSets, StatefulSets
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets"]
+  verbs: ["get", "list", "create", "update", "patch", "delete", "watch"]
+
+# Services, ConfigMaps, Secrets, Pods, PVCs
+- apiGroups: [""]
+  resources: ["services", "configmaps", "secrets", "pods", "persistentvolumeclaims"]
+  verbs: ["get", "list", "create", "update", "patch", "delete", "watch"]
+
+# Pod logs (for debugging)
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get", "list"]
+
+# Ingress resources
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "create", "update", "patch"]
+
+# HorizontalPodAutoscaler
+- apiGroups: ["autoscaling"]
+  resources: ["horizontalpodautoscalers"]
+  verbs: ["get", "list", "create", "update", "patch"]
+
+# Batch resources (Jobs, CronJobs)
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-ci-deployer
+  namespace: elder
+  labels:
+    app.kubernetes.io/name: elder
+    app.kubernetes.io/component: ci-cd
+    app.kubernetes.io/managed-by: github-actions
+subjects:
+- kind: ServiceAccount
+  name: github-ci
+  namespace: elder
+roleRef:
+  kind: Role
+  name: github-ci-deployer
+  apiGroup: rbac.authorization.k8s.io

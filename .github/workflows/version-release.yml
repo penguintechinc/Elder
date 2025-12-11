@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - '.version'
+      - '.version'  # Trigger only on .version file changes (epoch64 monitoring)
 
 jobs:
   create-release:
@@ -26,21 +26,41 @@ jobs:
           if [ ! -f .version ]; then
             echo "0.0.0" > .version
             echo "version=0.0.0" >> $GITHUB_OUTPUT
+            echo "full_version=0.0.0" >> $GITHUB_OUTPUT
+            echo "epoch64=" >> $GITHUB_OUTPUT
             echo "should_release=false" >> $GITHUB_OUTPUT
           else
+            # Read .version file and remove whitespace
             VERSION=$(cat .version | tr -d '[:space:]')
-            # Extract semantic version (strip build timestamp if present)
+
+            # Validate format: vMajor.Minor.Patch.epoch64
+            # Example: 3.0.0.1764083000
+            if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+              echo "Invalid version format: $VERSION (expected vMajor.Minor.Patch[.epoch64])"
+              exit 1
+            fi
+
+            # Extract semantic version (first 3 segments)
             SEMVER=$(echo "$VERSION" | cut -d'.' -f1-3)
+
+            # Extract epoch64 (4th segment if present)
+            EPOCH64=$(echo "$VERSION" | cut -d'.' -f4 -s)
+            if [ -z "$EPOCH64" ]; then
+              # If no epoch64, use current Unix timestamp
+              EPOCH64=$(date +%s)
+            fi
+
             echo "version=$SEMVER" >> $GITHUB_OUTPUT
             echo "full_version=$VERSION" >> $GITHUB_OUTPUT
+            echo "epoch64=$EPOCH64" >> $GITHUB_OUTPUT
 
-            # Check if version is default
+            # Check if version is default (0.0.0)
             if [ "$SEMVER" = "0.0.0" ]; then
               echo "should_release=false" >> $GITHUB_OUTPUT
               echo "Version is default (0.0.0), skipping release"
             else
               echo "should_release=true" >> $GITHUB_OUTPUT
-              echo "Version is $SEMVER, proceeding with release"
+              echo "Version is $SEMVER with epoch64=$EPOCH64, proceeding with release"
             fi
           fi
 
@@ -65,25 +85,43 @@ jobs:
         run: |
           VERSION="${{ steps.check_version.outputs.version }}"
           FULL_VERSION="${{ steps.check_version.outputs.full_version }}"
+          EPOCH64="${{ steps.check_version.outputs.epoch64 }}"
+
+          # Convert epoch64 to human-readable date
+          if command -v date &> /dev/null; then
+            BUILD_DATE=$(date -d @${EPOCH64} -u +"%Y-%m-%d %H:%M:%S UTC" 2>/dev/null || date -u -r ${EPOCH64} +"%Y-%m-%d %H:%M:%S UTC" 2>/dev/null || echo "Build timestamp: ${EPOCH64}")
+          else
+            BUILD_DATE="Build timestamp: ${EPOCH64}"
+          fi
 
           # Create release notes
           cat << EOF > release_notes.md
-          ## Pre-Release v$VERSION
+          ## Release v$VERSION
 
-          This is an automated pre-release created from version file update.
+          This is an automated release created from version file update.
 
           **Version Details:**
           - Semantic Version: \`$VERSION\`
           - Full Version: \`$FULL_VERSION\`
+          - Epoch64 Timestamp: \`$EPOCH64\`
+          - Build Date: $BUILD_DATE
           - Commit: \`${{ github.sha }}\`
           - Branch: \`${{ github.ref_name }}\`
+
+          ### Installation
+
+          Pull the latest Docker image:
+          \`\`\`bash
+          docker pull ghcr.io/${{ github.repository }}:v$VERSION
+          docker pull ghcr.io/${{ github.repository }}:$FULL_VERSION
+          \`\`\`
 
           ### Changes
 
           See commit history for detailed changes since last release.
 
           ---
-          *This pre-release was automatically generated when the .version file was updated.*
+          *This release was automatically generated when the .version file was updated.*
           EOF
 
       - name: Create pre-release

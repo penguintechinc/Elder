@@ -17,6 +17,8 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME_API: ${{ github.repository_owner }}/elder-api
   IMAGE_NAME_WEB: ${{ github.repository_owner }}/elder-web
+  K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE || 'elder' }}
+  GHCR_PROPAGATION_DELAY: 60
 
 jobs:
   # Build matrix for different services
@@ -537,3 +539,187 @@ jobs:
               console.log(`Error cleaning up ${pkg}: ${error.message}`);
             }
           }
+
+  # Deploy to Kubernetes cluster
+  deploy-k8s:
+    needs: [build-and-push, integration-test]
+    runs-on: ubuntu-latest
+    if: |
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request' &&
+      secrets.KUBE_CONFIG != ''
+
+    environment:
+      name: kubernetes
+      url: https://elder.local
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Wait for GHCR propagation
+      run: |
+        echo "Waiting ${{ env.GHCR_PROPAGATION_DELAY }}s for GHCR to propagate multi-arch manifests..."
+        echo "This delay ensures images are available across all registries before deployment."
+        sleep ${{ env.GHCR_PROPAGATION_DELAY }}
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+
+    - name: Setup Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: 'v3.13.0'
+
+    - name: Configure kubeconfig
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+        chmod 600 $HOME/.kube/config
+
+        echo "=== Cluster Information ==="
+        kubectl cluster-info
+        kubectl version --client
+
+        echo "=== Cluster Nodes ==="
+        kubectl get nodes || echo "Unable to list nodes (may not have cluster-wide permissions)"
+
+        echo "=== Target Namespace ==="
+        kubectl get namespace ${{ env.K8S_NAMESPACE }} || echo "Namespace will be created by Helm"
+
+    - name: Add Helm dependencies
+      run: |
+        cd infrastructure/helm/elder
+        helm dependency update
+        echo "=== Helm Dependencies ==="
+        helm dependency list
+
+    - name: Deploy to Kubernetes with Helm
+      run: |
+        echo "=== Deploying Elder to Kubernetes ==="
+        echo "Namespace: ${{ env.K8S_NAMESPACE }}"
+        echo "Image tag: beta"
+
+        helm upgrade --install elder ./infrastructure/helm/elder \
+          --namespace ${{ env.K8S_NAMESPACE }} \
+          --create-namespace \
+          --set api.image.repository=${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api \
+          --set api.image.tag="beta" \
+          --set web.image.repository=${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-web \
+          --set web.image.tag="beta" \
+          --set grpc.image.repository=${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-grpc \
+          --set grpc.image.tag="beta" \
+          --set envoy.image.repository=${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-envoy \
+          --set envoy.image.tag="beta" \
+          --set config.secretKey="${{ secrets.SECRET_KEY || 'changeme-secret-key' }}" \
+          --set config.license.key="${{ secrets.LICENSE_KEY || '' }}" \
+          --set postgresql.auth.password="${{ secrets.POSTGRES_PASSWORD || 'changeme-postgres' }}" \
+          --set redis.auth.password="${{ secrets.REDIS_PASSWORD || 'changeme-redis' }}" \
+          --wait \
+          --timeout 10m \
+          --atomic \
+          --debug
+
+        echo "=== Deployment completed ==="
+
+    - name: Verify deployment
+      run: |
+        echo "=== Checking deployment status ==="
+        kubectl get deployments -n ${{ env.K8S_NAMESPACE }}
+        kubectl get pods -n ${{ env.K8S_NAMESPACE }}
+        kubectl get services -n ${{ env.K8S_NAMESPACE }}
+
+        echo "=== Waiting for API rollout ==="
+        if kubectl get deployment elder-api -n ${{ env.K8S_NAMESPACE }} >/dev/null 2>&1; then
+          kubectl rollout status deployment/elder-api -n ${{ env.K8S_NAMESPACE }} --timeout=5m
+        else
+          echo "API deployment not found, skipping rollout check"
+        fi
+
+        echo "=== Checking pod health ==="
+        kubectl wait --for=condition=ready pod \
+          -l app.kubernetes.io/name=elder,app.kubernetes.io/component=api \
+          -n ${{ env.K8S_NAMESPACE }} \
+          --timeout=300s || echo "Warning: Not all pods became ready in time"
+
+    - name: Health check
+      run: |
+        echo "=== Running health check ==="
+
+        # Try to find API service
+        API_SERVICE=$(kubectl get service -n ${{ env.K8S_NAMESPACE }} -l app.kubernetes.io/component=api -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "elder-api")
+
+        echo "API Service: $API_SERVICE"
+
+        # Port forward in background
+        kubectl port-forward -n ${{ env.K8S_NAMESPACE }} svc/$API_SERVICE 8080:80 &
+        PF_PID=$!
+
+        # Wait for port forward to establish
+        sleep 10
+
+        # Try health check
+        for i in {1..30}; do
+          if curl -sf http://localhost:8080/healthz > /dev/null 2>&1; then
+            echo "✓ Health check passed!"
+            kill $PF_PID 2>/dev/null || true
+            exit 0
+          fi
+          echo "Attempt $i: Health check not ready..."
+          sleep 2
+        done
+
+        echo "✗ Health check failed after 30 attempts"
+        kill $PF_PID 2>/dev/null || true
+
+        # Show pod logs for debugging
+        echo "=== Pod Logs ==="
+        kubectl logs -n ${{ env.K8S_NAMESPACE }} \
+          -l app.kubernetes.io/component=api \
+          --tail=50 || true
+
+        exit 1
+      timeout-minutes: 5
+
+    - name: Show pod logs on failure
+      if: failure()
+      run: |
+        echo "=== API Pod Logs ==="
+        kubectl logs -n ${{ env.K8S_NAMESPACE }} \
+          -l app.kubernetes.io/component=api \
+          --tail=100 || true
+
+        echo "=== gRPC Pod Logs ==="
+        kubectl logs -n ${{ env.K8S_NAMESPACE }} \
+          -l app.kubernetes.io/component=grpc \
+          --tail=100 || true
+
+        echo "=== Describe Failed Pods ==="
+        kubectl describe pods -n ${{ env.K8S_NAMESPACE }} \
+          -l app.kubernetes.io/name=elder || true
+
+        echo "=== Events ==="
+        kubectl get events -n ${{ env.K8S_NAMESPACE }} \
+          --sort-by='.lastTimestamp' || true
+
+    - name: Deployment summary
+      if: always()
+      run: |
+        echo "=== Deployment Summary ==="
+        echo "Namespace: ${{ env.K8S_NAMESPACE }}"
+        echo "Release: elder"
+        echo "Status: $(kubectl get deployment -n ${{ env.K8S_NAMESPACE }} -o json | jq -r '.items[] | "\(.metadata.name): \(.status.conditions[] | select(.type=="Available") | .status)"' || echo 'Unknown')"
+        echo ""
+        echo "=== Access Instructions ==="
+        echo "To access Elder API:"
+        echo "  kubectl port-forward -n ${{ env.K8S_NAMESPACE }} svc/elder-api 8080:80"
+        echo "  curl http://localhost:8080/healthz"
+        echo ""
+        echo "To access Elder Web UI:"
+        echo "  kubectl port-forward -n ${{ env.K8S_NAMESPACE }} svc/elder-web 3000:80"
+        echo "  open http://localhost:3000"
+        echo ""
+        echo "To view logs:"
+        echo "  kubectl logs -n ${{ env.K8S_NAMESPACE }} -l app.kubernetes.io/component=api --tail=100"
