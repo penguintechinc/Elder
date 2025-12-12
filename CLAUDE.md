@@ -516,6 +516,18 @@ docker compose down -v
 - Build failures must be resolved before task completion
 - Container builds ensure environment consistency across development and production
 
+### Database Schema Change Policy
+- **ONLY change database schema when absolutely necessary** - schema changes can break other components and backwards compatibility
+- **Prefer code-level solutions** - store extra fields in JSON columns (like `config_json`, `metadata`) rather than adding new columns
+- **Migration requirements if schema change is needed**:
+  1. Create proper Alembic migration
+  2. Test migration on copy of production data
+  3. Ensure rollback capability
+  4. Update all dependent code paths
+  5. Coordinate with frontend and other services
+- **Schema freezes during releases** - no schema changes in release branches
+- **Document schema changes** - update ERD diagrams and data model documentation
+
 ### Docker Build Standards
 
 **CRITICAL: ALWAYS use `--no-cache` flag for production rebuilds**

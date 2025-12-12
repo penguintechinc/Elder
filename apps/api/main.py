@@ -189,10 +189,15 @@ def _register_blueprints(app: Flask) -> None:
     from apps.api.api.v1 import iam  # Phase 4: IAM Integration
     from apps.api.api.v1 import ipam  # v2.3.0: IP Address Management
     from apps.api.api.v1 import keys  # Phase 3: Keys Management
+    from apps.api.api.v1 import license_policies  # v3.0.0: License Compliance
     from apps.api.api.v1 import logs  # Admin Log Viewer
     from apps.api.api.v1 import networking  # v2.0.0: Networking Resources & Topology
     from apps.api.api.v1 import portal_auth  # v2.2.0: Portal User Authentication
+    from apps.api.api.v1 import sbom  # v3.0.0: SBOM Component Tracking
+    from apps.api.api.v1 import sbom_scans  # v3.0.0: SBOM Scan Management
+    from apps.api.api.v1 import sbom_schedules  # v3.0.0: SBOM Scan Schedules
     from apps.api.api.v1 import search  # Phase 10: Advanced Search
+    from apps.api.api.v1 import vulnerabilities  # v3.0.0: Vulnerability Management
     from apps.api.api.v1 import secrets  # Phase 2: Secrets Management
     from apps.api.api.v1 import services  # v2.3.0: Services Tracking
     from apps.api.api.v1 import software  # v2.3.0: Software Tracking
@@ -303,6 +308,21 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(
         data_stores.bp, url_prefix=f"{api_prefix}/data-stores"
     )  # v3.0.0: Data Store Tracking (Community)
+    app.register_blueprint(
+        sbom.bp, url_prefix=f"{api_prefix}/sbom/components"
+    )  # v3.0.0: SBOM Component Tracking
+    app.register_blueprint(
+        sbom_scans.bp, url_prefix=f"{api_prefix}/sbom/scans"
+    )  # v3.0.0: SBOM Scan Management
+    app.register_blueprint(
+        sbom_schedules.bp, url_prefix=f"{api_prefix}/sbom/schedules"
+    )  # v3.0.0: SBOM Scan Schedules
+    app.register_blueprint(
+        vulnerabilities.bp, url_prefix=f"{api_prefix}/vulnerabilities"
+    )  # v3.0.0: Vulnerability Management
+    app.register_blueprint(
+        license_policies.bp, url_prefix=f"{api_prefix}/license-policies"
+    )  # v3.0.0: License Compliance
 
     # v2.4.0 Feature blueprints
     app.register_blueprint(

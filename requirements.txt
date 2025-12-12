@@ -68,6 +68,8 @@ python-json-logger==3.2.1
 jsonschema==4.23.0
 email-validator==2.2.0
 validators==0.34.0
+croniter>=2.0.0
+packaging==24.2  # For semantic version comparison in SBOM vulnerability matching
 
 # API Documentation
 flasgger==0.9.7.1

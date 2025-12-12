@@ -655,6 +655,230 @@ class AuditLogDTO:
     created_at: datetime
 
 
+# ==================== SBOM Components ====================
+
+
+@dataclass(slots=True, frozen=True)
+class SBOMComponentDTO:
+    """Immutable SBOM Component data transfer object."""
+
+    id: int
+    tenant_id: int
+    village_id: str
+    parent_type: str
+    parent_id: int
+    name: str
+    version: Optional[str]
+    purl: Optional[str]
+    package_type: str
+    scope: Optional[str]
+    direct: bool
+    license_id: Optional[int]
+    license_name: Optional[str]
+    license_url: Optional[str]
+    source_file: Optional[str]
+    repository_url: Optional[str]
+    homepage_url: Optional[str]
+    description: Optional[str]
+    hash_sha256: Optional[str]
+    hash_sha512: Optional[str]
+    metadata: Optional[dict]
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+
+@dataclass(slots=True)
+class CreateSBOMComponentRequest:
+    """Request to create a new SBOM Component."""
+
+    parent_type: str
+    parent_id: int
+    name: str
+    package_type: str
+    version: Optional[str] = None
+    purl: Optional[str] = None
+    scope: Optional[str] = None
+    direct: bool = True
+    license_id: Optional[int] = None
+    license_name: Optional[str] = None
+    source_file: Optional[str] = None
+    metadata: Optional[dict] = None
+
+
+@dataclass(slots=True)
+class UpdateSBOMComponentRequest:
+    """Request to update an SBOM Component."""
+
+    name: Optional[str] = None
+    version: Optional[str] = None
+    purl: Optional[str] = None
+    package_type: Optional[str] = None
+    scope: Optional[str] = None
+    direct: Optional[bool] = None
+    license_id: Optional[int] = None
+    license_name: Optional[str] = None
+    license_url: Optional[str] = None
+    source_file: Optional[str] = None
+    repository_url: Optional[str] = None
+    homepage_url: Optional[str] = None
+    description: Optional[str] = None
+    hash_sha256: Optional[str] = None
+    hash_sha512: Optional[str] = None
+    metadata: Optional[dict] = None
+    is_active: Optional[bool] = None
+
+
+# ==================== SBOM Scans ====================
+
+
+@dataclass(slots=True, frozen=True)
+class SBOMScanDTO:
+    """Immutable SBOM Scan data transfer object."""
+
+    id: int
+    tenant_id: int
+    village_id: str
+    parent_type: str
+    parent_id: int
+    scan_type: str
+    status: str
+    repository_url: Optional[str]
+    repository_branch: Optional[str]
+    commit_hash: Optional[str]
+    files_scanned: Optional[dict]
+    components_found: int
+    components_added: int
+    components_updated: int
+    components_removed: int
+    error_message: Optional[str]
+    scan_duration_ms: Optional[int]
+    started_at: Optional[datetime]
+    completed_at: Optional[datetime]
+    created_at: datetime
+
+
+@dataclass(slots=True)
+class CreateSBOMScanRequest:
+    """Request to create a new SBOM Scan."""
+
+    parent_type: str
+    parent_id: int
+    scan_type: str
+    repository_url: Optional[str] = None
+    repository_branch: Optional[str] = None
+
+
+@dataclass(slots=True, frozen=True)
+class SBOMScanScheduleDTO:
+    """Immutable SBOM Scan Schedule data transfer object."""
+
+    id: int
+    tenant_id: int
+    village_id: str
+    parent_type: str
+    parent_id: int
+    schedule_cron: str
+    is_active: bool
+    last_run_at: Optional[datetime]
+    next_run_at: Optional[datetime]
+    created_at: datetime
+    updated_at: datetime
+
+
+# ==================== Vulnerabilities ====================
+
+
+@dataclass(slots=True, frozen=True)
+class VulnerabilityDTO:
+    """Immutable Vulnerability data transfer object."""
+
+    id: int
+    tenant_id: int
+    village_id: str
+    cve_id: str
+    aliases: Optional[list]
+    severity: str
+    cvss_score: Optional[float]
+    cvss_vector: Optional[str]
+    title: Optional[str]
+    description: Optional[str]
+    affected_packages: Optional[list]
+    fixed_versions: Optional[list]
+    references: Optional[list]
+    published_at: Optional[datetime]
+    modified_at: Optional[datetime]
+    source: Optional[str]
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+
+# ==================== Component Vulnerabilities ====================
+
+
+@dataclass(slots=True, frozen=True)
+class ComponentVulnerabilityDTO:
+    """Immutable Component Vulnerability data transfer object."""
+
+    id: int
+    tenant_id: int
+    component_id: int
+    vulnerability_id: int
+    status: str
+    remediation_notes: Optional[str]
+    remediated_at: Optional[datetime]
+    remediated_by_id: Optional[int]
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+
+# ==================== License Policies ====================
+
+
+@dataclass(slots=True, frozen=True)
+class LicensePolicyDTO:
+    """Immutable License Policy data transfer object."""
+
+    id: int
+    tenant_id: int
+    organization_id: Optional[int]
+    village_id: str
+    name: str
+    description: Optional[str]
+    allowed_licenses: Optional[list]
+    denied_licenses: Optional[list]
+    action: str
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+
+@dataclass(slots=True)
+class CreateLicensePolicyRequest:
+    """Request to create a new License Policy."""
+
+    name: str
+    organization_id: int
+    action: str = "warn"
+    description: Optional[str] = None
+    allowed_licenses: Optional[list] = field(default_factory=list)
+    denied_licenses: Optional[list] = field(default_factory=list)
+    is_active: bool = True
+
+
+@dataclass(slots=True)
+class UpdateLicensePolicyRequest:
+    """Request to update a License Policy."""
+
+    name: Optional[str] = None
+    description: Optional[str] = None
+    allowed_licenses: Optional[list] = None
+    denied_licenses: Optional[list] = None
+    action: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 # ==================== Pagination ====================
 
 

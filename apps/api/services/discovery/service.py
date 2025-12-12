@@ -99,7 +99,7 @@ class DiscoveryService:
         name: str,
         provider: str,
         config: Dict[str, Any],
-        organization_id: int,
+        organization_id: int = None,  # Optional - stored in config for now
         schedule_interval: Optional[int] = None,
         description: Optional[str] = None,
     ) -> Dict[str, Any]:
@@ -119,15 +119,21 @@ class DiscoveryService:
                 f"Invalid provider: {provider}. Must be one of {valid_providers}"
             )
 
+        # Store organization_id and description in config for now
+        # (until schema migration adds these columns)
+        job_config = dict(config)
+        if organization_id:
+            job_config["_organization_id"] = organization_id
+        if description:
+            job_config["_description"] = description
+
         # Create job
         job_id = self.db.discovery_jobs.insert(
             name=name,
             provider=provider.lower(),
             enabled=True,
-            config_json=config,
-            organization_id=organization_id,
-            schedule_interval=schedule_interval,
-            description=description,
+            config_json=job_config,
+            schedule_interval=schedule_interval or 3600,
             created_at=datetime.utcnow(),
         )
 
@@ -190,11 +196,23 @@ class DiscoveryService:
             client = self._get_discovery_client(job_id)
             success = client.test_connection()
 
-            return {
+            result = {
                 "job_id": job_id,
                 "success": success,
                 "tested_at": datetime.utcnow().isoformat(),
             }
+
+            # Add auth method if available (AWS client)
+            if hasattr(client, "get_auth_method"):
+                result["auth_method"] = client.get_auth_method()
+
+            # Add identity info if available (AWS client)
+            if hasattr(client, "get_caller_identity") and success:
+                identity = client.get_caller_identity()
+                if identity:
+                    result["identity"] = identity
+
+            return result
 
         except Exception as e:
             return {
@@ -217,24 +235,37 @@ class DiscoveryService:
             client = self._get_discovery_client(job_id)
             results = client.discover_all()
 
+            # Convert datetime to string for JSON storage
+            results_for_storage = dict(results)
+            if "discovery_time" in results_for_storage:
+                results_for_storage["discovery_time"] = results_for_storage[
+                    "discovery_time"
+                ].isoformat()
+
             # Record discovery history
             history_id = self.db.discovery_history.insert(
                 job_id=job_id,
                 started_at=datetime.utcnow(),
                 entities_discovered=results["resources_count"],
                 status="completed",
-                results_json=results,
+                results_json=results_for_storage,
             )
 
             # Update job's last_run timestamp
             self.db(self.db.discovery_jobs.id == job_id).update(
-                last_run=datetime.utcnow()
+                last_run_at=datetime.utcnow()
             )
 
             self.db.commit()
 
-            # Store discovered resources as entities
-            self._store_discovered_resources(job.organization_id, results)
+            # Get organization_id from config if available
+            organization_id = None
+            if job.config_json:
+                organization_id = job.config_json.get("_organization_id")
+
+            # Store discovered resources as entities (if organization_id available)
+            if organization_id:
+                self._store_discovered_resources(organization_id, results)
 
             return {
                 "job_id": job_id,
@@ -283,13 +314,17 @@ class DiscoveryService:
         self, organization_id: int, discovery_results: Dict[str, Any]
     ) -> None:
         """
-        Store discovered resources as entities in Elder.
+        Store discovered resources in Elder.
+
+        Resources are stored in their proper Resource tables first (e.g., IAM users
+        go to the identities table), and fall back to the generic entities table
+        for resource types that don't have dedicated tables.
 
         Args:
             organization_id: Organization ID for the resources
             discovery_results: Discovery results from provider
         """
-        # Map discovery categories to entity types
+        # Map discovery categories to entity types (fallback for entities table)
         type_mapping = {
             "compute": "compute",
             "storage": "storage",
@@ -298,48 +333,165 @@ class DiscoveryService:
             "serverless": "compute",  # Map serverless to compute type
         }
 
+        # Resource types that map to specific Resource tables
+        # Format: resource_type -> (table_name, store_method)
+        resource_mappings = {
+            "iam_user": "identity",
+            "iam_role": "identity",
+        }
+
         for category, resources in discovery_results.items():
             if category in ["resources_count", "discovery_time", "duration_seconds"]:
                 continue
 
-            entity_type = type_mapping.get(category)
-            if not entity_type or not resources:
+            if not resources:
                 continue
 
             for resource in resources:
-                # Check if entity already exists by resource_id in metadata
-                existing = (
-                    self.db(
-                        (self.db.entities.organization_id == organization_id)
-                        & (
-                            self.db.entities.metadata.like(
-                                f'%{resource["resource_id"]}%'
-                            )
-                        )
-                    )
-                    .select()
-                    .first()
-                )
+                resource_type = resource.get("resource_type", "")
 
-                if existing:
-                    # Update existing entity
-                    self.db(self.db.entities.id == existing.id).update(
-                        name=resource["name"],
-                        metadata=resource["metadata"],
-                        updated_at=datetime.utcnow(),
-                    )
+                # Check if this resource type maps to a specific Resource table
+                if resource_type in resource_mappings:
+                    resource_table = resource_mappings[resource_type]
+
+                    if resource_table == "identity":
+                        self._store_iam_as_identity(organization_id, resource)
+                    # Add more resource table mappings here as needed
+                    # elif resource_table == "software": ...
+                    # elif resource_table == "services": ...
                 else:
-                    # Create new entity
-                    self.db.entities.insert(
-                        name=resource["name"],
-                        entity_type=entity_type,
-                        sub_type=resource["resource_type"],
-                        organization_id=organization_id,
-                        metadata=resource,
-                        created_at=datetime.utcnow(),
-                    )
+                    # Fall back to generic entities table
+                    entity_type = type_mapping.get(category)
+                    if entity_type:
+                        self._store_as_entity(organization_id, resource, entity_type)
 
         self.db.commit()
+
+    def _store_iam_as_identity(
+        self, organization_id: int, resource: Dict[str, Any]
+    ) -> None:
+        """
+        Store IAM user or role as an Identity resource.
+
+        Args:
+            organization_id: Organization ID
+            resource: Discovered IAM resource data
+        """
+        resource_type = resource.get("resource_type", "")
+        name = resource.get("name", "Unnamed")
+        metadata = resource.get("metadata", {})
+        arn = metadata.get("arn", resource.get("resource_id", ""))
+
+        # Determine identity type based on IAM resource type
+        if resource_type == "iam_user":
+            identity_type = "integration"  # AWS IAM users are integrations
+        elif resource_type == "iam_role":
+            identity_type = "serviceAccount"  # IAM roles are service accounts
+        else:
+            identity_type = "other"
+
+        # Generate a unique username for AWS resources
+        # Format: aws:<account_id>:<user_or_role_name>
+        # Extract account ID from ARN: arn:aws:iam::123456789012:user/username
+        account_id = ""
+        if arn and "::" in arn:
+            parts = arn.split(":")
+            if len(parts) >= 5:
+                account_id = parts[4]
+
+        aws_username = f"aws:{account_id}:{name}" if account_id else f"aws:{name}"
+
+        # Check if identity already exists
+        existing = (
+            self.db(
+                (self.db.identities.username == aws_username)
+                | (
+                    (self.db.identities.auth_provider == "aws")
+                    & (self.db.identities.auth_provider_id == arn)
+                )
+            )
+            .select()
+            .first()
+        )
+
+        if existing:
+            # Update existing identity
+            self.db(self.db.identities.id == existing.id).update(
+                full_name=name,
+                updated_at=datetime.utcnow(),
+            )
+        else:
+            # Create new identity
+            self.db.identities.insert(
+                tenant_id=1,  # Default tenant
+                identity_type=identity_type,
+                username=aws_username,
+                full_name=name,
+                organization_id=organization_id,
+                auth_provider="aws",
+                auth_provider_id=arn,
+                portal_role="observer",  # AWS identities get observer role by default
+                is_active=True,
+                is_superuser=False,
+                mfa_enabled=False,
+                created_at=datetime.utcnow(),
+            )
+
+    def _store_as_entity(
+        self,
+        organization_id: int,
+        resource: Dict[str, Any],
+        entity_type: str,
+    ) -> None:
+        """
+        Store a discovered resource in the generic entities table.
+
+        Args:
+            organization_id: Organization ID
+            resource: Discovered resource data
+            entity_type: Entity type (compute, storage, network, etc.)
+        """
+        name = resource.get("name", "Unnamed")
+        resource_type = resource.get("resource_type", "")
+
+        # Check if entity already exists
+        existing = (
+            self.db(
+                (self.db.entities.organization_id == organization_id)
+                & (self.db.entities.sub_type == resource_type)
+                & (self.db.entities.name == name)
+            )
+            .select()
+            .first()
+        )
+
+        # Prepare attributes JSON
+        resource_attrs = {
+            "resource_id": resource.get("resource_id"),
+            "resource_type": resource_type,
+            "region": resource.get("region"),
+            "tags": resource.get("tags", {}),
+            "metadata": resource.get("metadata", {}),
+            "discovered_at": datetime.utcnow().isoformat(),
+        }
+
+        if existing:
+            # Update existing entity
+            self.db(self.db.entities.id == existing.id).update(
+                name=name,
+                attributes=resource_attrs,
+                updated_at=datetime.utcnow(),
+            )
+        else:
+            # Create new entity
+            self.db.entities.insert(
+                name=name,
+                entity_type=entity_type,
+                sub_type=resource_type,
+                organization_id=organization_id,
+                attributes=resource_attrs,
+                created_at=datetime.utcnow(),
+            )
 
     def _sanitize_job(self, job: Dict[str, Any]) -> Dict[str, Any]:
         """Remove sensitive fields from job data."""

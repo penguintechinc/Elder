@@ -1,0 +1,21 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowAssumeRoleWithWebIdentity",
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::ACCOUNT_ID:oidc-provider/OIDC_PROVIDER_URL"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "OIDC_PROVIDER_URL:aud": "sts.amazonaws.com"
+        },
+        "StringLike": {
+          "OIDC_PROVIDER_URL:sub": "SUBJECT_CLAIM_PATTERN"
+        }
+      }
+    }
+  ]
+}

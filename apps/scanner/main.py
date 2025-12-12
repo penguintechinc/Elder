@@ -4,15 +4,18 @@ Polls the Elder API for pending scan jobs and executes them.
 """
 
 import asyncio
+import datetime
 import logging
 import os
 import sys
 from typing import Any, Dict, Optional
 
 import httpx
+from croniter import croniter
 from scanners.banner import BannerScanner
 from scanners.http_screenshot import HTTPScreenshotScanner
 from scanners.network import NetworkScanner
+from scanners.sbom_scanner import SBOMScanner
 
 # Configuration from environment
 POLL_INTERVAL = int(os.getenv("SCANNER_POLL_INTERVAL", "300"))
@@ -46,6 +49,7 @@ class ScannerService:
             "network": NetworkScanner(),
             "http_screenshot": HTTPScreenshotScanner(screenshot_dir=SCREENSHOT_DIR),
             "banner": BannerScanner(),
+            "sbom": SBOMScanner(),
         }
 
         # Ensure screenshot directory exists
@@ -70,6 +74,105 @@ class ScannerService:
         except Exception as e:
             logger.error(f"Error fetching pending jobs: {e}")
             return []
+
+    async def get_pending_sbom_scans(self) -> list:
+        """Fetch pending SBOM scans from the API."""
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.api_url}/api/v1/sbom/scans/pending",
+                    headers=self.headers,
+                )
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    logger.error(
+                        f"Failed to fetch pending SBOM scans: {response.status_code}"
+                    )
+                    return []
+        except Exception as e:
+            logger.error(f"Error fetching pending SBOM scans: {e}")
+            return []
+
+    async def get_due_schedules(self) -> list:
+        """Fetch due SBOM scan schedules from the API."""
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(
+                    f"{self.api_url}/api/v1/sbom/schedules/due",
+                    headers=self.headers,
+                )
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    logger.error(
+                        f"Failed to fetch due schedules: {response.status_code}"
+                    )
+                    return []
+        except Exception as e:
+            logger.error(f"Error fetching due schedules: {e}")
+            return []
+
+    async def create_scheduled_scan(self, schedule: Dict[str, Any]) -> bool:
+        """Create a scan job from a schedule and update the schedule."""
+        schedule_id = schedule["id"]
+        parent_type = schedule["parent_type"]
+        parent_id = schedule["parent_id"]
+
+        try:
+            # Create scan job
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                scan_payload = {
+                    "parent_type": parent_type,
+                    "parent_id": parent_id,
+                    "scan_type": "git_clone",
+                }
+                response = await client.post(
+                    f"{self.api_url}/api/v1/sbom/scans",
+                    headers=self.headers,
+                    json=scan_payload,
+                )
+
+                if response.status_code == 201:
+                    logger.info(f"Created scan job for schedule {schedule_id}")
+
+                    # Update schedule with last_run_at and calculate next_run_at
+                    now = datetime.datetime.now(datetime.timezone.utc)
+                    cron_expr = schedule.get("schedule_cron", "0 0 * * *")
+
+                    try:
+                        cron = croniter(cron_expr, now)
+                        next_run = cron.get_next(datetime.datetime)
+                    except Exception as e:
+                        logger.error(f"Invalid cron expression '{cron_expr}': {e}")
+                        # Default to 24 hours from now
+                        next_run = now + datetime.timedelta(days=1)
+
+                    # Update schedule
+                    update_payload = {
+                        "last_run_at": now.isoformat(),
+                        "next_run_at": next_run.isoformat(),
+                    }
+
+                    response = await client.put(
+                        f"{self.api_url}/api/v1/sbom/schedules/{schedule_id}",
+                        headers=self.headers,
+                        json=update_payload,
+                    )
+
+                    if response.status_code == 200:
+                        logger.info(f"Updated schedule {schedule_id}, next run at {next_run.isoformat()}")
+                        return True
+                    else:
+                        logger.error(f"Failed to update schedule {schedule_id}: {response.status_code}")
+                        return False
+                else:
+                    logger.error(f"Failed to create scan for schedule {schedule_id}: {response.status_code}")
+                    return False
+
+        except Exception as e:
+            logger.error(f"Error creating scheduled scan for schedule {schedule_id}: {e}")
+            return False
 
     async def mark_job_running(self, job_id: int) -> bool:
         """Mark a job as running."""
@@ -140,6 +243,73 @@ class ScannerService:
             logger.error(f"Job {job_id} failed: {error_msg}")
             await self.submit_results(job_id, False, {}, error_msg)
 
+    async def execute_sbom_scan(self, scan: Dict[str, Any]) -> None:
+        """Execute a single SBOM scan."""
+        scan_id = scan["id"]
+        repository_url = scan.get("repository_url")
+        repository_branch = scan.get("repository_branch", "main")
+
+        logger.info(f"Executing SBOM scan {scan_id} for {repository_url}")
+
+        # Mark scan as running
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.api_url}/api/v1/sbom/scans/{scan_id}/start",
+                    headers=self.headers,
+                )
+                if response.status_code != 200:
+                    logger.error(f"Failed to mark scan {scan_id} as running")
+                    return
+        except Exception as e:
+            logger.error(f"Error marking scan {scan_id} as running: {e}")
+            return
+
+        # Get SBOM scanner
+        scanner = self.scanners.get("sbom")
+        if not scanner:
+            logger.error("SBOM scanner not available")
+            return
+
+        # Execute scan
+        try:
+            config = {
+                "repository_url": repository_url,
+                "repository_branch": repository_branch,
+                "api_url": self.api_url,
+                "scan_id": scan_id,
+            }
+
+            results = await scanner.scan(config)
+
+            # Submit results
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{self.api_url}/api/v1/sbom/scans/{scan_id}/results",
+                    headers=self.headers,
+                    json=results,
+                )
+
+                if response.status_code == 200:
+                    logger.info(f"SBOM scan {scan_id} completed successfully")
+                else:
+                    logger.error(f"Failed to submit results for scan {scan_id}: {response.status_code}")
+
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"SBOM scan {scan_id} failed: {error_msg}")
+
+            # Submit failure
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    await client.post(
+                        f"{self.api_url}/api/v1/sbom/scans/{scan_id}/results",
+                        headers=self.headers,
+                        json={"success": False, "error_message": error_msg},
+                    )
+            except Exception as submit_error:
+                logger.error(f"Failed to submit error for scan {scan_id}: {submit_error}")
+
     async def run(self) -> None:
         """Main poll loop."""
         logger.info(f"Scanner service started. Polling every {POLL_INTERVAL}s")
@@ -147,15 +317,35 @@ class ScannerService:
 
         while True:
             try:
-                # Fetch pending jobs
+                # Check for due schedules and create scan jobs
+                due_schedules = await self.get_due_schedules()
+
+                if due_schedules:
+                    logger.info(f"Found {len(due_schedules)} due schedule(s)")
+                    for schedule in due_schedules:
+                        await self.create_scheduled_scan(schedule)
+                else:
+                    logger.debug("No due schedules")
+
+                # Fetch pending discovery jobs
                 jobs = await self.get_pending_jobs()
 
                 if jobs:
-                    logger.info(f"Found {len(jobs)} pending job(s)")
+                    logger.info(f"Found {len(jobs)} pending discovery job(s)")
                     for job in jobs:
                         await self.execute_job(job)
                 else:
-                    logger.debug("No pending jobs")
+                    logger.debug("No pending discovery jobs")
+
+                # Fetch pending SBOM scans
+                sbom_scans = await self.get_pending_sbom_scans()
+
+                if sbom_scans:
+                    logger.info(f"Found {len(sbom_scans)} pending SBOM scan(s)")
+                    for scan in sbom_scans:
+                        await self.execute_sbom_scan(scan)
+                else:
+                    logger.debug("No pending SBOM scans")
 
             except Exception as e:
                 logger.error(f"Error in poll loop: {e}")

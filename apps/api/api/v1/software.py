@@ -2,10 +2,15 @@
 
 from dataclasses import asdict
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.dataclasses import PaginatedResponse
+from apps.api.models.dataclasses import (
+    PaginatedResponse,
+    SBOMComponentDTO,
+    from_pydal_rows,
+)
+from apps.api.services.sbom.exporters import CycloneDXExporter, SPDXExporter
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.pydal_helpers import PaginationParams
 from apps.api.utils.validation_helpers import (
@@ -251,3 +256,130 @@ async def delete_software(id: int):
     await run_in_threadpool(delete)
 
     return ApiResponse.no_content()
+
+
+@bp.route("/<int:id>/sbom", methods=["GET"])
+@login_required
+async def get_software_sbom(id: int):
+    """
+    Get SBOM components for a software.
+
+    Path Parameters:
+        - id: Software ID
+
+    Returns:
+        200: List of SBOM components
+        404: Software not found
+
+    Example:
+        GET /api/v1/software/1/sbom
+    """
+    db = current_app.db
+
+    # Validate software exists
+    software, error = await validate_resource_exists(db.software, id, "Software")
+    if error:
+        return error
+
+    def get_components():
+        query = (db.sbom_components.parent_type == "software") & (
+            db.sbom_components.parent_id == id
+        )
+        rows = db(query).select(orderby=db.sbom_components.name)
+        return rows
+
+    rows = await run_in_threadpool(get_components)
+
+    # Convert to DTOs
+    items = from_pydal_rows(rows, SBOMComponentDTO)
+
+    return jsonify([asdict(item) for item in items]), 200
+
+
+@bp.route("/<int:id>/sbom/export", methods=["GET"])
+@login_required
+async def export_software_sbom(id: int):
+    """
+    Export software SBOM in standard format.
+
+    Path Parameters:
+        - id: Software ID
+
+    Query Parameters:
+        - format: Export format (cyclonedx_json, cyclonedx_xml, spdx) - default: cyclonedx_json
+
+    Returns:
+        200: SBOM file content
+        400: Invalid format or no components
+        404: Software not found
+
+    Example:
+        GET /api/v1/software/1/sbom/export?format=cyclonedx_json
+        GET /api/v1/software/1/sbom/export?format=cyclonedx_xml
+        GET /api/v1/software/1/sbom/export?format=spdx
+    """
+    db = current_app.db
+
+    # Validate software exists
+    software, error = await validate_resource_exists(db.software, id, "Software")
+    if error:
+        return error
+
+    # Get format parameter
+    export_format = request.args.get("format", "cyclonedx_json")
+    supported_formats = ["cyclonedx_json", "cyclonedx_xml", "spdx"]
+
+    if export_format not in supported_formats:
+        return ApiResponse.error(
+            f"Invalid format. Supported: {', '.join(supported_formats)}", 400
+        )
+
+    def get_components():
+        query = (db.sbom_components.parent_type == "software") & (
+            db.sbom_components.parent_id == id
+        )
+        rows = db(query).select(orderby=db.sbom_components.name)
+        # Convert rows to dictionaries
+        return [dict(row) for row in rows]
+
+    components = await run_in_threadpool(get_components)
+
+    if not components:
+        return ApiResponse.error("No SBOM components found for this software", 400)
+
+    # Build metadata
+    metadata = {
+        "name": software.name,
+        "version": getattr(software, "version", "unknown"),
+        "description": software.description,
+    }
+
+    # Export based on format
+    try:
+        if export_format == "cyclonedx_json":
+            exporter = CycloneDXExporter()
+            content = exporter.export_json(components, metadata)
+            mimetype = "application/json"
+            filename = f"{software.name.replace(' ', '_')}_sbom_cyclonedx.json"
+
+        elif export_format == "cyclonedx_xml":
+            exporter = CycloneDXExporter()
+            content = exporter.export_xml(components, metadata)
+            mimetype = "application/xml"
+            filename = f"{software.name.replace(' ', '_')}_sbom_cyclonedx.xml"
+
+        else:  # spdx
+            exporter = SPDXExporter()
+            content = exporter.export_json(components, metadata)
+            mimetype = "application/json"
+            filename = f"{software.name.replace(' ', '_')}_sbom_spdx.json"
+
+        # Return as downloadable file
+        return Response(
+            content,
+            mimetype=mimetype,
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+
+    except Exception as e:
+        return ApiResponse.error(f"Failed to export SBOM: {str(e)}", 500)

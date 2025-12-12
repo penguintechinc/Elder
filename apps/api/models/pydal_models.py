@@ -2469,3 +2469,309 @@ def define_all_tables(db):
         ),
         migrate=False,
     )
+
+    # SBOM Components table (depends on: tenants) - v3.0.0: Software Bill of Materials component tracking
+    db.define_table(
+        "sbom_components",
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "parent_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(["service", "software", "sbom_component"]),
+        ),  # Polymorphic reference
+        Field("parent_id", "integer", notnull=True),  # ID of parent resource
+        Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field("version", "string", length=100),
+        Field("purl", "string", length=512),  # Package URL (standardized identifier)
+        Field(
+            "package_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(
+                ["pypi", "npm", "go", "maven", "nuget", "cargo", "gem", "other"]
+            ),
+        ),
+        Field(
+            "scope",
+            "string",
+            length=20,
+            default="runtime",
+            requires=IS_IN_SET(["runtime", "dev", "optional", "test"]),
+        ),
+        Field("direct", "boolean", default=True, notnull=True),  # Direct vs transitive
+        Field("license_id", "string", length=100),  # SPDX identifier
+        Field("license_name", "string", length=255),
+        Field("license_url", "string", length=1024),
+        Field("source_file", "string", length=255),  # File it was parsed from
+        Field("repository_url", "string", length=1024),
+        Field("homepage_url", "string", length=1024),
+        Field("description", "text"),
+        Field("hash_sha256", "string", length=64),
+        Field("hash_sha512", "string", length=128),
+        Field("metadata", "json"),  # Additional package metadata
+        Field("is_active", "boolean", default=True, notnull=True),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
+        migrate=False,
+    )
+
+    # SBOM Scans table (depends on: tenants) - v3.0.0: SBOM scan job tracking
+    db.define_table(
+        "sbom_scans",
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "parent_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(["service", "software"]),
+        ),
+        Field("parent_id", "integer", notnull=True),
+        Field(
+            "scan_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(
+                ["git_clone", "git_api", "manual_upload", "sbom_import"]
+            ),
+        ),
+        Field(
+            "status",
+            "string",
+            length=20,
+            default="pending",
+            notnull=True,
+            requires=IS_IN_SET(["pending", "running", "completed", "failed"]),
+        ),
+        Field("repository_url", "string", length=1024),
+        Field("repository_branch", "string", length=255, default="main"),
+        Field("commit_hash", "string", length=64),
+        Field("files_scanned", "json"),  # List of dependency files found
+        Field("components_found", "integer", default=0),
+        Field("components_added", "integer", default=0),
+        Field("components_updated", "integer", default=0),
+        Field("components_removed", "integer", default=0),
+        Field("error_message", "text"),
+        Field("scan_duration_ms", "integer"),
+        Field("started_at", "datetime"),
+        Field("completed_at", "datetime"),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
+        migrate=False,
+    )
+
+    # Vulnerabilities table (depends on: tenants) - v3.0.0: CVE/vulnerability database
+    db.define_table(
+        "vulnerabilities",
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field("cve_id", "string", length=50, unique=True, notnull=True),
+        Field("aliases", "list:string"),  # GHSA-xxxx, etc.
+        Field(
+            "severity",
+            "string",
+            length=20,
+            default="unknown",
+            notnull=True,
+            requires=IS_IN_SET(["critical", "high", "medium", "low", "unknown"]),
+        ),
+        Field("cvss_score", "decimal(3,1)"),  # 0.0-10.0
+        Field("cvss_vector", "string", length=100),
+        Field("title", "string", length=512),
+        Field("description", "text"),
+        Field("affected_packages", "json"),  # [{purl_pattern, version_range}]
+        Field("fixed_versions", "json"),  # {purl: [fixed_versions]}
+        Field("references", "list:string"),  # Advisory URLs
+        Field("published_at", "datetime"),
+        Field("modified_at", "datetime"),
+        Field(
+            "source",
+            "string",
+            length=50,
+            default="manual",
+            requires=IS_IN_SET(["nvd", "osv", "github_advisory", "manual"]),
+        ),
+        Field("is_active", "boolean", default=True, notnull=True),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
+        migrate=False,
+    )
+
+    # Component Vulnerabilities table (depends on: sbom_components, vulnerabilities, identities) - v3.0.0
+    db.define_table(
+        "component_vulnerabilities",
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "component_id",
+            "reference sbom_components",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "vulnerability_id",
+            "reference vulnerabilities",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "status",
+            "string",
+            length=20,
+            default="open",
+            notnull=True,
+            requires=IS_IN_SET(
+                ["open", "investigating", "false_positive", "remediated", "accepted"]
+            ),
+        ),
+        Field("remediation_notes", "text"),
+        Field("remediated_at", "datetime"),
+        Field("remediated_by_id", "reference identities", ondelete="SET NULL"),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
+    # License Policies table (depends on: tenants, organizations) - v3.0.0: License compliance rules
+    db.define_table(
+        "license_policies",
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "organization_id",
+            "reference organizations",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field("description", "text"),
+        Field("allowed_licenses", "list:string"),  # SPDX IDs
+        Field("denied_licenses", "list:string"),  # SPDX IDs
+        Field(
+            "action",
+            "string",
+            length=10,
+            default="warn",
+            requires=IS_IN_SET(["warn", "block"]),
+        ),
+        Field("is_active", "boolean", default=True, notnull=True),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
+        migrate=False,
+    )
+
+    # SBOM Scan Schedules table (depends on: tenants) - v3.0.0: Periodic scan configuration
+    db.define_table(
+        "sbom_scan_schedules",
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "parent_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(["service", "software"]),
+        ),
+        Field("parent_id", "integer", notnull=True),
+        Field("schedule_cron", "string", length=100, notnull=True),  # Cron expression
+        Field("is_active", "boolean", default=True, notnull=True),
+        Field("last_run_at", "datetime"),
+        Field("next_run_at", "datetime"),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
+        migrate=False,
+    )
