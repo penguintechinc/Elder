@@ -171,6 +171,13 @@ export const queryKeys = {
   auth: {
     guestEnabled: ['guest-enabled'] as const,
   },
+
+  // Vulnerabilities
+  vulnerabilities: {
+    all: ['vulnerabilities'] as const,
+    list: (filters?: Record<string, unknown>) => ['vulnerabilities', filters] as const,
+    detail: (id: number) => ['vulnerabilities', id] as const,
+  },
 } as const
 
 export type QueryKeys = typeof queryKeys

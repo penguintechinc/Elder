@@ -30,6 +30,9 @@ import {
   Server,
   Globe,
   HardDrive,
+  Repeat2,
+  Lock,
+  Bug,
 } from 'lucide-react'
 import api from '@/lib/api'
 
@@ -71,6 +74,7 @@ const navigationCategories = [
       { name: 'Keys', href: '/keys', icon: Key },
       { name: 'Secrets', href: '/secrets', icon: Key },
       { name: 'Certificates', href: '/certificates', icon: FileKey },
+      { name: 'Vulnerabilities', href: '/vulnerabilities', icon: Bug },
     ],
   },
   {
@@ -98,6 +102,8 @@ const adminNavigation = [
   { name: 'Audit Logs', href: '/admin/audit-logs', icon: FileText, roles: ['admin', 'support', 'tenant_admin'] },
   { name: 'Settings', href: '/admin/settings', icon: Settings, roles: ['admin'] },
   { name: 'SSO Config', href: '/admin/sso', icon: Shield, roles: ['admin', 'tenant_admin'] },
+  { name: 'Sync Config', href: '/admin/sync-config', icon: Repeat2, roles: ['admin'] },
+  { name: 'License Policies', href: '/admin/license-policies', icon: Lock, roles: ['admin'] },
   { name: 'Tenants', href: '/admin/tenants', icon: Users, roles: ['admin'] },
 ]
 

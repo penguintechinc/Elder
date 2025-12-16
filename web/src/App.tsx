@@ -33,12 +33,15 @@ import Software from './pages/Software'
 import Services from './pages/Services'
 import DataStores from './pages/DataStores'
 import IPAM from './pages/IPAM'
+import Vulnerabilities from './pages/Vulnerabilities'
 // v2.2.0 Enterprise Admin Pages
 import Tenants from './pages/Tenants'
 import TenantDetail from './pages/TenantDetail'
 import SSOConfiguration from './pages/SSOConfiguration'
 import AuditLogs from './pages/AuditLogs'
 import AdminSettings from './pages/AdminSettings'
+import SyncConfig from './pages/SyncConfig'
+import LicensePolicies from './pages/LicensePolicies'
 // Village ID Redirect
 import VillageIdRedirect from './components/VillageIdRedirect'
 
@@ -89,12 +92,15 @@ export default function App() {
         <Route path="services" element={<Services />} />
         <Route path="data-stores" element={<DataStores />} />
         <Route path="ipam" element={<IPAM />} />
+        <Route path="vulnerabilities" element={<Vulnerabilities />} />
         {/* v2.2.0 Enterprise Admin Routes */}
         <Route path="admin/tenants" element={<Tenants />} />
         <Route path="admin/tenants/:id" element={<TenantDetail />} />
         <Route path="admin/sso" element={<SSOConfiguration />} />
         <Route path="admin/audit-logs" element={<AuditLogs />} />
         <Route path="admin/settings" element={<AdminSettings />} />
+        <Route path="admin/sync-config" element={<SyncConfig />} />
+        <Route path="admin/license-policies" element={<LicensePolicies />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

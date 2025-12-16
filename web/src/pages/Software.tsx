@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Edit, Trash2, Package, Calendar, DollarSign, ExternalLink } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Package, Calendar, DollarSign, ExternalLink, Clock, Play } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
@@ -399,9 +399,11 @@ interface SoftwareDetailModalProps {
 }
 
 function SoftwareDetailModal({ software, onClose, onEdit }: SoftwareDetailModalProps) {
+  const [activeTab, setActiveTab] = useState<'details' | 'schedules'>('details')
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <CardHeader>
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-white">{software.name}</h2>
@@ -410,63 +412,252 @@ function SoftwareDetailModal({ software, onClose, onEdit }: SoftwareDetailModalP
               Edit
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-slate-500 uppercase">Vendor</label>
-                <p className="text-white">{software.vendor || '-'}</p>
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 uppercase">Type</label>
-                <p className="text-white capitalize">{software.software_type?.replace('_', ' ') || '-'}</p>
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 uppercase">Version</label>
-                <p className="text-white">{software.version || '-'}</p>
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 uppercase">Seats</label>
-                <p className="text-white">{software.seats || '-'}</p>
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 uppercase">Monthly Cost</label>
-                <p className="text-white">{formatCurrency(software.cost_monthly)}</p>
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 uppercase">Renewal Date</label>
-                <p className="text-white">
-                  {software.renewal_date
-                    ? new Date(software.renewal_date).toLocaleDateString()
-                    : '-'}
-                </p>
-              </div>
-            </div>
-
-            {software.license_url && (
-              <div>
-                <label className="text-xs text-slate-500 uppercase">License URL</label>
-                <a
-                  href={software.license_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-primary-400 hover:text-primary-300"
-                >
-                  {software.license_url}
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            )}
-
-            <div className="flex justify-end pt-4">
-              <Button variant="ghost" onClick={onClose}>
-                Close
-              </Button>
-            </div>
+          <div className="flex gap-4 mt-4">
+            <button
+              onClick={() => setActiveTab('details')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'details'
+                  ? 'border-primary-500 text-primary-400'
+                  : 'border-transparent text-slate-400 hover:text-white'
+              }`}
+            >
+              Details
+            </button>
+            <button
+              onClick={() => setActiveTab('schedules')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'schedules'
+                  ? 'border-primary-500 text-primary-400'
+                  : 'border-transparent text-slate-400 hover:text-white'
+              }`}
+            >
+              SBOM Schedules
+            </button>
           </div>
+        </CardHeader>
+        <CardContent className="overflow-y-auto flex-1">
+          {activeTab === 'details' ? (
+            <SoftwareDetailsTab software={software} />
+          ) : (
+            <SoftwareSchedulesTab software={software} />
+          )}
         </CardContent>
+        <div className="border-t border-slate-700 p-4 flex justify-end">
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+        </div>
       </Card>
+    </div>
+  )
+}
+
+function SoftwareDetailsTab({ software }: { software: any }) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-xs text-slate-500 uppercase">Vendor</label>
+          <p className="text-white">{software.vendor || '-'}</p>
+        </div>
+        <div>
+          <label className="text-xs text-slate-500 uppercase">Type</label>
+          <p className="text-white capitalize">{software.software_type?.replace('_', ' ') || '-'}</p>
+        </div>
+        <div>
+          <label className="text-xs text-slate-500 uppercase">Version</label>
+          <p className="text-white">{software.version || '-'}</p>
+        </div>
+        <div>
+          <label className="text-xs text-slate-500 uppercase">Seats</label>
+          <p className="text-white">{software.seats || '-'}</p>
+        </div>
+        <div>
+          <label className="text-xs text-slate-500 uppercase">Monthly Cost</label>
+          <p className="text-white">{formatCurrency(software.cost_monthly)}</p>
+        </div>
+        <div>
+          <label className="text-xs text-slate-500 uppercase">Renewal Date</label>
+          <p className="text-white">
+            {software.renewal_date
+              ? new Date(software.renewal_date).toLocaleDateString()
+              : '-'}
+          </p>
+        </div>
+      </div>
+
+      {software.license_url && (
+        <div>
+          <label className="text-xs text-slate-500 uppercase">License URL</label>
+          <a
+            href={software.license_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-primary-400 hover:text-primary-300"
+          >
+            {software.license_url}
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SoftwareSchedulesTab({ software }: { software: any }) {
+  const [showCreateSchedule, setShowCreateSchedule] = useState(false)
+  const queryClient = useQueryClient()
+
+  const { data: schedules, isLoading } = useQuery({
+    queryKey: ['sbom-schedules', software.id],
+    queryFn: () => api.getSBOMSchedules({
+      resource_type: 'software',
+      resource_id: software.id
+    }),
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => api.createSBOMSchedule({
+      resource_type: 'software',
+      resource_id: software.id,
+      ...data
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sbom-schedules', software.id] })
+      toast.success('Schedule created successfully')
+      setShowCreateSchedule(false)
+    },
+    onError: () => toast.error('Failed to create schedule'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.deleteSBOMSchedule(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sbom-schedules', software.id] })
+      toast.success('Schedule deleted successfully')
+    },
+    onError: () => toast.error('Failed to delete schedule'),
+  })
+
+  const runMutation = useMutation({
+    mutationFn: (id: number) => api.runSBOMScheduleNow(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sbom-schedules', software.id] })
+      toast.success('SBOM generation started')
+    },
+    onError: () => toast.error('Failed to start SBOM generation'),
+  })
+
+  const scheduleFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'schedule_type',
+        label: 'Schedule Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'cron', label: 'Cron Expression' },
+          { value: 'interval', label: 'Interval (Hours)' },
+        ],
+        defaultValue: 'interval',
+      },
+      {
+        name: 'cron_expression',
+        label: 'Cron Expression (if cron type)',
+        type: 'text',
+        placeholder: '0 0 * * *',
+      },
+      {
+        name: 'interval_hours',
+        label: 'Interval Hours (if interval type)',
+        type: 'number',
+        placeholder: '24',
+      },
+      {
+        name: 'enabled',
+        label: 'Enable schedule',
+        type: 'checkbox',
+        defaultValue: true,
+      },
+    ],
+  }
+
+  if (isLoading) {
+    return <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" /></div>
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-white">SBOM Generation Schedules</h3>
+        <Button size="sm" onClick={() => setShowCreateSchedule(true)}>
+          <Plus className="w-3 h-3 mr-1" />
+          Add Schedule
+        </Button>
+      </div>
+
+      {!schedules?.items || schedules.items.length === 0 ? (
+        <div className="text-center py-8">
+          <Clock className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+          <p className="text-slate-400">No SBOM schedules configured</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {schedules.items.map((schedule: any) => (
+            <div key={schedule.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded border border-slate-700">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="w-4 h-4 text-primary-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-white capitalize">
+                    {schedule.schedule_type === 'cron' ? 'Cron' : 'Interval'}
+                  </span>
+                  {schedule.enabled ? (
+                    <span className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">Enabled</span>
+                  ) : (
+                    <span className="text-xs px-2 py-0.5 rounded bg-slate-500/20 text-slate-400">Disabled</span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400">
+                  {schedule.schedule_type === 'cron' ? schedule.cron_expression : `Every ${schedule.interval_hours} hours`}
+                </p>
+                {schedule.last_run && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Last run: {new Date(schedule.last_run).toLocaleString()}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => runMutation.mutate(schedule.id)}
+                  disabled={runMutation.isPending}
+                  className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors disabled:opacity-50"
+                  title="Run now"
+                >
+                  <Play className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => deleteMutation.mutate(schedule.id)}
+                  disabled={deleteMutation.isPending}
+                  className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showCreateSchedule && (
+        <ModalFormBuilder
+          title="Create SBOM Schedule"
+          config={scheduleFormConfig}
+          onSubmit={(data) => createMutation.mutate(data)}
+          onClose={() => setShowCreateSchedule(false)}
+          isLoading={createMutation.isPending}
+          submitLabel="Create"
+        />
+      )}
     </div>
   )
 }

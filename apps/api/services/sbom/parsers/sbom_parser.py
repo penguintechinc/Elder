@@ -7,7 +7,7 @@ and JSON format for SPDX.
 
 import json
 import re
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 from typing import Any, Dict, List, Optional
 
 from ..base import BaseDependencyParser

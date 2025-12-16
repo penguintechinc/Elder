@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Shield, Users, User, Bot, Cloud, RefreshCw, Search, Link2, Trash2, Building2, Box, Server } from 'lucide-react'
+import { Plus, Shield, Users, User, Bot, Cloud, RefreshCw, Search, Link2, Trash2, Building2, Box, Server, Check, X, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
@@ -12,7 +12,7 @@ import GroupMembershipManager from '@/components/GroupMembershipManager'
 import { FormConfig } from '@/types/form'
 import { getStatusColor } from '@/lib/colorHelpers'
 
-const TABS = ['All Identities', 'Providers', 'Groups & Roles', 'Relationships'] as const
+const TABS = ['All Identities', 'Providers', 'Groups & Roles', 'Pending Approvals', 'Relationships'] as const
 type Tab = typeof TABS[number]
 
 const PROVIDER_TYPES = [
@@ -33,6 +33,141 @@ const IDENTITY_TYPES = [
   { value: 'otherHuman', label: 'Other Human', icon: User, color: 'slate' },
   { value: 'other', label: 'Other', icon: User, color: 'slate' },
 ]
+
+// PendingApprovalsTab - Displays pending group membership requests
+function PendingApprovalsTab() {
+  const { data: pendingRequests, isLoading } = useQuery({
+    queryKey: ['pending-group-requests'],
+    queryFn: () => api.getPendingGroupAccessRequests({ limit: 100 }),
+  })
+
+  const queryClient = useQueryClient()
+
+  const approveMutation = useMutation({
+    mutationFn: (requestId: number) => api.approveGroupAccessRequest(requestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-group-requests'] })
+      toast.success('Request approved')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to approve request')
+    },
+  })
+
+  const denyMutation = useMutation({
+    mutationFn: (requestId: number) => api.denyGroupAccessRequest(requestId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-group-requests'] })
+      toast.success('Request denied')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to deny request')
+    },
+  })
+
+  const requests = pendingRequests?.requests || []
+  const pendingCount = requests.filter((r: any) => r.status === 'pending').length
+
+  return (
+    <div className="space-y-4">
+      {/* Header with stats */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-slate-400 text-sm">Pending Approval Requests</p>
+              <p className="text-3xl font-bold text-white">{pendingCount}</p>
+            </div>
+            <Clock className="w-12 h-12 text-yellow-400 opacity-20" />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Requests List */}
+      <Card>
+        <CardHeader>
+          <h3 className="text-lg font-semibold text-white">Group Membership Requests</h3>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <RefreshCw className="w-6 h-6 text-slate-400 animate-spin" />
+            </div>
+          ) : requests.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+              <p className="text-slate-400">No pending approval requests</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {requests.map((request: any) => (
+                <div key={request.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-blue-400" />
+                        <p className="text-white font-medium">{request.requester_name || `User #${request.identity_id}`}</p>
+                      </div>
+                      <span className={`px-2 py-1 text-xs font-medium rounded flex items-center gap-1 ${
+                        request.status === 'pending'
+                          ? 'bg-yellow-500/20 text-yellow-400'
+                          : request.status === 'approved'
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {request.status === 'pending' && <Clock className="w-3 h-3" />}
+                        {request.status === 'approved' && <Check className="w-3 h-3" />}
+                        {request.status === 'denied' && <X className="w-3 h-3" />}
+                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 text-sm text-slate-400">
+                      <div>
+                        <span className="text-slate-500">Group:</span> {request.group_name || `Group #${request.group_id}`}
+                      </div>
+                      <div>
+                        <span className="text-slate-500">Requested:</span> {new Date(request.created_at).toLocaleDateString()}
+                      </div>
+                      {request.reason && (
+                        <div>
+                          <span className="text-slate-500">Reason:</span> {request.reason}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {request.status === 'pending' && (
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => approveMutation.mutate(request.id)}
+                        className="text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                        disabled={approveMutation.isPending || denyMutation.isPending}
+                      >
+                        <Check className="w-4 h-4 mr-1" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => denyMutation.mutate(request.id)}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        disabled={approveMutation.isPending || denyMutation.isPending}
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Deny
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
 // IdentityRelationshipsTab - Displays identity-to-resource relationships using the dependencies API
 function IdentityRelationshipsTab() {
@@ -325,6 +460,13 @@ export default function IAM() {
   const [selectedIdentity, setSelectedIdentity] = useState<any>(null)
   const [modalType, setModalType] = useState<'identity' | 'provider'>('identity')
   const queryClient = useQueryClient()
+
+  // Fetch pending approvals count
+  const { data: pendingRequests } = useQuery({
+    queryKey: ['pending-group-requests'],
+    queryFn: () => api.getPendingGroupAccessRequests({ limit: 100 }),
+  })
+  const pendingCount = (pendingRequests?.requests || []).filter((r: any) => r.status === 'pending').length
 
   // Provider form state (keeping these for provider modal which has complex conditional fields)
   const [providerName, setProviderName] = useState('')
@@ -874,13 +1016,18 @@ export default function IAM() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 font-medium transition-colors border-b-2 ${
+            className={`px-4 py-2 font-medium transition-colors border-b-2 flex items-center gap-2 ${
               activeTab === tab
                 ? 'text-primary-400 border-primary-400'
                 : 'text-slate-400 border-transparent hover:text-slate-300'
             }`}
           >
             {tab}
+            {tab === 'Pending Approvals' && pendingCount > 0 && (
+              <span className="ml-2 px-2 py-0.5 text-xs font-bold bg-red-500/20 text-red-400 rounded-full">
+                {pendingCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -1132,6 +1279,11 @@ export default function IAM() {
       {/* Groups & Roles Tab */}
       {activeTab === 'Groups & Roles' && (
         <GroupMembershipManager />
+      )}
+
+      {/* Pending Approvals Tab */}
+      {activeTab === 'Pending Approvals' && (
+        <PendingApprovalsTab />
       )}
 
       {/* Relationships Tab */}

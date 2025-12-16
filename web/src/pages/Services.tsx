@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, Edit, Trash2, Server, Globe, Lock, ExternalLink } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Server, Globe, Lock, ExternalLink, Clock, Play } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
@@ -468,9 +468,11 @@ interface ServiceDetailsModalProps {
 }
 
 function ServiceDetailsModal({ service, onClose, onEdit }: ServiceDetailsModalProps) {
+  const [activeTab, setActiveTab] = useState<'details' | 'schedules'>('details')
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -489,71 +491,262 @@ function ServiceDetailsModal({ service, onClose, onEdit }: ServiceDetailsModalPr
               <Edit className="w-4 h-4" />
             </button>
           </div>
+          <div className="flex gap-4 mt-4">
+            <button
+              onClick={() => setActiveTab('details')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'details'
+                  ? 'border-primary-500 text-primary-400'
+                  : 'border-transparent text-slate-400 hover:text-white'
+              }`}
+            >
+              Details
+            </button>
+            <button
+              onClick={() => setActiveTab('schedules')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'schedules'
+                  ? 'border-primary-500 text-primary-400'
+                  : 'border-transparent text-slate-400 hover:text-white'
+              }`}
+            >
+              SBOM Schedules
+            </button>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {service.description && (
-            <p className="text-sm text-slate-400">{service.description}</p>
+        <CardContent className="overflow-y-auto flex-1">
+          {activeTab === 'details' ? (
+            <ServiceDetailsTab service={service} />
+          ) : (
+            <ServiceSchedulesTab service={service} />
           )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-slate-500 uppercase">Status</label>
-              <div className="mt-1">
-                <span className={`text-sm px-2 py-1 rounded ${getStatusColor(service.status)}`}>
-                  {service.status}
-                </span>
-              </div>
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 uppercase">Language</label>
-              <p className="text-sm text-white mt-1">{service.language}</p>
-            </div>
-            <div>
-              <label className="text-xs text-slate-500 uppercase">Deployment</label>
-              <p className="text-sm text-white mt-1">{service.deployment_method}</p>
-            </div>
-            {service.port && (
-              <div>
-                <label className="text-xs text-slate-500 uppercase">Port</label>
-                <p className="text-sm text-white mt-1">{service.port}</p>
-              </div>
-            )}
-          </div>
-
-          {service.domains && service.domains.length > 0 && (
-            <div>
-              <label className="text-xs text-slate-500 uppercase">Domains</label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {service.domains.map((domain: string, idx: number) => (
-                  <span key={idx} className="text-sm px-2 py-1 rounded bg-primary-500/20 text-primary-400 flex items-center gap-1">
-                    {domain}
-                    <ExternalLink className="w-3 h-3" />
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {service.paths && service.paths.length > 0 && (
-            <div>
-              <label className="text-xs text-slate-500 uppercase">Paths</label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {service.paths.map((path: string, idx: number) => (
-                  <span key={idx} className="text-sm px-2 py-1 rounded bg-slate-700 text-slate-300">
-                    {path}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-700">
-            <Button variant="ghost" onClick={onClose}>
-              Close
-            </Button>
-          </div>
         </CardContent>
+        <div className="border-t border-slate-700 p-4 flex justify-end">
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+        </div>
       </Card>
+    </div>
+  )
+}
+
+function ServiceDetailsTab({ service }: { service: any }) {
+  return (
+    <div className="space-y-4">
+      {service.description && (
+        <p className="text-sm text-slate-400">{service.description}</p>
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-xs text-slate-500 uppercase">Status</label>
+          <div className="mt-1">
+            <span className={`text-sm px-2 py-1 rounded ${getStatusColor(service.status)}`}>
+              {service.status}
+            </span>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs text-slate-500 uppercase">Language</label>
+          <p className="text-sm text-white mt-1">{service.language}</p>
+        </div>
+        <div>
+          <label className="text-xs text-slate-500 uppercase">Deployment</label>
+          <p className="text-sm text-white mt-1">{service.deployment_method}</p>
+        </div>
+        {service.port && (
+          <div>
+            <label className="text-xs text-slate-500 uppercase">Port</label>
+            <p className="text-sm text-white mt-1">{service.port}</p>
+          </div>
+        )}
+      </div>
+
+      {service.domains && service.domains.length > 0 && (
+        <div>
+          <label className="text-xs text-slate-500 uppercase">Domains</label>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {service.domains.map((domain: string, idx: number) => (
+              <span key={idx} className="text-sm px-2 py-1 rounded bg-primary-500/20 text-primary-400 flex items-center gap-1">
+                {domain}
+                <ExternalLink className="w-3 h-3" />
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {service.paths && service.paths.length > 0 && (
+        <div>
+          <label className="text-xs text-slate-500 uppercase">Paths</label>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {service.paths.map((path: string, idx: number) => (
+              <span key={idx} className="text-sm px-2 py-1 rounded bg-slate-700 text-slate-300">
+                {path}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ServiceSchedulesTab({ service }: { service: any }) {
+  const [showCreateSchedule, setShowCreateSchedule] = useState(false)
+  const queryClient = useQueryClient()
+
+  const { data: schedules, isLoading } = useQuery({
+    queryKey: ['sbom-schedules', service.id],
+    queryFn: () => api.getSBOMSchedules({
+      resource_type: 'service',
+      resource_id: service.id
+    }),
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => api.createSBOMSchedule({
+      resource_type: 'service',
+      resource_id: service.id,
+      ...data
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sbom-schedules', service.id] })
+      toast.success('Schedule created successfully')
+      setShowCreateSchedule(false)
+    },
+    onError: () => toast.error('Failed to create schedule'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.deleteSBOMSchedule(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sbom-schedules', service.id] })
+      toast.success('Schedule deleted successfully')
+    },
+    onError: () => toast.error('Failed to delete schedule'),
+  })
+
+  const runMutation = useMutation({
+    mutationFn: (id: number) => api.runSBOMScheduleNow(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sbom-schedules', service.id] })
+      toast.success('SBOM generation started')
+    },
+    onError: () => toast.error('Failed to start SBOM generation'),
+  })
+
+  const scheduleFormConfig: FormConfig = {
+    fields: [
+      {
+        name: 'schedule_type',
+        label: 'Schedule Type',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'cron', label: 'Cron Expression' },
+          { value: 'interval', label: 'Interval (Hours)' },
+        ],
+        defaultValue: 'interval',
+      },
+      {
+        name: 'cron_expression',
+        label: 'Cron Expression (if cron type)',
+        type: 'text',
+        placeholder: '0 0 * * *',
+      },
+      {
+        name: 'interval_hours',
+        label: 'Interval Hours (if interval type)',
+        type: 'number',
+        placeholder: '24',
+      },
+      {
+        name: 'enabled',
+        label: 'Enable schedule',
+        type: 'checkbox',
+        defaultValue: true,
+      },
+    ],
+  }
+
+  if (isLoading) {
+    return <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" /></div>
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-white">SBOM Generation Schedules</h3>
+        <Button size="sm" onClick={() => setShowCreateSchedule(true)}>
+          <Plus className="w-3 h-3 mr-1" />
+          Add Schedule
+        </Button>
+      </div>
+
+      {!schedules?.items || schedules.items.length === 0 ? (
+        <div className="text-center py-8">
+          <Clock className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+          <p className="text-slate-400">No SBOM schedules configured</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {schedules.items.map((schedule: any) => (
+            <div key={schedule.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded border border-slate-700">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="w-4 h-4 text-primary-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-white capitalize">
+                    {schedule.schedule_type === 'cron' ? 'Cron' : 'Interval'}
+                  </span>
+                  {schedule.enabled ? (
+                    <span className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400">Enabled</span>
+                  ) : (
+                    <span className="text-xs px-2 py-0.5 rounded bg-slate-500/20 text-slate-400">Disabled</span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400">
+                  {schedule.schedule_type === 'cron' ? schedule.cron_expression : `Every ${schedule.interval_hours} hours`}
+                </p>
+                {schedule.last_run && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Last run: {new Date(schedule.last_run).toLocaleString()}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => runMutation.mutate(schedule.id)}
+                  disabled={runMutation.isPending}
+                  className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded transition-colors disabled:opacity-50"
+                  title="Run now"
+                >
+                  <Play className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => deleteMutation.mutate(schedule.id)}
+                  disabled={deleteMutation.isPending}
+                  className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showCreateSchedule && (
+        <ModalFormBuilder
+          title="Create SBOM Schedule"
+          config={scheduleFormConfig}
+          onSubmit={(data) => createMutation.mutate(data)}
+          onClose={() => setShowCreateSchedule(false)}
+          isLoading={createMutation.isPending}
+          submitLabel="Create"
+        />
+      )}
     </div>
   )
 }

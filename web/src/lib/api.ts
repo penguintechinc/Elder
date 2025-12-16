@@ -1846,6 +1846,113 @@ class ApiClient {
     const response = await this.client.get('/logs/search', { params: { q: query } })
     return response.data
   }
+
+  // SBOM Schedule Management
+  async getSBOMSchedules(params?: {
+    resource_type?: string
+    resource_id?: number
+    status?: string
+  }) {
+    const response = await this.client.get('/sbom/schedules', { params })
+    return response.data
+  }
+
+  async getSBOMSchedule(id: number) {
+    const response = await this.client.get(`/sbom/schedules/${id}`)
+    return response.data
+  }
+
+  async createSBOMSchedule(data: {
+    resource_type: string
+    resource_id: number
+    schedule_type: string
+    cron_expression?: string
+    interval_hours?: number
+    enabled?: boolean
+  }) {
+    const response = await this.client.post('/sbom/schedules', data)
+    return response.data
+  }
+
+  async updateSBOMSchedule(id: number, data: Partial<{
+    schedule_type: string
+    cron_expression: string
+    interval_hours: number
+    enabled: boolean
+  }>) {
+    const response = await this.client.put(`/sbom/schedules/${id}`, data)
+    return response.data
+  }
+
+  async deleteSBOMSchedule(id: number) {
+    const response = await this.client.delete(`/sbom/schedules/${id}`)
+    return response.data
+  }
+
+  async runSBOMScheduleNow(id: number) {
+    const response = await this.client.post(`/sbom/schedules/${id}/run`)
+    return response.data
+  }
+
+  // License Policies
+  async getLicensePolicies(params?: { page?: number; per_page?: number; search?: string }) {
+    const response = await this.client.get('/admin/license-policies', { params })
+    return response.data
+  }
+
+  async getLicensePolicy(id: number) {
+    const response = await this.client.get(`/admin/license-policies/${id}`)
+    return response.data
+  }
+
+  async createLicensePolicy(data: {
+    name: string
+    description?: string
+    allowed_patterns?: string
+    denied_patterns?: string
+    is_active?: boolean
+  }) {
+    const response = await this.client.post('/admin/license-policies', data)
+    return response.data
+  }
+
+  async updateLicensePolicy(id: number, data: Partial<{
+    name: string
+    description: string
+    allowed_patterns: string
+    denied_patterns: string
+    is_active: boolean
+  }>) {
+    const response = await this.client.put(`/admin/license-policies/${id}`, data)
+    return response.data
+  }
+
+  async deleteLicensePolicy(id: number) {
+    const response = await this.client.delete(`/admin/license-policies/${id}`)
+    return response.data
+  }
+
+  // Vulnerabilities
+  async getVulnerabilities(params?: {
+    page?: number
+    per_page?: number
+    search?: string
+    severity?: string
+    status?: string
+  }) {
+    const response = await this.client.get('/vulnerabilities', { params })
+    return response.data
+  }
+
+  async getVulnerability(id: number) {
+    const response = await this.client.get(`/vulnerabilities/${id}`)
+    return response.data
+  }
+
+  async updateVulnerabilityStatus(id: number, data: Partial<{ status: string }>) {
+    const response = await this.client.patch(`/vulnerabilities/${id}`, data)
+    return response.data
+  }
 }
 
 export const api = new ApiClient()
