@@ -1,4 +1,11 @@
-"""Elder gRPC servicer implementation."""
+"""Elder gRPC servicer implementation.
+
+NOTE: This servicer is currently a stub. The original implementation assumed SQLAlchemy
+ORM models, but Elder uses PyDAL. The servicer methods need to be rewritten to use
+PyDAL operations via the apps.api.api.v1 services.
+
+For now, all methods return UNIMPLEMENTED status until proper PyDAL integration is done.
+"""
 
 from datetime import datetime
 from typing import Optional
@@ -16,8 +23,7 @@ from apps.api.grpc.generated import (
     graph_pb2,
     organization_pb2,
 )
-from apps.api.models import Organization
-from shared.database import db
+from apps.api.models import OrganizationDTO
 
 logger = structlog.get_logger(__name__)
 
@@ -194,30 +200,10 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
     def ListOrganizations(self, request, context):
         """List organizations with pagination and filters."""
         try:
-            # Get pagination params
-            page = request.pagination.page or 1
-            per_page = request.pagination.per_page or 50
-
-            # Build query
-            query = Organization.query
-
-            # Apply parent_id filter if provided
-            if request.parent_id:
-                query = query.filter(Organization.parent_id == request.parent_id)
-
-            # Get total count
-            total = query.count()
-
-            # Apply pagination
-            orgs = query.offset((page - 1) * per_page).limit(per_page).all()
-
-            # Convert to protobuf
-            org_protos = [organization_to_proto(org) for org in orgs]
-
-            return organization_pb2.ListOrganizationsResponse(
-                organizations=org_protos,
-                pagination=self._create_pagination_response(page, per_page, total),
-            )
+            # TODO: Implement with PyDAL - needs integration with apps.api.api.v1.organizations
+            context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+            context.set_details("ListOrganizations not yet implemented for PyDAL")
+            return organization_pb2.ListOrganizationsResponse()
         except Exception as e:
             self._handle_exception(context, e, "list_organizations")
             return organization_pb2.ListOrganizationsResponse()
@@ -225,15 +211,10 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
     def GetOrganization(self, request, context):
         """Get organization by ID."""
         try:
-            org = Organization.query.get(request.id)
-            if not org:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Organization {request.id} not found")
-                return organization_pb2.GetOrganizationResponse()
-
-            return organization_pb2.GetOrganizationResponse(
-                organization=organization_to_proto(org)
-            )
+            # TODO: Implement with PyDAL - needs integration with apps.api.api.v1.organizations
+            context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+            context.set_details("GetOrganization not yet implemented for PyDAL")
+            return organization_pb2.GetOrganizationResponse()
         except Exception as e:
             self._handle_exception(context, e, "get_organization")
             return organization_pb2.GetOrganizationResponse()
@@ -241,100 +222,33 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
     def CreateOrganization(self, request, context):
         """Create new organization."""
         try:
-            # Create organization
-            org = Organization(
-                parent_id=request.parent_id if request.parent_id else None,
-                name=request.name,
-                description=request.description,
-                ldap_dn=request.ldap_dn if request.ldap_dn else None,
-                saml_group=request.saml_group if request.saml_group else None,
-                owner_identity_id=(
-                    request.owner_identity_id if request.owner_identity_id else None
-                ),
-                owner_group_id=(
-                    request.owner_group_id if request.owner_group_id else None
-                ),
-                metadata=dict(request.metadata) if request.metadata else {},
-            )
-
-            db.session.add(org)
-            db.session.commit()
-
-            logger.info("grpc_organization_created", org_id=org.id, name=org.name)
-
-            return organization_pb2.CreateOrganizationResponse(
-                organization=organization_to_proto(org)
-            )
+            # TODO: Implement with PyDAL - needs integration with apps.api.api.v1.organizations
+            context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+            context.set_details("CreateOrganization not yet implemented for PyDAL")
+            return organization_pb2.CreateOrganizationResponse()
         except Exception as e:
-            db.session.rollback()
             self._handle_exception(context, e, "create_organization")
             return organization_pb2.CreateOrganizationResponse()
 
     def UpdateOrganization(self, request, context):
         """Update existing organization."""
         try:
-            org = Organization.query.get(request.id)
-            if not org:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Organization {request.id} not found")
-                return organization_pb2.UpdateOrganizationResponse()
-
-            # Update fields if provided (proto3 optional fields)
-            if request.HasField("parent_id"):
-                org.parent_id = request.parent_id if request.parent_id else None
-            if request.HasField("name"):
-                org.name = request.name
-            if request.HasField("description"):
-                org.description = request.description
-            if request.HasField("ldap_dn"):
-                org.ldap_dn = request.ldap_dn if request.ldap_dn else None
-            if request.HasField("saml_group"):
-                org.saml_group = request.saml_group if request.saml_group else None
-            if request.HasField("owner_identity_id"):
-                org.owner_identity_id = (
-                    request.owner_identity_id if request.owner_identity_id else None
-                )
-            if request.HasField("owner_group_id"):
-                org.owner_group_id = (
-                    request.owner_group_id if request.owner_group_id else None
-                )
-            if request.metadata:
-                org.metadata = dict(request.metadata)
-
-            db.session.commit()
-
-            logger.info("grpc_organization_updated", org_id=org.id)
-
-            return organization_pb2.UpdateOrganizationResponse(
-                organization=organization_to_proto(org)
-            )
+            # TODO: Implement with PyDAL - needs integration with apps.api.api.v1.organizations
+            context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+            context.set_details("UpdateOrganization not yet implemented for PyDAL")
+            return organization_pb2.UpdateOrganizationResponse()
         except Exception as e:
-            db.session.rollback()
             self._handle_exception(context, e, "update_organization")
             return organization_pb2.UpdateOrganizationResponse()
 
     def DeleteOrganization(self, request, context):
         """Delete organization."""
         try:
-            org = Organization.query.get(request.id)
-            if not org:
-                context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Organization {request.id} not found")
-                return organization_pb2.DeleteOrganizationResponse()
-
-            db.session.delete(org)
-            db.session.commit()
-
-            logger.info("grpc_organization_deleted", org_id=request.id)
-
-            return organization_pb2.DeleteOrganizationResponse(
-                status=self._create_status_response(
-                    success=True,
-                    message=f"Organization {request.id} deleted successfully",
-                )
-            )
+            # TODO: Implement with PyDAL - needs integration with apps.api.api.v1.organizations
+            context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+            context.set_details("DeleteOrganization not yet implemented for PyDAL")
+            return organization_pb2.DeleteOrganizationResponse()
         except Exception as e:
-            db.session.rollback()
             self._handle_exception(context, e, "delete_organization")
             return organization_pb2.DeleteOrganizationResponse()
 

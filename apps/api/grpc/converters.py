@@ -1,10 +1,10 @@
-"""Converters between database models and protobuf messages."""
+"""Converters between DTOs and protobuf messages."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from apps.api.grpc.generated import auth_pb2, common_pb2, entity_pb2, organization_pb2
-from apps.api.models import Dependency, Entity, Identity, Organization
+from apps.api.models import DependencyDTO, EntityDTO, IdentityDTO, OrganizationDTO
 
 
 def datetime_to_timestamp(dt: Optional[datetime]) -> common_pb2.Timestamp:
@@ -50,8 +50,8 @@ def dict_to_metadata_fields(data: dict) -> List[common_pb2.MetadataField]:
     return fields
 
 
-def organization_to_proto(org: Organization) -> organization_pb2.Organization:
-    """Convert Organization model to protobuf message."""
+def organization_to_proto(org: OrganizationDTO) -> organization_pb2.Organization:
+    """Convert OrganizationDTO to protobuf message."""
     return organization_pb2.Organization(
         id=org.id,
         parent_id=org.parent_id or 0,
@@ -61,7 +61,7 @@ def organization_to_proto(org: Organization) -> organization_pb2.Organization:
         saml_group=org.saml_group or "",
         owner_identity_id=org.owner_identity_id or 0,
         owner_group_id=org.owner_group_id or 0,
-        metadata=dict_to_metadata_fields(org.metadata or {}),
+        metadata=[],  # DTOs don't have metadata dict, would need to fetch separately
         created_at=datetime_to_timestamp(org.created_at),
         updated_at=datetime_to_timestamp(org.updated_at),
     )
@@ -95,20 +95,20 @@ def entity_type_from_proto(entity_type: entity_pb2.EntityType) -> str:
     return mapping.get(entity_type, "datacenter")
 
 
-def entity_to_proto(entity: Entity) -> entity_pb2.Entity:
-    """Convert Entity model to protobuf message."""
+def entity_to_proto(entity: EntityDTO) -> entity_pb2.Entity:
+    """Convert EntityDTO to protobuf message."""
     return entity_pb2.Entity(
         id=entity.id,
-        unique_id=entity.unique_id or "",
+        unique_id=entity.village_id or "",
         organization_id=entity.organization_id,
         entity_type=entity_type_to_proto(entity.entity_type),
         name=entity.name,
         description=entity.description or "",
-        metadata=dict_to_metadata_fields(entity.metadata or {}),
-        owner_identity_id=entity.owner_identity_id or 0,
+        metadata=dict_to_metadata_fields(entity.attributes or {}),
+        owner_identity_id=0,  # DTOs don't have this field
         created_at=datetime_to_timestamp(entity.created_at),
         updated_at=datetime_to_timestamp(entity.updated_at),
-        organization_name=entity.organization.name if entity.organization else "",
+        organization_name="",  # Would need to fetch separately
     )
 
 
@@ -132,23 +132,18 @@ def dependency_type_from_proto(dep_type: entity_pb2.DependencyType) -> str:
     return mapping.get(dep_type, "depends_on")
 
 
-def dependency_to_proto(dep: Dependency) -> entity_pb2.Dependency:
-    """Convert Dependency model to protobuf message."""
+def dependency_to_proto(dep: DependencyDTO) -> entity_pb2.Dependency:
+    """Convert DependencyDTO to protobuf message."""
     proto = entity_pb2.Dependency(
         id=dep.id,
-        source_entity_id=dep.source_entity_id,
-        target_entity_id=dep.target_entity_id,
+        source_entity_id=dep.source_id,
+        target_entity_id=dep.target_id,
         dependency_type=dependency_type_to_proto(dep.dependency_type),
         metadata=dict_to_metadata_fields(dep.metadata or {}),
         created_at=datetime_to_timestamp(dep.created_at),
     )
 
-    # Optionally include entity details
-    if dep.source_entity:
-        proto.source_entity.CopyFrom(entity_to_proto(dep.source_entity))
-    if dep.target_entity:
-        proto.target_entity.CopyFrom(entity_to_proto(dep.target_entity))
-
+    # Note: DTOs don't include related entities - would need to fetch separately
     return proto
 
 
@@ -172,19 +167,19 @@ def auth_provider_to_proto(auth_provider: str) -> auth_pb2.AuthProvider:
     return mapping.get(auth_provider, auth_pb2.AuthProvider.AUTH_PROVIDER_UNSPECIFIED)
 
 
-def identity_to_proto(identity: Identity) -> auth_pb2.Identity:
-    """Convert Identity model to protobuf message."""
+def identity_to_proto(identity: IdentityDTO) -> auth_pb2.Identity:
+    """Convert IdentityDTO to protobuf message."""
     return auth_pb2.Identity(
         id=identity.id,
         identity_type=identity_type_to_proto(identity.identity_type),
         username=identity.username,
         email=identity.email or "",
-        display_name=identity.display_name or "",
+        display_name=identity.full_name or "",
         auth_provider=auth_provider_to_proto(identity.auth_provider),
         auth_provider_id=identity.auth_provider_id or "",
         is_active=identity.is_active,
         is_superuser=identity.is_superuser,
-        last_login=datetime_to_timestamp(identity.last_login),
+        last_login=datetime_to_timestamp(identity.last_login_at),
         created_at=datetime_to_timestamp(identity.created_at),
         updated_at=datetime_to_timestamp(identity.updated_at),
     )
