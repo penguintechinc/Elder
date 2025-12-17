@@ -9,6 +9,7 @@ import json
 import re
 import defusedxml.ElementTree as ET
 from typing import Any, Dict, List, Optional
+from xml.etree.ElementTree import Element  # For type hints only
 
 from ..base import BaseDependencyParser
 
@@ -246,7 +247,7 @@ class SBOMParser(BaseDependencyParser):
         return components
 
     def _parse_cyclonedx_xml_component(
-        self, elem: ET.Element, filename: str, ns: Dict[str, str]
+        self, elem: Element, filename: str, ns: Dict[str, str]
     ) -> Optional[Dict[str, Any]]:
         """Parse a single CycloneDX XML component element.
 

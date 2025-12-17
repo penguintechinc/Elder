@@ -2639,6 +2639,7 @@ def define_all_tables(db):
             requires=IS_IN_SET(["nvd", "osv", "github_advisory", "manual"]),
         ),
         Field("is_active", "boolean", default=True, notnull=True),
+        Field("nvd_last_sync", "datetime"),  # v3.x: Track when NVD data was last synced
         Field(
             "created_at",
             "datetime",

@@ -277,8 +277,12 @@ docker compose down
 # Stop specific services
 docker compose stop api web
 
-# Restart services
+# Restart services (WARNING: does NOT load new images - use recreate instead)
 docker compose restart api
+
+# Rebuild AND recreate a single container (USE THIS to deploy code changes)
+docker compose down web && docker compose up -d --build web
+docker compose down api && docker compose up -d --build api
 
 # View logs
 docker compose logs -f api
@@ -300,6 +304,7 @@ docker compose down -v
 - ❌ `docker rm elder-api` (Use `docker compose down` instead)
 - ❌ `docker ps` for Elder services (Use `docker compose ps` instead)
 - ❌ `docker-compose` (legacy v1 with hyphen - use `docker compose` v2 instead)
+- ❌ `docker compose restart` after code changes (Use `docker compose down && docker compose up -d --build` instead - restart only restarts the existing container, it does NOT rebuild or load new images)
 
 **Service Names** (use these with docker compose):
 - `postgres` - PostgreSQL database
@@ -731,6 +736,13 @@ Includes examples for:
 - Database integration (SQLAlchemy, GORM)
 - API development (Flask blueprints, Gin routes)
 - Monitoring integration (Prometheus metrics)
+
+## User Environment
+
+### Screenshots
+- **Location**: `~/Pictures/Screenshots/`
+- When the user mentions taking a screenshot, check this directory for the most recent file
+- Use `ls -lt ~/Pictures/Screenshots/ | head -5` to find recent screenshots
 
 ## Troubleshooting & Support
 

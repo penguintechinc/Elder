@@ -1849,9 +1849,9 @@ class ApiClient {
 
   // SBOM Schedule Management
   async getSBOMSchedules(params?: {
-    resource_type?: string
-    resource_id?: number
-    status?: string
+    parent_type?: string
+    parent_id?: number
+    is_active?: boolean
   }) {
     const response = await this.client.get('/sbom/schedules', { params })
     return response.data
@@ -1863,22 +1863,24 @@ class ApiClient {
   }
 
   async createSBOMSchedule(data: {
-    resource_type: string
-    resource_id: number
-    schedule_type: string
-    cron_expression?: string
-    interval_hours?: number
-    enabled?: boolean
+    parent_type: string
+    parent_id: number
+    schedule_cron: string
+    is_active?: boolean
+    credential_type?: string
+    credential_id?: number
+    credential_mapping?: Record<string, string>
   }) {
     const response = await this.client.post('/sbom/schedules', data)
     return response.data
   }
 
   async updateSBOMSchedule(id: number, data: Partial<{
-    schedule_type: string
-    cron_expression: string
-    interval_hours: number
-    enabled: boolean
+    schedule_cron: string
+    is_active: boolean
+    credential_type: string
+    credential_id: number
+    credential_mapping: Record<string, string>
   }>) {
     const response = await this.client.put(`/sbom/schedules/${id}`, data)
     return response.data
@@ -1889,8 +1891,29 @@ class ApiClient {
     return response.data
   }
 
-  async runSBOMScheduleNow(id: number) {
-    const response = await this.client.post(`/sbom/schedules/${id}/run`)
+  // Trigger immediate SBOM scan for a service/software
+  async createSBOMScan(data: {
+    parent_type: string
+    parent_id: number
+    scan_type: string
+    repository_url?: string
+    repository_branch?: string
+    credential_type?: string
+    credential_id?: number
+    credential_mapping?: Record<string, string>
+  }) {
+    const response = await this.client.post('/sbom/scans', data)
+    return response.data
+  }
+
+  async getSBOMScans(params?: {
+    parent_type?: string
+    parent_id?: number
+    status?: string
+    page?: number
+    per_page?: number
+  }) {
+    const response = await this.client.get('/sbom/scans', { params })
     return response.data
   }
 

@@ -11,6 +11,7 @@ Extracts dependency information and returns standardized component data.
 import re
 import defusedxml.ElementTree as ET
 from typing import Any, Dict, List, Optional
+from xml.etree.ElementTree import Element  # For type hints only
 
 from apps.api.services.sbom.base import BaseDependencyParser
 
@@ -285,7 +286,7 @@ class JavaDependencyParser(BaseDependencyParser):
 
     def _get_element_text(
         self,
-        element: ET.Element,
+        element: Element,
         tag_name: str,
         namespaces: Dict[str, str],
     ) -> Optional[str]:
@@ -315,7 +316,7 @@ class JavaDependencyParser(BaseDependencyParser):
         return None
 
     def _extract_maven_properties(
-        self, root: ET.Element, namespaces: Dict[str, str]
+        self, root: Element, namespaces: Dict[str, str]
     ) -> Dict[str, str]:
         """Extract Maven properties for variable substitution.
 

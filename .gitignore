@@ -352,10 +352,10 @@ junit.xml
 # Add any project-specific files/directories to ignore below
 
 # Crash recovery and planning files (contain sensitive information)
-.PLAN
+.PLAN*
 .TODO
-.REQUIREMENTS
-.FUTURE
+.REQUIREMENTS*
+.FUTURE*
 
 # Version management
 .version.backup

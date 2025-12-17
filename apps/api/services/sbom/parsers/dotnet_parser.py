@@ -12,6 +12,7 @@ information compatible with the SBOM service.
 import re
 import defusedxml.ElementTree as ET
 from typing import Any, Dict, List, Optional
+from xml.etree.ElementTree import Element  # For type hints only
 
 from apps.api.services.sbom.base import BaseDependencyParser
 
@@ -152,7 +153,7 @@ class DotnetParser(BaseDependencyParser):
         return packages
 
     def _extract_package_reference(
-        self, element: ET.Element, filename: str
+        self, element: Element, filename: str
     ) -> Optional[Dict[str, Any]]:
         """Extract package information from PackageReference element.
 
@@ -186,7 +187,7 @@ class DotnetParser(BaseDependencyParser):
         }
 
     def _extract_package_config(
-        self, element: ET.Element, filename: str
+        self, element: Element, filename: str
     ) -> Optional[Dict[str, Any]]:
         """Extract package information from packages.config element.
 
@@ -220,7 +221,7 @@ class DotnetParser(BaseDependencyParser):
             "source_file": filename,
         }
 
-    def _extract_scope_from_element(self, element: ET.Element) -> str:
+    def _extract_scope_from_element(self, element: Element) -> str:
         """Extract scope (runtime/dev) from element attributes or metadata.
 
         Args:

@@ -23,6 +23,7 @@ API_URL = os.getenv("ELDER_API_URL", "http://api:5000")
 API_TOKEN = os.getenv("ELDER_API_TOKEN", "")
 SCREENSHOT_DIR = os.getenv("SCREENSHOT_DIR", "/app/screenshots")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+NVD_SYNC_INTERVAL_HOURS = int(os.getenv("NVD_SYNC_INTERVAL_HOURS", "24"))  # Run NVD sync once per day
 
 # Setup logging
 logging.basicConfig(
@@ -54,6 +55,9 @@ class ScannerService:
 
         # Ensure screenshot directory exists
         os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+
+        # Track last NVD sync time
+        self.last_nvd_sync: Optional[datetime.datetime] = None
 
     async def get_pending_jobs(self) -> list:
         """Fetch pending scan jobs from the API."""
@@ -310,10 +314,43 @@ class ScannerService:
             except Exception as submit_error:
                 logger.error(f"Failed to submit error for scan {scan_id}: {submit_error}")
 
+    async def trigger_nvd_sync(self) -> bool:
+        """Trigger NVD sync via API to enrich vulnerability CVSS data."""
+        try:
+            async with httpx.AsyncClient(timeout=300.0) as client:  # Longer timeout for sync
+                response = await client.post(
+                    f"{self.api_url}/api/v1/vulnerabilities/nvd-sync",
+                    headers=self.headers,
+                    json={"max_vulns": 500},  # Process up to 500 CVEs per sync
+                )
+                if response.status_code == 202:
+                    data = response.json()
+                    stats = data.get("stats", {})
+                    logger.info(
+                        f"NVD sync completed: processed={stats.get('processed', 0)}, "
+                        f"updated={stats.get('updated', 0)}, errors={stats.get('errors', 0)}"
+                    )
+                    return True
+                else:
+                    logger.error(f"NVD sync failed: {response.status_code}")
+                    return False
+        except Exception as e:
+            logger.error(f"Error triggering NVD sync: {e}")
+            return False
+
+    def _should_run_nvd_sync(self) -> bool:
+        """Check if NVD sync should run (once per configured interval)."""
+        if self.last_nvd_sync is None:
+            return True
+
+        elapsed = datetime.datetime.now(datetime.timezone.utc) - self.last_nvd_sync
+        return elapsed.total_seconds() >= (NVD_SYNC_INTERVAL_HOURS * 3600)
+
     async def run(self) -> None:
         """Main poll loop."""
         logger.info(f"Scanner service started. Polling every {POLL_INTERVAL}s")
         logger.info(f"API URL: {self.api_url}")
+        logger.info(f"NVD sync interval: {NVD_SYNC_INTERVAL_HOURS} hours")
 
         while True:
             try:
@@ -346,6 +383,12 @@ class ScannerService:
                         await self.execute_sbom_scan(scan)
                 else:
                     logger.debug("No pending SBOM scans")
+
+                # Run NVD sync once per day (or configured interval)
+                if self._should_run_nvd_sync():
+                    logger.info("Running scheduled NVD sync...")
+                    if await self.trigger_nvd_sync():
+                        self.last_nvd_sync = datetime.datetime.now(datetime.timezone.utc)
 
             except Exception as e:
                 logger.error(f"Error in poll loop: {e}")

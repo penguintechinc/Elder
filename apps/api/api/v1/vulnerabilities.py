@@ -416,3 +416,101 @@ async def update_component_vulnerability(id: int):
 
     comp_vuln_dto = from_pydal_row(updated, ComponentVulnerabilityDTO)
     return ApiResponse.success(asdict(comp_vuln_dto))
+
+
+@bp.route("/nvd-sync", methods=["POST"])
+@login_required
+@resource_role_required("maintainer")
+async def trigger_nvd_sync():
+    """
+    Trigger NVD sync to enrich vulnerability CVSS data.
+
+    This endpoint triggers a background sync of CVE data from NVD (NIST).
+    Only vulnerabilities that haven't been synced in the last 24 hours
+    will be processed. Rate limits are respected (6 req/min without API key,
+    50 req/30s with API key).
+
+    Requires maintainer role.
+
+    Request Body (optional):
+        - max_vulns: Maximum vulnerabilities to sync (default: 500)
+        - force_refresh: Force refresh all CVEs (default: false)
+
+    Returns:
+        202: Sync started with statistics
+        403: Insufficient permissions
+
+    Example:
+        POST /api/v1/vulnerabilities/nvd-sync
+        {"max_vulns": 100}
+    """
+    from apps.api.services.sbom.vulnerability.nvd_sync import NVDSyncService
+
+    db = current_app.db
+
+    # Get optional parameters
+    data = request.get_json() or {}
+    max_vulns = data.get("max_vulns", 500)
+    force_refresh = data.get("force_refresh", False)
+
+    # Get NVD API key from config if available
+    nvd_api_key = current_app.config.get("NVD_API_KEY")
+
+    # Run the sync
+    service = NVDSyncService(db, nvd_api_key)
+    stats = await service.sync_vulnerabilities(
+        max_vulns=max_vulns,
+        force_refresh=force_refresh,
+    )
+
+    return jsonify({
+        "message": "NVD sync completed",
+        "stats": stats,
+    }), 202
+
+
+@bp.route("/nvd-sync/status", methods=["GET"])
+@login_required
+async def get_nvd_sync_status():
+    """
+    Get NVD sync status - how many vulnerabilities need syncing.
+
+    Returns:
+        200: Sync status with counts
+
+    Example:
+        GET /api/v1/vulnerabilities/nvd-sync/status
+    """
+    from datetime import datetime, timedelta, timezone
+
+    db = current_app.db
+
+    def get_status():
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+
+        # Count CVEs that need syncing
+        total_cves = db(db.vulnerabilities.cve_id.startswith("CVE-")).count()
+        never_synced = db(
+            (db.vulnerabilities.cve_id.startswith("CVE-"))
+            & (db.vulnerabilities.nvd_last_sync == None)  # noqa: E711
+        ).count()
+        stale_sync = db(
+            (db.vulnerabilities.cve_id.startswith("CVE-"))
+            & (db.vulnerabilities.nvd_last_sync != None)  # noqa: E711
+            & (db.vulnerabilities.nvd_last_sync < cutoff_time)
+        ).count()
+        recently_synced = db(
+            (db.vulnerabilities.cve_id.startswith("CVE-"))
+            & (db.vulnerabilities.nvd_last_sync >= cutoff_time)
+        ).count()
+
+        return {
+            "total_cves": total_cves,
+            "never_synced": never_synced,
+            "stale_sync": stale_sync,
+            "recently_synced": recently_synced,
+            "needs_sync": never_synced + stale_sync,
+        }
+
+    status = await run_in_threadpool(get_status)
+    return jsonify(status), 200

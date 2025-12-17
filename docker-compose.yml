@@ -236,7 +236,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     container_name: elder-grpc-server
-    command: python3 -m apps.api.grpc.server
+    command: python3 -m apps.api.grpc
     environment:
       # Database - Use individual components for flexibility
       - DB_TYPE=postgres

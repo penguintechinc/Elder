@@ -21,6 +21,7 @@ export type FieldType =
   | 'date'           // no processing
   | 'color'          // strip all spaces
   | 'multiline'      // split by newline, strip each
+  | 'cron'           // cron expression (allows * / - ,)
 
 export interface SelectOption {
   value: string | number
@@ -172,6 +173,22 @@ export function validateFieldValue(value: any, field: FormField): string | undef
         }
         break
 
+      case 'cron':
+        // Basic cron expression validation (5 or 6 fields)
+        // Allow: numbers, *, /, -, , and spaces between fields
+        const cronParts = value.trim().split(/\s+/)
+        if (cronParts.length < 5 || cronParts.length > 6) {
+          return 'Cron expression must have 5 or 6 fields (minute hour day month weekday [year])'
+        }
+        // Each part should only contain valid cron characters
+        const cronFieldRegex = /^[0-9*\/\-,?LW#]+$/
+        for (const part of cronParts) {
+          if (!cronFieldRegex.test(part)) {
+            return 'Invalid cron expression format'
+          }
+        }
+        break
+
       case 'color':
         const color = value.replace(/\s+/g, '')
         if (!/^#[0-9A-Fa-f]{6}$/.test(color) && !/^#[0-9A-Fa-f]{3}$/.test(color)) {
@@ -256,6 +273,12 @@ export function processFieldValue(value: any, type: FieldType): any {
 
     // Trim and return undefined if empty
     case 'textarea':
+      return typeof value === 'string'
+        ? value.trim() || undefined
+        : value
+
+    // Cron expression - just trim
+    case 'cron':
       return typeof value === 'string'
         ? value.trim() || undefined
         : value
