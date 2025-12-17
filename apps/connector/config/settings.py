@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -337,6 +337,14 @@ class Settings(BaseSettings):
         default="json",
         description="Log format (json or text)",
     )
+
+    @field_validator("default_organization_id", mode="before")
+    @classmethod
+    def validate_default_organization_id(cls, v):
+        """Convert empty string to None for default_organization_id."""
+        if v == "" or v is None:
+            return None
+        return v
 
     @property
     def aws_regions_list(self) -> list[str]:

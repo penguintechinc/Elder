@@ -25,28 +25,29 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install runtime dependencies
+# Install runtime dependencies and create user
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libldap2 \
     libsasl2-2 \
     ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* && \
+    useradd -m -u 1000 connector
 
-# Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
+# Copy Python packages from builder to a location the connector user can access
+RUN mkdir -p /app/.local
+COPY --from=builder /root/.local /app/.local
 
 # Copy application code
 COPY apps/connector /app/apps/connector
 COPY shared /app/shared
 
-# Set Python path
-ENV PATH=/root/.local/bin:$PATH
-ENV PYTHONPATH=/app:$PYTHONPATH
+# Fix permissions for non-root user
+RUN chown -R connector:connector /app
 
-# Create non-root user
-RUN useradd -m -u 1000 connector && \
-    chown -R connector:connector /app
+# Set Python path and include site-packages
+ENV PATH=/app/.local/bin:$PATH
+ENV PYTHONPATH=/app:/app/.local/lib/python3.12/site-packages:$PYTHONPATH
 
 # Switch to non-root user
 USER connector
@@ -56,4 +57,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:${HEALTH_CHECK_PORT:-8000}/healthz || exit 1
 
 # Run the connector service
-CMD ["python3", "-m", "apps.connector.main"]
+CMD ["python3", "apps/connector/main.py"]
