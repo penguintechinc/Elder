@@ -2572,6 +2572,15 @@ def define_all_tables(db):
         ),
         Field("repository_url", "string", length=1024),
         Field("repository_branch", "string", length=255, default="main"),
+        # v3.x.x: Private repository authentication
+        Field(
+            "credential_type",
+            "string",
+            length=50,
+            requires=IS_EMPTY_OR(IS_IN_SET(["builtin_secret", "static", "none"])),
+        ),
+        Field("credential_id", "reference builtin_secrets"),
+        Field("credential_mapping", "json"),  # Maps secret fields to config
         Field("commit_hash", "string", length=64),
         Field("files_scanned", "json"),  # List of dependency files found
         Field("components_found", "integer", default=0),
@@ -2735,6 +2744,15 @@ def define_all_tables(db):
         Field(
             "village_id", "string", length=32, unique=True, default=generate_village_id
         ),
+        # v3.x.x: Private repository authentication
+        Field(
+            "credential_type",
+            "string",
+            length=50,
+            requires=IS_EMPTY_OR(IS_IN_SET(["builtin_secret", "static", "none"])),
+        ),
+        Field("credential_id", "integer"),
+        Field("credential_mapping", "json"),
         migrate=False,
     )
 
@@ -2773,5 +2791,14 @@ def define_all_tables(db):
         Field(
             "village_id", "string", length=32, unique=True, default=generate_village_id
         ),
+        # v3.x.x: Private repository authentication
+        Field(
+            "credential_type",
+            "string",
+            length=50,
+            requires=IS_EMPTY_OR(IS_IN_SET(["builtin_secret", "static", "none"])),
+        ),
+        Field("credential_id", "integer"),
+        Field("credential_mapping", "json"),
         migrate=False,
     )

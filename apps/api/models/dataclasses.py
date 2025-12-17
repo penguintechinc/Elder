@@ -756,6 +756,9 @@ class SBOMScanDTO:
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
     created_at: datetime
+    credential_type: Optional[str] = None
+    credential_id: Optional[int] = None
+    has_credentials: bool = False
 
 
 @dataclass(slots=True)
@@ -784,6 +787,9 @@ class SBOMScanScheduleDTO:
     next_run_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
+    credential_type: Optional[str] = None
+    credential_id: Optional[int] = None
+    has_credentials: bool = False
 
 
 # ==================== Vulnerabilities ====================

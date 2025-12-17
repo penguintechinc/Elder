@@ -10,6 +10,7 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse, urlunparse
 
 from .base import BaseScanner
 
@@ -92,6 +93,7 @@ class SBOMScanner(BaseScanner):
         repository_url = config["repository_url"]
         repository_branch = config.get("repository_branch", "main")
         api_url = config["api_url"].rstrip("/")
+        token = config.get("_resolved_token")
 
         # Create temp directory for clone
         temp_dir = tempfile.mkdtemp(prefix="sbom_scan_")
@@ -103,7 +105,7 @@ class SBOMScanner(BaseScanner):
 
             # Clone repository (shallow for speed)
             clone_result = await self._clone_repository(
-                repository_url, repository_branch, temp_dir
+                repository_url, repository_branch, temp_dir, token
             )
 
             if not clone_result["success"]:
@@ -193,7 +195,7 @@ class SBOMScanner(BaseScanner):
                     logger.warning(f"Failed to cleanup temp dir {temp_dir}: {e}")
 
     async def _clone_repository(
-        self, repo_url: str, branch: str, dest_dir: str
+        self, repo_url: str, branch: str, dest_dir: str, token: Optional[str] = None
     ) -> Dict[str, Any]:
         """Clone git repository using subprocess.
 
@@ -202,8 +204,9 @@ class SBOMScanner(BaseScanner):
             or
             {"success": false, "error": "message"}
         """
-        # Sanitize repository URL (remove embedded credentials)
-        sanitized_url = self._sanitize_git_url(repo_url)
+        # Build authenticated URL if token provided
+        clone_url = self._build_authenticated_url(repo_url, token)
+        safe_url = self._sanitize_url_for_logging(clone_url)
 
         cmd = [
             "git",
@@ -212,11 +215,13 @@ class SBOMScanner(BaseScanner):
             "--branch",
             branch,
             "--single-branch",
-            sanitized_url,
+            clone_url,
             dest_dir,
         ]
 
         try:
+            logger.info(f"Cloning repository from {safe_url}")
+
             # Run git clone
             process = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -228,16 +233,17 @@ class SBOMScanner(BaseScanner):
 
             if process.returncode != 0:
                 error_msg = stderr.decode("utf-8", errors="replace")
-                logger.error(f"Git clone failed: {error_msg}")
+                logger.error(f"Git clone failed for {safe_url}: {error_msg}")
                 return {"success": False, "error": f"Git clone failed: {error_msg}"}
 
             # Get commit hash
             commit_hash = await self._get_commit_hash(dest_dir)
 
+            logger.info(f"Successfully cloned {safe_url}")
             return {"success": True, "commit_hash": commit_hash}
 
         except Exception as e:
-            logger.error(f"Git clone exception: {e}")
+            logger.error(f"Git clone exception for {safe_url}: {e}")
             return {"success": False, "error": str(e)}
 
     async def _get_commit_hash(self, repo_dir: str) -> Optional[str]:
@@ -263,21 +269,77 @@ class SBOMScanner(BaseScanner):
 
         return None
 
-    def _sanitize_git_url(self, url: str) -> str:
-        """Remove embedded credentials from git URL.
+    def _build_authenticated_url(self, repo_url: str, token: Optional[str]) -> str:
+        """Build authenticated git URL with token for private repositories.
+
+        Args:
+            repo_url: Original repository URL
+            token: Authentication token (optional)
+
+        Returns:
+            Authenticated URL with embedded token, or original URL if no token
+
+        Examples:
+            GitHub: https://x-access-token:TOKEN@github.com/user/repo.git
+            GitLab: https://oauth2:TOKEN@gitlab.com/user/repo.git
+            Bitbucket: https://x-token-auth:TOKEN@bitbucket.org/user/repo.git
+            Azure DevOps: https://TOKEN@dev.azure.com/org/project/_git/repo
+        """
+        if not token:
+            return repo_url
+
+        parsed = urlparse(repo_url)
+        scheme = parsed.scheme
+        netloc = parsed.netloc
+        path = parsed.path
+
+        # Remove any existing credentials
+        if "@" in netloc:
+            netloc = netloc.split("@")[-1]
+
+        # Build authenticated URL based on git hosting provider
+        hostname = netloc.lower()
+
+        if "github.com" in hostname:
+            # GitHub: x-access-token:TOKEN
+            auth_netloc = f"x-access-token:{token}@{netloc}"
+        elif "gitlab" in hostname:
+            # GitLab (any host containing "gitlab"): oauth2:TOKEN
+            auth_netloc = f"oauth2:{token}@{netloc}"
+        elif "bitbucket.org" in hostname:
+            # Bitbucket: x-token-auth:TOKEN
+            auth_netloc = f"x-token-auth:{token}@{netloc}"
+        elif "dev.azure.com" in hostname or "visualstudio.com" in hostname:
+            # Azure DevOps: TOKEN@ (no username prefix)
+            auth_netloc = f"{token}@{netloc}"
+        else:
+            # Generic: TOKEN@
+            auth_netloc = f"{token}@{netloc}"
+
+        return urlunparse((scheme, auth_netloc, path, "", "", ""))
+
+    def _sanitize_url_for_logging(self, url: str) -> str:
+        """Remove credentials from URL for safe logging.
+
+        Args:
+            url: URL potentially containing credentials
+
+        Returns:
+            URL with credentials removed
 
         Example:
-            https://user:pass@github.com/repo.git -> https://github.com/repo.git
+            https://token@github.com/repo.git -> https://github.com/repo.git
         """
-        # Match URLs with embedded credentials
-        pattern = r"(https?://)[^@]+@(.*)"
-        match = re.match(pattern, url)
+        parsed = urlparse(url)
+        netloc = parsed.netloc
 
-        if match:
-            protocol, rest = match.groups()
-            return f"{protocol}{rest}"
+        # Remove credentials if present
+        if "@" in netloc:
+            netloc = netloc.split("@")[-1]
 
-        return url
+        return urlunparse(
+            (parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment)
+        )
 
     def _find_dependency_files(self, root_dir: str) -> List[Dict[str, Any]]:
         """Recursively find all dependency files in directory.

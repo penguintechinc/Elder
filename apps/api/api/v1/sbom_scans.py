@@ -47,6 +47,38 @@ def _match_license_pattern(license_id: str, pattern: str) -> bool:
     return fnmatch.fnmatch(license_id.lower(), pattern.lower())
 
 
+def _resolve_credential(db, credential_type: str, credential_id: int, credential_mapping: dict) -> str:
+    """
+    Resolve a credential to extract the authentication token.
+
+    Args:
+        db: Database connection
+        credential_type: Type of credential (only "builtin_secret" is supported)
+        credential_id: ID of the credential record
+        credential_mapping: Mapping dict to extract token from secret_json (default field: "token")
+
+    Returns:
+        Token string if found and active, None otherwise
+    """
+    # Only handle builtin_secret type
+    if credential_type != "builtin_secret" or not credential_id:
+        return None
+
+    # Look up the builtin secret
+    secret = db.builtin_secrets[credential_id]
+    if not secret or not secret.is_active:
+        return None
+
+    # Extract token from secret_json using credential_mapping
+    if not credential_mapping:
+        credential_mapping = {}
+
+    field_name = credential_mapping.get("field", "token")
+    secret_json = secret.secret_json or {}
+
+    return secret_json.get(field_name)
+
+
 def _check_component_against_policy(component: dict, policy: dict) -> dict:
     """
     Check a component against a license policy.
@@ -186,6 +218,9 @@ async def create_scan():
         - scan_type: Scan type (spdx, cyclonedx, swid, other) - required
         - repository_url: Repository URL (optional, will be fetched from parent if not provided)
         - repository_branch: Repository branch (optional)
+        - credential_type: Type of credential (builtin_secret) - optional
+        - credential_id: ID of the credential - optional
+        - credential_mapping: Field mapping for credential extraction - optional
 
     Returns:
         201: Scan created with status=pending
@@ -229,6 +264,19 @@ async def create_scan():
         elif parent_type == "software" and hasattr(parent, "repository_url") and parent.repository_url:
             repository_url = parent.repository_url
 
+    # Validate credential if provided
+    credential_type = data.get("credential_type")
+    credential_id = data.get("credential_id")
+    credential_mapping = data.get("credential_mapping")
+
+    if credential_type == "builtin_secret" and credential_id:
+        def validate_credential():
+            secret = db.builtin_secrets[credential_id]
+            return secret and secret.is_active
+
+        if not await run_in_threadpool(validate_credential):
+            return ApiResponse.error("Invalid or inactive credential", 400)
+
     def create():
         # Create scan record with status=pending
         scan_id = db.sbom_scans.insert(
@@ -238,6 +286,9 @@ async def create_scan():
             status="pending",
             repository_url=repository_url,
             repository_branch=data.get("repository_branch"),
+            credential_type=credential_type,
+            credential_id=credential_id,
+            credential_mapping=credential_mapping,
             components_found=0,
             components_added=0,
             components_updated=0,
@@ -344,8 +395,30 @@ async def get_pending_scans():
     # Convert to DTOs
     items = from_pydal_rows(rows, SBOMScanDTO)
 
+    # Resolve credentials for each scan and add to response
+    scan_dicts = []
+    for item in items:
+        scan_dict = asdict(item)
+
+        # Resolve credential if present
+        if item.credential_type and item.credential_id:
+            token = _resolve_credential(
+                db,
+                item.credential_type,
+                item.credential_id,
+                item.credential_mapping or {}
+            )
+            if token:
+                scan_dict["_resolved_token"] = token
+
+        # Remove sensitive credential fields from response
+        scan_dict.pop("credential_id", None)
+        scan_dict.pop("credential_mapping", None)
+
+        scan_dicts.append(scan_dict)
+
     # Return list directly (not paginated)
-    return jsonify([asdict(item) for item in items]), 200
+    return jsonify(scan_dicts), 200
 
 
 @bp.route("/<int:id>/start", methods=["POST"])

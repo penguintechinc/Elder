@@ -109,6 +109,9 @@ async def create_schedule():
         - parent_id: Parent ID - required
         - schedule_cron: Cron expression (e.g., "0 0 * * *" for daily at midnight) - required
         - is_active: Active status (default: true)
+        - credential_type: Credential type (builtin_secrets, vault, etc.) - optional
+        - credential_id: Credential ID reference - optional
+        - credential_mapping: JSON mapping of credential fields - optional
 
     Returns:
         201: Schedule created
@@ -160,13 +163,23 @@ async def create_schedule():
 
     def create():
         # Create schedule record
-        schedule_id = db.sbom_scan_schedules.insert(
-            parent_type=parent_type,
-            parent_id=parent_id,
-            schedule_cron=schedule_cron,
-            is_active=data.get("is_active", True),
-            next_run_at=next_run_at,
-        )
+        insert_data = {
+            "parent_type": parent_type,
+            "parent_id": parent_id,
+            "schedule_cron": schedule_cron,
+            "is_active": data.get("is_active", True),
+            "next_run_at": next_run_at,
+        }
+
+        # Add credential fields if provided
+        if "credential_type" in data:
+            insert_data["credential_type"] = data["credential_type"]
+        if "credential_id" in data:
+            insert_data["credential_id"] = data["credential_id"]
+        if "credential_mapping" in data:
+            insert_data["credential_mapping"] = data["credential_mapping"]
+
+        schedule_id = db.sbom_scan_schedules.insert(**insert_data)
         db.commit()
 
         return db.sbom_scan_schedules[schedule_id]
@@ -221,6 +234,9 @@ async def update_schedule(id: int):
         - is_active: Active status (optional)
         - last_run_at: Last run timestamp (optional, ISO format)
         - next_run_at: Next run timestamp (optional, ISO format)
+        - credential_type: Credential type (builtin_secrets, vault, etc.) - optional
+        - credential_id: Credential ID reference - optional
+        - credential_mapping: JSON mapping of credential fields - optional
 
     Returns:
         200: Schedule updated
@@ -262,6 +278,9 @@ async def update_schedule(id: int):
         updateable_fields = [
             "schedule_cron",
             "is_active",
+            "credential_type",
+            "credential_id",
+            "credential_mapping",
         ]
 
         for field in updateable_fields:
