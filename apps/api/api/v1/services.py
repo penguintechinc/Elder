@@ -479,6 +479,90 @@ async def trigger_service_sbom_scan(id: int):
     ), 201
 
 
+@bp.route("/endpoints", methods=["GET"])
+@login_required
+async def list_service_endpoints():
+    """
+    List all service endpoints across services.
+
+    Query Parameters:
+        - search: Filter endpoints by path (substring match)
+        - method: Filter endpoints by HTTP method if stored
+        - page: Page number (default: 1)
+        - per_page: Items per page (default: 50)
+
+    Returns:
+        200: List of service endpoints with pagination
+        400: Invalid parameters
+
+    Example:
+        GET /api/v1/services/endpoints?search=/api&method=GET
+    """
+    db = current_app.db
+
+    # Get pagination params using helper
+    pagination = PaginationParams.from_request()
+
+    # Build query
+    def get_endpoints():
+        # Query services with non-empty paths
+        query = (db.services.id > 0) & (db.services.paths != None) & (db.services.paths != "")
+
+        # Get count and rows
+        total_services = db(query).count()
+        services = db(query).select(
+            orderby=~db.services.created_at,
+            limitby=(pagination.offset, pagination.offset + pagination.per_page),
+        )
+
+        # Transform service paths into endpoint objects
+        endpoints = []
+        search_term = request.args.get("search", "").lower()
+        method_filter = request.args.get("method", "").upper()
+
+        for service in services:
+            if service.paths and isinstance(service.paths, list):
+                for path_item in service.paths:
+                    # Handle both string paths and object paths with method
+                    if isinstance(path_item, dict):
+                        path = path_item.get("path", "")
+                        method = path_item.get("method", "").upper() if path_item.get("method") else ""
+                    else:
+                        path = str(path_item)
+                        method = ""
+
+                    # Apply filters
+                    if search_term and search_term not in path.lower():
+                        continue
+                    if method_filter and method and method != method_filter:
+                        continue
+
+                    endpoints.append({
+                        "path": path,
+                        "method": method,
+                        "service_id": service.id,
+                        "service_name": service.name,
+                    })
+
+        return total_services, endpoints
+
+    total_services, endpoints = await run_in_threadpool(get_endpoints)
+
+    # Calculate total pages using helper
+    pages = pagination.calculate_pages(total_services)
+
+    # Create paginated response
+    response = PaginatedResponse(
+        items=endpoints,
+        total=total_services,
+        page=pagination.page,
+        per_page=pagination.per_page,
+        pages=pages,
+    )
+
+    return jsonify(asdict(response)), 200
+
+
 @bp.route("/<int:id>/sbom/export", methods=["GET"])
 @login_required
 async def export_service_sbom(id: int):

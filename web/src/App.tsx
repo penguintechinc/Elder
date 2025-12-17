@@ -42,6 +42,8 @@ import AuditLogs from './pages/AuditLogs'
 import AdminSettings from './pages/AdminSettings'
 import SyncConfig from './pages/SyncConfig'
 import LicensePolicies from './pages/LicensePolicies'
+import SBOMDashboard from '@/pages/SBOMDashboard'
+import ServiceEndpoints from '@/pages/ServiceEndpoints'
 // Village ID Redirect
 import VillageIdRedirect from './components/VillageIdRedirect'
 
@@ -93,6 +95,8 @@ export default function App() {
         <Route path="data-stores" element={<DataStores />} />
         <Route path="ipam" element={<IPAM />} />
         <Route path="vulnerabilities" element={<Vulnerabilities />} />
+        <Route path="sbom" element={<SBOMDashboard />} />
+        <Route path="service-endpoints" element={<ServiceEndpoints />} />
         {/* v2.2.0 Enterprise Admin Routes */}
         <Route path="admin/tenants" element={<Tenants />} />
         <Route path="admin/tenants/:id" element={<TenantDetail />} />

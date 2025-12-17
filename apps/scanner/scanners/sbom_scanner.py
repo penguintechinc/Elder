@@ -12,6 +12,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse, urlunparse
 
+from apps.api.services.sbom.parsers.endpoint_parser_flask import FlaskEndpointParser
+from apps.api.services.sbom.parsers.endpoint_parser_django import DjangoEndpointParser
+from apps.api.services.sbom.parsers.endpoint_parser_express import ExpressEndpointParser
+from apps.api.services.sbom.parsers.endpoint_parser_go import GoEndpointParser
+
 from .base import BaseScanner
 
 logger = logging.getLogger("scanner.sbom")
@@ -113,6 +118,8 @@ class SBOMScanner(BaseScanner):
                     "success": False,
                     "error": clone_result.get("error", "Clone failed"),
                     "scan_duration_ms": int((time.time() - start_time) * 1000),
+                    "endpoints": [],
+                    "endpoints_found": 0,
                 }
 
             commit_hash = clone_result.get("commit_hash")
@@ -123,12 +130,16 @@ class SBOMScanner(BaseScanner):
 
             if not dependency_files:
                 logger.warning("No dependency files found")
+                # Still try to detect endpoints even if no dependencies found
+                endpoints = self._detect_endpoints(temp_dir)
                 return {
                     "success": True,
                     "components": [],
                     "files_scanned": [],
                     "commit_hash": commit_hash,
                     "scan_duration_ms": int((time.time() - start_time) * 1000),
+                    "endpoints": endpoints,
+                    "endpoints_found": len(endpoints),
                 }
 
             logger.info(f"Found {len(dependency_files)} dependency file(s)")
@@ -164,10 +175,13 @@ class SBOMScanner(BaseScanner):
                 if key not in unique_components:
                     unique_components[key] = comp
 
+            # Detect API endpoints
+            endpoints = self._detect_endpoints(temp_dir)
+
             scan_duration_ms = int((time.time() - start_time) * 1000)
 
             logger.info(
-                f"Scan complete: {len(unique_components)} components from {len(files_scanned)} files"
+                f"Scan complete: {len(unique_components)} components from {len(files_scanned)} files, {len(endpoints)} endpoint(s)"
             )
 
             return {
@@ -176,6 +190,8 @@ class SBOMScanner(BaseScanner):
                 "files_scanned": files_scanned,
                 "commit_hash": commit_hash,
                 "scan_duration_ms": scan_duration_ms,
+                "endpoints": endpoints,
+                "endpoints_found": len(endpoints),
             }
 
         except Exception as e:
@@ -184,6 +200,8 @@ class SBOMScanner(BaseScanner):
                 "success": False,
                 "error": str(e),
                 "scan_duration_ms": int((time.time() - start_time) * 1000),
+                "endpoints": [],
+                "endpoints_found": 0,
             }
 
         finally:
@@ -438,3 +456,69 @@ class SBOMScanner(BaseScanner):
         except Exception as e:
             logger.error(f"Parser failed for {filename}: {e}")
             return []
+
+    def _detect_endpoints(self, repo_dir: str) -> List[Dict]:
+        """Detect API endpoints in the cloned repository.
+
+        Args:
+            repo_dir: Path to cloned repository
+
+        Returns:
+            List of endpoint dictionaries with path, methods, framework, etc.
+        """
+        endpoints = []
+
+        try:
+            # Initialize endpoint parsers
+            parsers = [
+                FlaskEndpointParser(),
+                DjangoEndpointParser(),
+                ExpressEndpointParser(),
+                GoEndpointParser(),
+            ]
+
+            # Walk through repository and scan Python/JavaScript/Go files
+            repo_path = Path(repo_dir)
+
+            for file_path in repo_path.rglob("*"):
+                # Skip hidden directories and common exclusions
+                if any(
+                    p.startswith(".")
+                    or p in ["node_modules", "vendor", ".git", "__pycache__", "venv", "env"]
+                    for p in file_path.parts
+                ):
+                    continue
+
+                # Skip non-files
+                if not file_path.is_file():
+                    continue
+
+                filename = file_path.name
+
+                # Try each parser
+                for parser in parsers:
+                    if parser.can_parse(filename):
+                        try:
+                            # Read file content
+                            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                                content = f.read()
+
+                            # Parse endpoints
+                            file_endpoints = parser.parse(content, str(file_path.relative_to(repo_path)))
+
+                            if file_endpoints:
+                                endpoints.extend(file_endpoints)
+                                logger.info(f"Found {len(file_endpoints)} endpoint(s) in {filename}")
+
+                        except Exception as e:
+                            logger.warning(f"Failed to parse endpoints from {file_path}: {e}")
+
+                        # Only one parser per file
+                        break
+
+            logger.info(f"Total endpoints detected: {len(endpoints)}")
+
+        except Exception as e:
+            logger.warning(f"Endpoint detection failed: {e}")
+
+        return endpoints

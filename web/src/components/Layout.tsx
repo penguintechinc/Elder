@@ -33,6 +33,8 @@ import {
   Repeat2,
   Lock,
   Bug,
+  Route,
+  Layers,
 } from 'lucide-react'
 import api from '@/lib/api'
 
@@ -51,8 +53,17 @@ const navigationCategories = [
     items: [
       { name: 'Entities', href: '/entities', icon: Box },
       { name: 'Organizations', href: '/organizations', icon: Building2 },
+    ],
+  },
+  {
+    header: 'Software & Services',
+    collapsible: true,
+    items: [
       { name: 'Software', href: '/software', icon: Package },
       { name: 'Services', href: '/services', icon: Server },
+      { name: 'SBOM Dashboard', href: '/sbom', icon: Layers },
+      { name: 'Service Endpoints', href: '/service-endpoints', icon: Route },
+      { name: 'Vulnerabilities', href: '/vulnerabilities', icon: Bug },
     ],
   },
   {
@@ -74,7 +85,6 @@ const navigationCategories = [
       { name: 'Keys', href: '/keys', icon: Key },
       { name: 'Secrets', href: '/secrets', icon: Key },
       { name: 'Certificates', href: '/certificates', icon: FileKey },
-      { name: 'Vulnerabilities', href: '/vulnerabilities', icon: Bug },
     ],
   },
   {
