@@ -5,6 +5,7 @@ import structlog
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, jsonify, request
+from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required, resource_role_required
 from apps.api.models.dataclasses import (
@@ -22,6 +23,15 @@ from apps.api.utils.validation_helpers import (
     validate_resource_exists,
 )
 from shared.async_utils import run_in_threadpool
+from shared.py_libs.py_libs.pydantic.models.sbom import (
+    CreateSBOMScanRequest,
+    SubmitSBOMResultsRequest,
+    UploadSBOMRequest,
+)
+from shared.py_libs.py_libs.pydantic.flask_integration import (
+    ValidationErrorResponse,
+    validate_body,
+)
 
 bp = Blueprint("sbom_scans", __name__)
 logger = structlog.get_logger()
@@ -215,12 +225,9 @@ async def create_scan():
     Request Body:
         - parent_type: Parent type (service, software) - required
         - parent_id: Parent ID - required
-        - scan_type: Scan type (spdx, cyclonedx, swid, other) - required
+        - scan_type: Scan type (manifest, lockfile, repository, container, binary, source) - required
         - repository_url: Repository URL (optional, will be fetched from parent if not provided)
         - repository_branch: Repository branch (optional)
-        - credential_type: Type of credential (builtin_secret) - optional
-        - credential_id: ID of the credential - optional
-        - credential_mapping: Field mapping for credential extraction - optional
 
     Returns:
         201: Scan created with status=pending
@@ -232,17 +239,14 @@ async def create_scan():
     """
     db = current_app.db
 
-    # Validate JSON body
-    data = request.get_json()
-    if error := validate_json_body(data):
-        return error
+    # Validate request body using Pydantic
+    try:
+        body = validate_body(CreateSBOMScanRequest)
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
 
-    # Validate required fields
-    if error := validate_required_fields(data, ["parent_type", "parent_id", "scan_type"]):
-        return error
-
-    parent_type = data["parent_type"]
-    parent_id = data["parent_id"]
+    parent_type = body.parent_type
+    parent_id = body.parent_id
 
     # Validate parent exists (service or software)
     def validate_parent():
@@ -257,38 +261,22 @@ async def create_scan():
         return ApiResponse.not_found(parent_type, parent_id)
 
     # Get repository_url from parent if not provided
-    repository_url = data.get("repository_url")
+    repository_url = body.repository_url
     if not repository_url:
         if parent_type == "service" and parent.repository_url:
             repository_url = parent.repository_url
         elif parent_type == "software" and hasattr(parent, "repository_url") and parent.repository_url:
             repository_url = parent.repository_url
 
-    # Validate credential if provided
-    credential_type = data.get("credential_type")
-    credential_id = data.get("credential_id")
-    credential_mapping = data.get("credential_mapping")
-
-    if credential_type == "builtin_secret" and credential_id:
-        def validate_credential():
-            secret = db.builtin_secrets[credential_id]
-            return secret and secret.is_active
-
-        if not await run_in_threadpool(validate_credential):
-            return ApiResponse.error("Invalid or inactive credential", 400)
-
     def create():
         # Create scan record with status=pending
         scan_id = db.sbom_scans.insert(
             parent_type=parent_type,
             parent_id=parent_id,
-            scan_type=data["scan_type"],
+            scan_type=body.scan_type,
             status="pending",
             repository_url=repository_url,
-            repository_branch=data.get("repository_branch"),
-            credential_type=credential_type,
-            credential_id=credential_id,
-            credential_mapping=credential_mapping,
+            repository_branch=body.repository_branch,
             components_found=0,
             components_added=0,
             components_updated=0,
@@ -503,26 +491,23 @@ async def submit_results(id: int):
     """
     db = current_app.db
 
-    # Validate JSON body
-    data = request.get_json()
-    if error := validate_json_body(data):
-        return error
-
-    # Validate required fields
-    if error := validate_required_fields(data, ["success"]):
-        return error
+    # Validate request body using Pydantic
+    try:
+        body = validate_body(SubmitSBOMResultsRequest)
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
 
     # Validate scan exists
     scan, error = await validate_resource_exists(db.sbom_scans, id, "SBOM Scan")
     if error:
         return error
 
-    success = data["success"]
-    components = data.get("components", [])
-    files_scanned = data.get("files_scanned", [])
-    commit_hash = data.get("commit_hash")
-    error_message = data.get("error_message")
-    scan_duration_ms = data.get("scan_duration_ms")
+    success = body.success
+    components = body.components or []
+    files_scanned = body.files_scanned or []
+    commit_hash = body.commit_hash
+    error_message = body.error_message
+    scan_duration_ms = body.scan_duration_ms
 
     def process_results():
         # Get existing components for this parent
@@ -783,25 +768,16 @@ async def upload_sbom():
     """
     db = current_app.db
 
-    # Validate JSON body
-    data = request.get_json()
-    if error := validate_json_body(data):
-        return error
+    # Validate request body using Pydantic
+    try:
+        body = validate_body(UploadSBOMRequest)
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
 
-    # Validate required fields
-    if error := validate_required_fields(
-        data, ["parent_type", "parent_id", "file_content", "filename"]
-    ):
-        return error
-
-    parent_type = data["parent_type"]
-    parent_id = data["parent_id"]
-    file_content = data["file_content"]
-    filename = data["filename"]
-
-    # Validate parent type
-    if parent_type not in ["service", "software"]:
-        return ApiResponse.error("Invalid parent_type. Must be 'service' or 'software'", 400)
+    parent_type = body.parent_type
+    parent_id = body.parent_id
+    file_content = body.file_content
+    filename = body.filename
 
     # Validate parent exists
     def validate_parent():

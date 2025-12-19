@@ -1,8 +1,9 @@
 """Labels management API endpoints for Elder using PyDAL with async/await."""
 
 from dataclasses import asdict
+from typing import Optional
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify
 
 from apps.api.auth.decorators import login_required
 from apps.api.models.dataclasses import (
@@ -11,14 +12,46 @@ from apps.api.models.dataclasses import (
     from_pydal_row,
     from_pydal_rows,
 )
+from py_libs.pydantic import RequestModel, Description1000, Name255
+from py_libs.pydantic.flask_integration import validated_request, model_response
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("labels", __name__)
 
 
+class ListLabelsQuery(RequestModel):
+    """Query parameters for listing labels."""
+    search: Optional[str] = None
+    page: int = 1
+    per_page: int = 50
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {"search": "bug", "page": 1, "per_page": 50}
+            ]
+        }
+    }
+
+
+class CreateLabelRequest(RequestModel):
+    """Request body for creating a label."""
+    name: Name255
+    description: Optional[Description1000] = None
+    color: str = "#cccccc"
+
+
+class UpdateLabelRequest(RequestModel):
+    """Request body for updating a label."""
+    name: Optional[Name255] = None
+    description: Optional[Description1000] = None
+    color: Optional[str] = None
+
+
 @bp.route("", methods=["GET"])
 @login_required
-async def list_labels():
+@validated_request(query_model=ListLabelsQuery)
+async def list_labels(query: ListLabelsQuery):
     """
     List all labels with optional filtering.
 
@@ -36,28 +69,26 @@ async def list_labels():
     """
     db = current_app.db
 
-    # Get pagination params
-    page = request.args.get("page", 1, type=int)
-    per_page = min(request.args.get("per_page", 50, type=int), 1000)
+    # Enforce max per_page limit
+    per_page = min(query.per_page, 1000)
 
     # Build query
     def get_labels():
-        query = db.issue_labels.id > 0
+        query_obj = db.issue_labels.id > 0
 
         # Apply search filter
-        if request.args.get("search"):
-            search = request.args.get("search")
-            search_pattern = f"%{search}%"
-            query &= (db.issue_labels.name.ilike(search_pattern)) | (
+        if query.search:
+            search_pattern = f"%{query.search}%"
+            query_obj &= (db.issue_labels.name.ilike(search_pattern)) | (
                 db.issue_labels.description.ilike(search_pattern)
             )
 
         # Calculate pagination
-        offset = (page - 1) * per_page
+        offset = (query.page - 1) * per_page
 
         # Get count and rows
-        total = db(query).count()
-        rows = db(query).select(
+        total = db(query_obj).count()
+        rows = db(query_obj).select(
             orderby=db.issue_labels.name, limitby=(offset, offset + per_page)
         )
 
@@ -75,7 +106,7 @@ async def list_labels():
     response = PaginatedResponse(
         items=[asdict(item) for item in items],
         total=total,
-        page=page,
+        page=query.page,
         per_page=per_page,
         pages=pages,
     )
@@ -85,7 +116,8 @@ async def list_labels():
 
 @bp.route("", methods=["POST"])
 @login_required
-async def create_label():
+@validated_request(body_model=CreateLabelRequest)
+async def create_label(body: CreateLabelRequest):
     """
     Create a new label.
 
@@ -106,25 +138,17 @@ async def create_label():
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    # Validate required fields
-    if not data.get("name"):
-        return jsonify({"error": "name is required"}), 400
-
     def create():
         # Check if label already exists
-        existing = db(db.issue_labels.name == data["name"]).select().first()
+        existing = db(db.issue_labels.name == body.name).select().first()
         if existing:
             return None
 
         # Create label
         label_id = db.issue_labels.insert(
-            name=data["name"],
-            description=data.get("description"),
-            color=data.get("color", "#cccccc"),
+            name=body.name,
+            description=body.description,
+            color=body.color,
         )
         db.commit()
 
@@ -168,7 +192,8 @@ async def get_label(id: int):
 
 @bp.route("/<int:id>", methods=["PUT"])
 @login_required
-async def update_label(id: int):
+@validated_request(body_model=UpdateLabelRequest)
+async def update_label(id: int, body: UpdateLabelRequest):
     """
     Update a label.
 
@@ -192,29 +217,25 @@ async def update_label(id: int):
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
     def update():
         label = db.issue_labels[id]
         if not label:
             return None, False
 
         # Check if name is being changed to an existing one
-        if "name" in data and data["name"] != label.name:
-            existing = db(db.issue_labels.name == data["name"]).select().first()
+        if body.name is not None and body.name != label.name:
+            existing = db(db.issue_labels.name == body.name).select().first()
             if existing:
                 return None, True
 
         # Update fields
         update_dict = {}
-        if "name" in data:
-            update_dict["name"] = data["name"]
-        if "description" in data:
-            update_dict["description"] = data["description"]
-        if "color" in data:
-            update_dict["color"] = data["color"]
+        if body.name is not None:
+            update_dict["name"] = body.name
+        if body.description is not None:
+            update_dict["description"] = body.description
+        if body.color is not None:
+            update_dict["color"] = body.color
 
         if update_dict:
             db(db.issue_labels.id == id).update(**update_dict)

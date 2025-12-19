@@ -4,11 +4,43 @@ Provides REST endpoints for tenant CRUD operations, configuration,
 and usage statistics for the Super Admin Console.
 """
 
+from typing import Optional
+
 from flask import Blueprint, current_app, jsonify, request
+from pydantic import Field, ValidationError
 
 from apps.api.api.v1.portal_auth import portal_token_required
+from py_libs.pydantic import RequestModel, Name255, SlugStr, bounded_str
 
 bp = Blueprint("tenants", __name__)
+
+
+# Pydantic Models for request validation
+class CreateTenantRequest(RequestModel):
+    """Validation model for creating a new tenant."""
+    name: Name255
+    slug: SlugStr
+    domain: Optional[str] = Field(default=None, max_length=255)
+    subscription_tier: str = Field(default="community", max_length=50)
+    license_key: Optional[str] = Field(default=None, max_length=500)
+    settings: Optional[dict] = Field(default=None)
+    feature_flags: Optional[dict] = Field(default=None)
+    data_retention_days: int = Field(default=90, ge=1, le=36500)
+    storage_quota_gb: int = Field(default=10, ge=1, le=1000000)
+
+
+class UpdateTenantRequest(RequestModel):
+    """Validation model for updating a tenant."""
+    name: Optional[Name255] = None
+    domain: Optional[str] = Field(default=None, max_length=255)
+    slug: Optional[SlugStr] = None
+    subscription_tier: Optional[str] = Field(default=None, max_length=50)
+    license_key: Optional[str] = Field(default=None, max_length=500)
+    settings: Optional[dict] = None
+    feature_flags: Optional[dict] = None
+    data_retention_days: Optional[int] = Field(default=None, ge=1, le=36500)
+    storage_quota_gb: Optional[int] = Field(default=None, ge=1, le=1000000)
+    is_active: Optional[bool] = None
 
 
 def global_admin_required(f):
@@ -148,45 +180,44 @@ def create_tenant():
     Requires global admin.
 
     Request body:
-        name: str - Tenant name
+        name: str - Tenant name (1-255 chars)
         slug: str - URL-friendly slug
         domain: str (optional) - Custom domain
         subscription_tier: str - community/professional/enterprise
         license_key: str (optional) - License key
         settings: dict (optional) - Tenant settings
         feature_flags: dict (optional) - Feature flags
-        data_retention_days: int - Audit log retention
-        storage_quota_gb: int - Storage quota
+        data_retention_days: int - Audit log retention (1-36500 days)
+        storage_quota_gb: int - Storage quota (1-1000000 GB)
 
     Returns:
         Created tenant
     """
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
-
-    name = data.get("name")
-    slug = data.get("slug")
-
-    if not name or not slug:
-        return jsonify({"error": "name and slug are required"}), 400
+    try:
+        body = CreateTenantRequest.model_validate(request.get_json())
+    except ValidationError as e:
+        errors = [
+            {"field": ".".join(str(x) for x in err["loc"]), "message": err["msg"]}
+            for err in e.errors()
+        ]
+        return jsonify({"error": "Validation failed", "details": errors}), 400
 
     db = current_app.db
     # Check if slug already exists
-    existing = db(db.tenants.slug == slug).select().first()
+    existing = db(db.tenants.slug == body.slug).select().first()
     if existing:
         return jsonify({"error": "Slug already exists"}), 400
 
     tenant_id = db.tenants.insert(
-        name=name,
-        slug=slug,
-        domain=data.get("domain"),
-        subscription_tier=data.get("subscription_tier", "community"),
-        license_key=data.get("license_key"),
-        settings=data.get("settings"),
-        feature_flags=data.get("feature_flags"),
-        data_retention_days=data.get("data_retention_days", 90),
-        storage_quota_gb=data.get("storage_quota_gb", 10),
+        name=body.name,
+        slug=body.slug,
+        domain=body.domain,
+        subscription_tier=body.subscription_tier,
+        license_key=body.license_key,
+        settings=body.settings,
+        feature_flags=body.feature_flags,
+        data_retention_days=body.data_retention_days,
+        storage_quota_gb=body.storage_quota_gb,
         is_active=True,
     )
     db.commit()
@@ -195,8 +226,8 @@ def create_tenant():
         jsonify(
             {
                 "id": tenant_id,
-                "name": name,
-                "slug": slug,
+                "name": body.name,
+                "slug": body.slug,
             }
         ),
         201,
@@ -229,9 +260,14 @@ def update_tenant(tenant_id):
     if not tenant:
         return jsonify({"error": "Tenant not found"}), 404
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
+    try:
+        body = UpdateTenantRequest.model_validate(request.get_json())
+    except ValidationError as e:
+        errors = [
+            {"field": ".".join(str(x) for x in err["loc"]), "message": err["msg"]}
+            for err in e.errors()
+        ]
+        return jsonify({"error": "Validation failed", "details": errors}), 400
 
     # Fields tenant admins can update
     tenant_admin_fields = {"name", "domain", "settings", "feature_flags"}
@@ -248,11 +284,12 @@ def update_tenant(tenant_id):
 
     updates = {}
 
-    for key, value in data.items():
-        if key in tenant_admin_fields:
-            updates[key] = value
-        elif key in global_admin_fields and is_global_admin:
-            updates[key] = value
+    # Collect updates from validated body
+    for field_name, field_value in body.model_dump(exclude_none=True).items():
+        if field_name in tenant_admin_fields:
+            updates[field_name] = field_value
+        elif field_name in global_admin_fields and is_global_admin:
+            updates[field_name] = field_value
 
     if updates:
         tenant.update_record(**updates)

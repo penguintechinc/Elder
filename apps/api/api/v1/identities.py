@@ -9,10 +9,21 @@ from werkzeug.security import generate_password_hash
 from apps.api.auth import login_required, permission_required
 from apps.api.models.dataclasses import (
     IdentityDTO,
-    IdentityGroupDTO,
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,
+)
+from py_libs.pydantic import RequestModel
+from py_libs.pydantic.flask_integration import validated_request, model_response, ValidationErrorResponse
+from py_libs.pydantic.models.identity import (
+    CreateIdentityRequest,
+    UpdateIdentityRequest,
+    IdentityType,
+    AuthProvider,
+    PortalRole,
+    CreateIdentityGroupRequest,
+    UpdateIdentityGroupRequest,
+    IdentityGroupDTO,
 )
 from shared.async_utils import run_in_threadpool
 
@@ -119,7 +130,8 @@ async def list_identities():
 @bp.route("", methods=["POST"])
 @login_required
 @permission_required("manage_users")
-async def create_identity():
+@validated_request(body_model=CreateIdentityRequest)
+async def create_identity(body: CreateIdentityRequest):
     """
     Create a new identity/user.
 
@@ -133,7 +145,8 @@ async def create_identity():
             "password": "string" (optional, for local auth),
             "is_active": true/false (default: true),
             "is_superuser": false (default: false),
-            "mfa_enabled": false (default: false)
+            "mfa_enabled": false (default: false),
+            "organization_id": int (optional)
         }
 
     Returns:
@@ -142,57 +155,44 @@ async def create_identity():
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    # Validate required fields
-    if not data.get("username"):
-        return jsonify({"error": "username is required"}), 400
-    if not data.get("identity_type"):
-        return jsonify({"error": "identity_type is required"}), 400
-    if not data.get("auth_provider"):
-        return jsonify({"error": "auth_provider is required"}), 400
-    if not data.get("organization_id"):
-        return jsonify({"error": "organization_id is required"}), 400
-
     # Get organization to derive tenant_id
+    org_id = body.organization_id
     def get_org():
-        return db.organizations[data["organization_id"]]
+        return db.organizations[org_id] if org_id else None
 
     org = await run_in_threadpool(get_org)
-    if not org:
+    if org_id and not org:
         return jsonify({"error": "Organization not found"}), 404
-    if not org.tenant_id:
+    if org and not org.tenant_id:
         return jsonify({"error": "Organization must have a tenant"}), 400
 
     # Create identity
     def create():
         # Check if username exists
-        existing = db(db.identities.username == data["username"]).select().first()
+        existing = db(db.identities.username == body.username).select().first()
         if existing:
             return None, "Username already exists", 400
 
         # Prepare insert data
         insert_data = {
-            "username": data["username"],
-            "identity_type": data["identity_type"],
-            "auth_provider": data["auth_provider"],
-            "email": data.get("email"),
-            "full_name": data.get("full_name"),
-            "auth_provider_id": data.get("auth_provider_id"),
-            "organization_id": data["organization_id"],
-            "tenant_id": org.tenant_id,
-            "is_active": data.get("is_active", True),
-            "is_superuser": data.get("is_superuser", False),
-            "mfa_enabled": data.get("mfa_enabled", False),
-            "portal_role": data.get("portal_role", "viewer"),
-            "must_change_password": data.get("must_change_password", False),
+            "username": body.username,
+            "identity_type": body.identity_type,
+            "auth_provider": body.auth_provider,
+            "email": body.email,
+            "full_name": body.full_name,
+            "auth_provider_id": body.auth_provider_id,
+            "organization_id": body.organization_id,
+            "tenant_id": org.tenant_id if org else None,
+            "is_active": body.is_active,
+            "is_superuser": body.is_superuser,
+            "mfa_enabled": body.mfa_enabled,
+            "portal_role": body.portal_role if hasattr(body, 'portal_role') else "viewer",
+            "must_change_password": False,
         }
 
         # Hash password if provided (for local auth)
-        if "password" in data:
-            insert_data["password_hash"] = generate_password_hash(data["password"])
+        if body.password:
+            insert_data["password_hash"] = generate_password_hash(body.password.get_secret_value())
 
         # Create identity
         identity_id = db.identities.insert(**insert_data)
@@ -237,7 +237,8 @@ async def get_identity(id: int):
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])
 @login_required
 @permission_required("manage_users")
-async def update_identity(id: int):
+@validated_request(body_model=UpdateIdentityRequest)
+async def update_identity(id: int, body: UpdateIdentityRequest):
     """
     Update identity.
 
@@ -250,7 +251,9 @@ async def update_identity(id: int):
             "full_name": "string" (optional),
             "password": "string" (optional),
             "is_active": true/false (optional),
-            "mfa_enabled": true/false (optional)
+            "mfa_enabled": true/false (optional),
+            "portal_role": "admin" | "editor" | "viewer" (optional),
+            "organization_id": int (optional)
         }
 
     Returns:
@@ -265,16 +268,12 @@ async def update_identity(id: int):
     if not existing:
         return jsonify({"error": "Identity not found"}), 404
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
     # If organization is being changed, validate and get tenant
     org_tenant_id = None
-    if "organization_id" in data:
+    if body.organization_id:
 
         def get_org():
-            return db.organizations[data["organization_id"]]
+            return db.organizations[body.organization_id]
 
         org = await run_in_threadpool(get_org)
         if not org:
@@ -287,18 +286,20 @@ async def update_identity(id: int):
     def update():
         update_fields = {}
 
-        if "email" in data:
-            update_fields["email"] = data["email"]
-        if "full_name" in data:
-            update_fields["full_name"] = data["full_name"]
-        if "password" in data:
-            update_fields["password_hash"] = generate_password_hash(data["password"])
-        if "is_active" in data:
-            update_fields["is_active"] = data["is_active"]
-        if "mfa_enabled" in data:
-            update_fields["mfa_enabled"] = data["mfa_enabled"]
-        if "organization_id" in data:
-            update_fields["organization_id"] = data["organization_id"]
+        if body.email is not None:
+            update_fields["email"] = body.email
+        if body.full_name is not None:
+            update_fields["full_name"] = body.full_name
+        if body.password is not None:
+            update_fields["password_hash"] = generate_password_hash(body.password.get_secret_value())
+        if body.is_active is not None:
+            update_fields["is_active"] = body.is_active
+        if body.mfa_enabled is not None:
+            update_fields["mfa_enabled"] = body.mfa_enabled
+        if body.portal_role is not None:
+            update_fields["portal_role"] = body.portal_role
+        if body.organization_id is not None:
+            update_fields["organization_id"] = body.organization_id
             update_fields["tenant_id"] = org_tenant_id
 
         db(db.identities.id == id).update(**update_fields)
@@ -419,7 +420,8 @@ async def list_groups():
 @bp.route("/groups", methods=["POST"])
 @login_required
 @permission_required("manage_users")
-async def create_group():
+@validated_request(body_model=CreateIdentityGroupRequest)
+async def create_group(body: CreateIdentityGroupRequest):
     """
     Create a new identity group.
 
@@ -437,28 +439,20 @@ async def create_group():
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    # Validate required fields
-    if not data.get("name"):
-        return jsonify({"error": "name is required"}), 400
-
     # Create group
     def create():
         # Check if group name exists
-        existing = db(db.identity_groups.name == data["name"]).select().first()
+        existing = db(db.identity_groups.name == body.name).select().first()
         if existing:
             return None, "Group name already exists", 400
 
         # Create group
         group_id = db.identity_groups.insert(
-            name=data["name"],
-            description=data.get("description"),
-            ldap_dn=data.get("ldap_dn"),
-            saml_group=data.get("saml_group"),
-            is_active=data.get("is_active", True),
+            name=body.name,
+            description=body.description,
+            ldap_dn=body.ldap_dn,
+            saml_group=body.saml_group,
+            is_active=body.is_active,
         )
         db.commit()
 
@@ -492,8 +486,27 @@ async def get_group(id: int):
 @bp.route("/groups/<int:id>", methods=["PATCH", "PUT"])
 @login_required
 @permission_required("manage_users")
-async def update_group(id: int):
-    """Update identity group."""
+@validated_request(body_model=UpdateIdentityGroupRequest)
+async def update_group(id: int, body: UpdateIdentityGroupRequest):
+    """
+    Update identity group.
+
+    Path Parameters:
+        - id: Group ID
+
+    Request Body:
+        {
+            "name": "string" (optional),
+            "description": "string" (optional),
+            "ldap_dn": "string" (optional),
+            "saml_group": "string" (optional),
+            "is_active": true/false (optional)
+        }
+
+    Returns:
+        200: Updated group
+        404: Group not found
+    """
     db = current_app.db
 
     # Check if group exists
@@ -501,24 +514,20 @@ async def update_group(id: int):
     if not existing:
         return jsonify({"error": "Group not found"}), 404
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
     # Update group
     def update():
         update_fields = {}
 
-        if "name" in data:
-            update_fields["name"] = data["name"]
-        if "description" in data:
-            update_fields["description"] = data["description"]
-        if "ldap_dn" in data:
-            update_fields["ldap_dn"] = data["ldap_dn"]
-        if "saml_group" in data:
-            update_fields["saml_group"] = data["saml_group"]
-        if "is_active" in data:
-            update_fields["is_active"] = data["is_active"]
+        if body.name is not None:
+            update_fields["name"] = body.name
+        if body.description is not None:
+            update_fields["description"] = body.description
+        if body.ldap_dn is not None:
+            update_fields["ldap_dn"] = body.ldap_dn
+        if body.saml_group is not None:
+            update_fields["saml_group"] = body.saml_group
+        if body.is_active is not None:
+            update_fields["is_active"] = body.is_active
 
         db(db.identity_groups.id == id).update(**update_fields)
         db.commit()

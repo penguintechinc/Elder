@@ -2,16 +2,13 @@
 
 import fnmatch
 import structlog
-from dataclasses import asdict
+from pydantic import ValidationError
 
 from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required, resource_role_required
 from apps.api.models.dataclasses import (
-    CreateLicensePolicyRequest,
-    LicensePolicyDTO,
     PaginatedResponse,
-    UpdateLicensePolicyRequest,
     from_pydal_row,
     from_pydal_rows,
 )
@@ -21,6 +18,11 @@ from apps.api.utils.validation_helpers import (
     validate_json_body,
     validate_required_fields,
     validate_resource_exists,
+)
+from py_libs.pydantic.models import (
+    CreateLicensePolicyRequest,
+    LicensePolicyDTO,
+    UpdateLicensePolicyRequest,
 )
 from shared.async_utils import run_in_threadpool
 
@@ -159,11 +161,11 @@ async def list_policies():
     pages = pagination.calculate_pages(total)
 
     # Convert to DTOs
-    items = from_pydal_rows(rows, LicensePolicyDTO)
+    items = [LicensePolicyDTO.from_pydal_row(row) for row in rows]
 
     # Create paginated response
     response = PaginatedResponse(
-        items=[asdict(item) for item in items],
+        items=[item.to_dict() for item in items],
         total=total,
         page=pagination.page,
         per_page=pagination.per_page,
@@ -214,48 +216,48 @@ async def create_policy():
     if error := validate_json_body(data):
         return error
 
-    # Validate required fields
-    if error := validate_required_fields(data, ["name", "organization_id"]):
-        return error
+    # Validate request with Pydantic
+    try:
+        req = CreateLicensePolicyRequest(**data)
+    except ValidationError as e:
+        return ApiResponse.error(f"Validation error: {e.errors()}", 400)
 
     # Validate organization exists
-    org_id = data["organization_id"]
     org, error = await validate_resource_exists(
-        db.organizations, org_id, "Organization"
+        db.organizations, req.organization_id, "Organization"
     )
     if error:
         return error
 
-    # Validate action if provided
-    action = data.get("action", "warn")
-    if action not in ["warn", "block"]:
+    # Validate action
+    if req.action not in ["warn", "block"]:
         return ApiResponse.error(
             "action must be 'warn' or 'block'", 400
         )
 
     def create():
         policy_id = db.license_policies.insert(
-            name=data["name"],
-            organization_id=org_id,
-            description=data.get("description"),
-            allowed_licenses=data.get("allowed_licenses", []),
-            denied_licenses=data.get("denied_licenses", []),
-            action=action,
-            is_active=data.get("is_active", True),
+            name=req.name,
+            organization_id=req.organization_id,
+            description=req.description,
+            allowed_licenses=req.allowed_licenses or [],
+            denied_licenses=req.denied_licenses or [],
+            action=req.action,
+            is_active=req.is_active,
         )
         db.commit()
         return db.license_policies[policy_id]
 
     policy = await run_in_threadpool(create)
 
-    policy_dto = from_pydal_row(policy, LicensePolicyDTO)
+    policy_dto = LicensePolicyDTO.from_pydal_row(policy)
     logger.info(
         "license_policy_created",
         policy_id=policy.id,
         name=policy.name,
-        organization_id=org_id,
+        organization_id=req.organization_id,
     )
-    return ApiResponse.created(asdict(policy_dto))
+    return ApiResponse.created(policy_dto.to_dict())
 
 
 @bp.route("/<int:id>", methods=["GET"])
@@ -283,8 +285,8 @@ async def get_policy(id: int):
     if error:
         return error
 
-    policy_dto = from_pydal_row(policy, LicensePolicyDTO)
-    return ApiResponse.success(asdict(policy_dto))
+    policy_dto = LicensePolicyDTO.from_pydal_row(policy)
+    return ApiResponse.success(policy_dto.to_dict())
 
 
 @bp.route("/<int:id>", methods=["PUT"])
@@ -334,24 +336,32 @@ async def update_policy(id: int):
     if error:
         return error
 
+    # Validate request with Pydantic
+    try:
+        req = UpdateLicensePolicyRequest(**data)
+    except ValidationError as e:
+        return ApiResponse.error(f"Validation error: {e.errors()}", 400)
+
     # Validate action if provided
-    if "action" in data and data["action"] not in ["warn", "block"]:
+    if req.action is not None and req.action not in ["warn", "block"]:
         return ApiResponse.error(
             "action must be 'warn' or 'block'", 400
         )
 
     def update():
         update_data = {}
-        for field in [
-            "name",
-            "description",
-            "allowed_licenses",
-            "denied_licenses",
-            "action",
-            "is_active",
-        ]:
-            if field in data:
-                update_data[field] = data[field]
+        if req.name is not None:
+            update_data["name"] = req.name
+        if req.description is not None:
+            update_data["description"] = req.description
+        if req.allowed_licenses is not None:
+            update_data["allowed_licenses"] = req.allowed_licenses
+        if req.denied_licenses is not None:
+            update_data["denied_licenses"] = req.denied_licenses
+        if req.action is not None:
+            update_data["action"] = req.action
+        if req.is_active is not None:
+            update_data["is_active"] = req.is_active
 
         if update_data:
             db.license_policies[id] = update_data
@@ -361,9 +371,9 @@ async def update_policy(id: int):
 
     updated_policy = await run_in_threadpool(update)
 
-    policy_dto = from_pydal_row(updated_policy, LicensePolicyDTO)
+    policy_dto = LicensePolicyDTO.from_pydal_row(updated_policy)
     logger.info("license_policy_updated", policy_id=id)
-    return ApiResponse.success(asdict(policy_dto))
+    return ApiResponse.success(policy_dto.to_dict())
 
 
 @bp.route("/<int:id>", methods=["DELETE"])

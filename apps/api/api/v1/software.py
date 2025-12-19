@@ -14,31 +14,14 @@ from apps.api.services.sbom.exporters import CycloneDXExporter, SPDXExporter
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.pydal_helpers import PaginationParams
 from apps.api.utils.validation_helpers import (
-    validate_enum_value,
-    validate_json_body,
     validate_organization_and_get_tenant,
-    validate_required_fields,
     validate_resource_exists,
 )
+from py_libs.pydantic.models.software import CreateSoftwareRequest, UpdateSoftwareRequest
+from py_libs.pydantic.flask_integration import validated_request, model_response
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("software", __name__)
-
-# Valid software types
-VALID_SOFTWARE_TYPES = [
-    "saas",
-    "paas",
-    "iaas",
-    "productivity",
-    "software",
-    "administrative",
-    "security",
-    "development",
-    "monitoring",
-    "database",
-    "communication",
-    "other",
-]
 
 
 @bp.route("", methods=["GET"])
@@ -90,55 +73,43 @@ async def list_software():
 @bp.route("", methods=["POST"])
 @login_required
 @resource_role_required("viewer")
-async def create_software():
+@validated_request(body_model=CreateSoftwareRequest)
+async def create_software(body: CreateSoftwareRequest):
     """Create a new software entry."""
     db = current_app.db
 
-    data = request.get_json()
-    if error := validate_json_body(data):
-        return error
-
-    if error := validate_required_fields(data, ["name", "organization_id"]):
-        return error
-
-    if data.get("software_type"):
-        if error := validate_enum_value(
-            data["software_type"], VALID_SOFTWARE_TYPES, "software_type"
-        ):
-            return error
-
-    if data.get("purchasing_poc_id"):
+    if body.purchasing_poc_id:
         identity, error = await validate_resource_exists(
-            db.identities, data["purchasing_poc_id"], "Purchasing POC identity"
+            db.identities, body.purchasing_poc_id, "Purchasing POC identity"
         )
         if error:
             return error
 
     org, tenant_id, error = await validate_organization_and_get_tenant(
-        data["organization_id"]
+        body.organization_id
     )
     if error:
         return error
 
     def create():
         software_id = db.software.insert(
-            name=data["name"],
-            description=data.get("description"),
-            organization_id=data["organization_id"],
+            name=body.name,
+            description=body.description,
+            organization_id=body.organization_id,
             tenant_id=tenant_id,
-            purchasing_poc_id=data.get("purchasing_poc_id"),
-            license_url=data.get("license_url"),
-            version=data.get("version"),
-            business_purpose=data.get("business_purpose"),
-            software_type=data.get("software_type", "other"),
-            seats=data.get("seats"),
-            cost_monthly=data.get("cost_monthly"),
-            renewal_date=data.get("renewal_date"),
-            vendor=data.get("vendor"),
-            support_contact=data.get("support_contact"),
-            notes=data.get("notes"),
-            tags=data.get("tags"),
-            is_active=data.get("is_active", True),
+            purchasing_poc_id=body.purchasing_poc_id,
+            license_url=body.license_url,
+            version=body.version,
+            business_purpose=body.business_purpose,
+            software_type=body.software_type,
+            seats=body.seats,
+            cost_monthly=body.cost_monthly,
+            renewal_date=body.renewal_date,
+            vendor=body.vendor,
+            support_contact=body.support_contact,
+            notes=body.notes,
+            tags=body.tags,
+            is_active=body.is_active,
         )
         db.commit()
         return db.software[software_id]
@@ -163,31 +134,22 @@ async def get_software(id: int):
 @bp.route("/<int:id>", methods=["PUT"])
 @login_required
 @resource_role_required("maintainer")
-async def update_software(id: int):
+@validated_request(body_model=UpdateSoftwareRequest)
+async def update_software(id: int, body: UpdateSoftwareRequest):
     """Update a software entry."""
     db = current_app.db
 
-    data = request.get_json()
-    if error := validate_json_body(data):
-        return error
-
-    if data.get("software_type"):
-        if error := validate_enum_value(
-            data["software_type"], VALID_SOFTWARE_TYPES, "software_type"
-        ):
-            return error
-
-    if data.get("purchasing_poc_id"):
+    if body.purchasing_poc_id:
         identity, error = await validate_resource_exists(
-            db.identities, data["purchasing_poc_id"], "Purchasing POC identity"
+            db.identities, body.purchasing_poc_id, "Purchasing POC identity"
         )
         if error:
             return error
 
     org_tenant_id = None
-    if "organization_id" in data:
+    if body.organization_id is not None:
         org, org_tenant_id, error = await validate_organization_and_get_tenant(
-            data["organization_id"]
+            body.organization_id
         )
         if error:
             return error
@@ -216,12 +178,13 @@ async def update_software(id: int):
             "is_active",
         ]
 
+        data_dict = body.model_dump(exclude_unset=True)
         for field in updateable_fields:
-            if field in data:
-                update_dict[field] = data[field]
+            if field in data_dict:
+                update_dict[field] = getattr(body, field)
 
-        if "organization_id" in data:
-            update_dict["organization_id"] = data["organization_id"]
+        if body.organization_id is not None:
+            update_dict["organization_id"] = body.organization_id
             update_dict["tenant_id"] = org_tenant_id
 
         if update_dict:

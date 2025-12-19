@@ -16,11 +16,11 @@ from apps.api.services.sbom.exporters import CycloneDXExporter, SPDXExporter
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.pydal_helpers import PaginationParams
 from apps.api.utils.validation_helpers import (
-    validate_json_body,
     validate_organization_and_get_tenant,
-    validate_required_fields,
     validate_resource_exists,
 )
+from py_libs.pydantic import CreateServiceRequest, UpdateServiceRequest
+from py_libs.pydantic.flask_integration import validated_request
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("services", __name__)
@@ -112,14 +112,15 @@ async def list_services():
 @bp.route("", methods=["POST"])
 @login_required
 @resource_role_required("viewer")
-async def create_service():
+@validated_request(body_model=CreateServiceRequest)
+async def create_service(body: CreateServiceRequest):
     """
     Create a new service.
 
     Requires viewer role on the resource.
 
     Request Body:
-        JSON object with service fields (see docstring in original)
+        CreateServiceRequest: Service creation parameters with validation
 
     Returns:
         201: Service created
@@ -131,67 +132,58 @@ async def create_service():
     """
     db = current_app.db
 
-    # Validate JSON body
-    data = request.get_json()
-    if error := validate_json_body(data):
-        return error
-
-    # Validate required fields
-    if error := validate_required_fields(data, ["name", "organization_id"]):
-        return error
-
     # Get organization to derive tenant_id using helper
     org, tenant_id, error = await validate_organization_and_get_tenant(
-        data["organization_id"]
+        body.organization_id
     )
     if error:
         return error
 
     # Validate poc_identity_id if provided
-    if data.get("poc_identity_id"):
+    if body.poc_identity_id:
 
         def get_identity():
-            return db.identities[data["poc_identity_id"]]
+            return db.identities[body.poc_identity_id]
 
         identity = await run_in_threadpool(get_identity)
         if not identity:
-            return ApiResponse.not_found("POC identity", data["poc_identity_id"])
+            return ApiResponse.not_found("POC identity", body.poc_identity_id)
 
     def create():
         # Create service
         service_id = db.services.insert(
-            name=data["name"],
-            description=data.get("description"),
-            organization_id=data["organization_id"],
+            name=body.name,
+            description=body.description,
+            organization_id=body.organization_id,
             tenant_id=tenant_id,
-            domains=data.get("domains", []),
-            paths=data.get("paths", []),
-            poc_identity_id=data.get("poc_identity_id"),
-            language=data.get("language"),
-            deployment_method=data.get("deployment_method"),
-            deployment_type=data.get("deployment_type"),
-            is_public=data.get("is_public", False),
-            port=data.get("port"),
-            health_endpoint=data.get("health_endpoint"),
-            repository_url=data.get("repository_url"),
-            documentation_url=data.get("documentation_url"),
-            sla_uptime=data.get("sla_uptime"),
-            sla_response_time_ms=data.get("sla_response_time_ms"),
-            notes=data.get("notes"),
-            tags=data.get("tags", []),
-            status=data.get("status", "active"),
+            domains=body.domains or [],
+            paths=body.paths or [],
+            poc_identity_id=body.poc_identity_id,
+            language=body.language,
+            deployment_method=body.deployment_method,
+            deployment_type=body.deployment_type,
+            is_public=body.is_public,
+            port=body.port,
+            health_endpoint=body.health_endpoint,
+            repository_url=body.repository_url,
+            documentation_url=body.documentation_url,
+            sla_uptime=body.sla_uptime,
+            sla_response_time_ms=body.sla_response_time_ms,
+            notes=body.notes,
+            tags=body.tags,
+            status=body.status,
         )
         db.commit()
 
         # Auto-create SBOM scan if repository_url is provided
-        if data.get("repository_url"):
+        if body.repository_url:
             db.sbom_scans.insert(
                 parent_type="service",
                 parent_id=service_id,
                 scan_type="git_clone",
                 status="pending",
-                repository_url=data["repository_url"],
-                repository_branch=data.get("repository_branch", "main"),
+                repository_url=body.repository_url,
+                repository_branch="main",
                 components_found=0,
                 components_added=0,
                 components_updated=0,
@@ -237,7 +229,8 @@ async def get_service(id: int):
 @bp.route("/<int:id>", methods=["PUT"])
 @login_required
 @resource_role_required("maintainer")
-async def update_service(id: int):
+@validated_request(body_model=UpdateServiceRequest)
+async def update_service(id: int, body: UpdateServiceRequest):
     """
     Update a service.
 
@@ -247,7 +240,7 @@ async def update_service(id: int):
         - id: Service ID
 
     Request Body:
-        JSON object with fields to update
+        UpdateServiceRequest: Service update parameters with validation
 
     Returns:
         200: Service updated
@@ -260,64 +253,36 @@ async def update_service(id: int):
     """
     db = current_app.db
 
-    # Validate JSON body
-    data = request.get_json()
-    if error := validate_json_body(data):
-        return error
-
     # If organization is being changed, validate and get tenant
     org_tenant_id = None
-    if "organization_id" in data:
+    if body.organization_id is not None:
         org, org_tenant_id, error = await validate_organization_and_get_tenant(
-            data["organization_id"]
+            body.organization_id
         )
         if error:
             return error
 
     # Validate poc_identity_id if provided
-    if "poc_identity_id" in data and data["poc_identity_id"]:
+    if body.poc_identity_id is not None and body.poc_identity_id:
 
         def get_identity():
-            return db.identities[data["poc_identity_id"]]
+            return db.identities[body.poc_identity_id]
 
         identity = await run_in_threadpool(get_identity)
         if not identity:
-            return ApiResponse.not_found("POC identity", data["poc_identity_id"])
+            return ApiResponse.not_found("POC identity", body.poc_identity_id)
 
     def update():
         service = db.services[id]
         if not service:
             return None
 
-        # Update fields
+        # Build update dictionary from non-None fields
         update_dict = {}
-        updateable_fields = [
-            "name",
-            "description",
-            "domains",
-            "paths",
-            "poc_identity_id",
-            "language",
-            "deployment_method",
-            "deployment_type",
-            "is_public",
-            "port",
-            "health_endpoint",
-            "repository_url",
-            "documentation_url",
-            "sla_uptime",
-            "sla_response_time_ms",
-            "notes",
-            "tags",
-            "status",
-        ]
+        for field, value in body.model_dump(exclude_none=True).items():
+            update_dict[field] = value
 
-        for field in updateable_fields:
-            if field in data:
-                update_dict[field] = data[field]
-
-        if "organization_id" in data:
-            update_dict["organization_id"] = data["organization_id"]
+        if body.organization_id is not None:
             update_dict["tenant_id"] = org_tenant_id
 
         if update_dict:
@@ -459,7 +424,7 @@ async def trigger_service_sbom_scan(id: int):
             scan_type=scan_type,
             status="pending",
             repository_url=service.repository_url,
-            repository_branch=repository_branch,
+            repository_branch=repository_branch or "main",
             components_found=0,
             components_added=0,
             components_updated=0,

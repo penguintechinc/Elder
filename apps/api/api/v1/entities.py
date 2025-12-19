@@ -15,10 +15,16 @@ from apps.api.models.dataclasses import (
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.pydal_helpers import PaginationParams
 from apps.api.utils.validation_helpers import (
-    validate_json_body,
     validate_organization_and_get_tenant,
-    validate_required_fields,
     validate_resource_exists,
+)
+from py_libs.pydantic.flask_integration import (
+    validated_request,
+    ValidationErrorResponse,
+)
+from py_libs.pydantic.models.entity import (
+    CreateEntityRequest,
+    UpdateEntityRequest,
 )
 from shared.async_utils import run_in_threadpool
 
@@ -104,7 +110,8 @@ async def list_entities():
 
 
 @bp.route("", methods=["POST"])
-async def create_entity():
+@validated_request(body_model=CreateEntityRequest)
+async def create_entity(body: CreateEntityRequest):
     """
     Create a new entity.
 
@@ -117,20 +124,9 @@ async def create_entity():
     """
     db = current_app.db
 
-    # Validate JSON body
-    data = request.get_json()
-    if error := validate_json_body(data):
-        return error
-
-    # Validate required fields
-    if error := validate_required_fields(
-        data, ["name", "entity_type", "organization_id"]
-    ):
-        return error
-
     # Get organization to derive tenant_id using helper
     org, tenant_id, error = await validate_organization_and_get_tenant(
-        data["organization_id"]
+        body.organization_id
     )
     if error:
         return error
@@ -138,15 +134,15 @@ async def create_entity():
     # Create entity in database
     def create_in_db():
         entity_id = db.entities.insert(
-            name=data["name"],
-            description=data.get("description"),
-            entity_type=data["entity_type"],
-            organization_id=data["organization_id"],
+            name=body.name,
+            description=body.description,
+            entity_type=body.entity_type,
+            organization_id=body.organization_id,
             tenant_id=tenant_id,
-            parent_id=data.get("parent_id"),
-            attributes=data.get("attributes"),
-            tags=data.get("tags", []),
-            is_active=data.get("is_active", True),
+            parent_id=body.parent_id,
+            attributes=body.attributes,
+            tags=body.tags or [],
+            is_active=body.is_active,
         )
         db.commit()
         return db.entities[entity_id]
@@ -184,7 +180,8 @@ async def get_entity(id: int):
 
 
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])
-async def update_entity(id: int):
+@validated_request(body_model=UpdateEntityRequest)
+async def update_entity(id: int, body: UpdateEntityRequest):
     """
     Update an entity (full edit support).
 
@@ -206,16 +203,11 @@ async def update_entity(id: int):
     if error:
         return error
 
-    # Validate JSON body
-    data = request.get_json()
-    if error := validate_json_body(data):
-        return error
-
     # If organization is being changed, validate and get tenant
     org_tenant_id = None
-    if "organization_id" in data:
+    if body.organization_id is not None:
         org, org_tenant_id, error = await validate_organization_and_get_tenant(
-            data["organization_id"]
+            body.organization_id
         )
         if error:
             return error
@@ -223,23 +215,23 @@ async def update_entity(id: int):
     # Update entity
     def update_in_db():
         update_fields = {}
-        if "name" in data:
-            update_fields["name"] = data["name"]
-        if "description" in data:
-            update_fields["description"] = data["description"]
-        if "entity_type" in data:
-            update_fields["entity_type"] = data["entity_type"]
-        if "organization_id" in data:
-            update_fields["organization_id"] = data["organization_id"]
+        if body.name is not None:
+            update_fields["name"] = body.name
+        if body.description is not None:
+            update_fields["description"] = body.description
+        if body.entity_type is not None:
+            update_fields["entity_type"] = body.entity_type
+        if body.organization_id is not None:
+            update_fields["organization_id"] = body.organization_id
             update_fields["tenant_id"] = org_tenant_id
-        if "parent_id" in data:
-            update_fields["parent_id"] = data["parent_id"]
-        if "attributes" in data:
-            update_fields["attributes"] = data["attributes"]
-        if "tags" in data:
-            update_fields["tags"] = data["tags"]
-        if "is_active" in data:
-            update_fields["is_active"] = data["is_active"]
+        if body.parent_id is not None:
+            update_fields["parent_id"] = body.parent_id
+        if body.attributes is not None:
+            update_fields["attributes"] = body.attributes
+        if body.tags is not None:
+            update_fields["tags"] = body.tags
+        if body.is_active is not None:
+            update_fields["is_active"] = body.is_active
 
         db(db.entities.id == id).update(**update_fields)
         db.commit()

@@ -3,10 +3,19 @@
 import logging
 
 from flask import Blueprint, jsonify, request
+from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required
 from apps.api.logging_config import log_error_and_respond
 from apps.api.services.networking import NetworkingService
+from py_libs.pydantic.flask_integration import (
+    ValidationErrorResponse,
+    model_response,
+)
+from py_libs.pydantic.models.network import (
+    CreateNetworkRequest,
+    UpdateNetworkRequest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -72,33 +81,25 @@ def create_network():
         if not data:
             return jsonify({"error": "Request body required"}), 400
 
-        required_fields = ["name", "network_type", "organization_id"]
-        missing = [f for f in required_fields if f not in data]
-        if missing:
-            return (
-                jsonify({"error": f"Missing required fields: {', '.join(missing)}"}),
-                400,
-            )
-
+        body = CreateNetworkRequest.model_validate(data)
         service = NetworkingService()
 
         network = service.create_network(
-            name=data["name"],
-            network_type=data["network_type"],
-            organization_id=data["organization_id"],
-            description=data.get("description"),
-            parent_id=data.get("parent_id"),
-            region=data.get("region"),
-            location=data.get("location"),
-            poc=data.get("poc"),
-            organizational_unit=data.get("organizational_unit"),
-            attributes=data.get("attributes"),
-            status_metadata=data.get("status_metadata"),
-            tags=data.get("tags"),
+            name=body.name,
+            network_type=body.network_type,
+            organization_id=body.organization_id,
+            description=body.description,
+            gateway=body.gateway,
+            vlan_id=body.vlan_id,
+            mtu=body.mtu,
+            cidr=body.cidr,
+            is_active=body.is_active,
         )
 
         return jsonify(network), 201
 
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
     except Exception as e:
         logger.error(f"Create network error: {str(e)}")
         return log_error_and_respond(logger, e, "Failed to process request", 500)
@@ -114,23 +115,23 @@ def update_network(network_id):
         if not data:
             return jsonify({"error": "Request body required"}), 400
 
+        body = UpdateNetworkRequest.model_validate(data)
         service = NetworkingService()
 
         network = service.update_network(
             network_id=network_id,
-            name=data.get("name"),
-            description=data.get("description"),
-            region=data.get("region"),
-            location=data.get("location"),
-            poc=data.get("poc"),
-            organizational_unit=data.get("organizational_unit"),
-            attributes=data.get("attributes"),
-            status_metadata=data.get("status_metadata"),
-            tags=data.get("tags"),
+            name=body.name,
+            description=body.description,
+            gateway=body.gateway,
+            vlan_id=body.vlan_id,
+            mtu=body.mtu,
+            is_active=body.is_active,
         )
 
         return jsonify(network), 200
 
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
     except ValueError as e:
         return log_error_and_respond(logger, e, "Failed to process request", 404)
     except Exception as e:

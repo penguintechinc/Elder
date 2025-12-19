@@ -2,14 +2,37 @@
 
 import json
 from datetime import datetime
+from typing import Optional, Union
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify
 
+from py_libs.pydantic import RequestModel, model_response
+from py_libs.pydantic.flask_integration import validated_request
 from apps.api.auth.decorators import login_required, resource_role_required
 from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
 
 bp = Blueprint("metadata", __name__)
+
+
+# ============================================================================
+# Pydantic Models for Request Validation
+# ============================================================================
+
+
+class CreateMetadataRequest(RequestModel):
+    """Request model for creating metadata fields."""
+
+    key: str
+    field_type: str
+    value: Union[str, int, float, bool, dict, list]
+
+
+class UpdateMetadataRequest(RequestModel):
+    """Request model for updating metadata fields."""
+
+    value: Union[str, int, float, bool, dict, list]
+    field_type: Optional[str] = None
 
 
 # Helper functions for type conversion
@@ -133,7 +156,8 @@ async def get_entity_metadata(id: int):
 @login_required
 @license_required("enterprise")
 @resource_role_required("maintainer", resource_param="id")
-async def create_entity_metadata(id: int):
+@validated_request(body_model=CreateMetadataRequest)
+async def create_entity_metadata(id: int, body: CreateMetadataRequest):
     """
     Create or update a metadata field for an entity.
 
@@ -160,18 +184,6 @@ async def create_entity_metadata(id: int):
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    # Validate required fields
-    if not data.get("key"):
-        return jsonify({"error": "key is required"}), 400
-    if not data.get("field_type"):
-        return jsonify({"error": "field_type is required"}), 400
-    if "value" not in data:
-        return jsonify({"error": "value is required"}), 400
-
     def create_or_update():
         # Verify entity exists
         entity = db.entities[id]
@@ -183,7 +195,7 @@ async def create_entity_metadata(id: int):
             db(
                 (db.metadata_fields.resource_type == "entity")
                 & (db.metadata_fields.resource_id == id)
-                & (db.metadata_fields.key == data["key"])
+                & (db.metadata_fields.key == body.key)
             )
             .select()
             .first()
@@ -194,7 +206,7 @@ async def create_entity_metadata(id: int):
 
         # Coerce value to correct type
         try:
-            coerced_value = _coerce_value(data["value"], data["field_type"])
+            coerced_value = _coerce_value(body.value, body.field_type)
             value_str = str(coerced_value)
         except ValueError as e:
             return None, str(e), 400
@@ -203,7 +215,7 @@ async def create_entity_metadata(id: int):
         if existing:
             # Update existing
             db(db.metadata_fields.id == existing.id).update(
-                field_type=data["field_type"],
+                field_type=body.field_type,
                 value=value_str,
             )
             db.commit()
@@ -211,9 +223,9 @@ async def create_entity_metadata(id: int):
         else:
             # Create new
             field_id = db.metadata_fields.insert(
-                key=data["key"],
+                key=body.key,
                 value=value_str,
-                field_type=data["field_type"],
+                field_type=body.field_type,
                 resource_type="entity",
                 resource_id=id,
                 is_system=False,
@@ -239,7 +251,8 @@ async def create_entity_metadata(id: int):
 @login_required
 @license_required("enterprise")
 @resource_role_required("maintainer", resource_param="id")
-async def update_entity_metadata(id: int, field_key: str):
+@validated_request(body_model=UpdateMetadataRequest)
+async def update_entity_metadata(id: int, field_key: str, body: UpdateMetadataRequest):
     """
     Update a metadata field for an entity.
 
@@ -266,13 +279,6 @@ async def update_entity_metadata(id: int, field_key: str):
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    if "value" not in data:
-        return jsonify({"error": "value is required"}), 400
-
     def update():
         # Verify entity exists
         entity = db.entities[id]
@@ -298,19 +304,19 @@ async def update_entity_metadata(id: int, field_key: str):
             return None, "System metadata fields cannot be modified", 403
 
         # Get field type (use provided or existing)
-        field_type = data.get("field_type", field.field_type)
+        field_type = body.field_type if body.field_type else field.field_type
 
         # Coerce value to correct type
         try:
-            coerced_value = _coerce_value(data["value"], field_type)
+            coerced_value = _coerce_value(body.value, field_type)
             value_str = str(coerced_value)
         except ValueError as e:
             return None, str(e), 400
 
         # Update field
         update_fields = {"value": value_str}
-        if "field_type" in data:
-            update_fields["field_type"] = data["field_type"]
+        if body.field_type:
+            update_fields["field_type"] = body.field_type
 
         db(db.metadata_fields.id == field.id).update(**update_fields)
         db.commit()
@@ -462,7 +468,8 @@ async def get_organization_metadata(id: int):
 @login_required
 @license_required("enterprise")
 @resource_role_required("maintainer", resource_param="id")
-async def create_organization_metadata(id: int):
+@validated_request(body_model=CreateMetadataRequest)
+async def create_organization_metadata(id: int, body: CreateMetadataRequest):
     """
     Create or update a metadata field for an organization.
 
@@ -489,18 +496,6 @@ async def create_organization_metadata(id: int):
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    # Validate required fields
-    if not data.get("key"):
-        return jsonify({"error": "key is required"}), 400
-    if not data.get("field_type"):
-        return jsonify({"error": "field_type is required"}), 400
-    if "value" not in data:
-        return jsonify({"error": "value is required"}), 400
-
     def create_or_update():
         # Verify organization exists
         org = db.organizations[id]
@@ -512,7 +507,7 @@ async def create_organization_metadata(id: int):
             db(
                 (db.metadata_fields.resource_type == "organization")
                 & (db.metadata_fields.resource_id == id)
-                & (db.metadata_fields.key == data["key"])
+                & (db.metadata_fields.key == body.key)
             )
             .select()
             .first()
@@ -523,7 +518,7 @@ async def create_organization_metadata(id: int):
 
         # Coerce value to correct type
         try:
-            coerced_value = _coerce_value(data["value"], data["field_type"])
+            coerced_value = _coerce_value(body.value, body.field_type)
             value_str = str(coerced_value)
         except ValueError as e:
             return None, str(e), 400
@@ -532,7 +527,7 @@ async def create_organization_metadata(id: int):
         if existing:
             # Update existing
             db(db.metadata_fields.id == existing.id).update(
-                field_type=data["field_type"],
+                field_type=body.field_type,
                 value=value_str,
             )
             db.commit()
@@ -540,9 +535,9 @@ async def create_organization_metadata(id: int):
         else:
             # Create new
             field_id = db.metadata_fields.insert(
-                key=data["key"],
+                key=body.key,
                 value=value_str,
-                field_type=data["field_type"],
+                field_type=body.field_type,
                 resource_type="organization",
                 resource_id=id,
                 is_system=False,
@@ -568,7 +563,8 @@ async def create_organization_metadata(id: int):
 @login_required
 @license_required("enterprise")
 @resource_role_required("maintainer", resource_param="id")
-async def update_organization_metadata(id: int, field_key: str):
+@validated_request(body_model=UpdateMetadataRequest)
+async def update_organization_metadata(id: int, field_key: str, body: UpdateMetadataRequest):
     """
     Update a metadata field for an organization.
 
@@ -595,13 +591,6 @@ async def update_organization_metadata(id: int, field_key: str):
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    if "value" not in data:
-        return jsonify({"error": "value is required"}), 400
-
     def update():
         # Verify organization exists
         org = db.organizations[id]
@@ -627,19 +616,19 @@ async def update_organization_metadata(id: int, field_key: str):
             return None, "System metadata fields cannot be modified", 403
 
         # Get field type (use provided or existing)
-        field_type = data.get("field_type", field.field_type)
+        field_type = body.field_type if body.field_type else field.field_type
 
         # Coerce value to correct type
         try:
-            coerced_value = _coerce_value(data["value"], field_type)
+            coerced_value = _coerce_value(body.value, field_type)
             value_str = str(coerced_value)
         except ValueError as e:
             return None, str(e), 400
 
         # Update field
         update_fields = {"value": value_str}
-        if "field_type" in data:
-            update_fields["field_type"] = data["field_type"]
+        if body.field_type:
+            update_fields["field_type"] = body.field_type
 
         db(db.metadata_fields.id == field.id).update(**update_fields)
         db.commit()

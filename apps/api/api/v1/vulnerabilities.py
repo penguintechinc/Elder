@@ -3,6 +3,7 @@
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, jsonify, request
+from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required, resource_role_required
 from apps.api.models.dataclasses import (
@@ -18,6 +19,12 @@ from apps.api.utils.pydal_helpers import PaginationParams
 from apps.api.utils.validation_helpers import (
     validate_json_body,
     validate_resource_exists,
+)
+from py_libs.pydantic.flask_integration import ValidationErrorResponse
+from py_libs.pydantic.models.vulnerability import (
+    SyncVulnerabilitiesRequest,
+    NVDSyncRequest,
+    UpdateComponentVulnerabilityRequest,
 )
 from shared.async_utils import run_in_threadpool
 
@@ -161,11 +168,15 @@ async def sync_vulnerabilities():
     """
     db = current_app.db
 
-    # Validate JSON body
-    data = request.get_json() or {}
+    # Validate request using pydantic
+    try:
+        data = request.get_json() or {}
+        validated_req = SyncVulnerabilitiesRequest(**data)
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
 
-    component_ids = data.get("component_ids")
-    force = data.get("force", False)
+    component_ids = validated_req.component_ids
+    force = validated_req.force
 
     def get_components():
         query = db.sbom_components.id > 0
@@ -362,10 +373,14 @@ async def update_component_vulnerability(id: int):
     """
     db = current_app.db
 
-    # Validate JSON body
-    data = request.get_json()
-    if error := validate_json_body(data):
-        return error
+    # Validate request using pydantic
+    try:
+        data = request.get_json()
+        if not data:
+            return ApiResponse.error("Request body is required", 400)
+        validated_req = UpdateComponentVulnerabilityRequest(**data)
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
 
     # Validate resource exists
     comp_vuln, error = await validate_resource_exists(
@@ -377,28 +392,19 @@ async def update_component_vulnerability(id: int):
     def update():
         update_dict = {}
 
-        if "status" in data:
-            valid_statuses = [
-                "open",
-                "investigating",
-                "remediated",
-                "false_positive",
-                "accepted",
-            ]
-            if data["status"] not in valid_statuses:
-                return None, f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
-
-            update_dict["status"] = data["status"]
+        if validated_req.status is not None:
+            update_dict["status"] = validated_req.status
 
             # Set remediated_at if status is remediated
-            if data["status"] == "remediated":
-                update_dict["remediated_at"] = request.utcnow
+            if validated_req.status == "remediated":
+                from datetime import datetime, timezone
+                update_dict["remediated_at"] = datetime.now(timezone.utc)
 
-        if "remediation_notes" in data:
-            update_dict["remediation_notes"] = data["remediation_notes"]
+        if validated_req.remediation_notes is not None:
+            update_dict["remediation_notes"] = validated_req.remediation_notes
 
-        if "remediated_by_id" in data:
-            update_dict["remediated_by_id"] = data["remediated_by_id"]
+        if validated_req.remediated_by_id is not None:
+            update_dict["remediated_by_id"] = validated_req.remediated_by_id
 
         if update_dict:
             db(db.component_vulnerabilities.id == id).update(**update_dict)
@@ -448,10 +454,15 @@ async def trigger_nvd_sync():
 
     db = current_app.db
 
-    # Get optional parameters
-    data = request.get_json() or {}
-    max_vulns = data.get("max_vulns", 500)
-    force_refresh = data.get("force_refresh", False)
+    # Validate request using pydantic
+    try:
+        data = request.get_json() or {}
+        validated_req = NVDSyncRequest(**data)
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
+
+    max_vulns = validated_req.max_vulns
+    force_refresh = validated_req.force_refresh
 
     # Get NVD API key from config if available
     nvd_api_key = current_app.config.get("NVD_API_KEY")

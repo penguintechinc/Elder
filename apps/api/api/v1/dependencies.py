@@ -1,4 +1,4 @@
-"""Dependency API endpoints using PyDAL with async/await."""
+"""Dependency API endpoints using PyDAL with async/await and Pydantic validation."""
 
 import asyncio
 import logging
@@ -14,7 +14,11 @@ from apps.api.models.dataclasses import (
     from_pydal_row,
     from_pydal_rows,
 )
+from py_libs.pydantic import RequestModel, validated_request
+from py_libs.pydantic.flask_integration import model_response
 from shared.async_utils import run_in_threadpool
+from pydantic import Field
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +43,91 @@ RESOURCE_TABLE_MAP = {
     "issue": "issues",
     "organization": "organizations",
 }
+
+
+# Pydantic request models
+class CreateDependencyRequest(RequestModel):
+    """Request to create a new dependency."""
+
+    source_type: str = Field(
+        ...,
+        description="Type of source resource",
+    )
+    source_id: int = Field(
+        ...,
+        ge=1,
+        description="ID of source resource (must be positive)",
+    )
+    target_type: str = Field(
+        ...,
+        description="Type of target resource",
+    )
+    target_id: int = Field(
+        ...,
+        ge=1,
+        description="ID of target resource (must be positive)",
+    )
+    dependency_type: str = Field(
+        ...,
+        description="Type of dependency relationship",
+    )
+    metadata: Optional[dict] = Field(
+        default=None,
+        description="Optional custom metadata",
+    )
+
+
+class UpdateDependencyRequest(RequestModel):
+    """Request to update an existing dependency."""
+
+    source_type: Optional[str] = Field(
+        default=None,
+        description="Type of source resource",
+    )
+    source_id: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="ID of source resource (must be positive)",
+    )
+    target_type: Optional[str] = Field(
+        default=None,
+        description="Type of target resource",
+    )
+    target_id: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="ID of target resource (must be positive)",
+    )
+    dependency_type: Optional[str] = Field(
+        default=None,
+        description="Type of dependency relationship",
+    )
+    metadata: Optional[dict] = Field(
+        default=None,
+        description="Custom metadata",
+    )
+
+
+class BulkCreateDependenciesRequest(RequestModel):
+    """Request to create multiple dependencies."""
+
+    dependencies: list[CreateDependencyRequest] = Field(
+        ...,
+        min_items=1,
+        max_items=100,
+        description="Array of dependencies to create",
+    )
+
+
+class BulkDeleteDependenciesRequest(RequestModel):
+    """Request to delete multiple dependencies."""
+
+    ids: list[int] = Field(
+        ...,
+        min_items=1,
+        max_items=100,
+        description="Array of dependency IDs to delete",
+    )
 
 
 def get_resource(db, resource_type: str, resource_id: int):
@@ -136,7 +225,8 @@ async def list_dependencies():
 
 @bp.route("", methods=["POST"])
 @login_required
-async def create_dependency():
+@validated_request(body_model=CreateDependencyRequest)
+async def create_dependency(body: CreateDependencyRequest):
     """
     Create a new dependency relationship between any resource types.
 
@@ -157,26 +247,10 @@ async def create_dependency():
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    # Validate required fields
-    if not data.get("source_type"):
-        return jsonify({"error": "source_type is required"}), 400
-    if not data.get("source_id"):
-        return jsonify({"error": "source_id is required"}), 400
-    if not data.get("target_type"):
-        return jsonify({"error": "target_type is required"}), 400
-    if not data.get("target_id"):
-        return jsonify({"error": "target_id is required"}), 400
-    if not data.get("dependency_type"):
-        return jsonify({"error": "dependency_type is required"}), 400
-
-    source_type = data["source_type"]
-    source_id = data["source_id"]
-    target_type = data["target_type"]
-    target_id = data["target_id"]
+    source_type = body.source_type
+    source_id = body.source_id
+    target_type = body.target_type
+    target_id = body.target_id
 
     # Validate resource types
     if source_type not in VALID_RESOURCE_TYPES:
@@ -224,7 +298,7 @@ async def create_dependency():
                 & (db.dependencies.source_id == source_id)
                 & (db.dependencies.target_type == target_type)
                 & (db.dependencies.target_id == target_id)
-                & (db.dependencies.dependency_type == data["dependency_type"])
+                & (db.dependencies.dependency_type == body.dependency_type)
             )
             .select()
             .first()
@@ -249,8 +323,8 @@ async def create_dependency():
             source_id=source_id,
             target_type=target_type,
             target_id=target_id,
-            dependency_type=data["dependency_type"],
-            metadata=data.get("metadata"),
+            dependency_type=body.dependency_type,
+            metadata=body.metadata,
         )
         db.commit()
         return None, None, db.dependencies[dep_id]
@@ -290,7 +364,8 @@ async def get_dependency(id: int):
 
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])
 @login_required
-async def update_dependency(id: int):
+@validated_request(body_model=UpdateDependencyRequest)
+async def update_dependency(id: int, body: UpdateDependencyRequest):
     """
     Update a dependency (edit relationship type, metadata, or endpoints).
 
@@ -312,12 +387,8 @@ async def update_dependency(id: int):
     if not existing:
         return jsonify({"error": "Dependency not found"}), 404
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
     # Validate resource types if being updated
-    if "source_type" in data and data["source_type"] not in VALID_RESOURCE_TYPES:
+    if body.source_type and body.source_type not in VALID_RESOURCE_TYPES:
         return (
             jsonify(
                 {
@@ -326,7 +397,7 @@ async def update_dependency(id: int):
             ),
             400,
         )
-    if "target_type" in data and data["target_type"] not in VALID_RESOURCE_TYPES:
+    if body.target_type and body.target_type not in VALID_RESOURCE_TYPES:
         return (
             jsonify(
                 {
@@ -339,18 +410,18 @@ async def update_dependency(id: int):
     # Update dependency
     def update_in_db():
         update_fields = {}
-        if "dependency_type" in data:
-            update_fields["dependency_type"] = data["dependency_type"]
-        if "metadata" in data:
-            update_fields["metadata"] = data["metadata"]
-        if "source_type" in data:
-            update_fields["source_type"] = data["source_type"]
-        if "source_id" in data:
-            update_fields["source_id"] = data["source_id"]
-        if "target_type" in data:
-            update_fields["target_type"] = data["target_type"]
-        if "target_id" in data:
-            update_fields["target_id"] = data["target_id"]
+        if body.dependency_type is not None:
+            update_fields["dependency_type"] = body.dependency_type
+        if body.metadata is not None:
+            update_fields["metadata"] = body.metadata
+        if body.source_type is not None:
+            update_fields["source_type"] = body.source_type
+        if body.source_id is not None:
+            update_fields["source_id"] = body.source_id
+        if body.target_type is not None:
+            update_fields["target_type"] = body.target_type
+        if body.target_id is not None:
+            update_fields["target_id"] = body.target_id
 
         db(db.dependencies.id == id).update(**update_fields)
         db.commit()
@@ -397,7 +468,17 @@ async def create_bulk_dependencies():
     Create multiple dependencies at once.
 
     Request Body:
-        JSON array of dependency objects
+        {
+            "dependencies": [
+                {
+                    "source_type": "entity",
+                    "source_id": 1,
+                    "target_type": "identity",
+                    "target_id": 5,
+                    "dependency_type": "manages"
+                }
+            ]
+        }
 
     Returns:
         201: Created dependencies
@@ -405,61 +486,47 @@ async def create_bulk_dependencies():
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not isinstance(data, list):
-        return jsonify({"error": "Request body must be an array"}), 400
-
-    if len(data) == 0:
-        return jsonify({"error": "At least one dependency required"}), 400
-
-    if len(data) > 100:
-        return jsonify({"error": "Maximum 100 dependencies per bulk request"}), 400
-
-    # Validate and create dependencies
-    def create_all():
-        created_ids = []
-        for i, dep_data in enumerate(data):
-            # Validate required fields
-            if not dep_data.get("source_type"):
-                raise ValueError(f"source_type required at index {i}")
-            if not dep_data.get("source_id"):
-                raise ValueError(f"source_id required at index {i}")
-            if not dep_data.get("target_type"):
-                raise ValueError(f"target_type required at index {i}")
-            if not dep_data.get("target_id"):
-                raise ValueError(f"target_id required at index {i}")
-            if not dep_data.get("dependency_type"):
-                raise ValueError(f"dependency_type required at index {i}")
-
-            # Get source resource for tenant
-            source = get_resource(db, dep_data["source_type"], dep_data["source_id"])
-            if not source:
-                raise ValueError(
-                    f"Source {dep_data['source_type']} {dep_data['source_id']} not found at index {i}"
-                )
-
-            tenant_id = getattr(source, "tenant_id", None)
-            if not tenant_id:
-                raise ValueError(f"Source must have tenant at index {i}")
-
-            # Create dependency
-            dep_id = db.dependencies.insert(
-                tenant_id=tenant_id,
-                source_type=dep_data["source_type"],
-                source_id=dep_data["source_id"],
-                target_type=dep_data["target_type"],
-                target_id=dep_data["target_id"],
-                dependency_type=dep_data["dependency_type"],
-                metadata=dep_data.get("metadata"),
-            )
-            created_ids.append(dep_id)
-
-        db.commit()
-
-        # Fetch created dependencies
-        return db(db.dependencies.id.belongs(created_ids)).select()
-
     try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Request body must be JSON"}), 400
+
+        # Validate using Pydantic model
+        request_data = {"dependencies": data.get("dependencies", [])}
+        validated = BulkCreateDependenciesRequest(**request_data)
+
+        # Validate and create dependencies
+        def create_all():
+            created_ids = []
+            for i, dep_req in enumerate(validated.dependencies):
+                # Get source resource for tenant
+                source = get_resource(db, dep_req.source_type, dep_req.source_id)
+                if not source:
+                    raise ValueError(
+                        f"Source {dep_req.source_type} {dep_req.source_id} not found at index {i}"
+                    )
+
+                tenant_id = getattr(source, "tenant_id", None)
+                if not tenant_id:
+                    raise ValueError(f"Source must have tenant at index {i}")
+
+                # Create dependency
+                dep_id = db.dependencies.insert(
+                    tenant_id=tenant_id,
+                    source_type=dep_req.source_type,
+                    source_id=dep_req.source_id,
+                    target_type=dep_req.target_type,
+                    target_id=dep_req.target_id,
+                    dependency_type=dep_req.dependency_type,
+                    metadata=dep_req.metadata,
+                )
+                created_ids.append(dep_id)
+
+            db.commit()
+
+            # Fetch created dependencies
+            return db(db.dependencies.id.belongs(created_ids)).select()
+
         rows = await run_in_threadpool(create_all)
         dependencies = from_pydal_rows(rows, DependencyDTO)
         return jsonify([asdict(d) for d in dependencies]), 201
@@ -471,12 +538,15 @@ async def create_bulk_dependencies():
 
 @bp.route("/bulk", methods=["DELETE"])
 @login_required
-async def delete_bulk_dependencies():
+@validated_request(body_model=BulkDeleteDependenciesRequest)
+async def delete_bulk_dependencies(body: BulkDeleteDependenciesRequest):
     """
     Delete multiple dependencies at once.
 
     Request Body:
-        JSON object with 'ids' array
+        {
+            "ids": [1, 2, 3]
+        }
 
     Returns:
         200: Number of deleted dependencies
@@ -484,27 +554,15 @@ async def delete_bulk_dependencies():
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data or "ids" not in data or not isinstance(data["ids"], list):
-        return jsonify({"error": "Request must include 'ids' array"}), 400
-
-    ids = data["ids"]
-
-    if len(ids) == 0:
-        return jsonify({"error": "At least one ID required"}), 400
-
-    if len(ids) > 100:
-        return jsonify({"error": "Maximum 100 dependencies per bulk delete"}), 400
-
     # Delete dependencies
     def delete_all():
-        deleted = db(db.dependencies.id.belongs(ids)).delete()
+        deleted = db(db.dependencies.id.belongs(body.ids)).delete()
         db.commit()
         return deleted
 
     deleted = await run_in_threadpool(delete_all)
 
-    return jsonify({"deleted": deleted, "requested": len(ids)}), 200
+    return jsonify({"deleted": deleted, "requested": len(body.ids)}), 200
 
 
 @bp.route("/resource/<resource_type>/<int:resource_id>", methods=["GET"])

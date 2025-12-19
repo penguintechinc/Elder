@@ -1,11 +1,10 @@
 """Resource Role management API endpoints using PyDAL with async/await."""
 
-from dataclasses import asdict
-
 from flask import Blueprint, current_app, g, jsonify, request
+from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required
-from apps.api.models.dataclasses import ResourceRoleDTO, from_pydal_row, from_pydal_rows
+from py_libs.pydantic.models import ResourceRoleResponse, CreateResourceRoleRequest
 from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
 
@@ -54,35 +53,55 @@ async def list_resource_roles():
 
         # Apply filters from query params
         if request.args.get("identity_id"):
-            identity_id = request.args.get("identity_id", type=int)
-            query &= db.resource_roles.identity_id == identity_id
+            try:
+                identity_id = int(request.args.get("identity_id"))
+                query &= db.resource_roles.identity_id == identity_id
+            except (ValueError, TypeError):
+                return None, "Invalid identity_id", 400
 
         if request.args.get("group_id"):
-            group_id = request.args.get("group_id", type=int)
-            query &= db.resource_roles.group_id == group_id
+            try:
+                group_id = int(request.args.get("group_id"))
+                query &= db.resource_roles.group_id == group_id
+            except (ValueError, TypeError):
+                return None, "Invalid group_id", 400
 
         if request.args.get("resource_type"):
             resource_type = request.args.get("resource_type")
+            if resource_type not in ("entity", "organization"):
+                return None, "Invalid resource_type", 400
             query &= db.resource_roles.resource_type == resource_type
 
         if request.args.get("resource_id"):
-            resource_id = request.args.get("resource_id", type=int)
-            query &= db.resource_roles.resource_id == resource_id
+            try:
+                resource_id = int(request.args.get("resource_id"))
+                query &= db.resource_roles.resource_id == resource_id
+            except (ValueError, TypeError):
+                return None, "Invalid resource_id", 400
 
         if request.args.get("role"):
             role = request.args.get("role")
+            if role not in ("maintainer", "operator", "viewer"):
+                return None, "Invalid role", 400
             query &= db.resource_roles.role == role
 
         roles = db(query).select()
-        return roles
+        return roles, None, None
 
-    rows = await run_in_threadpool(get_roles)
+    result = await run_in_threadpool(get_roles)
+
+    # Handle errors from query building
+    if isinstance(result, tuple) and result[1] is not None:
+        _, error, status = result
+        return jsonify({"error": error}), status
+
+    rows = result[0] if isinstance(result, tuple) else result
 
     # Convert to DTOs
-    items = from_pydal_rows(rows, ResourceRoleDTO)
+    items = [ResourceRoleResponse.from_pydal_row(row) for row in rows]
 
     return (
-        jsonify({"items": [asdict(item) for item in items], "total": len(items)}),
+        jsonify({"items": [item.model_dump(exclude_none=True) for item in items], "total": len(items)}),
         200,
     )
 
@@ -132,23 +151,21 @@ async def create_resource_role():
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    # Validate required fields
-    if not data.get("resource_type"):
-        return jsonify({"error": "resource_type is required"}), 400
-    if not data.get("role"):
-        return jsonify({"error": "role is required"}), 400
+    # Validate request body
+    try:
+        req_data = CreateResourceRoleRequest(**request.get_json() or {})
+    except ValidationError as e:
+        errors = []
+        for err in e.errors():
+            errors.append({
+                "field": ".".join(str(x) for x in err["loc"]),
+                "message": err["msg"]
+            })
+        return jsonify({"error": "Validation failed", "details": errors}), 400
 
     # Must have either identity_id or group_id
-    if not data.get("identity_id") and not data.get("group_id"):
+    if not req_data.identity_id and not req_data.group_id:
         return jsonify({"error": "Either identity_id or group_id is required"}), 400
-
-    resource_type = data["resource_type"]
-    resource_id = data.get("resource_id")
-    role = data["role"]
 
     # Check if current user has maintainer role on this resource
     def check_and_create():
@@ -158,8 +175,8 @@ async def create_resource_role():
             has_maintainer = (
                 db(
                     (db.resource_roles.identity_id == g.current_user.id)
-                    & (db.resource_roles.resource_type == resource_type)
-                    & (db.resource_roles.resource_id == resource_id)
+                    & (db.resource_roles.resource_type == req_data.resource_type)
+                    & (db.resource_roles.resource_id == req_data.resource_id)
                     & (db.resource_roles.role == "maintainer")
                 )
                 .select()
@@ -174,12 +191,12 @@ async def create_resource_role():
                 )
 
         # Check if role already exists
-        if data.get("identity_id"):
+        if req_data.identity_id:
             existing_role = (
                 db(
-                    (db.resource_roles.identity_id == data["identity_id"])
-                    & (db.resource_roles.resource_type == resource_type)
-                    & (db.resource_roles.resource_id == resource_id)
+                    (db.resource_roles.identity_id == req_data.identity_id)
+                    & (db.resource_roles.resource_type == req_data.resource_type)
+                    & (db.resource_roles.resource_id == req_data.resource_id)
                 )
                 .select()
                 .first()
@@ -187,9 +204,9 @@ async def create_resource_role():
         else:
             existing_role = (
                 db(
-                    (db.resource_roles.group_id == data["group_id"])
-                    & (db.resource_roles.resource_type == resource_type)
-                    & (db.resource_roles.resource_id == resource_id)
+                    (db.resource_roles.group_id == req_data.group_id)
+                    & (db.resource_roles.resource_type == req_data.resource_type)
+                    & (db.resource_roles.resource_id == req_data.resource_id)
                 )
                 .select()
                 .first()
@@ -198,17 +215,17 @@ async def create_resource_role():
         if existing_role:
             return (
                 None,
-                f"Role already exists for this identity/group on this resource",
+                "Role already exists for this identity/group on this resource",
                 409,
             )
 
         # Create resource role
         role_id = db.resource_roles.insert(
-            identity_id=data.get("identity_id"),
-            group_id=data.get("group_id"),
-            resource_type=resource_type,
-            resource_id=resource_id,
-            role=role,
+            identity_id=req_data.identity_id,
+            group_id=req_data.group_id,
+            resource_type=req_data.resource_type,
+            resource_id=req_data.resource_id,
+            role=req_data.role,
         )
         db.commit()
 
@@ -219,8 +236,8 @@ async def create_resource_role():
     if error:
         return jsonify({"error": error}), status
 
-    role_dto = from_pydal_row(result, ResourceRoleDTO)
-    return jsonify(asdict(role_dto)), 201
+    role_dto = ResourceRoleResponse.from_pydal_row(result)
+    return jsonify(role_dto.model_dump(exclude_none=True)), 201
 
 
 @bp.route("/<int:id>", methods=["DELETE"])

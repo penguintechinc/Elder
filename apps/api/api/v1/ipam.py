@@ -3,10 +3,24 @@
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, jsonify, request
+from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required, resource_role_required
 from apps.api.models.dataclasses import (
     PaginatedResponse,
+)
+from py_libs.pydantic.flask_integration import (
+    ValidationErrorResponse,
+    validated_request,
+    model_response,
+)
+from py_libs.pydantic.models import (
+    CreateIPAMPrefixRequest,
+    UpdateIPAMPrefixRequest,
+    CreateIPAMAddressRequest,
+    UpdateIPAMAddressRequest,
+    CreateIPAMVlanRequest,
+    UpdateIPAMVlanRequest,
 )
 from shared.async_utils import run_in_threadpool
 
@@ -129,19 +143,14 @@ async def create_prefix():
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    # Validate required fields
-    if not data.get("prefix"):
-        return jsonify({"error": "prefix is required"}), 400
-    if not data.get("organization_id"):
-        return jsonify({"error": "organization_id is required"}), 400
+    try:
+        data = CreateIPAMPrefixRequest.model_validate(request.get_json() or {})
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
 
     # Get organization to derive tenant_id
     def get_org():
-        return db.organizations[data["organization_id"]]
+        return db.organizations[data.organization_id]
 
     org = await run_in_threadpool(get_org)
     if not org:
@@ -152,14 +161,14 @@ async def create_prefix():
     def create():
         # Create prefix
         prefix_id = db.ipam_prefixes.insert(
-            prefix=data["prefix"],
-            description=data.get("description"),
-            status=data.get("status", "active"),
-            organization_id=data["organization_id"],
+            prefix=data.prefix,
+            description=data.description,
+            status=data.status,
+            organization_id=data.organization_id,
             tenant_id=org.tenant_id,
-            parent_id=data.get("parent_id"),
-            vlan_id=data.get("vlan_id"),
-            is_pool=data.get("is_pool", False),
+            parent_id=data.parent_id,
+            vlan_id=data.vlan_id,
+            is_pool=data.is_pool,
         )
         db.commit()
 
@@ -269,16 +278,17 @@ async def update_prefix(id: int):
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
+    try:
+        data = UpdateIPAMPrefixRequest.model_validate(request.get_json() or {})
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
 
     # If organization is being changed, validate and get tenant
     org_tenant_id = None
-    if "organization_id" in data:
+    if data.organization_id is not None:
 
         def get_org():
-            return db.organizations[data["organization_id"]]
+            return db.organizations[data.organization_id]
 
         org = await run_in_threadpool(get_org)
         if not org:
@@ -294,20 +304,20 @@ async def update_prefix(id: int):
 
         # Update fields
         update_dict = {}
-        if "prefix" in data:
-            update_dict["prefix"] = data["prefix"]
-        if "description" in data:
-            update_dict["description"] = data["description"]
-        if "status" in data:
-            update_dict["status"] = data["status"]
-        if "parent_id" in data:
-            update_dict["parent_id"] = data["parent_id"]
-        if "vlan_id" in data:
-            update_dict["vlan_id"] = data["vlan_id"]
-        if "is_pool" in data:
-            update_dict["is_pool"] = data["is_pool"]
-        if "organization_id" in data:
-            update_dict["organization_id"] = data["organization_id"]
+        if data.prefix is not None:
+            update_dict["prefix"] = data.prefix
+        if data.description is not None:
+            update_dict["description"] = data.description
+        if data.status is not None:
+            update_dict["status"] = data.status
+        if data.parent_id is not None:
+            update_dict["parent_id"] = data.parent_id
+        if data.vlan_id is not None:
+            update_dict["vlan_id"] = data.vlan_id
+        if data.is_pool is not None:
+            update_dict["is_pool"] = data.is_pool
+        if data.organization_id is not None:
+            update_dict["organization_id"] = data.organization_id
             update_dict["tenant_id"] = org_tenant_id
 
         if update_dict:
@@ -472,19 +482,14 @@ async def create_address():
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    # Validate required fields
-    if not data.get("address"):
-        return jsonify({"error": "address is required"}), 400
-    if not data.get("prefix_id"):
-        return jsonify({"error": "prefix_id is required"}), 400
+    try:
+        data = CreateIPAMAddressRequest.model_validate(request.get_json() or {})
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
 
     # Get prefix to derive tenant_id and organization_id
     def get_prefix():
-        return db.ipam_prefixes[data["prefix_id"]]
+        return db.ipam_prefixes[data.prefix_id]
 
     prefix = await run_in_threadpool(get_prefix)
     if not prefix:
@@ -493,12 +498,12 @@ async def create_address():
     def create():
         # Create address
         address_id = db.ipam_addresses.insert(
-            address=data["address"],
-            description=data.get("description"),
-            status=data.get("status", "active"),
-            prefix_id=data["prefix_id"],
+            address=data.address,
+            description=data.description,
+            status=data.status,
+            prefix_id=data.prefix_id,
             tenant_id=prefix.tenant_id,
-            dns_name=data.get("dns_name"),
+            dns_name=data.dns_name,
         )
         db.commit()
 
@@ -564,15 +569,16 @@ async def update_address(id: int):
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
+    try:
+        data = UpdateIPAMAddressRequest.model_validate(request.get_json() or {})
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
 
     # If prefix is being changed, validate it
-    if "prefix_id" in data:
+    if data.prefix_id is not None:
 
         def get_prefix():
-            return db.ipam_prefixes[data["prefix_id"]]
+            return db.ipam_prefixes[data.prefix_id]
 
         prefix = await run_in_threadpool(get_prefix)
         if not prefix:
@@ -585,16 +591,16 @@ async def update_address(id: int):
 
         # Update fields
         update_dict = {}
-        if "address" in data:
-            update_dict["address"] = data["address"]
-        if "description" in data:
-            update_dict["description"] = data["description"]
-        if "status" in data:
-            update_dict["status"] = data["status"]
-        if "prefix_id" in data:
-            update_dict["prefix_id"] = data["prefix_id"]
-        if "dns_name" in data:
-            update_dict["dns_name"] = data["dns_name"]
+        if data.address is not None:
+            update_dict["address"] = data.address
+        if data.description is not None:
+            update_dict["description"] = data.description
+        if data.status is not None:
+            update_dict["status"] = data.status
+        if data.prefix_id is not None:
+            update_dict["prefix_id"] = data.prefix_id
+        if data.dns_name is not None:
+            update_dict["dns_name"] = data.dns_name
 
         if update_dict:
             db(db.ipam_addresses.id == id).update(**update_dict)
@@ -758,21 +764,14 @@ async def create_vlan():
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    # Validate required fields
-    if not data.get("vid"):
-        return jsonify({"error": "vid is required"}), 400
-    if not data.get("name"):
-        return jsonify({"error": "name is required"}), 400
-    if not data.get("organization_id"):
-        return jsonify({"error": "organization_id is required"}), 400
+    try:
+        data = CreateIPAMVlanRequest.model_validate(request.get_json() or {})
+    except ValidationError as e:
+        return ValidationErrorResponse.from_pydantic_error(e)
 
     # Get organization to derive tenant_id
     def get_org():
-        return db.organizations[data["organization_id"]]
+        return db.organizations[data.organization_id]
 
     org = await run_in_threadpool(get_org)
     if not org:
@@ -783,11 +782,11 @@ async def create_vlan():
     def create():
         # Create VLAN
         vlan_id = db.ipam_vlans.insert(
-            vid=data["vid"],
-            name=data["name"],
-            description=data.get("description"),
-            status=data.get("status", "active"),
-            organization_id=data["organization_id"],
+            vid=data.vid,
+            name=data.name,
+            description=data.description,
+            status=data.status,
+            organization_id=data.organization_id,
             tenant_id=org.tenant_id,
         )
         db.commit()

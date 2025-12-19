@@ -8,7 +8,6 @@ from flask import Blueprint, current_app, jsonify, request
 from apps.api.auth.decorators import login_required
 from apps.api.logging_config import log_error_and_respond
 from apps.api.models.dataclasses import (
-    CreateOrganizationRequest,
     OrganizationDTO,
     PaginatedResponse,
     from_pydal_row,
@@ -21,9 +20,10 @@ from apps.api.utils.pydal_helpers import (
     get_by_id,
     insert_record,
 )
-from apps.api.utils.validation_helpers import (
-    validate_json_body,
-    validate_required_fields,
+from py_libs.pydantic.flask_integration import validated_request
+from py_libs.pydantic.models.organization import (
+    CreateOrganizationRequest,
+    UpdateOrganizationRequest,
 )
 from shared.async_utils import run_in_threadpool
 
@@ -96,7 +96,8 @@ async def list_organizations():
 
 
 @bp.route("", methods=["POST"])
-async def create_organization():
+@validated_request(body_model=CreateOrganizationRequest)
+async def create_organization(body: CreateOrganizationRequest):
     """
     Create a new Organization Unit (OU).
 
@@ -109,30 +110,11 @@ async def create_organization():
     """
     db = current_app.db
 
-    # Get and validate JSON body using helper
-    data = request.get_json() or {}
-    if error := validate_json_body(data):
-        return error
-
-    # Validate required fields using helper
-    if error := validate_required_fields(data, ["name"]):
-        return error
-
-    # Create request DTO
-    create_req = CreateOrganizationRequest(
-        name=data.get("name"),
-        description=data.get("description"),
-        organization_type=data.get("organization_type", "organization"),
-        parent_id=data.get("parent_id"),
-        ldap_dn=data.get("ldap_dn"),
-        saml_group=data.get("saml_group"),
-        owner_identity_id=data.get("owner_identity_id"),
-        owner_group_id=data.get("owner_group_id"),
-    )
-
     # Insert organization using helper
     try:
-        org_id = await insert_record(db.organizations, **asdict(create_req))
+        org_id = await insert_record(
+            db.organizations, **body.model_dump(exclude_none=True)
+        )
         await commit_db(db)
 
         # Fetch created org using helper
@@ -171,7 +153,8 @@ async def get_organization(id: int):
 
 
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])
-async def update_organization(id: int):
+@validated_request(body_model=UpdateOrganizationRequest)
+async def update_organization(id: int, body: UpdateOrganizationRequest):
     """
     Update an Organization Unit (OU).
 
@@ -192,27 +175,8 @@ async def update_organization(id: int):
     if not org_row:
         return ApiResponse.not_found("Organization Unit")
 
-    # Get and validate JSON body
-    data = request.get_json() or {}
-    if error := validate_json_body(data):
-        return error
-
-    # Build update dict with only provided fields
-    updateable_fields = [
-        "name",
-        "description",
-        "organization_type",
-        "parent_id",
-        "ldap_dn",
-        "saml_group",
-        "owner_identity_id",
-        "owner_group_id",
-    ]
-
-    update_fields = {}
-    for field in updateable_fields:
-        if field in data:
-            update_fields[field] = data[field]
+    # Get update fields from validated body
+    update_fields = body.model_dump(exclude_none=True)
 
     if not update_fields:
         return ApiResponse.bad_request("No fields to update")

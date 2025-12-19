@@ -3,8 +3,10 @@
 import asyncio
 from dataclasses import asdict
 from datetime import datetime, timezone
+from typing import Optional
 
 from flask import Blueprint, current_app, g, jsonify, request
+from pydantic import Field
 
 from apps.api.auth.decorators import login_required
 from apps.api.models.dataclasses import (
@@ -15,11 +17,74 @@ from apps.api.models.dataclasses import (
     from_pydal_row,
     from_pydal_rows,
 )
+from py_libs.pydantic import RequestModel
+from py_libs.pydantic.flask_integration import validated_request, model_response
 from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
 from shared.webhooks import send_issue_created_webhooks
 
 bp = Blueprint("issues", __name__)
+
+
+# ============================================================================
+# Request Models
+# ============================================================================
+
+
+class CreateIssueRequest(RequestModel):
+    """Request to create a new issue."""
+    title: str = Field(..., min_length=1, max_length=255, description="Issue title")
+    organization_id: int = Field(..., ge=1, description="Organization ID")
+    description: Optional[str] = Field(default=None, description="Issue description")
+    status: str = Field(default="open", description="Issue status")
+    priority: str = Field(default="medium", description="Priority level")
+    issue_type: str = Field(default="other", description="Issue type")
+    assignee_id: Optional[int] = Field(default=None, ge=1, description="Assignee ID")
+    is_incident: int = Field(default=0, description="Is incident flag")
+
+
+class UpdateIssueRequest(RequestModel):
+    """Request to update an existing issue."""
+    title: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    description: Optional[str] = Field(default=None)
+    status: Optional[str] = Field(default=None)
+    priority: Optional[str] = Field(default=None)
+    issue_type: Optional[str] = Field(default=None)
+    assignee_id: Optional[int] = Field(default=None, ge=1)
+    organization_id: Optional[int] = Field(default=None, ge=1)
+    is_incident: Optional[int] = Field(default=None)
+
+
+class CreateIssueCommentRequest(RequestModel):
+    """Request to create an issue comment."""
+    content: str = Field(..., min_length=1, description="Comment content")
+
+
+class CreateIssueLabelRequest(RequestModel):
+    """Request to create an issue label."""
+    name: str = Field(..., min_length=1, max_length=255, description="Label name")
+    color: str = Field(..., description="Label color (hex)")
+    description: Optional[str] = Field(default=None, description="Label description")
+
+
+class AddIssueLabelRequest(RequestModel):
+    """Request to add a label to an issue."""
+    label_id: int = Field(..., ge=1, description="Label ID")
+
+
+class CreateIssueEntityLinkRequest(RequestModel):
+    """Request to link an entity to an issue."""
+    entity_id: int = Field(..., ge=1, description="Entity ID")
+
+
+class LinkIssueToProjectRequest(RequestModel):
+    """Request to link an issue to a project."""
+    project_id: int = Field(..., ge=1, description="Project ID")
+
+
+class LinkIssueToMilestoneRequest(RequestModel):
+    """Request to link an issue to a milestone."""
+    milestone_id: int = Field(..., ge=1, description="Milestone ID")
 
 
 @bp.route("", methods=["GET"])
@@ -107,7 +172,8 @@ async def list_issues():
 
 @bp.route("", methods=["POST"])
 @login_required
-async def create_issue():
+@validated_request(body_model=CreateIssueRequest)
+async def create_issue(body: CreateIssueRequest):
     """
     Create a new issue.
 
@@ -132,19 +198,9 @@ async def create_issue():
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    # Validate required fields
-    if not data.get("title"):
-        return jsonify({"error": "title is required"}), 400
-    if not data.get("organization_id"):
-        return jsonify({"error": "organization_id is required"}), 400
-
     # Get organization to derive tenant_id
     def get_org():
-        return db.organizations[data["organization_id"]]
+        return db.organizations[body.organization_id]
 
     org = await run_in_threadpool(get_org)
     if not org:
@@ -158,16 +214,16 @@ async def create_issue():
     def create():
         # Create issue
         issue_id = db.issues.insert(
-            title=data["title"],
-            description=data.get("description"),
-            status=data.get("status", "open"),
-            priority=data.get("priority", "medium"),
-            issue_type=data.get("issue_type", "other"),
+            title=body.title,
+            description=body.description,
+            status=body.status,
+            priority=body.priority,
+            issue_type=body.issue_type,
             reporter_id=current_user_id,
-            assignee_id=data.get("assignee_id"),
-            organization_id=data["organization_id"],
+            assignee_id=body.assignee_id,
+            organization_id=body.organization_id,
             tenant_id=org.tenant_id,
-            is_incident=data.get("is_incident", 0),
+            is_incident=body.is_incident,
         )
         db.commit()
 
@@ -225,7 +281,8 @@ async def get_issue(id: int):
 @bp.route("/<int:id>", methods=["PATCH"])
 @login_required
 @license_required("enterprise")
-async def update_issue(id: int):
+@validated_request(body_model=UpdateIssueRequest)
+async def update_issue(id: int, body: UpdateIssueRequest):
     """
     Update an issue.
 
@@ -255,16 +312,12 @@ async def update_issue(id: int):
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
     # If organization is being changed, validate and get tenant
     org_tenant_id = None
-    if "organization_id" in data:
+    if body.organization_id:
 
         def get_org():
-            return db.organizations[data["organization_id"]]
+            return db.organizations[body.organization_id]
 
         org = await run_in_threadpool(get_org)
         if not org:
@@ -282,22 +335,24 @@ async def update_issue(id: int):
         # Build update fields
         update_fields = {}
 
-        if "title" in data:
-            update_fields["title"] = data["title"]
-        if "description" in data:
-            update_fields["description"] = data["description"]
-        if "status" in data:
-            update_fields["status"] = data["status"]
+        if body.title is not None:
+            update_fields["title"] = body.title
+        if body.description is not None:
+            update_fields["description"] = body.description
+        if body.status is not None:
+            update_fields["status"] = body.status
             # Set closed_at if closing
-            if data["status"] in ("closed", "resolved"):
+            if body.status in ("closed", "resolved"):
                 update_fields["closed_at"] = datetime.now(timezone.utc)
-        if "priority" in data:
-            update_fields["priority"] = data["priority"]
-        if "assignee_id" in data:
-            update_fields["assignee_id"] = data["assignee_id"]
-        if "organization_id" in data:
-            update_fields["organization_id"] = data["organization_id"]
+        if body.priority is not None:
+            update_fields["priority"] = body.priority
+        if body.assignee_id is not None:
+            update_fields["assignee_id"] = body.assignee_id
+        if body.organization_id is not None:
+            update_fields["organization_id"] = body.organization_id
             update_fields["tenant_id"] = org_tenant_id
+        if body.is_incident is not None:
+            update_fields["is_incident"] = body.is_incident
 
         # Update issue
         db(db.issues.id == id).update(**update_fields)
@@ -410,7 +465,8 @@ async def list_issue_comments(id: int):
 @bp.route("/<int:id>/comments", methods=["POST"])
 @login_required
 @license_required("enterprise")
-async def create_issue_comment(id: int):
+@validated_request(body_model=CreateIssueCommentRequest)
+async def create_issue_comment(id: int, body: CreateIssueCommentRequest):
     """
     Add a comment to an issue.
 
@@ -433,13 +489,6 @@ async def create_issue_comment(id: int):
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    if not data.get("content"):
-        return jsonify({"error": "content is required"}), 400
-
     def create():
         # Verify issue exists
         issue = db.issues[id]
@@ -450,7 +499,7 @@ async def create_issue_comment(id: int):
         comment_id = db.issue_comments.insert(
             issue_id=id,
             author_id=g.current_user.id,
-            content=data["content"],
+            content=body.content,
         )
         db.commit()
 
@@ -552,7 +601,8 @@ async def list_issue_labels():
 @bp.route("/labels", methods=["POST"])
 @login_required
 @license_required("enterprise")
-async def create_issue_label():
+@validated_request(body_model=CreateIssueLabelRequest)
+async def create_issue_label(body: CreateIssueLabelRequest):
     """
     Create a new issue label.
 
@@ -573,26 +623,17 @@ async def create_issue_label():
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    if not data.get("name"):
-        return jsonify({"error": "name is required"}), 400
-    if not data.get("color"):
-        return jsonify({"error": "color is required"}), 400
-
     def create():
         # Check if label exists
-        existing = db(db.issue_labels.name == data["name"]).select().first()
+        existing = db(db.issue_labels.name == body.name).select().first()
         if existing:
             return None, "Label already exists", 409
 
         # Create label
         label_id = db.issue_labels.insert(
-            name=data["name"],
-            color=data["color"],
-            description=data.get("description"),
+            name=body.name,
+            color=body.color,
+            description=body.description,
         )
         db.commit()
 
@@ -610,7 +651,8 @@ async def create_issue_label():
 @bp.route("/<int:id>/labels", methods=["POST"])
 @login_required
 @license_required("enterprise")
-async def add_issue_label(id: int):
+@validated_request(body_model=AddIssueLabelRequest)
+async def add_issue_label(id: int, body: AddIssueLabelRequest):
     """
     Add a label to an issue.
 
@@ -634,14 +676,7 @@ async def add_issue_label(id: int):
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    if not data.get("label_id"):
-        return jsonify({"error": "label_id is required"}), 400
-
-    label_id = data["label_id"]
+    label_id = body.label_id
 
     def add_label():
         # Verify issue exists
@@ -792,7 +827,8 @@ async def list_issue_entity_links(id: int):
 @bp.route("/<int:id>/links", methods=["POST"])
 @login_required
 @license_required("enterprise")
-async def create_issue_entity_link(id: int):
+@validated_request(body_model=CreateIssueEntityLinkRequest)
+async def create_issue_entity_link(id: int, body: CreateIssueEntityLinkRequest):
     """
     Link an entity to an issue.
 
@@ -816,14 +852,7 @@ async def create_issue_entity_link(id: int):
     """
     db = current_app.db
 
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    if not data.get("entity_id"):
-        return jsonify({"error": "entity_id is required"}), 400
-
-    entity_id = data["entity_id"]
+    entity_id = body.entity_id
 
     def create_link():
         # Verify issue exists
@@ -930,7 +959,8 @@ async def delete_issue_entity_link(id: int, link_id: int):
 
 @bp.route("/<int:id>/projects", methods=["POST"])
 @login_required
-async def link_issue_to_project(id: int):
+@validated_request(body_model=LinkIssueToProjectRequest)
+async def link_issue_to_project(id: int, body: LinkIssueToProjectRequest):
     """
     Link an issue to a project.
 
@@ -950,10 +980,6 @@ async def link_issue_to_project(id: int):
         {"project_id": 5}
     """
     db = current_app.db
-    data = request.get_json()
-
-    if not data or "project_id" not in data:
-        return jsonify({"error": "project_id is required"}), 400
 
     def create_link():
         # Verify issue exists
@@ -962,7 +988,7 @@ async def link_issue_to_project(id: int):
             return None, "Issue not found", 404
 
         # Verify project exists
-        project = db.projects[data["project_id"]]
+        project = db.projects[body.project_id]
         if not project:
             return None, "Project not found", 404
 
@@ -970,7 +996,7 @@ async def link_issue_to_project(id: int):
         existing = (
             db(
                 (db.issue_project_links.issue_id == id)
-                & (db.issue_project_links.project_id == data["project_id"])
+                & (db.issue_project_links.project_id == body.project_id)
             )
             .select()
             .first()
@@ -981,7 +1007,7 @@ async def link_issue_to_project(id: int):
 
         # Create link
         link_id = db.issue_project_links.insert(
-            issue_id=id, project_id=data["project_id"]
+            issue_id=id, project_id=body.project_id
         )
         db.commit()
 
@@ -1053,7 +1079,8 @@ async def unlink_issue_from_project(id: int, project_id: int):
 
 @bp.route("/<int:id>/milestones", methods=["POST"])
 @login_required
-async def link_issue_to_milestone(id: int):
+@validated_request(body_model=LinkIssueToMilestoneRequest)
+async def link_issue_to_milestone(id: int, body: LinkIssueToMilestoneRequest):
     """
     Link an issue to a milestone.
 
@@ -1073,10 +1100,6 @@ async def link_issue_to_milestone(id: int):
         {"milestone_id": 3}
     """
     db = current_app.db
-    data = request.get_json()
-
-    if not data or "milestone_id" not in data:
-        return jsonify({"error": "milestone_id is required"}), 400
 
     def create_link():
         # Verify issue exists
@@ -1085,7 +1108,7 @@ async def link_issue_to_milestone(id: int):
             return None, "Issue not found", 404
 
         # Verify milestone exists
-        milestone = db.milestones[data["milestone_id"]]
+        milestone = db.milestones[body.milestone_id]
         if not milestone:
             return None, "Milestone not found", 404
 
@@ -1093,7 +1116,7 @@ async def link_issue_to_milestone(id: int):
         existing = (
             db(
                 (db.issue_milestone_links.issue_id == id)
-                & (db.issue_milestone_links.milestone_id == data["milestone_id"])
+                & (db.issue_milestone_links.milestone_id == body.milestone_id)
             )
             .select()
             .first()
@@ -1104,7 +1127,7 @@ async def link_issue_to_milestone(id: int):
 
         # Create link
         link_id = db.issue_milestone_links.insert(
-            issue_id=id, milestone_id=data["milestone_id"]
+            issue_id=id, milestone_id=body.milestone_id
         )
         db.commit()
 
