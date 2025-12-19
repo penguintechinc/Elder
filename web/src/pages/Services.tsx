@@ -12,6 +12,7 @@ import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
 import ModalFormBuilder from '@/components/ModalFormBuilder'
+import OnCallBadge from '@/components/OnCallBadge'
 import { FormConfig } from '@/types/form'
 
 const SERVICE_STATUSES = [
@@ -400,10 +401,14 @@ export default function Services() {
                 </div>
 
                 {service.port && (
-                  <div className="text-xs text-slate-500 mb-2">
+                  <div className="text-xs text-slate-500 mb-3">
                     Port: {service.port}
                   </div>
                 )}
+
+                <div className="mb-3">
+                  <OnCallBadge scopeType="service" scopeId={service.id} compact />
+                </div>
 
                 {service.domains && service.domains.length > 0 && (
                   <div className="flex flex-wrap gap-1">

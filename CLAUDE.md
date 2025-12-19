@@ -1,12 +1,10 @@
-# Project Template - Claude Code Context
-
-> **IMPORTANT**: This file must not exceed 39,000 characters. Move detailed documentation to `docs/` and link to it.
+# Elder - Claude Code Context
 
 ## Project Overview
 
-This is a comprehensive project template incorporating best practices and patterns from Penguin Tech Inc projects. It provides a standardized foundation for multi-language projects with enterprise-grade infrastructure and integrated licensing.
+Elder is a comprehensive infrastructure and asset management platform incorporating best practices and patterns from Penguin Tech Inc projects. It provides a standardized foundation for multi-language applications with enterprise-grade infrastructure and integrated licensing.
 
-**Template Features:**
+**Project Features:**
 - Multi-language support (Go 1.23.x, Python 3.12/3.13, Node.js 18+)
 - Enterprise security and licensing integration
 - Comprehensive CI/CD pipeline
@@ -15,7 +13,7 @@ This is a comprehensive project template incorporating best practices and patter
 - Version management system
 - PenguinTech License Server integration
 
-## Elder Terminology
+## Elder Domain Terminology
 
 Elder uses specific terminology for organizing tracked items:
 
@@ -48,7 +46,7 @@ Elder uses specific terminology for organizing tracked items:
 - **Python**: 3.13+ for all applications
   - **Flask**: Primary web framework for REST APIs
   - **Flask-RESTful / Flask-RESTX**: REST API development
-  - **SQLAlchemy**: ORM for database operations
+  - **SQLAlchemy & PyDAL**: Hybrid approach - SQLAlchemy for initialization, PyDAL for day-to-day operations
   - **Marshmallow**: Schema validation and serialization
 - **Node.js**: 18+ for sales/marketing websites and tooling only
 - **JavaScript/TypeScript**: Modern ES2022+ standards
@@ -62,16 +60,17 @@ Elder uses specific terminology for organizing tracked items:
 - **Logging**: Structured logging with configurable levels
 
 ### Databases & Storage
-- **Primary**: PostgreSQL with connection pooling, non-root user/password, dedicated database
+- **Primary**: PostgreSQL (default), MySQL, or SQLite - with connection pooling, non-root user/password, dedicated database
+- **MariaDB Galera Cluster**: Optional high-availability configuration for MySQL deployments
 - **Cache**: Redis/Valkey with optional TLS and authentication
-- **ORMs**: SQLAlchemy for Python, GORM for Go
+- **ORMs**: SQLAlchemy for Python initialization, PyDAL for day-to-day operations; GORM for Go
 - **Migrations**: Alembic for Python database migrations, automated schema management
-- **Database Support**: SQLAlchemy supports PostgreSQL, MySQL, SQLite, and many others
+- **Database Support**: Supports PostgreSQL, MySQL, SQLite (via DB_TYPE configuration)
 
 ### Security & Authentication
 - **TLS**: Enforce TLS 1.2 minimum, prefer TLS 1.3
 - **HTTP3/QUIC**: Utilize UDP with TLS for high-performance connections where possible
-- **Authentication**: JWT and MFA (standard), mTLS where applicable
+- **Authentication**: JWT and MFA (standard), mTLS where applicable; uses Flask-Security-Too
 - **SSO**: SAML/OAuth2 SSO as enterprise-only features
 - **Guest Login**: Optional read-only guest access (disabled by default)
   - Controlled by `ENABLE_GUEST_LOGIN` environment variable
@@ -80,7 +79,6 @@ Elder uses specific terminology for organizing tracked items:
   - Creates guest user automatically on database initialization when enabled
 - **Secrets**: Environment variable management
 - **Scanning**: Trivy vulnerability scanning, CodeQL analysis
-
 
 ## PenguinTech License Server Integration
 
@@ -184,6 +182,50 @@ project-name/
 ├── LICENSE.md               # License information
 └── CLAUDE.md                # This file
 ```
+
+## Container Architecture
+
+### Multi-Database Container Architecture
+Elder supports multiple database backends with containerized deployments optimized for each:
+
+**PostgreSQL (Default)**
+- Primary database for all deployments
+- Container: Official `postgres:latest` (Debian-slim based)
+- Features: Full ACID compliance, JSON support, advanced indexing
+- Connection pooling: Via SQLAlchemy pool settings and pgBouncer
+- Environment: `DB_TYPE=postgres`
+
+**MySQL/MariaDB**
+- Alternative for existing MySQL installations
+- Container: `mariadb:latest` or `mysql:latest`
+- MariaDB Galera Cluster: Optional high-availability configuration
+  - Multi-master replication across cluster nodes
+  - Synchronous replication with transaction consistency
+  - Automatic node failure detection and recovery
+  - Load balancing via ProxySQL or HAProxy
+- Container Networking: Galera nodes communicate via dedicated network overlay
+- Environment: `DB_TYPE=mysql` or `DB_TYPE=mariadb`
+
+**SQLite (Development/Embedded)**
+- Lightweight option for single-server deployments or development
+- No external container required (file-based in-app storage)
+- Environment: `DB_TYPE=sqlite`
+
+### Database Configuration
+- **DB_TYPE**: Required environment variable - must be one of: `postgres`, `mysql`, `sqlite`
+- **Connection Pool**: Configured per database type
+  - PostgreSQL: SQLAlchemy pool with pgBouncer integration
+  - MySQL/MariaDB: SQLAlchemy pool with connection multiplexing
+  - SQLite: Direct file-based connections
+- **Migration Strategy**: Alembic migrations compatible with all three database backends
+- **ORM Configuration**: SQLAlchemy for schema initialization, PyDAL for daily operations
+
+### Container Networking
+- **Service discovery**: All services accessible via Docker Compose service names
+- **Internal communication**: Services communicate over internal bridge network
+- **Database connectivity**: Each application container has direct database access
+- **Galera cluster**: Dedicated overlay network for multi-master replication (MariaDB HA)
+- **Persistent volumes**: Database data persists across container restarts
 
 ## Version Management System
 
@@ -470,10 +512,6 @@ docker compose down -v
 - **NEVER commit automatically** unless explicitly requested by the user
 - **NEVER push to remote repositories** under any circumstances
 - **ONLY commit when explicitly asked** - never assume commit permission
-- **GIT COMMIT AFTER PHASE COMPLETION**: Always create a git commit after completing each implementation phase
-  - Include comprehensive commit message describing all changes
-  - Follow the commit message format with Claude Code attribution
-  - Ensure all files for that phase are staged before committing
 - **UPDATE RELEASE_NOTES.md**: Update `docs/RELEASE_NOTES.md` on every version update or significant feature push
   - Prepend new entries to the top of the file (newest first)
   - Follow Keep a Changelog format
@@ -618,7 +656,8 @@ Key points:
 
 ### Documentation Standards
 - **README.md**: Keep as overview and pointer to comprehensive docs/ folder
-- **docs/ folder**: Create comprehensive documentation for all aspects
+- **docs/ folder**: ONLY user guides, admin guides, API documentation, and architecture docs
+- **NEVER put implementation notes in docs/**: Implementation summaries, task tracking, and developer notes go in /tmp
 - **RELEASE_NOTES.md**: Maintain in docs/ folder, prepend new version releases to top
 - Update CLAUDE.md when adding significant context
 - API documentation must be comprehensive
@@ -669,8 +708,8 @@ Key points:
 - **Flask primary**: Use Flask for ALL REST API applications
   - **Flask-CORS**: For cross-origin resource sharing
   - **Flask-RESTful/RESTX**: For REST API development
-  - **Flask-SQLAlchemy**: For database ORM
-  - **Flask-Login**: For authentication management
+  - **Flask-SQLAlchemy**: For database initialization and schema management
+  - **Flask-Security-Too**: For authentication and user management (replaces Flask-Login)
   - **CSRF Protection**: Disable for REST APIs using JWT (use Flask-WTF `WTF_CSRF_CHECK_DEFAULT = False`)
 - **Health endpoints**: ALL applications must implement `/healthz` endpoint
 - **Metrics endpoints**: ALL applications must implement Prometheus metrics endpoint using `prometheus-flask-exporter`
@@ -723,7 +762,6 @@ Key principles:
 - **Modal-first approach** - prefer modals over routes for secondary actions
 - **Clickable cards** - all object cards should open detail modals on click
 - Use sparse checkout submodule from `github.com/penguintechinc/website`
-
 
 ## Common Integration Patterns
 
@@ -801,9 +839,9 @@ make license-validate         # Validate current license
 
 ---
 
-**Template Version**: 1.0.0
-**Last Updated**: 2025-09-23
+**Project Version**: 1.0.0
+**Last Updated**: 2025-12-18
 **Maintained by**: Penguin Tech Inc
 **License Server**: https://license.penguintech.io
 
-*This template provides a production-ready foundation for enterprise software development with comprehensive tooling, security, operational capabilities, and integrated licensing management.*
+*This project provides a production-ready foundation for enterprise software development with comprehensive tooling, security, operational capabilities, and integrated licensing management.*

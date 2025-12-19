@@ -178,6 +178,18 @@ export const queryKeys = {
     list: (filters?: Record<string, unknown>) => ['vulnerabilities', filters] as const,
     detail: (id: number) => ['vulnerabilities', id] as const,
   },
+
+  // On-Call Rotations
+  onCall: {
+    all: ['on-call'] as const,
+    list: (filters?: Record<string, unknown>) => ['on-call', filters] as const,
+    detail: (id: number) => ['on-call', id] as const,
+    participants: (rotationId: number) => ['on-call', rotationId, 'participants'] as const,
+    overrides: (rotationId: number) => ['on-call', rotationId, 'overrides'] as const,
+    history: (rotationId: number, filters?: Record<string, unknown>) => ['on-call', rotationId, 'history', filters] as const,
+    escalations: (rotationId: number) => ['on-call', rotationId, 'escalations'] as const,
+    current: (scopeType: string, scopeId: number) => ['on-call', 'current', scopeType, scopeId] as const,
+  },
 } as const
 
 export type QueryKeys = typeof queryKeys

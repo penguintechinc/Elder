@@ -294,6 +294,51 @@ export const invalidateCache = {
   },
 
   /**
+   * Invalidate all on-call rotation queries
+   */
+  onCall: async (queryClient: QueryClient) => {
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.onCall.all,
+      refetchType: 'all',
+    })
+    // Also invalidate organizations and services since they may show on-call badges
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.organizations.all,
+      refetchType: 'all',
+    })
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.services.all,
+      refetchType: 'all',
+    })
+  },
+
+  /**
+   * Invalidate a specific on-call rotation and related queries
+   */
+  onCallRotation: async (queryClient: QueryClient, rotationId: number) => {
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.onCall.detail(rotationId),
+      refetchType: 'all',
+    })
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.onCall.participants(rotationId),
+      refetchType: 'all',
+    })
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.onCall.overrides(rotationId),
+      refetchType: 'all',
+    })
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.onCall.history(rotationId),
+      refetchType: 'all',
+    })
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.onCall.all,
+      refetchType: 'all',
+    })
+  },
+
+  /**
    * Invalidate all queries (use sparingly)
    */
   all: async (queryClient: QueryClient) => {

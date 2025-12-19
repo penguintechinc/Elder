@@ -204,4 +204,71 @@ fi
 if [ ! -z "$ENTITY_ID" ]; then
     echo "- Test entity created: ID $ENTITY_ID"
 fi
+if [ ! -z "$ROTATION_ID" ]; then
+    echo "- Test on-call rotation created: ID $ROTATION_ID"
+fi
+echo ""
+
+# Test On-Call Rotations (Phase 11)
+echo -e "${YELLOW}Test On-Call: List Rotations${NC}"
+rotations_response=$(curl -s "$API_URL/api/v1/on-call" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+if echo "$rotations_response" | jq -e '.items' > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ On-call rotations listed${NC}"
+    rotation_count=$(echo "$rotations_response" | jq '.total')
+    echo "Total rotations: $rotation_count"
+else
+    echo -e "${RED}✗ Failed to list on-call rotations${NC}"
+    echo "$rotations_response" | jq .
+fi
+echo ""
+
+# Test On-Call: Create rotation (requires organization)
+if [ ! -z "$ORG_ID" ]; then
+    echo -e "${YELLOW}Test On-Call: Create Weekly Rotation${NC}"
+    create_rotation_response=$(curl -s -X POST "$API_URL/api/v1/on-call" \
+      -H "Authorization: Bearer $ACCESS_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"name\": \"Test Weekly Rotation\",
+        \"description\": \"Created by test script\",
+        \"scope_type\": \"organization\",
+        \"organization_id\": $ORG_ID,
+        \"schedule_type\": \"weekly\",
+        \"rotation_length_days\": 7,
+        \"rotation_start_date\": \"$(date +%Y-%m-%d)\",
+        \"is_active\": true
+      }")
+
+    if echo "$create_rotation_response" | jq -e '.id' > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ On-call rotation created${NC}"
+        ROTATION_ID=$(echo "$create_rotation_response" | jq -r '.id')
+        echo "Rotation ID: $ROTATION_ID"
+        echo "$create_rotation_response" | jq '{id, name, schedule_type, scope_type}'
+    else
+        echo -e "${RED}✗ Failed to create rotation${NC}"
+        echo "$create_rotation_response" | jq .
+    fi
+    echo ""
+fi
+
+# Test On-Call: Get current on-call for organization
+if [ ! -z "$ORG_ID" ]; then
+    echo -e "${YELLOW}Test On-Call: Get Current On-Call for Organization${NC}"
+    current_oncall_response=$(curl -s "$API_URL/api/v1/on-call/current/organization/$ORG_ID" \
+      -H "Authorization: Bearer $ACCESS_TOKEN")
+
+    # May return 404 if no rotation exists, which is expected for a new org
+    if echo "$current_oncall_response" | jq -e '.identity_name' > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ Current on-call retrieved${NC}"
+        echo "$current_oncall_response" | jq '{identity_name, shift_start, shift_end, is_override}'
+    elif echo "$current_oncall_response" | jq -e '.error' > /dev/null 2>&1; then
+        echo -e "${YELLOW}⚠ No on-call rotation configured for organization (expected for new org)${NC}"
+    else
+        echo -e "${RED}✗ Failed to get current on-call${NC}"
+        echo "$current_oncall_response" | jq .
+    fi
+    echo ""
+fi
 echo ""

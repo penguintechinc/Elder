@@ -2803,3 +2803,249 @@ def define_all_tables(db):
         Field("credential_mapping", "json"),
         migrate=False,
     )
+
+    # ==========================================
+    # ON-CALL ROTATION TABLES
+    # ==========================================
+
+    # 1. On-Call Rotations table (depends on: tenants, organizations, services) - v3.1.0: On-call rotation management
+    db.define_table(
+        "on_call_rotations",
+        Field(
+            "tenant_id",
+            "reference tenants",
+            default=1,
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "village_id", "string", length=32, unique=True, default=generate_village_id
+        ),
+        Field("name", "string", length=255, notnull=True, requires=IS_NOT_EMPTY()),
+        Field("description", "text"),
+        Field("is_active", "boolean", default=True, notnull=True),
+        # Scope: organization OR service
+        Field(
+            "scope_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(["organization", "service"]),
+        ),
+        Field(
+            "organization_id", "reference organizations", ondelete="CASCADE"
+        ),
+        Field("service_id", "reference services", ondelete="CASCADE"),
+        # Schedule configuration (conditional based on schedule_type)
+        Field(
+            "schedule_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(["weekly", "cron", "manual", "follow_the_sun"]),
+        ),
+        Field("rotation_length_days", "integer"),  # Weekly: 7, 14, 21, etc.
+        Field("rotation_start_date", "date"),  # Weekly: when rotation started
+        Field("schedule_cron", "string", length=255),  # Cron: expression
+        Field(
+            "handoff_timezone", "string", length=100
+        ),  # Follow-the-sun: timezone
+        Field(
+            "shift_split", "boolean", default=False
+        ),  # Follow-the-sun: split shifts?
+        Field("shift_config", "json"),  # Follow-the-sun: shift definitions
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
+    # 2. On-Call Rotation Participants table (depends on: on_call_rotations, identities) - v3.1.0: People in rotation
+    db.define_table(
+        "on_call_rotation_participants",
+        Field(
+            "rotation_id",
+            "reference on_call_rotations",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "identity_id", "reference identities", notnull=True, ondelete="CASCADE"
+        ),
+        Field(
+            "order_index", "integer", notnull=True
+        ),  # Position in rotation (0, 1, 2, ...)
+        Field("is_active", "boolean", default=True, notnull=True),
+        Field("start_date", "date"),  # Optional: when this person joined rotation
+        Field("end_date", "date"),  # Optional: when they leave
+        # Notification preferences
+        Field("notification_email", "string", length=255),
+        Field("notification_phone", "string", length=50),
+        Field("notification_slack", "string", length=255),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
+    # 3. On-Call Escalation Policies table (depends on: on_call_rotations, identities, identity_groups) - v3.1.0: Backup contacts and escalation rules
+    db.define_table(
+        "on_call_escalation_policies",
+        Field(
+            "rotation_id",
+            "reference on_call_rotations",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "level", "integer", notnull=True, default=1
+        ),  # 1=primary, 2=first backup, 3=second backup
+        # Target: identity OR group OR rotation participant
+        Field(
+            "escalation_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(["identity", "group", "rotation_participant"]),
+        ),
+        Field(
+            "identity_id", "reference identities", ondelete="CASCADE"
+        ),
+        Field("group_id", "reference identity_groups", ondelete="CASCADE"),
+        Field(
+            "escalation_delay_minutes", "integer", default=15
+        ),  # Wait before escalating
+        Field("notification_channels", "list:string"),  # ["email", "sms", "slack"]
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        Field(
+            "updated_at",
+            "datetime",
+            update=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
+    # 4. On-Call Overrides table (depends on: on_call_rotations, identities) - v3.1.0: Temporary substitutions
+    db.define_table(
+        "on_call_overrides",
+        Field(
+            "rotation_id",
+            "reference on_call_rotations",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "original_identity_id",
+            "reference identities",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "override_identity_id",
+            "reference identities",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field("start_datetime", "datetime", notnull=True),
+        Field("end_datetime", "datetime", notnull=True),
+        Field(
+            "reason", "string", length=512
+        ),  # "Vacation", "Sick leave", "Traffic delay"
+        Field("created_by_id", "reference identities", ondelete="SET NULL"),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
+    # 5. On-Call Shifts table (depends on: on_call_rotations, identities, on_call_overrides) - v3.1.0: Historical record of who was on-call
+    db.define_table(
+        "on_call_shifts",
+        Field(
+            "rotation_id",
+            "reference on_call_rotations",
+            notnull=True,
+            ondelete="CASCADE",
+        ),
+        Field(
+            "identity_id", "reference identities", notnull=True, ondelete="CASCADE"
+        ),
+        Field("shift_start", "datetime", notnull=True),
+        Field("shift_end", "datetime", notnull=True),
+        Field("is_override", "boolean", default=False, notnull=True),
+        Field("override_id", "reference on_call_overrides", ondelete="SET NULL"),
+        # Metrics
+        Field("alerts_received", "integer", default=0),
+        Field("incidents_created", "integer", default=0),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )
+
+    # 6. On-Call Notifications table (depends on: on_call_rotations, identities) - v3.1.0: Notification audit trail
+    db.define_table(
+        "on_call_notifications",
+        Field(
+            "rotation_id",
+            "reference on_call_rotations",
+            ondelete="CASCADE",
+        ),
+        Field("identity_id", "reference identities", ondelete="CASCADE"),
+        Field(
+            "notification_type",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(
+                ["shift_start", "shift_reminder", "alert", "escalation"]
+            ),
+        ),
+        Field(
+            "channel",
+            "string",
+            length=50,
+            notnull=True,
+            requires=IS_IN_SET(["email", "sms", "slack", "webhook"]),
+        ),
+        Field("subject", "string", length=512),
+        Field("message", "text"),
+        Field("metadata", "json"),  # Alert details, etc.
+        Field(
+            "status",
+            "string",
+            length=50,
+            default="pending",
+            requires=IS_IN_SET(["pending", "sent", "delivered", "failed"]),
+        ),
+        Field("error_message", "text"),
+        Field("sent_at", "datetime"),
+        Field(
+            "created_at",
+            "datetime",
+            default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        ),
+        migrate=False,
+    )

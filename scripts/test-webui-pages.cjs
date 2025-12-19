@@ -21,6 +21,7 @@ const pages = [
   { name: 'Certificates', path: '/certificates' },
   { name: 'Dependencies', path: '/dependencies' },
   { name: 'Discovery', path: '/discovery' },
+  { name: 'On-Call Rotations', path: '/on-call-rotations' },
   { name: 'Profile', path: '/profile' },
 ];
 

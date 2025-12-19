@@ -1976,6 +1976,189 @@ class ApiClient {
     const response = await this.client.patch(`/vulnerabilities/${id}`, data)
     return response.data
   }
+
+  // ===========================
+  // On-Call Rotations
+  // ===========================
+
+  async getOnCallRotations(params?: {
+    page?: number
+    per_page?: number
+    organization_id?: number
+    service_id?: number
+    status?: string
+    search?: string
+  }) {
+    const response = await this.client.get('/on-call/rotations', { params })
+    return response.data
+  }
+
+  async getOnCallRotation(id: number) {
+    const response = await this.client.get(`/on-call/rotations/${id}`)
+    return response.data
+  }
+
+  async createOnCallRotation(data: {
+    name: string
+    organization_id: number
+    service_id?: number
+    description?: string
+    rotation_type: string
+    timezone?: string
+    enabled?: boolean
+    escalation_policy_id?: number
+    metadata?: any
+  }) {
+    const response = await this.client.post('/on-call/rotations', data)
+    return response.data
+  }
+
+  async updateOnCallRotation(id: number, data: Partial<{
+    name: string
+    description: string
+    rotation_type: string
+    timezone: string
+    enabled: boolean
+    escalation_policy_id: number
+    metadata: any
+  }>) {
+    const response = await this.client.put(`/on-call/rotations/${id}`, data)
+    return response.data
+  }
+
+  async deleteOnCallRotation(id: number) {
+    const response = await this.client.delete(`/on-call/rotations/${id}`)
+    return response.data
+  }
+
+  async getCurrentOnCall(scopeType: string, scopeId: number) {
+    const response = await this.client.get(`/on-call/current/${scopeType}/${scopeId}`)
+    return response.data
+  }
+
+  async getOnCallParticipants(rotationId: number, params?: { page?: number; per_page?: number }) {
+    const response = await this.client.get(`/on-call/rotations/${rotationId}/participants`, { params })
+    return response.data
+  }
+
+  async addOnCallParticipant(rotationId: number, data: {
+    identity_id: number
+    order: number
+    start_date?: string
+    end_date?: string
+    metadata?: any
+  }) {
+    const response = await this.client.post(`/on-call/rotations/${rotationId}/participants`, data)
+    return response.data
+  }
+
+  async updateOnCallParticipant(rotationId: number, participantId: number, data: Partial<{
+    order: number
+    start_date: string
+    end_date: string
+    is_active: boolean
+    metadata: any
+  }>) {
+    const response = await this.client.put(`/on-call/rotations/${rotationId}/participants/${participantId}`, data)
+    return response.data
+  }
+
+  async removeOnCallParticipant(rotationId: number, participantId: number) {
+    const response = await this.client.delete(`/on-call/rotations/${rotationId}/participants/${participantId}`)
+    return response.data
+  }
+
+  async getOnCallOverrides(rotationId: number, params?: {
+    page?: number
+    per_page?: number
+    status?: string
+    start_date?: string
+    end_date?: string
+  }) {
+    const response = await this.client.get(`/on-call/rotations/${rotationId}/overrides`, { params })
+    return response.data
+  }
+
+  async createOnCallOverride(rotationId: number, data: {
+    override_participant_id: number
+    override_start: string
+    override_end: string
+    reason?: string
+    created_by?: number
+  }) {
+    const response = await this.client.post(`/on-call/rotations/${rotationId}/overrides`, data)
+    return response.data
+  }
+
+  async updateOnCallOverride(rotationId: number, overrideId: number, data: Partial<{
+    override_participant_id: number
+    override_start: string
+    override_end: string
+    reason: string
+  }>) {
+    const response = await this.client.put(`/on-call/rotations/${rotationId}/overrides/${overrideId}`, data)
+    return response.data
+  }
+
+  async deleteOnCallOverride(rotationId: number, overrideId: number) {
+    const response = await this.client.delete(`/on-call/rotations/${rotationId}/overrides/${overrideId}`)
+    return response.data
+  }
+
+  async getOnCallHistory(rotationId: number, params?: {
+    page?: number
+    per_page?: number
+    start_date?: string
+    end_date?: string
+    participant_id?: number
+  }) {
+    const response = await this.client.get(`/on-call/rotations/${rotationId}/history`, { params })
+    return response.data
+  }
+
+  async getEscalationPolicies(params?: {
+    page?: number
+    per_page?: number
+    organization_id?: number
+    search?: string
+  }) {
+    const response = await this.client.get('/on-call/escalation-policies', { params })
+    return response.data
+  }
+
+  async createEscalationPolicy(data: {
+    name: string
+    organization_id: number
+    description?: string
+    escalation_rules: Array<{
+      level: number
+      delay_minutes: number
+      notification_targets: string[]
+    }>
+    enabled?: boolean
+  }) {
+    const response = await this.client.post('/on-call/escalation-policies', data)
+    return response.data
+  }
+
+  async updateEscalationPolicy(id: number, data: Partial<{
+    name: string
+    description: string
+    escalation_rules: Array<{
+      level: number
+      delay_minutes: number
+      notification_targets: string[]
+    }>
+    enabled: boolean
+  }>) {
+    const response = await this.client.put(`/on-call/escalation-policies/${id}`, data)
+    return response.data
+  }
+
+  async deleteEscalationPolicy(id: number) {
+    const response = await this.client.delete(`/on-call/escalation-policies/${id}`)
+    return response.data
+  }
 }
 
 export const api = new ApiClient()

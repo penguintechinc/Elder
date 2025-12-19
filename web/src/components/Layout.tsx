@@ -35,6 +35,7 @@ import {
   Bug,
   Route,
   Layers,
+  Clock,
 } from 'lucide-react'
 import api from '@/lib/api'
 
@@ -91,6 +92,7 @@ const navigationCategories = [
     header: 'Infrastructure',
     collapsible: true,
     items: [
+      { name: 'On-Call Rotations', href: '/on-call-rotations', icon: Clock },
       { name: 'Dependencies', href: '/dependencies', icon: GitBranch },
       { name: 'Discovery', href: '/discovery', icon: Compass },
       { name: 'Networking', href: '/networking', icon: Network },

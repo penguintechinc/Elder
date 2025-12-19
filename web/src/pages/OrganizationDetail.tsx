@@ -10,6 +10,7 @@ import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import { NetworkGraph } from '@/components/NetworkGraph'
 import CreateIdentityModal from '@/components/CreateIdentityModal'
+import OnCallBadge from '@/components/OnCallBadge'
 
 interface TreeNode {
   type: 'organization' | 'entity'
@@ -356,6 +357,13 @@ export default function OrganizationDetail() {
           </Button>
         </div>
       </div>
+
+      {/* On-Call Badge */}
+      {isValidId && (
+        <div className="mb-6">
+          <OnCallBadge scopeType="organization" scopeId={orgId} />
+        </div>
+      )}
 
       {/* Overview */}
       <div className="mb-6">

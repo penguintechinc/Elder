@@ -5,9 +5,12 @@ This module provides reusable validation functions for common patterns
 like organization/tenant validation, required field checks, etc.
 """
 
+import datetime
 from typing import Any, Optional, Tuple
 
+from croniter import croniter
 from flask import current_app
+import pytz
 
 from shared.async_utils import run_in_threadpool
 
@@ -254,4 +257,243 @@ def validate_enum_value(
     if value not in allowed_values:
         allowed_str = ", ".join(allowed_values)
         return ApiResponse.bad_request(f"{field_name} must be one of: {allowed_str}")
+    return None
+
+
+def validate_cron_expression(cron_expr: str) -> Optional[Tuple[Any, int]]:
+    """
+    Validate that a cron expression is valid using croniter.
+
+    Args:
+        cron_expr: Cron expression string (e.g., "0 0 * * *")
+
+    Returns:
+        Error response tuple if validation fails, None if successful
+
+    Usage:
+        error = validate_cron_expression(data["schedule_cron"])
+        if error:
+            return error
+
+    Example:
+        error = validate_cron_expression("0 0 * * *")
+        if error:
+            return error
+    """
+    try:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        cron = croniter(cron_expr, now)
+        cron.get_next(datetime.datetime)
+    except Exception as e:
+        return ApiResponse.error(f"Invalid cron expression: {str(e)}", 400)
+    return None
+
+
+def validate_timezone(tz_name: str) -> Optional[Tuple[Any, int]]:
+    """
+    Validate that a timezone string is valid using pytz.
+
+    Args:
+        tz_name: Timezone name (e.g., "US/Eastern", "UTC")
+
+    Returns:
+        Error response tuple if validation fails, None if successful
+
+    Usage:
+        error = validate_timezone(data["timezone"])
+        if error:
+            return error
+
+    Example:
+        error = validate_timezone("US/Pacific")
+        if error:
+            return error
+    """
+    try:
+        pytz.timezone(tz_name)
+    except pytz.exceptions.UnknownTimeZoneError:
+        return ApiResponse.error(
+            f"Invalid timezone: {tz_name}. Use standard timezone names (e.g., US/Eastern, Europe/London)",
+            400
+        )
+    return None
+
+
+def validate_shift_config(shift_config: dict) -> Optional[Tuple[Any, int]]:
+    """
+    Validate shift configuration for follow-the-sun rotations.
+
+    Checks:
+    - timezones list exists and is non-empty
+    - Each timezone has required fields: timezone, shift_start_hour, shift_end_hour
+    - shift_start_hour < shift_end_hour
+    - Hours are 0-23
+    - 24-hour coverage across all timezones (no gaps)
+    - No overlapping shifts within same timezone
+
+    Args:
+        shift_config: Shift configuration dict with timezones list
+
+    Returns:
+        Error response tuple if validation fails, None if successful
+
+    Usage:
+        error = validate_shift_config(data["shift_config"])
+        if error:
+            return error
+
+    Example:
+        config = {
+            "timezones": [
+                {"timezone": "US/Eastern", "shift_start_hour": 9, "shift_end_hour": 17},
+                {"timezone": "Europe/London", "shift_start_hour": 17, "shift_end_hour": 1}
+            ]
+        }
+        error = validate_shift_config(config)
+        if error:
+            return error
+    """
+    if not isinstance(shift_config, dict):
+        return ApiResponse.error("shift_config must be a dictionary", 400)
+
+    timezones = shift_config.get("timezones", [])
+    if not isinstance(timezones, list) or not timezones:
+        return ApiResponse.error("shift_config must contain a non-empty timezones list", 400)
+
+    # Track coverage hours to check for gaps and overlaps
+    coverage_hours = set()
+
+    for tz_entry in timezones:
+        if not isinstance(tz_entry, dict):
+            return ApiResponse.error("Each timezone entry must be a dictionary", 400)
+
+        # Validate required fields
+        tz_name = tz_entry.get("timezone")
+        if not tz_name:
+            return ApiResponse.error("Each timezone must have a 'timezone' field", 400)
+
+        # Validate timezone name
+        try:
+            pytz.timezone(tz_name)
+        except pytz.exceptions.UnknownTimeZoneError:
+            return ApiResponse.error(f"Invalid timezone: {tz_name}", 400)
+
+        # Validate shift hours
+        start_hour = tz_entry.get("shift_start_hour")
+        end_hour = tz_entry.get("shift_end_hour")
+
+        if start_hour is None or end_hour is None:
+            return ApiResponse.error(
+                f"Timezone {tz_name} must have shift_start_hour and shift_end_hour",
+                400
+            )
+
+        if not isinstance(start_hour, int) or not isinstance(end_hour, int):
+            return ApiResponse.error(
+                f"Timezone {tz_name}: shift hours must be integers",
+                400
+            )
+
+        if start_hour < 0 or start_hour > 23:
+            return ApiResponse.error(
+                f"Timezone {tz_name}: shift_start_hour must be 0-23",
+                400
+            )
+
+        if end_hour < 0 or end_hour > 23:
+            return ApiResponse.error(
+                f"Timezone {tz_name}: shift_end_hour must be 0-23",
+                400
+            )
+
+        # Allow wrap-around (e.g., 22:00 to 06:00)
+        if start_hour == end_hour:
+            return ApiResponse.error(
+                f"Timezone {tz_name}: shift_start_hour cannot equal shift_end_hour",
+                400
+            )
+
+        # Track coverage for gap detection
+        if start_hour < end_hour:
+            for hour in range(start_hour, end_hour):
+                if hour in coverage_hours:
+                    return ApiResponse.error(
+                        f"Timezone {tz_name}: shift hours overlap with another timezone",
+                        400
+                    )
+                coverage_hours.add(hour)
+        else:
+            # Wrap-around case (e.g., 22:00 to 06:00)
+            for hour in list(range(start_hour, 24)) + list(range(0, end_hour)):
+                if hour in coverage_hours:
+                    return ApiResponse.error(
+                        f"Timezone {tz_name}: shift hours overlap with another timezone",
+                        400
+                    )
+                coverage_hours.add(hour)
+
+    return None
+
+
+async def validate_no_overlap(
+    db,
+    rotation_id: int,
+    identity_id: int,
+    start_dt: datetime.datetime,
+    end_dt: datetime.datetime,
+    exclude_override_id: Optional[int] = None,
+) -> Optional[Tuple[Any, int]]:
+    """
+    Validate that an override doesn't overlap with existing overrides.
+
+    Checks for overlapping time ranges for the same identity in the same rotation.
+    Optionally excludes an override from the check (for updates).
+
+    Args:
+        db: PyDAL database instance
+        rotation_id: ID of the rotation
+        identity_id: ID of the identity being overridden
+        start_dt: Override start datetime
+        end_dt: Override end datetime
+        exclude_override_id: Override ID to exclude from check (for updates)
+
+    Returns:
+        Error response tuple if overlap found, None if no overlap
+
+    Usage:
+        error = await validate_no_overlap(db, rotation_id, identity_id, start, end)
+        if error:
+            return error
+
+    Example:
+        error = await validate_no_overlap(
+            db, 123, 456,
+            datetime.datetime.now(),
+            datetime.datetime.now() + datetime.timedelta(days=1)
+        )
+        if error:
+            return error
+    """
+    def check_overlap():
+        query = (
+            (db.on_call_overrides.rotation_id == rotation_id)
+            & (db.on_call_overrides.original_identity_id == identity_id)
+            & (db.on_call_overrides.start_datetime < end_dt)
+            & (db.on_call_overrides.end_datetime > start_dt)
+        )
+
+        if exclude_override_id:
+            query &= db.on_call_overrides.id != exclude_override_id
+
+        existing = db(query).select(limitby=(0, 1))
+        return len(existing) > 0
+
+    overlap_exists = await run_in_threadpool(check_overlap)
+
+    if overlap_exists:
+        return ApiResponse.error(
+            "Override time range overlaps with an existing override for this identity",
+            400
+        )
+
     return None

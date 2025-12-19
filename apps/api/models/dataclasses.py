@@ -885,6 +885,155 @@ class UpdateLicensePolicyRequest:
     is_active: Optional[bool] = None
 
 
+# ==================== On-Call Rotations ====================
+
+
+@dataclass(slots=True, frozen=True)
+class OnCallRotationDTO:
+    """Immutable On-Call Rotation data transfer object."""
+
+    id: int
+    tenant_id: int
+    village_id: str
+    name: str
+    description: Optional[str]
+    is_active: bool
+    scope_type: str  # organization, service
+    organization_id: Optional[int]
+    service_id: Optional[int]
+    schedule_type: str  # weekly, cron, manual, follow_the_sun
+    rotation_length_days: Optional[int]
+    rotation_start_date: Optional[date]
+    schedule_cron: Optional[str]
+    handoff_timezone: Optional[str]
+    shift_split: bool
+    shift_config: Optional[dict]
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class OnCallParticipantDTO:
+    """Immutable On-Call Participant data transfer object with joined identity info."""
+
+    id: int
+    rotation_id: int
+    identity_id: int
+    identity_name: str  # From join with identities table
+    identity_email: Optional[str]  # From join with identities table
+    order_index: int
+    is_active: bool
+    start_date: Optional[date]
+    end_date: Optional[date]
+    notification_email: Optional[str]
+    notification_phone: Optional[str]
+    notification_slack: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class OnCallOverrideDTO:
+    """Immutable On-Call Override data transfer object with both identity names."""
+
+    id: int
+    rotation_id: int
+    original_identity_id: int
+    original_identity_name: str  # From join
+    original_identity_email: Optional[str]  # From join
+    override_identity_id: int
+    override_identity_name: str  # From join
+    override_identity_email: Optional[str]  # From join
+    start_datetime: datetime
+    end_datetime: datetime
+    reason: Optional[str]
+    created_by_id: Optional[int]
+    created_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class OnCallShiftDTO:
+    """Immutable On-Call Shift historical record with metrics."""
+
+    id: int
+    rotation_id: int
+    identity_id: int
+    identity_name: str  # From join with identities table
+    shift_start: datetime
+    shift_end: datetime
+    is_override: bool
+    override_id: Optional[int]
+    alerts_received: int
+    incidents_created: int
+    created_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class EscalationPolicyDTO:
+    """Immutable Escalation Policy data transfer object."""
+
+    id: int
+    rotation_id: int
+    level: int
+    escalation_type: str  # identity, group, rotation_participant
+    identity_id: Optional[int]
+    identity_name: Optional[str]  # From join if escalation_type is identity
+    group_id: Optional[int]
+    group_name: Optional[str]  # From join if escalation_type is group
+    escalation_delay_minutes: int
+    notification_channels: Optional[list[str]]  # ["email", "sms", "slack"]
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class CurrentOnCallDTO:
+    """Simplified On-Call assignment for badge display."""
+
+    identity_id: int
+    identity_name: str
+    identity_email: Optional[str]
+    shift_start: datetime
+    shift_end: datetime
+    is_override: bool
+    override_reason: Optional[str]
+
+
+@dataclass(slots=True)
+class CreateOnCallRotationRequest:
+    """Request to create a new On-Call Rotation (mutable for validation)."""
+
+    name: str
+    scope_type: str  # organization, service
+    schedule_type: str  # weekly, cron, manual, follow_the_sun
+    description: Optional[str] = None
+    organization_id: Optional[int] = None
+    service_id: Optional[int] = None
+    rotation_length_days: Optional[int] = None
+    rotation_start_date: Optional[date] = None
+    schedule_cron: Optional[str] = None
+    handoff_timezone: Optional[str] = None
+    shift_split: bool = False
+    shift_config: Optional[dict] = None
+    is_active: bool = True
+
+
+@dataclass(slots=True)
+class UpdateOnCallRotationRequest:
+    """Request to update an On-Call Rotation (all fields optional)."""
+
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+    schedule_type: Optional[str] = None
+    rotation_length_days: Optional[int] = None
+    rotation_start_date: Optional[date] = None
+    schedule_cron: Optional[str] = None
+    handoff_timezone: Optional[str] = None
+    shift_split: Optional[bool] = None
+    shift_config: Optional[dict] = None
+
+
 # ==================== Pagination ====================
 
 
