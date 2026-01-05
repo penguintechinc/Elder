@@ -7,6 +7,95 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.1] - 2026-01-05
+
+### 🔒 Security Fixes
+
+This release resolves **17 Dependabot security vulnerabilities** across Go, Python, and npm ecosystems.
+
+#### Critical Severity
+- **CVE-2024-28180**: `python-jose` ECDSA P-521 key confusion vulnerability
+  - Upgraded from 3.3.0 → 3.4.0
+  - An attacker could craft malicious tokens that bypass signature verification
+- **CVE-2024-45337**: `golang.org/x/crypto` SSH authentication bypass
+  - Upgraded from 0.18.0 → 0.45.0
+  - Could allow unauthorized SSH access in specific configurations
+
+#### High Severity
+- **CVE-2024-45338**: `golang.org/x/net` HTML sanitizer XSS bypass
+  - Upgraded from 0.20.0 → 0.47.0
+- **GHSA-xr7q-jx4m-x55m**: `qs` array limit bypass DoS vulnerability
+  - Upgraded via express 4.21.2 → 4.22.1
+- **CVE-2022-31129**: `jws` HMAC signature verification bypass
+  - Upgraded from 3.2.2 → 3.2.3
+- **CVE-2021-3807**: `js-yaml` prototype pollution (package-lock.json)
+  - Upgraded to 3.14.2/4.1.1
+
+#### Medium Severity
+- **CVE-2024-7254**: `google.golang.org/protobuf` JSON unmarshaling infinite loop
+  - Upgraded from 1.32.0 → 1.36.6
+- **CVE-2024-49766**: `Werkzeug` Windows device name path traversal
+  - Upgraded from 3.1.3 → 3.1.4
+- **CVE-2024-49767**: `Flask` session signing key fallback vulnerability
+  - Upgraded from 3.1.0 → 3.1.1
+- **GHSA-9wx4-h78v-vm56**: `marshmallow` Schema.load DoS vulnerability
+  - Upgraded from 3.23.2 → 3.26.2
+
+#### Low Severity
+- **CVE-2023-45288**: `golang.org/x/net` HTTP/2 CONTINUATION flood
+- Additional transitive dependency updates for comprehensive security coverage
+
+### ✨ New Features
+
+#### On-Call Rotation Management (Community Feature)
+- **Rotation Scheduling**: Create and manage on-call schedules
+  - Daily, weekly, bi-weekly, and custom rotation patterns
+  - Support for multiple participants with handoff times
+  - Timezone-aware scheduling
+- **Participant Management**: Full CRUD for rotation participants
+  - Primary and backup on-call assignments
+  - Override schedules for holidays and PTO
+- **History Tracking**: Complete audit log of rotation changes
+  - Track who was on-call at any point in time
+  - Historical analytics for on-call burden distribution
+- **Webhook Integration**: Alert integrations for on-call notifications
+  - Configurable webhook endpoints for rotation changes
+  - Support for Slack, PagerDuty, and custom integrations
+- **Web UI Components**:
+  - `OnCallRotations.tsx`: Main rotations management page
+  - `CreateOnCallRotationModal.tsx`: Create new rotations
+  - `OnCallRotationDetailModal.tsx`: View rotation details
+  - `OnCallBadge.tsx`: Visual indicator for current on-call status
+- **API Endpoints**: Full CRUD at `/api/v1/on-call-rotations`
+- **Database Migration**: `008_add_on_call_rotation_tables.py`
+
+### 📦 Dependencies Updated
+
+#### Go (shared/go_libs)
+| Package | From | To |
+|---------|------|-----|
+| golang.org/x/crypto | 0.18.0 | 0.45.0 |
+| golang.org/x/net | 0.20.0 | 0.47.0 |
+| google.golang.org/protobuf | 1.32.0 | 1.36.6 |
+
+#### Python (requirements.txt)
+| Package | From | To |
+|---------|------|-----|
+| python-jose[cryptography] | 3.3.0 | 3.4.0 |
+| Flask[async] | 3.1.0 | 3.1.1 |
+| Werkzeug | 3.1.3 | 3.1.4 |
+| marshmallow | 3.23.2 | 3.26.2 |
+
+#### npm (package.json)
+| Package | From | To |
+|---------|------|-----|
+| express | 4.21.2 | 4.22.1 |
+| jws | 3.2.2 | 3.2.3 |
+| js-yaml | various | 3.14.2/4.1.1 |
+| qs | 6.13.0 | 6.14.1 |
+
+---
+
 ## [3.0.0] - 2025-11-25
 
 ### 💥 Breaking Changes
