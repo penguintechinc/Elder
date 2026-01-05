@@ -3,9 +3,7 @@
 import asyncio
 import logging
 import os
-import re
 import shutil
-import subprocess
 import tempfile
 import time
 from pathlib import Path
@@ -13,7 +11,6 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse, urlunparse
 
 from parsers.endpoint_parser_flask import FlaskEndpointParser
-from parsers.endpoint_parser_fastapi import FastAPIEndpointParser
 from parsers.endpoint_parser_django import DjangoEndpointParser
 from parsers.endpoint_parser_express import ExpressEndpointParser
 from parsers.endpoint_parser_go import GoEndpointParser

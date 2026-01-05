@@ -2,7 +2,7 @@
 
 import asyncio
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TypeVar
+from typing import Any, Callable, Dict, Optional, Tuple, Type, TypeVar
 
 from flask import Response, jsonify, request
 from pydantic import BaseModel, ValidationError

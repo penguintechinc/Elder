@@ -69,7 +69,7 @@ async def get_current_oncall_for_org(org_id: int):
     def get_oncalls():
         rotations = db(
             (db.on_call_rotations.organization_id == org_id)
-            & (db.on_call_rotations.is_active == True)
+            & (db.on_call_rotations.is_active is True)
         ).select()
 
         result = []
@@ -113,7 +113,7 @@ async def get_current_oncall_for_service(service_id: int):
     def get_oncalls():
         rotations = db(
             (db.on_call_rotations.service_id == service_id)
-            & (db.on_call_rotations.is_active == True)
+            & (db.on_call_rotations.is_active is True)
         ).select()
 
         result = []

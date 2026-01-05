@@ -2,8 +2,8 @@
 
 from dataclasses import asdict
 from flask import Blueprint, current_app, g, jsonify
-from py_libs.pydantic import RequestModel, NonEmptyStr, Description1000
-from py_libs.pydantic.flask_integration import validated_request, model_response
+from py_libs.pydantic import RequestModel, Description1000
+from py_libs.pydantic.flask_integration import validated_request
 from shared.auth.decorators import login_required
 from shared.licensing.decorators import license_required
 from shared.database.pydal_utils import from_pydal_row, from_pydal_rows

@@ -11,8 +11,8 @@ Models:
     - ConfigurableModel: Flexible model with dynamic field support
 """
 
-from typing import Any, Dict, Optional, TypeVar, Generic
-from pydantic import BaseModel, ConfigDict, field_serializer
+from typing import Any, Dict, TypeVar
+from pydantic import BaseModel, ConfigDict
 
 T = TypeVar('T', bound='ElderBaseModel')
 

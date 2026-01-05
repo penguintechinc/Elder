@@ -369,7 +369,7 @@ async def get_due_schedules():
     def get_schedules():
         now = datetime.datetime.now(datetime.timezone.utc)
         query = (
-            (db.sbom_scan_schedules.is_active == True)
+            (db.sbom_scan_schedules.is_active is True)
             & (db.sbom_scan_schedules.next_run_at <= now)
         )
         rows = db(query).select(orderby=db.sbom_scan_schedules.next_run_at)

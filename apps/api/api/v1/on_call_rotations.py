@@ -4,11 +4,6 @@ This module aggregates all on-call rotation endpoints from separate modules.
 """
 
 from flask import Blueprint
-
-# Create main blueprint
-bp = Blueprint("on_call_rotations", __name__)
-
-# Import and register sub-blueprints
 from apps.api.api.v1 import (
     on_call_rotations_crud,
     on_call_rotations_participants,
@@ -16,6 +11,10 @@ from apps.api.api.v1 import (
     on_call_webhooks,
 )
 
+# Create main blueprint
+bp = Blueprint("on_call_rotations", __name__)
+
+# Sub-blueprints imported at module level
 # Register all sub-blueprints
 bp.register_blueprint(on_call_rotations_crud.bp, url_prefix="/rotations")
 bp.register_blueprint(on_call_rotations_participants.bp, url_prefix="/rotations")

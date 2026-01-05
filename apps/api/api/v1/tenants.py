@@ -10,7 +10,7 @@ from flask import Blueprint, current_app, jsonify, request
 from pydantic import Field, ValidationError
 
 from apps.api.api.v1.portal_auth import portal_token_required
-from py_libs.pydantic import RequestModel, Name255, SlugStr, bounded_str
+from py_libs.pydantic import RequestModel, Name255, SlugStr
 
 bp = Blueprint("tenants", __name__)
 

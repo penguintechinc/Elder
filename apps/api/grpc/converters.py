@@ -1,7 +1,7 @@
 """Converters between DTOs and protobuf messages."""
 
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from apps.api.grpc.generated import auth_pb2, common_pb2, entity_pb2, organization_pb2
 from apps.api.models import DependencyDTO, EntityDTO, IdentityDTO, OrganizationDTO

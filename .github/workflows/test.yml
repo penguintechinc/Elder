@@ -42,16 +42,16 @@ jobs:
           pip install flake8 black isort mypy
 
       - name: Run flake8
-        run: flake8 apps/ shared/ --exclude=apps/api/grpc/generated
+        run: flake8 apps/ shared/ --exclude=apps/api/grpc/generated,node_modules,__pycache__
 
       - name: Run black
-        run: black --check apps/ shared/ --exclude=apps/api/grpc/generated
+        run: black --check apps/ shared/ --exclude='apps/api/grpc/generated|node_modules'
 
       - name: Run isort
-        run: isort --check-only --profile black apps/ shared/ --skip apps/api/grpc/generated
+        run: isort --check-only --profile black apps/ shared/ --skip apps/api/grpc/generated --skip-glob '**/node_modules/*'
 
       - name: Run mypy
-        run: mypy apps/ shared/ --ignore-missing-imports --exclude apps/api/grpc/generated
+        run: mypy apps/ shared/ --ignore-missing-imports --exclude 'apps/api/grpc/generated|node_modules'
         continue-on-error: true
 
   security-scan:

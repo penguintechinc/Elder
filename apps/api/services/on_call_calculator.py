@@ -11,11 +11,10 @@ Supports multiple schedule types:
 """
 
 import datetime
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Optional
 
 from croniter import croniter
-from flask import current_app
 import pytz
 
 from apps.api.models.dataclasses import CurrentOnCallDTO
@@ -172,7 +171,7 @@ class OnCallCalculator:
         def get_participants():
             participants = db(
                 (db.on_call_rotation_participants.rotation_id == rotation.id)
-                & (db.on_call_rotation_participants.is_active == True)
+                & (db.on_call_rotation_participants.is_active is True)
             ).select(orderby=db.on_call_rotation_participants.order_index)
             return list(participants)
 
@@ -248,7 +247,7 @@ class OnCallCalculator:
         def get_participants():
             participants = db(
                 (db.on_call_rotation_participants.rotation_id == rotation.id)
-                & (db.on_call_rotation_participants.is_active == True)
+                & (db.on_call_rotation_participants.is_active is True)
             ).select(orderby=db.on_call_rotation_participants.order_index)
             return list(participants)
 
@@ -381,7 +380,7 @@ class OnCallCalculator:
                                 )
                                 & (
                                     db.on_call_rotation_participants.is_active
-                                    == True
+                                    is True
                                 )
                             ]
                             if participant:

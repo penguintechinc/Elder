@@ -16,10 +16,7 @@ from apps.api.models.dataclasses import (
 from apps.api.services.sbom.vulnerability.matcher import VulnerabilityMatcher
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.pydal_helpers import PaginationParams
-from apps.api.utils.validation_helpers import (
-    validate_json_body,
-    validate_resource_exists,
-)
+from apps.api.utils.validation_helpers import validate_resource_exists
 from py_libs.pydantic.flask_integration import ValidationErrorResponse
 from py_libs.pydantic.models.vulnerability import (
     SyncVulnerabilitiesRequest,

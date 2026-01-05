@@ -13,7 +13,7 @@ from apps.api.models.dataclasses import (
     from_pydal_rows,
 )
 from py_libs.pydantic import RequestModel, Description1000, Name255
-from py_libs.pydantic.flask_integration import validated_request, model_response
+from py_libs.pydantic.flask_integration import validated_request
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("labels", __name__)

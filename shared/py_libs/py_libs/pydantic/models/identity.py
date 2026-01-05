@@ -6,7 +6,7 @@ Provides validation, serialization, and type safety for identity operations.
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, SecretStr, field_validator, model_validator
+from pydantic import BaseModel, SecretStr, model_validator
 
 # ==================== Type Definitions ====================
 

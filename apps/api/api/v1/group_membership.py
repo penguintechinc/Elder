@@ -11,17 +11,6 @@ from apps.api.auth.decorators import login_required
 from apps.api.logging_config import log_error_and_respond
 from apps.api.services.group_membership import GroupMembershipService
 from shared.licensing import license_required
-from py_libs.pydantic.flask_integration import (
-    validate_body,
-    ValidationErrorResponse,
-)
-from py_libs.pydantic.models import (
-    UpdateGroupRequest,
-    CreateAccessRequestRequest,
-    AddGroupMemberRequest,
-    ApproveOrDenyRequestRequest,
-    BulkApproveRequestsRequest,
-)
 
 logger = logging.getLogger(__name__)
 

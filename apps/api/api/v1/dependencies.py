@@ -15,7 +15,6 @@ from apps.api.models.dataclasses import (
     from_pydal_rows,
 )
 from py_libs.pydantic import RequestModel, validated_request
-from py_libs.pydantic.flask_integration import model_response
 from shared.async_utils import run_in_threadpool
 from pydantic import Field
 from typing import Optional

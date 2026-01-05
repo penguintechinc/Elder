@@ -17,11 +17,7 @@ from apps.api.models.dataclasses import (
 from apps.api.services.sbom.parsers import SBOMParser
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.pydal_helpers import PaginationParams
-from apps.api.utils.validation_helpers import (
-    validate_json_body,
-    validate_required_fields,
-    validate_resource_exists,
-)
+from apps.api.utils.validation_helpers import validate_resource_exists
 from shared.async_utils import run_in_threadpool
 from shared.py_libs.py_libs.pydantic.models.sbom import (
     CreateSBOMScanRequest,
@@ -584,7 +580,7 @@ async def submit_results(id: int):
             # Get active policies for this organization
             policy_query = (
                 (db.license_policies.organization_id == parent_org_id)
-                & (db.license_policies.is_active == True)
+                & (db.license_policies.is_active is True)
             )
             policies = db(policy_query).select()
 

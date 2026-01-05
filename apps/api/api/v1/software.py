@@ -18,7 +18,7 @@ from apps.api.utils.validation_helpers import (
     validate_resource_exists,
 )
 from py_libs.pydantic.models.software import CreateSoftwareRequest, UpdateSoftwareRequest
-from py_libs.pydantic.flask_integration import validated_request, model_response
+from py_libs.pydantic.flask_integration import validated_request
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("software", __name__)

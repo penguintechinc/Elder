@@ -9,18 +9,13 @@ from apps.api.auth.decorators import login_required, resource_role_required
 from apps.api.models.dataclasses import (
     PaginatedResponse,
 )
-from py_libs.pydantic.flask_integration import (
-    ValidationErrorResponse,
-    validated_request,
-    model_response,
-)
+from py_libs.pydantic.flask_integration import ValidationErrorResponse
 from py_libs.pydantic.models import (
     CreateIPAMPrefixRequest,
     UpdateIPAMPrefixRequest,
     CreateIPAMAddressRequest,
     UpdateIPAMAddressRequest,
     CreateIPAMVlanRequest,
-    UpdateIPAMVlanRequest,
 )
 from shared.async_utils import run_in_threadpool
 

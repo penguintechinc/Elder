@@ -35,7 +35,7 @@ from apps.api.grpc.generated import (
     organization_pb2,
 )
 from apps.api.models import DependencyDTO, EntityDTO, IdentityDTO, OrganizationDTO
-from apps.api.models.dataclasses import from_pydal_row, from_pydal_rows
+from apps.api.models.dataclasses import from_pydal_row
 from apps.api.models.pydal_models import define_all_tables
 
 logger = structlog.get_logger(__name__)
@@ -457,7 +457,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
                     query &= db.identities.auth_provider == auth_provider_str
 
             if request.active_only:
-                query &= db.identities.is_active == True
+                query &= db.identities.is_active is True
 
             # Apply search filter if provided (from filters map)
             if request.filters and request.filters.filters:

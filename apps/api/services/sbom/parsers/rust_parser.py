@@ -7,7 +7,7 @@ and build-dependencies with support for various version specifiers.
 
 import re
 import tomllib
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from apps.api.services.sbom.base import BaseDependencyParser
 

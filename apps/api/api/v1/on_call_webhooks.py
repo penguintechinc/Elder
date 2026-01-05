@@ -118,7 +118,7 @@ async def handle_alertmanager_webhook():
             def get_rotations():
                 rotations = db(
                     (db.on_call_rotations.service_id == service.id)
-                    & (db.on_call_rotations.is_active == True)
+                    & (db.on_call_rotations.is_active is True)
                 ).select()
                 return rotations
 

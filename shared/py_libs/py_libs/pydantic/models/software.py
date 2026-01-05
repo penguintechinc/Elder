@@ -13,7 +13,6 @@ from typing import Optional
 from pydantic import Field
 
 from py_libs.pydantic.base import ImmutableModel, RequestModel
-from py_libs.pydantic.types import Name255, Description1000
 
 
 class SoftwareDTO(ImmutableModel):

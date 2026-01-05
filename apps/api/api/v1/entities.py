@@ -18,10 +18,7 @@ from apps.api.utils.validation_helpers import (
     validate_organization_and_get_tenant,
     validate_resource_exists,
 )
-from py_libs.pydantic.flask_integration import (
-    validated_request,
-    ValidationErrorResponse,
-)
+from py_libs.pydantic.flask_integration import validated_request
 from py_libs.pydantic.models.entity import (
     CreateEntityRequest,
     UpdateEntityRequest,

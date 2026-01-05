@@ -13,14 +13,10 @@ from apps.api.models.dataclasses import (
     from_pydal_row,
     from_pydal_rows,
 )
-from py_libs.pydantic import RequestModel
-from py_libs.pydantic.flask_integration import validated_request, model_response, ValidationErrorResponse
+from py_libs.pydantic.flask_integration import validated_request
 from py_libs.pydantic.models.identity import (
     CreateIdentityRequest,
     UpdateIdentityRequest,
-    IdentityType,
-    AuthProvider,
-    PortalRole,
     CreateIdentityGroupRequest,
     UpdateIdentityGroupRequest,
     IdentityGroupDTO,
@@ -157,6 +153,7 @@ async def create_identity(body: CreateIdentityRequest):
 
     # Get organization to derive tenant_id
     org_id = body.organization_id
+
     def get_org():
         return db.organizations[org_id] if org_id else None
 

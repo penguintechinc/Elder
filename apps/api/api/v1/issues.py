@@ -18,7 +18,7 @@ from apps.api.models.dataclasses import (
     from_pydal_rows,
 )
 from py_libs.pydantic import RequestModel
-from py_libs.pydantic.flask_integration import validated_request, model_response
+from py_libs.pydantic.flask_integration import validated_request
 from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
 from shared.webhooks import send_issue_created_webhooks

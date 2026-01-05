@@ -6,12 +6,10 @@ from pydantic import ValidationError
 
 from flask import Blueprint, current_app, jsonify, request
 
+from dataclasses import asdict
+
 from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.dataclasses import (
-    PaginatedResponse,
-    from_pydal_row,
-    from_pydal_rows,
-)
+from apps.api.models.dataclasses import PaginatedResponse
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.pydal_helpers import PaginationParams
 from apps.api.utils.validation_helpers import (
@@ -489,7 +487,7 @@ async def check_components():
 
     def check():
         # Get active policies
-        query = db.license_policies.is_active == True
+        query = db.license_policies.is_active is True
 
         if organization_id:
             query &= db.license_policies.organization_id == organization_id

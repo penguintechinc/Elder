@@ -471,7 +471,7 @@ async def list_service_endpoints():
     # Build query
     def get_endpoints():
         # Query services with non-empty paths
-        query = (db.services.id > 0) & (db.services.paths != None) & (db.services.paths != "")
+        query = (db.services.id > 0) & (db.services.paths is not None) & (db.services.paths != "")
 
         # Get count and rows
         total_services = db(query).count()

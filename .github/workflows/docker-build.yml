@@ -544,36 +544,48 @@ jobs:
   deploy-k8s:
     needs: [build-and-push, integration-test]
     runs-on: ubuntu-latest
-    if: |
-      github.ref == 'refs/heads/main' &&
-      github.event_name != 'pull_request' &&
-      secrets.KUBE_CONFIG != ''
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
 
     environment:
       name: kubernetes
       url: https://elder.local
 
     steps:
+    - name: Check if Kubernetes deployment is configured
+      id: check-config
+      run: |
+        if [ -z "${{ secrets.KUBE_CONFIG }}" ]; then
+          echo "KUBE_CONFIG secret not configured, skipping deployment"
+          echo "skip=true" >> $GITHUB_OUTPUT
+        else
+          echo "skip=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Checkout code
+      if: steps.check-config.outputs.skip != 'true'
       uses: actions/checkout@v4
 
     - name: Wait for GHCR propagation
+      if: steps.check-config.outputs.skip != 'true'
       run: |
         echo "Waiting ${{ env.GHCR_PROPAGATION_DELAY }}s for GHCR to propagate multi-arch manifests..."
         echo "This delay ensures images are available across all registries before deployment."
         sleep ${{ env.GHCR_PROPAGATION_DELAY }}
 
     - name: Setup kubectl
+      if: steps.check-config.outputs.skip != 'true'
       uses: azure/setup-kubectl@v3
       with:
         version: 'v1.28.0'
 
     - name: Setup Helm
+      if: steps.check-config.outputs.skip != 'true'
       uses: azure/setup-helm@v3
       with:
         version: 'v3.13.0'
 
     - name: Configure kubeconfig
+      if: steps.check-config.outputs.skip != 'true'
       run: |
         mkdir -p $HOME/.kube
         echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
@@ -590,6 +602,7 @@ jobs:
         kubectl get namespace ${{ env.K8S_NAMESPACE }} || echo "Namespace will be created by Helm"
 
     - name: Add Helm dependencies
+      if: steps.check-config.outputs.skip != 'true'
       run: |
         cd infrastructure/helm/elder
         helm dependency update
@@ -597,6 +610,7 @@ jobs:
         helm dependency list
 
     - name: Deploy to Kubernetes with Helm
+      if: steps.check-config.outputs.skip != 'true'
       run: |
         echo "=== Deploying Elder to Kubernetes ==="
         echo "Namespace: ${{ env.K8S_NAMESPACE }}"
@@ -625,6 +639,7 @@ jobs:
         echo "=== Deployment completed ==="
 
     - name: Verify deployment
+      if: steps.check-config.outputs.skip != 'true'
       run: |
         echo "=== Checking deployment status ==="
         kubectl get deployments -n ${{ env.K8S_NAMESPACE }}
@@ -645,6 +660,7 @@ jobs:
           --timeout=300s || echo "Warning: Not all pods became ready in time"
 
     - name: Health check
+      if: steps.check-config.outputs.skip != 'true'
       run: |
         echo "=== Running health check ==="
 
@@ -684,7 +700,7 @@ jobs:
       timeout-minutes: 5
 
     - name: Show pod logs on failure
-      if: failure()
+      if: failure() && steps.check-config.outputs.skip != 'true'
       run: |
         echo "=== API Pod Logs ==="
         kubectl logs -n ${{ env.K8S_NAMESPACE }} \
@@ -705,7 +721,7 @@ jobs:
           --sort-by='.lastTimestamp' || true
 
     - name: Deployment summary
-      if: always()
+      if: always() && steps.check-config.outputs.skip != 'true'
       run: |
         echo "=== Deployment Summary ==="
         echo "Namespace: ${{ env.K8S_NAMESPACE }}"
