@@ -8,6 +8,7 @@
 [![Node.js](https://img.shields.io/badge/node.js-18+-green.svg)](https://nodejs.org/)
 [![License: Limited AGPL v3](https://img.shields.io/badge/License-Limited_AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)*
 [![Docker](https://img.shields.io/badge/docker-latest-blue.svg)](https://hub.docker.com/r/penguintechinc/elder)
+[![MariaDB Galera](https://img.shields.io/badge/MariaDB_Galera-supported-green.svg)](https://mariadb.com/kb/en/galera-cluster/)
 
 _*Limited AGPL v3 with preamble for fair use - Personal and Internal Use Only_
 
@@ -19,7 +20,7 @@ _*Limited AGPL v3 with preamble for fair use - Personal and Internal Use Only_
 ███████╗███████╗██████╔╝███████╗██║  ██║
 ╚══════╝╚══════╝╚═════╝ ╚══════╝╚═╝  ╚═╝
 
-Entity, Element, and Relationship Tracking System
+Resource, Entity, Element & Relationship Tracking System
 ```
 
 <p align="center">
@@ -28,7 +29,9 @@ Entity, Element, and Relationship Tracking System
 
 > **Enterprise-grade infrastructure dependency tracking and visualization**
 
-**Elder** is a comprehensive entity, element, and relationship tracking system designed for modern infrastructure management. Track dependencies, visualize relationships, and maintain control across complex organizational structures.
+**Elder** is a comprehensive resource, entity, element, and relationship tracking system designed for modern infrastructure management. Track dependencies, visualize relationships, and maintain control across complex organizational structures.
+
+> ✅ **MariaDB Galera Cluster Compatible** - Full support for multi-master replication and high-availability deployments
 
 🌐 **[Website](https://elder.penguintech.io)** | 📚 **[Documentation](https://elder-docs.penguintech.io)** | 💬 **[Discussions](https://github.com/penguintechinc/elder/discussions)**
 
@@ -36,8 +39,35 @@ Entity, Element, and Relationship Tracking System
 
 Elder provides visibility into your infrastructure and organizational relationships through:
 
-- **Entity Tracking**: Datacenters, VPCs, Compute, Network, Storage, Security, and Applications
-- **Data Store Tracking**: S3, GCS, Azure Blob, NAS, SAN, databases with compliance metadata
+### Resource Types (Dedicated Models)
+Resources have dedicated database models with specialized schemas for better data modeling:
+
+- **Identity**: Users, service accounts, API keys with multi-provider sync (Okta, LDAP, AWS, GCP)
+- **Software**: Track applications, libraries, and tools with SBOM integration
+- **Services**: Microservices with endpoints, health checks, and on-call rotations
+- **Network**: VPCs, subnets, firewalls, load balancers with topology mapping
+- **IPAM**: IP address management with prefixes, addresses, and VLANs
+- **Data Stores**: S3, GCS, Azure Blob, NAS, SAN, databases with compliance metadata (PII, PHI, PCI)
+
+### Entity Types (Generic Tracking)
+Entities use a flexible schema for infrastructure components:
+
+| Category | Sub-types |
+|----------|-----------|
+| **Network** | Subnet, Firewall, Proxy, Router, Switch, Hub, Tunnel, Route Table, VRRF, VXLAN, VLAN, Namespace |
+| **Compute** | Server, Serverless, Laptop, Mobile, Desktop, Kubernetes Node, VM, K8s Cluster, Function Run |
+| **Storage** | Hard Disk, NVMe, SSD, Virtual Disk, External Drive, Database, Caching, Queue System |
+| **Datacenter** | Public VPC, Private VPC, Physical, Closet |
+| **Security** | Vulnerability, Architectural, Config, Compliance, Code, Regulatory |
+
+### Elements (Supporting Items)
+- **Issues**: Problem/task tracking attached to any resource or entity
+- **Labels**: Categorization and tagging system
+- **Metadata Fields**: Custom properties for extensibility
+- **Dependencies**: Relationship mapping between items
+- **Comments**: Collaboration and audit trail
+
+### Core Capabilities
 - **Dependency Mapping**: Visualize relationships between entities
 - **Organizational Hierarchy**: Manage Company → Department → Team structures
 - **Unified IAM**: Manage identities across AWS, Azure, GCP, Okta, LDAP with group management
@@ -189,13 +219,15 @@ Elder provides visibility into your infrastructure and organizational relationsh
 ## Key Features
 
 ### Core Capabilities
-- ✅ **Multi-Entity Support**: 8 entity categories with 30+ sub-types
+- ✅ **Dual Data Model**: 6 Resource types (dedicated schemas) + 5 Entity categories (flexible schema)
+- ✅ **Multi-Entity Support**: 5 entity categories with 40+ sub-types
 - ✅ **Hierarchical Organizations**: Unlimited depth organizational structures
 - ✅ **Dependency Graphs**: Visualize complex entity relationships
 - ✅ **Full RBAC**: Role-based permissions with org-scoped access
 - ✅ **Multi-Auth**: Local, SAML, OAuth2, OIDC, and LDAP authentication
 - ✅ **RESTful & gRPC APIs**: Complete API coverage
 - ✅ **Audit Logging**: Comprehensive audit trail for compliance
+- ✅ **MariaDB Galera**: Full support for multi-master MySQL clustering
 
 ### v3.0.0 Highlights (Latest)
 - **OpenID Connect (OIDC)**: Full OIDC support alongside SAML for SSO integration
@@ -318,8 +350,12 @@ Elder includes automated Kubernetes deployment via GitHub Actions. To set up:
 Key environment variables:
 
 ```bash
-# Database (PyDAL supports PostgreSQL, MySQL, SQLite, Oracle, MSSQL)
+# Database (PyDAL supports PostgreSQL, MySQL/MariaDB, SQLite, Oracle, MSSQL)
+# PostgreSQL (recommended)
 DATABASE_URL=postgresql://elder:password@localhost:5432/elder
+
+# MariaDB Galera Cluster (high availability)
+# DATABASE_URL=mysql://elder:password@galera-node1:3306/elder?wsrep_sync_wait=1
 
 # Redis
 REDIS_URL=redis://:password@localhost:6379/0
@@ -355,8 +391,8 @@ ADMIN_EMAIL=admin@example.com
                             │
 ┌─────────────────────────────────────────────────────────┐
 │                   Data Layer                            │
-│  PyDAL (PostgreSQL, MySQL, SQLite, etc.)               │
-│  Redis (Cache, Sessions)                                │
+│  PyDAL (PostgreSQL, MySQL/MariaDB Galera, SQLite, etc.)│
+│  Redis/Valkey (Cache, Sessions)                         │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -364,12 +400,62 @@ ADMIN_EMAIL=admin@example.com
 
 - **Backend**: Flask (Python 3.13), PyDAL
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS, ReactFlow
-- **Database**: PostgreSQL (recommended), MySQL, SQLite, Oracle, MSSQL
+- **Database**: PostgreSQL (recommended), MySQL/MariaDB Galera, SQLite, Oracle, MSSQL
 - **Cache**: Redis / Valkey
 - **APIs**: REST (OpenAPI 3.0), gRPC
 - **Auth**: JWT, SAML, OIDC, OAuth2, LDAP, SCIM 2.0
 - **Connectors**: AWS, GCP, Kubernetes, Okta, LDAP, vCenter, FleetDM, iBoss
 - **Monitoring**: Prometheus, Grafana
+
+## Scanners & Integrations
+
+### Scanners
+Elder includes built-in scanners for automated discovery and security analysis:
+
+| Scanner | Description |
+|---------|-------------|
+| **Network Scanner** | Discover hosts, open ports, and network topology |
+| **Banner Scanner** | Grab service banners for version identification |
+| **HTTP Screenshot** | Capture screenshots of web services for visual inventory |
+| **SBOM Scanner** | Software Bill of Materials generation and vulnerability detection |
+
+### Connectors (Integrators)
+Bi-directional sync with identity providers and infrastructure platforms:
+
+| Connector | Capabilities |
+|-----------|-------------|
+| **AWS** | EC2, VPC, IAM, S3, RDS discovery and sync |
+| **GCP** | Compute Engine, VPC, IAM, Cloud Storage sync |
+| **Kubernetes** | Clusters, namespaces, deployments, services |
+| **Okta** | Users, groups, applications with write-back |
+| **LDAP/AD** | Directory users and groups with bidirectional sync |
+| **Google Workspace** | Users, groups, organizational units |
+| **vCenter** | VMware VMs, hosts, clusters, datastores |
+| **FleetDM** | Endpoint management and osquery integration |
+| **iBoss** | Cloud security gateway policy sync |
+| **Authentik** | Open-source identity provider integration |
+
+### SBOM Parsers
+Parse dependency files from multiple ecosystems for vulnerability tracking:
+
+| Parser | File Types |
+|--------|------------|
+| **Python** | requirements.txt, setup.py, pyproject.toml, Pipfile |
+| **Node.js** | package.json, package-lock.json, yarn.lock, pnpm-lock.yaml |
+| **Go** | go.mod, go.sum |
+| **Rust** | Cargo.toml, Cargo.lock |
+| **Java/Maven** | pom.xml |
+| **Gradle** | build.gradle, build.gradle.kts |
+| **.NET** | csproj, fsproj, packages.config |
+
+### Endpoint Parsers
+Discover API endpoints from source code for service mapping:
+
+- **Flask** (Python)
+- **FastAPI** (Python)
+- **Django** (Python)
+- **Express** (Node.js)
+- **Go** (net/http, Gin, Echo)
 
 ## Documentation
 
