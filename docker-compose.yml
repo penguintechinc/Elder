@@ -354,7 +354,7 @@ services:
       - SYNC_MAX_RETRIES=${SYNC_MAX_RETRIES:-3}
 
       # Health & Monitoring
-      - HEALTH_CHECK_PORT=8000
+      - HEALTH_CHECK_PORT=28000
       - METRICS_ENABLED=true
 
       # Logging
@@ -362,7 +362,7 @@ services:
       - LOG_FORMAT=${LOG_FORMAT:-json}
 
     ports:
-      - "${CONNECTOR_HEALTH_PORT:-8000}:8000"
+      - "${CONNECTOR_HEALTH_PORT:-28000}:8000"
     depends_on:
       api:
         condition: service_healthy
@@ -371,7 +371,7 @@ services:
       - ./shared:/app/shared
       - connector_credentials:/app/credentials
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      test: ["CMD", "curl", "-f", "http://localhost:28000/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
