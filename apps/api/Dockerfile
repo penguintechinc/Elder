@@ -28,6 +28,10 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --user --no-cache-dir -r requirements.txt
 
+# Copy and install py_libs package
+COPY shared/py_libs /build/py_libs
+RUN pip install --user --no-cache-dir /build/py_libs
+
 # Runtime stage
 FROM python:3.12-slim
 

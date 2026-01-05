@@ -192,6 +192,7 @@ def _register_blueprints(app: Flask) -> None:
     from apps.api.api.v1 import license_policies  # v3.0.0: License Compliance
     from apps.api.api.v1 import logs  # Admin Log Viewer
     from apps.api.api.v1 import networking  # v2.0.0: Networking Resources & Topology
+    from apps.api.api.v1 import on_call_rotations  # v3.x: On-Call Rotation Management
     from apps.api.api.v1 import portal_auth  # v2.2.0: Portal User Authentication
     from apps.api.api.v1 import sbom  # v3.0.0: SBOM Component Tracking
     from apps.api.api.v1 import sbom_scans  # v3.0.0: SBOM Scan Management
@@ -328,6 +329,11 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(
         certificates.bp, url_prefix=f"{api_prefix}/certificates"
     )  # Certificate management
+
+    # v3.x Feature blueprints
+    app.register_blueprint(
+        on_call_rotations.bp, url_prefix=f"{api_prefix}/on-call"
+    )  # On-Call Rotation Management
 
     # Public lookup endpoint (no /api/v1 prefix for cleaner URLs)
     app.register_blueprint(lookup.bp, url_prefix="/lookup")

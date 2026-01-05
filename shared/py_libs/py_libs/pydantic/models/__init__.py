@@ -84,6 +84,11 @@ from .group import (
     ListMembersResponse,
     BulkApproveResult,
 )
+from .service import (
+    ServiceDTO,
+    CreateServiceRequest,
+    UpdateServiceRequest,
+)
 
 __all__ = [
     "EntityDTO",
@@ -149,4 +154,7 @@ __all__ = [
     "CreateResourceRoleRequest",
     "ResourceType",
     "RoleType",
+    "ServiceDTO",
+    "CreateServiceRequest",
+    "UpdateServiceRequest",
 ]
