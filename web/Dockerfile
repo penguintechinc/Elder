@@ -7,14 +7,15 @@ ENV VITE_API_URL=$VITE_API_URL
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package.json only (not lock file) for multi-arch compatibility
+COPY package.json ./
 
-# Install dependencies
-# Use npm install instead of npm ci to allow platform-specific optional dependencies
-# to be resolved at build time (required for multi-arch builds with native packages
-# like @rollup/rollup-linux-arm64-gnu, esbuild, and lightningcss)
-RUN npm install --include=optional
+# Install dependencies fresh for current architecture
+# This works around npm bug https://github.com/npm/cli/issues/4828 where
+# optional platform-specific packages (rollup, esbuild, lightningcss) fail
+# when package-lock.json was generated on a different architecture
+RUN npm install --ignore-scripts && \
+    npm rebuild esbuild
 
 # Copy source code
 COPY . .
