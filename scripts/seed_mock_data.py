@@ -9,7 +9,7 @@ Usage:
 
 Options:
     --base-url URL      API base URL (default: http://localhost:4000)
-    --username USER     Admin username (default: admin)
+    --email EMAIL       Admin email (default: admin@localhost)
     --password PASS     Admin password (default: admin123)
     --count N           Number of items per type (default: 10)
     --verbose, -v       Show detailed progress
@@ -64,14 +64,14 @@ class MockDataSeeder:
     def __init__(
         self,
         base_url: str,
-        username: str,
+        email: str,
         password: str,
         count: int = 10,
         verbose: bool = False,
         dry_run: bool = False,
     ):
         self.base_url = base_url.rstrip("/")
-        self.username = username
+        self.email = email
         self.password = password
         self.count = count
         self.verbose = verbose
@@ -109,14 +109,14 @@ class MockDataSeeder:
         self.log("Authenticating...")
 
         if self.dry_run:
-            self.log("  [DRY RUN] Would authenticate as: " + self.username)
+            self.log("  [DRY RUN] Would authenticate as: " + self.email)
             self.token = "dry-run-token"
             return True
 
         try:
             response = self.session.post(
-                f"{self.base_url}/api/v1/auth/login",
-                json={"username": self.username, "password": self.password},
+                f"{self.base_url}/api/v1/portal-auth/login",
+                json={"email": self.email, "password": self.password},
             )
 
             if response.status_code == 200:
@@ -885,9 +885,9 @@ Examples:
         help="API base URL (default: http://localhost:4000)",
     )
     parser.add_argument(
-        "--username",
-        default="admin",
-        help="Admin username (default: admin)",
+        "--email",
+        default="admin@localhost",
+        help="Admin email (default: admin@localhost)",
     )
     parser.add_argument(
         "--password",
@@ -916,7 +916,7 @@ Examples:
 
     seeder = MockDataSeeder(
         base_url=args.base_url,
-        username=args.username,
+        email=args.email,
         password=args.password,
         count=args.count,
         verbose=args.verbose,
