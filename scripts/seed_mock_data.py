@@ -1,0 +1,897 @@
+#!/usr/bin/env python3
+"""Mock data seeding script for Elder local development.
+
+This script populates the Elder application with realistic mock data
+for local development and testing purposes.
+
+Usage:
+    ./scripts/seed_mock_data.py [OPTIONS]
+
+Options:
+    --base-url URL      API base URL (default: http://localhost:4000)
+    --username USER     Admin username (default: admin)
+    --password PASS     Admin password (default: admin123)
+    --count N           Number of items per type (default: 10)
+    --verbose, -v       Show detailed progress
+    --dry-run           Show what would be created without making requests
+
+Example:
+    ./scripts/seed_mock_data.py --base-url http://localhost:4000 --count 5 -v
+"""
+
+import argparse
+import random
+import sys
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+import requests
+from faker import Faker
+
+# Entity type constants (matching apps/api/models/entity_types.py)
+ENTITY_TYPES = {
+    "network": ["router", "firewall", "switch", "subnet", "proxy", "vlan"],
+    "compute": ["server", "virtual_machine", "kubernetes_cluster", "serverless"],
+    "storage": ["database", "caching", "queue_system", "solid_state_disk"],
+    "datacenter": ["public_vpc", "private_vpc", "physical"],
+    "security": ["vulnerability", "compliance", "config"],
+}
+
+# Service deployment methods
+DEPLOYMENT_METHODS = ["kubernetes", "docker", "vm", "serverless", "bare_metal"]
+
+# Programming languages
+LANGUAGES = ["python", "go", "javascript", "typescript", "java", "rust", "ruby"]
+
+# Software vendors
+SOFTWARE_VENDORS = [
+    ("Datadog", "Monitoring"),
+    ("PagerDuty", "Incident Management"),
+    ("Atlassian", "Project Management"),
+    ("Slack", "Communication"),
+    ("GitHub", "Version Control"),
+    ("AWS", "Cloud Infrastructure"),
+    ("Cloudflare", "CDN/Security"),
+    ("Okta", "Identity Management"),
+    ("Snyk", "Security Scanning"),
+    ("HashiCorp", "Infrastructure"),
+]
+
+
+class MockDataSeeder:
+    """Generates and seeds mock data into Elder via REST API."""
+
+    def __init__(
+        self,
+        base_url: str,
+        username: str,
+        password: str,
+        count: int = 10,
+        verbose: bool = False,
+        dry_run: bool = False,
+    ):
+        self.base_url = base_url.rstrip("/")
+        self.username = username
+        self.password = password
+        self.count = count
+        self.verbose = verbose
+        self.dry_run = dry_run
+
+        self.session = requests.Session()
+        self.token: str | None = None
+        self.faker = Faker()
+
+        # Track created resource IDs for cross-references
+        self.created: dict[str, list[dict[str, Any]]] = {
+            "organizations": [],
+            "identities": [],
+            "identity_groups": [],
+            "entities": [],
+            "projects": [],
+            "milestones": [],
+            "issues": [],
+            "labels": [],
+            "services": [],
+            "software": [],
+            "ipam_prefixes": [],
+            "ipam_vlans": [],
+            "ipam_addresses": [],
+            "dependencies": [],
+        }
+
+    def log(self, message: str, force: bool = False) -> None:
+        """Print message if verbose mode or forced."""
+        if self.verbose or force:
+            print(message)
+
+    def authenticate(self) -> bool:
+        """Authenticate and get JWT token."""
+        self.log("Authenticating...")
+
+        if self.dry_run:
+            self.log("  [DRY RUN] Would authenticate as: " + self.username)
+            self.token = "dry-run-token"
+            return True
+
+        try:
+            response = self.session.post(
+                f"{self.base_url}/api/v1/auth/login",
+                json={"username": self.username, "password": self.password},
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                self.token = data.get("access_token") or data.get("token")
+                self.session.headers["Authorization"] = f"Bearer {self.token}"
+                self.log("  Authenticated successfully")
+                return True
+            else:
+                print(
+                    f"  Authentication failed: {response.status_code} - "
+                    f"{response.text}",
+                    file=sys.stderr,
+                )
+                return False
+        except requests.RequestException as e:
+            print(f"  Connection error: {e}", file=sys.stderr)
+            return False
+
+    def _api_post(
+        self, endpoint: str, data: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Make authenticated POST request to API."""
+        if self.dry_run:
+            self.log(f"  [DRY RUN] POST {endpoint}: {data.get('name', data)}")
+            # Return mock response with fake ID
+            return {"id": random.randint(1000, 9999), **data}
+
+        try:
+            response = self.session.post(
+                f"{self.base_url}{endpoint}",
+                json=data,
+            )
+
+            if response.status_code in (200, 201):
+                return response.json()
+            else:
+                self.log(
+                    f"  Failed POST {endpoint}: {response.status_code} - "
+                    f"{response.text[:200]}"
+                )
+                return None
+        except requests.RequestException as e:
+            self.log(f"  Request error for {endpoint}: {e}")
+            return None
+
+    def _api_get(self, endpoint: str) -> dict[str, Any] | None:
+        """Make authenticated GET request to API."""
+        if self.dry_run:
+            return {"items": [], "total": 0}
+
+        try:
+            response = self.session.get(f"{self.base_url}{endpoint}")
+            if response.status_code == 200:
+                return response.json()
+            return None
+        except requests.RequestException:
+            return None
+
+    def seed_organizations(self) -> None:
+        """Create organization hierarchy."""
+        self.log("\nSeeding Organizations...")
+
+        # Create top-level orgs
+        top_level_orgs = [
+            ("Engineering", "Engineering department"),
+            ("Operations", "IT Operations and Infrastructure"),
+            ("Security", "Information Security team"),
+            ("Product", "Product Management"),
+            ("Finance", "Finance and Accounting"),
+        ]
+
+        for name, description in top_level_orgs[: self.count]:
+            result = self._api_post(
+                "/api/v1/organizations",
+                {
+                    "name": name,
+                    "description": description,
+                    "org_type": "department",
+                },
+            )
+            if result:
+                self.created["organizations"].append(result)
+                self.log(f"  Created org: {name}")
+
+        # Create sub-orgs under Engineering
+        if self.created["organizations"]:
+            eng_org = self.created["organizations"][0]
+            sub_orgs = ["Backend", "Frontend", "Platform", "QA", "DevOps"]
+
+            for name in sub_orgs[: max(3, self.count // 2)]:
+                result = self._api_post(
+                    "/api/v1/organizations",
+                    {
+                        "name": name,
+                        "description": f"{name} team under Engineering",
+                        "org_type": "team",
+                        "parent_id": eng_org.get("id"),
+                    },
+                )
+                if result:
+                    self.created["organizations"].append(result)
+                    self.log(f"  Created sub-org: {name}")
+
+    def seed_identities(self) -> None:
+        """Create user identities."""
+        self.log("\nSeeding Identities...")
+
+        for i in range(self.count):
+            first_name = self.faker.first_name()
+            last_name = self.faker.last_name()
+            username = f"{first_name.lower()}.{last_name.lower()}"
+
+            result = self._api_post(
+                "/api/v1/identities",
+                {
+                    "username": username,
+                    "email": f"{username}@example.com",
+                    "display_name": f"{first_name} {last_name}",
+                    "identity_type": random.choice(["user", "user", "service"]),
+                    "auth_provider": "local",
+                    "organization_id": self._random_org_id(),
+                    "is_active": random.random() > 0.1,  # 90% active
+                },
+            )
+            if result:
+                self.created["identities"].append(result)
+                self.log(f"  Created identity: {username}")
+
+    def seed_identity_groups(self) -> None:
+        """Create identity groups."""
+        self.log("\nSeeding Identity Groups...")
+
+        groups = [
+            ("developers", "Software Developers"),
+            ("sre-team", "Site Reliability Engineers"),
+            ("security-team", "Security Team"),
+            ("platform-team", "Platform Engineering"),
+            ("oncall-primary", "Primary On-Call Rotation"),
+            ("oncall-secondary", "Secondary On-Call Rotation"),
+            ("admins", "System Administrators"),
+        ]
+
+        for name, description in groups[: self.count]:
+            result = self._api_post(
+                "/api/v1/identity-groups",
+                {
+                    "name": name,
+                    "description": description,
+                    "organization_id": self._random_org_id(),
+                },
+            )
+            if result:
+                self.created["identity_groups"].append(result)
+                self.log(f"  Created group: {name}")
+
+    def seed_entities(self) -> None:
+        """Create entities of all types with sub-types."""
+        self.log("\nSeeding Entities...")
+
+        for entity_type, sub_types in ENTITY_TYPES.items():
+            self.log(f"  Creating {entity_type} entities...")
+
+            for i in range(min(self.count, len(sub_types) * 2)):
+                sub_type = random.choice(sub_types)
+                name, attributes = self._generate_entity_data(
+                    entity_type, sub_type, i
+                )
+
+                result = self._api_post(
+                    "/api/v1/entities",
+                    {
+                        "name": name,
+                        "description": f"{entity_type.title()} - {sub_type}",
+                        "entity_type": entity_type,
+                        "sub_type": sub_type,
+                        "organization_id": self._random_org_id(),
+                        "attributes": attributes,
+                        "tags": self._random_tags(),
+                        "is_active": random.random() > 0.05,
+                    },
+                )
+                if result:
+                    self.created["entities"].append(result)
+                    self.log(f"    Created: {name} ({sub_type})")
+
+    def _generate_entity_data(
+        self, entity_type: str, sub_type: str, index: int
+    ) -> tuple[str, dict[str, Any]]:
+        """Generate realistic entity name and attributes based on type."""
+        attributes: dict[str, Any] = {}
+
+        if entity_type == "network":
+            if sub_type == "router":
+                name = f"router-{random.choice(['core', 'edge', 'dist'])}-{index:02d}"
+                attributes = {
+                    "routing_protocols": random.sample(
+                        ["BGP", "OSPF", "EIGRP", "RIP"], k=random.randint(1, 2)
+                    ),
+                    "interfaces": random.randint(4, 48),
+                }
+            elif sub_type == "firewall":
+                name = f"fw-{random.choice(['perimeter', 'internal', 'dmz'])}-{index:02d}"
+                attributes = {
+                    "default_policy": random.choice(["deny", "allow"]),
+                    "rule_count": random.randint(50, 500),
+                }
+            elif sub_type == "switch":
+                name = f"sw-{random.choice(['tor', 'leaf', 'spine'])}-{index:02d}"
+                attributes = {
+                    "port_count": random.choice([24, 48, 96]),
+                    "speed": random.choice(["1G", "10G", "25G", "100G"]),
+                }
+            elif sub_type == "subnet":
+                octet = random.randint(0, 255)
+                name = f"subnet-10.{octet}.0.0-24"
+                attributes = {
+                    "cidr_block": f"10.{octet}.0.0/24",
+                    "gateway": f"10.{octet}.0.1",
+                    "available_ips": random.randint(100, 250),
+                }
+            else:
+                name = f"{sub_type}-{index:02d}"
+
+        elif entity_type == "compute":
+            if sub_type == "server":
+                name = f"srv-{random.choice(['web', 'api', 'db', 'app'])}-{index:02d}"
+                attributes = {
+                    "os": random.choice(
+                        ["Ubuntu 22.04", "RHEL 9", "Debian 12", "Rocky Linux 9"]
+                    ),
+                    "cpu_count": random.choice([4, 8, 16, 32, 64]),
+                    "memory_gb": random.choice([8, 16, 32, 64, 128]),
+                    "hostname": f"{name}.internal.example.com",
+                }
+            elif sub_type == "virtual_machine":
+                name = f"vm-{self.faker.word()}-{index:02d}"
+                attributes = {
+                    "os": random.choice(
+                        ["Ubuntu 22.04", "Windows Server 2022", "CentOS Stream 9"]
+                    ),
+                    "vcpu_count": random.choice([2, 4, 8, 16]),
+                    "memory_gb": random.choice([4, 8, 16, 32]),
+                    "disk_gb": random.choice([50, 100, 200, 500]),
+                    "hypervisor": random.choice(["VMware", "KVM", "Hyper-V"]),
+                }
+            elif sub_type == "kubernetes_cluster":
+                name = f"k8s-{random.choice(['prod', 'staging', 'dev'])}-{index:02d}"
+                attributes = {
+                    "version": f"1.{random.randint(27, 31)}.{random.randint(0, 5)}",
+                    "node_count": random.randint(3, 50),
+                    "control_plane_endpoint": f"https://{name}.k8s.example.com:6443",
+                }
+            else:
+                name = f"{sub_type}-{index:02d}"
+
+        elif entity_type == "storage":
+            if sub_type == "database":
+                engine = random.choice(["PostgreSQL", "MySQL", "MongoDB", "Redis"])
+                name = f"db-{engine.lower()}-{index:02d}"
+                attributes = {
+                    "engine": engine,
+                    "version": self._random_version(),
+                    "port": {"PostgreSQL": 5432, "MySQL": 3306, "MongoDB": 27017}.get(
+                        engine, 6379
+                    ),
+                    "replica_count": random.randint(0, 3),
+                }
+            elif sub_type == "caching":
+                name = f"cache-{random.choice(['redis', 'memcached'])}-{index:02d}"
+                attributes = {
+                    "engine": random.choice(["Redis", "Valkey", "Memcached"]),
+                    "memory_mb": random.choice([512, 1024, 2048, 4096]),
+                    "eviction_policy": random.choice(
+                        ["allkeys-lru", "volatile-lru", "noeviction"]
+                    ),
+                }
+            elif sub_type == "queue_system":
+                name = f"queue-{random.choice(['kafka', 'rabbitmq', 'sqs'])}-{index:02d}"
+                attributes = {
+                    "engine": random.choice(["Kafka", "RabbitMQ", "SQS"]),
+                    "message_retention_hours": random.choice([24, 72, 168, 336]),
+                }
+            else:
+                name = f"{sub_type}-{index:02d}"
+
+        elif entity_type == "datacenter":
+            if sub_type == "public_vpc":
+                name = f"vpc-public-{random.choice(['us-east', 'us-west', 'eu-west'])}"
+                attributes = {
+                    "cidr_block": f"10.{random.randint(0, 255)}.0.0/16",
+                    "region": random.choice(
+                        ["us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1"]
+                    ),
+                }
+            elif sub_type == "private_vpc":
+                name = f"vpc-private-{random.choice(['prod', 'staging', 'dev'])}"
+                attributes = {
+                    "cidr_block": f"172.{random.randint(16, 31)}.0.0/16",
+                    "region": random.choice(["us-east-1", "us-west-2", "eu-west-1"]),
+                }
+            elif sub_type == "physical":
+                name = f"dc-{self.faker.city().lower().replace(' ', '-')}"
+                attributes = {
+                    "location": self.faker.address(),
+                    "provider": random.choice(
+                        ["Equinix", "Digital Realty", "CoreSite", "On-Premise"]
+                    ),
+                    "power_capacity_kw": random.randint(100, 1000),
+                }
+            else:
+                name = f"{sub_type}-{index:02d}"
+
+        elif entity_type == "security":
+            if sub_type == "vulnerability":
+                name = f"CVE-{random.randint(2020, 2024)}-{random.randint(1000, 99999)}"
+                attributes = {
+                    "cve": name,
+                    "cvss_score": round(random.uniform(1.0, 10.0), 1),
+                    "severity": random.choice(["low", "medium", "high", "critical"]),
+                }
+            elif sub_type == "compliance":
+                framework = random.choice(["SOC2", "ISO27001", "PCI-DSS", "HIPAA"])
+                name = f"{framework}-{random.randint(1, 20)}"
+                attributes = {
+                    "framework": framework,
+                    "control_id": f"{framework[:3]}-{random.randint(1, 100)}",
+                    "status": random.choice(["compliant", "non-compliant", "in-progress"]),
+                }
+            else:
+                name = f"{sub_type}-finding-{index:02d}"
+
+        else:
+            name = f"{entity_type}-{sub_type}-{index:02d}"
+
+        return name, attributes
+
+    def seed_projects(self) -> None:
+        """Create projects."""
+        self.log("\nSeeding Projects...")
+
+        projects = [
+            ("Platform Modernization", "Migrate legacy systems to cloud-native"),
+            ("Security Hardening Q1", "Quarterly security improvements"),
+            ("API Gateway v2", "New API gateway implementation"),
+            ("Observability Stack", "Implement comprehensive monitoring"),
+            ("CI/CD Pipeline", "Modernize deployment pipelines"),
+            ("Database Migration", "Migrate from MySQL to PostgreSQL"),
+            ("Kubernetes Adoption", "Container orchestration rollout"),
+            ("Zero Trust Network", "Implement zero trust architecture"),
+        ]
+
+        for name, description in projects[: self.count]:
+            result = self._api_post(
+                "/api/v1/projects",
+                {
+                    "name": name,
+                    "description": description,
+                    "organization_id": self._random_org_id(),
+                    "status": random.choice(
+                        ["planning", "in_progress", "completed", "on_hold"]
+                    ),
+                },
+            )
+            if result:
+                self.created["projects"].append(result)
+                self.log(f"  Created project: {name}")
+
+    def seed_milestones(self) -> None:
+        """Create milestones for projects."""
+        self.log("\nSeeding Milestones...")
+
+        if not self.created["projects"]:
+            self.log("  No projects to add milestones to")
+            return
+
+        milestone_names = [
+            "Design Complete",
+            "MVP Release",
+            "Beta Launch",
+            "GA Release",
+            "Phase 1 Complete",
+            "Security Audit",
+        ]
+
+        for project in self.created["projects"][: self.count // 2]:
+            for i, name in enumerate(milestone_names[: random.randint(2, 4)]):
+                due_date = datetime.now(timezone.utc) + timedelta(
+                    days=30 * (i + 1)
+                )
+                result = self._api_post(
+                    "/api/v1/milestones",
+                    {
+                        "title": name,
+                        "description": f"{name} for {project.get('name', 'project')}",
+                        "project_id": project.get("id"),
+                        "due_date": due_date.isoformat(),
+                        "status": random.choice(["open", "closed"]),
+                    },
+                )
+                if result:
+                    self.created["milestones"].append(result)
+                    self.log(f"  Created milestone: {name}")
+
+    def seed_labels(self) -> None:
+        """Create labels for categorization."""
+        self.log("\nSeeding Labels...")
+
+        labels = [
+            ("bug", "#d73a4a", "Something isn't working"),
+            ("enhancement", "#a2eeef", "New feature or request"),
+            ("documentation", "#0075ca", "Documentation improvements"),
+            ("security", "#ee0701", "Security related"),
+            ("performance", "#fbca04", "Performance improvements"),
+            ("technical-debt", "#b60205", "Technical debt to address"),
+            ("blocked", "#e4e669", "Blocked by external dependency"),
+            ("p0-critical", "#d73a4a", "Critical priority"),
+            ("p1-high", "#ff7619", "High priority"),
+            ("p2-medium", "#fbca04", "Medium priority"),
+        ]
+
+        for name, color, description in labels[: self.count]:
+            result = self._api_post(
+                "/api/v1/labels",
+                {
+                    "name": name,
+                    "color": color,
+                    "description": description,
+                },
+            )
+            if result:
+                self.created["labels"].append(result)
+                self.log(f"  Created label: {name}")
+
+    def seed_issues(self) -> None:
+        """Create issues with various statuses."""
+        self.log("\nSeeding Issues...")
+
+        issue_templates = [
+            ("Investigate slow API response times", "performance"),
+            ("Update SSL certificates before expiry", "security"),
+            ("Database connection pool exhaustion", "bug"),
+            ("Add rate limiting to public endpoints", "enhancement"),
+            ("Document new authentication flow", "documentation"),
+            ("Memory leak in worker processes", "bug"),
+            ("Implement caching for dashboard queries", "performance"),
+            ("Upgrade deprecated dependencies", "technical-debt"),
+            ("Add health check endpoints", "enhancement"),
+            ("Review and rotate API keys", "security"),
+        ]
+
+        for i in range(self.count):
+            title, issue_type = random.choice(issue_templates)
+            title = f"{title} #{i + 1}"
+
+            payload: dict[str, Any] = {
+                "title": title,
+                "description": self.faker.paragraph(nb_sentences=3),
+                "status": random.choice(["open", "in_progress", "closed"]),
+                "priority": random.choice(["low", "medium", "high", "critical"]),
+            }
+
+            # Add organization_id if we have orgs
+            if self.created["organizations"]:
+                payload["organization_id"] = self._random_org_id()
+
+            result = self._api_post("/api/v1/issues", payload)
+            if result:
+                self.created["issues"].append(result)
+                self.log(f"  Created issue: {title[:50]}...")
+
+    def seed_services(self) -> None:
+        """Create microservices."""
+        self.log("\nSeeding Services...")
+
+        services = [
+            ("auth-service", "Authentication and authorization"),
+            ("api-gateway", "API Gateway and request routing"),
+            ("user-service", "User management"),
+            ("notification-service", "Email and push notifications"),
+            ("payment-service", "Payment processing"),
+            ("search-service", "Search and indexing"),
+            ("analytics-service", "Analytics and reporting"),
+            ("file-service", "File storage and CDN"),
+            ("audit-service", "Audit logging"),
+            ("scheduler-service", "Job scheduling"),
+        ]
+
+        for name, description in services[: self.count]:
+            result = self._api_post(
+                "/api/v1/services",
+                {
+                    "name": name,
+                    "description": description,
+                    "organization_id": self._random_org_id(),
+                    "deployment_method": random.choice(DEPLOYMENT_METHODS),
+                    "language": random.choice(LANGUAGES),
+                    "repository_url": f"https://github.com/example/{name}",
+                    "sla_target": random.choice([99.9, 99.95, 99.99]),
+                    "status": random.choice(["active", "active", "deprecated"]),
+                },
+            )
+            if result:
+                self.created["services"].append(result)
+                self.log(f"  Created service: {name}")
+
+    def seed_software(self) -> None:
+        """Create software licenses."""
+        self.log("\nSeeding Software...")
+
+        for vendor, category in SOFTWARE_VENDORS[: self.count]:
+            result = self._api_post(
+                "/api/v1/software",
+                {
+                    "name": f"{vendor} Enterprise",
+                    "description": f"{category} software from {vendor}",
+                    "organization_id": self._random_org_id(),
+                    "vendor": vendor,
+                    "version": self._random_version(),
+                    "license_type": random.choice(
+                        ["subscription", "perpetual", "open_source"]
+                    ),
+                    "license_count": random.randint(10, 500),
+                    "annual_cost": random.randint(1000, 50000),
+                    "renewal_date": (
+                        datetime.now(timezone.utc) + timedelta(days=random.randint(30, 365))
+                    ).date().isoformat(),
+                    "status": random.choice(["active", "active", "expiring_soon"]),
+                },
+            )
+            if result:
+                self.created["software"].append(result)
+                self.log(f"  Created software: {vendor}")
+
+    def seed_ipam(self) -> None:
+        """Create IPAM prefixes, VLANs, and addresses."""
+        self.log("\nSeeding IPAM...")
+
+        # Create prefixes
+        self.log("  Creating prefixes...")
+        prefixes = [
+            ("10.0.0.0/8", "Private - Class A"),
+            ("172.16.0.0/12", "Private - Class B"),
+            ("192.168.0.0/16", "Private - Class C"),
+        ]
+
+        for cidr, description in prefixes:
+            result = self._api_post(
+                "/api/v1/ipam/prefixes",
+                {
+                    "prefix": cidr,
+                    "description": description,
+                    "organization_id": self._random_org_id(),
+                    "status": "active",
+                    "is_pool": True,
+                },
+            )
+            if result:
+                self.created["ipam_prefixes"].append(result)
+                self.log(f"    Created prefix: {cidr}")
+
+        # Create VLANs
+        self.log("  Creating VLANs...")
+        vlans = [
+            (10, "Management"),
+            (20, "Servers"),
+            (30, "Workstations"),
+            (40, "Guest"),
+            (100, "DMZ"),
+        ]
+
+        for vid, name in vlans[: self.count // 2]:
+            result = self._api_post(
+                "/api/v1/ipam/vlans",
+                {
+                    "vid": vid,
+                    "name": name,
+                    "description": f"VLAN {vid} - {name}",
+                    "organization_id": self._random_org_id(),
+                    "status": "active",
+                },
+            )
+            if result:
+                self.created["ipam_vlans"].append(result)
+                self.log(f"    Created VLAN: {vid} ({name})")
+
+        # Create individual addresses
+        self.log("  Creating addresses...")
+        for i in range(min(self.count, 10)):
+            ip = f"10.0.{random.randint(1, 254)}.{random.randint(1, 254)}"
+            result = self._api_post(
+                "/api/v1/ipam/addresses",
+                {
+                    "address": ip,
+                    "description": f"Address {i + 1}",
+                    "organization_id": self._random_org_id(),
+                    "status": random.choice(["active", "reserved", "dhcp"]),
+                },
+            )
+            if result:
+                self.created["ipam_addresses"].append(result)
+                self.log(f"    Created address: {ip}")
+
+    def seed_dependencies(self) -> None:
+        """Create dependencies between entities."""
+        self.log("\nSeeding Dependencies...")
+
+        if len(self.created["entities"]) < 2:
+            self.log("  Not enough entities to create dependencies")
+            return
+
+        dependency_types = ["depends_on", "related_to", "part_of"]
+
+        for i in range(min(self.count, len(self.created["entities"]) - 1)):
+            source = random.choice(self.created["entities"])
+            target = random.choice(
+                [e for e in self.created["entities"] if e.get("id") != source.get("id")]
+            )
+
+            result = self._api_post(
+                "/api/v1/dependencies",
+                {
+                    "source_type": "entity",
+                    "source_id": source.get("id"),
+                    "target_type": "entity",
+                    "target_id": target.get("id"),
+                    "dependency_type": random.choice(dependency_types),
+                    "description": f"Dependency between {source.get('name')} and {target.get('name')}",
+                },
+            )
+            if result:
+                self.created["dependencies"].append(result)
+                self.log(
+                    f"  Created dependency: {source.get('name')} -> {target.get('name')}"
+                )
+
+    def _random_org_id(self) -> int | None:
+        """Get random organization ID from created orgs."""
+        if self.created["organizations"]:
+            return random.choice(self.created["organizations"]).get("id")
+        return None
+
+    def _random_tags(self) -> list[str]:
+        """Generate random tags."""
+        all_tags = [
+            "production",
+            "staging",
+            "development",
+            "critical",
+            "monitored",
+            "backup-enabled",
+            "auto-scaling",
+            "high-availability",
+            "deprecated",
+            "legacy",
+        ]
+        return random.sample(all_tags, k=random.randint(1, 4))
+
+    def _random_version(self) -> str:
+        """Generate random semantic version."""
+        return f"{random.randint(1, 5)}.{random.randint(0, 20)}.{random.randint(0, 10)}"
+
+    def seed_all(self) -> None:
+        """Run all seeders in dependency order."""
+        print(f"\n{'=' * 60}")
+        print("Elder Mock Data Seeder")
+        print(f"{'=' * 60}")
+        print(f"Target: {self.base_url}")
+        print(f"Count per type: {self.count}")
+        print(f"Dry run: {self.dry_run}")
+        print(f"{'=' * 60}")
+
+        if not self.authenticate():
+            print("\nFailed to authenticate. Aborting.", file=sys.stderr)
+            sys.exit(1)
+
+        # Run seeders in dependency order
+        self.seed_organizations()
+        self.seed_identities()
+        self.seed_identity_groups()
+        self.seed_entities()
+        self.seed_projects()
+        self.seed_milestones()
+        self.seed_labels()
+        self.seed_issues()
+        self.seed_services()
+        self.seed_software()
+        self.seed_ipam()
+        self.seed_dependencies()
+
+        # Print summary
+        self._print_summary()
+
+    def _print_summary(self) -> None:
+        """Print summary of created resources."""
+        print(f"\n{'=' * 60}")
+        print("Summary")
+        print(f"{'=' * 60}")
+
+        total = 0
+        for resource_type, items in self.created.items():
+            count = len(items)
+            total += count
+            if count > 0:
+                print(f"  {resource_type.replace('_', ' ').title()}: {count}")
+
+        print(f"{'=' * 60}")
+        print(f"  Total created: {total}")
+        print(f"{'=' * 60}\n")
+
+
+def main() -> None:
+    """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description="Seed Elder with mock data for local development",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s                              # Use defaults
+  %(prog)s --count 5 -v                 # Create 5 items per type, verbose
+  %(prog)s --base-url http://api:5000   # Different API URL
+  %(prog)s --dry-run                    # Preview without creating
+        """,
+    )
+
+    parser.add_argument(
+        "--base-url",
+        default="http://localhost:4000",
+        help="API base URL (default: http://localhost:4000)",
+    )
+    parser.add_argument(
+        "--username",
+        default="admin",
+        help="Admin username (default: admin)",
+    )
+    parser.add_argument(
+        "--password",
+        default="admin123",
+        help="Admin password (default: admin123)",
+    )
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=10,
+        help="Number of items per resource type (default: 10)",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Show detailed progress",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be created without making requests",
+    )
+
+    args = parser.parse_args()
+
+    seeder = MockDataSeeder(
+        base_url=args.base_url,
+        username=args.username,
+        password=args.password,
+        count=args.count,
+        verbose=args.verbose,
+        dry_run=args.dry_run,
+    )
+
+    try:
+        seeder.seed_all()
+    except KeyboardInterrupt:
+        print("\n\nAborted by user.", file=sys.stderr)
+        sys.exit(130)
+
+
+if __name__ == "__main__":
+    main()
