@@ -195,7 +195,7 @@ class MockDataSeeder:
                 {
                     "name": name,
                     "description": description,
-                    "org_type": "department",
+                    "organization_type": "department",
                 },
             )
             if result:
@@ -213,7 +213,7 @@ class MockDataSeeder:
                     {
                         "name": name,
                         "description": f"{name} team under Engineering",
-                        "org_type": "team",
+                        "organization_type": "team",
                         "parent_id": eng_org.get("id"),
                     },
                 )
@@ -230,14 +230,18 @@ class MockDataSeeder:
             last_name = self.faker.last_name()
             username = f"{first_name.lower()}.{last_name.lower()}"
 
+            # identity_type must be 'human' or 'service_account'
+            identity_type = random.choice(["human", "human", "service_account"])
+
             result = self._api_post(
                 "/api/v1/identities",
                 {
                     "username": username,
                     "email": f"{username}@example.com",
-                    "display_name": f"{first_name} {last_name}",
-                    "identity_type": random.choice(["user", "user", "service"]),
+                    "full_name": f"{first_name} {last_name}",
+                    "identity_type": identity_type,
                     "auth_provider": "local",
+                    "password": "MockPassword123!",  # Required for local auth
                     "organization_id": self._random_org_id(),
                     "is_active": random.random() > 0.1,  # 90% active
                 },
@@ -262,11 +266,11 @@ class MockDataSeeder:
 
         for name, description in groups[: self.count]:
             result = self._api_post(
-                "/api/v1/identity-groups",
+                "/api/v1/groups",  # Correct endpoint
                 {
                     "name": name,
                     "description": description,
-                    "organization_id": self._random_org_id(),
+                    "is_active": True,
                 },
             )
             if result:
@@ -276,6 +280,11 @@ class MockDataSeeder:
     def seed_entities(self) -> None:
         """Create entities of all types with sub-types."""
         self.log("\nSeeding Entities...")
+
+        # Must have orgs first
+        if not self.created["organizations"]:
+            self.log("  No organizations - skipping entities")
+            return
 
         for entity_type, sub_types in ENTITY_TYPES.items():
             self.log(f"  Creating {entity_type} entities...")
@@ -458,6 +467,10 @@ class MockDataSeeder:
         """Create projects."""
         self.log("\nSeeding Projects...")
 
+        if not self.created["organizations"]:
+            self.log("  No organizations - skipping projects")
+            return
+
         projects = [
             ("Platform Modernization", "Migrate legacy systems to cloud-native"),
             ("Security Hardening Q1", "Quarterly security improvements"),
@@ -555,31 +568,42 @@ class MockDataSeeder:
         """Create issues with various statuses."""
         self.log("\nSeeding Issues...")
 
+        # Issues require reporter_id (identity)
+        if not self.created["identities"]:
+            self.log("  No identities - skipping issues")
+            return
+
         issue_templates = [
-            ("Investigate slow API response times", "performance"),
-            ("Update SSL certificates before expiry", "security"),
+            ("Investigate slow API response times", "other"),
+            ("Update SSL certificates before expiry", "other"),
             ("Database connection pool exhaustion", "bug"),
-            ("Add rate limiting to public endpoints", "enhancement"),
-            ("Document new authentication flow", "documentation"),
+            ("Add rate limiting to public endpoints", "feature"),
+            ("Document new authentication flow", "other"),
             ("Memory leak in worker processes", "bug"),
-            ("Implement caching for dashboard queries", "performance"),
-            ("Upgrade deprecated dependencies", "technical-debt"),
-            ("Add health check endpoints", "enhancement"),
-            ("Review and rotate API keys", "security"),
+            ("Implement caching for dashboard queries", "other"),
+            ("Upgrade deprecated dependencies", "other"),
+            ("Add health check endpoints", "feature"),
+            ("Review and rotate API keys", "other"),
         ]
 
         for i in range(self.count):
             title, issue_type = random.choice(issue_templates)
             title = f"{title} #{i + 1}"
 
+            # Get a random reporter from created identities
+            reporter = random.choice(self.created["identities"])
+            reporter_id = reporter.get("id")
+
             payload: dict[str, Any] = {
                 "title": title,
                 "description": self.faker.paragraph(nb_sentences=3),
-                "status": random.choice(["open", "in_progress", "closed"]),
+                "status": random.choice(["open", "in_progress", "resolved", "closed"]),
                 "priority": random.choice(["low", "medium", "high", "critical"]),
+                "issue_type": issue_type,
+                "reporter_id": reporter_id,
             }
 
-            # Add organization_id if we have orgs
+            # Optionally add organization_id
             if self.created["organizations"]:
                 payload["organization_id"] = self._random_org_id()
 
@@ -591,6 +615,10 @@ class MockDataSeeder:
     def seed_services(self) -> None:
         """Create microservices."""
         self.log("\nSeeding Services...")
+
+        if not self.created["organizations"]:
+            self.log("  No organizations - skipping services")
+            return
 
         services = [
             ("auth-service", "Authentication and authorization"),
@@ -615,8 +643,8 @@ class MockDataSeeder:
                     "deployment_method": random.choice(DEPLOYMENT_METHODS),
                     "language": random.choice(LANGUAGES),
                     "repository_url": f"https://github.com/example/{name}",
-                    "sla_target": random.choice([99.9, 99.95, 99.99]),
-                    "status": random.choice(["active", "active", "deprecated"]),
+                    "sla_uptime": random.choice([99.9, 99.95, 99.99]),
+                    "status": random.choice(["active", "active", "maintenance"]),
                 },
             )
             if result:
@@ -627,6 +655,10 @@ class MockDataSeeder:
         """Create software licenses."""
         self.log("\nSeeding Software...")
 
+        if not self.created["organizations"]:
+            self.log("  No organizations - skipping software")
+            return
+
         for vendor, category in SOFTWARE_VENDORS[: self.count]:
             result = self._api_post(
                 "/api/v1/software",
@@ -636,15 +668,15 @@ class MockDataSeeder:
                     "organization_id": self._random_org_id(),
                     "vendor": vendor,
                     "version": self._random_version(),
-                    "license_type": random.choice(
-                        ["subscription", "perpetual", "open_source"]
+                    "software_type": random.choice(
+                        ["commercial", "open_source", "internal"]
                     ),
-                    "license_count": random.randint(10, 500),
-                    "annual_cost": random.randint(1000, 50000),
+                    "seats": random.randint(10, 500),
+                    "cost_monthly": float(random.randint(100, 5000)),
                     "renewal_date": (
                         datetime.now(timezone.utc) + timedelta(days=random.randint(30, 365))
                     ).date().isoformat(),
-                    "status": random.choice(["active", "active", "expiring_soon"]),
+                    "is_active": True,
                 },
             )
             if result:
@@ -654,6 +686,10 @@ class MockDataSeeder:
     def seed_ipam(self) -> None:
         """Create IPAM prefixes, VLANs, and addresses."""
         self.log("\nSeeding IPAM...")
+
+        if not self.created["organizations"]:
+            self.log("  No organizations - skipping IPAM")
+            return
 
         # Create prefixes
         self.log("  Creating prefixes...")
@@ -703,22 +739,24 @@ class MockDataSeeder:
                 self.created["ipam_vlans"].append(result)
                 self.log(f"    Created VLAN: {vid} ({name})")
 
-        # Create individual addresses
-        self.log("  Creating addresses...")
-        for i in range(min(self.count, 10)):
-            ip = f"10.0.{random.randint(1, 254)}.{random.randint(1, 254)}"
-            result = self._api_post(
-                "/api/v1/ipam/addresses",
-                {
-                    "address": ip,
-                    "description": f"Address {i + 1}",
-                    "organization_id": self._random_org_id(),
-                    "status": random.choice(["active", "reserved", "dhcp"]),
-                },
-            )
-            if result:
-                self.created["ipam_addresses"].append(result)
-                self.log(f"    Created address: {ip}")
+        # Create individual addresses (need prefix_id)
+        if self.created["ipam_prefixes"]:
+            self.log("  Creating addresses...")
+            for i in range(min(self.count, 10)):
+                ip = f"10.0.{random.randint(1, 254)}.{random.randint(1, 254)}/32"
+                prefix = random.choice(self.created["ipam_prefixes"])
+                result = self._api_post(
+                    "/api/v1/ipam/addresses",
+                    {
+                        "address": ip,
+                        "description": f"Address {i + 1}",
+                        "prefix_id": prefix.get("id"),
+                        "status": random.choice(["active", "reserved", "dhcp"]),
+                    },
+                )
+                if result:
+                    self.created["ipam_addresses"].append(result)
+                    self.log(f"    Created address: {ip}")
 
     def seed_dependencies(self) -> None:
         """Create dependencies between entities."""
@@ -744,7 +782,6 @@ class MockDataSeeder:
                     "target_type": "entity",
                     "target_id": target.get("id"),
                     "dependency_type": random.choice(dependency_types),
-                    "description": f"Dependency between {source.get('name')} and {target.get('name')}",
                 },
             )
             if result:

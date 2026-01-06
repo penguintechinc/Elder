@@ -1,6 +1,7 @@
 """Flask integration for Pydantic 2 validation."""
 
 import asyncio
+import inspect
 from functools import wraps
 from typing import Any, Callable, Dict, Optional, Tuple, Type, TypeVar
 
@@ -97,35 +98,34 @@ def validated_request(
     def decorator(func: Callable) -> Callable:
         is_async = asyncio.iscoroutinefunction(func)
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                if body_model:
-                    kwargs["body"] = validate_body(body_model)
-                if query_model:
-                    kwargs["query"] = validate_query_params(query_model)
+        if is_async:
+            @wraps(func)
+            async def async_wrapper(*args, **kwargs):
+                try:
+                    if body_model:
+                        kwargs["body"] = validate_body(body_model)
+                    if query_model:
+                        kwargs["query"] = validate_query_params(query_model)
 
-                result = func(*args, **kwargs)
+                    return await func(*args, **kwargs)
+                except ValidationError as e:
+                    return ValidationErrorResponse.from_pydantic_error(e)
 
-                # Handle async functions by running them in the event loop
-                if is_async:
-                    # Try to get existing loop, or create new one
-                    try:
-                        loop = asyncio.get_running_loop()
-                        # If we have a running loop, create a task
-                        import concurrent.futures
-                        with concurrent.futures.ThreadPoolExecutor() as executor:
-                            future = executor.submit(asyncio.run, result)
-                            return future.result()
-                    except RuntimeError:
-                        # No running loop, just run it
-                        return asyncio.run(result)
+            return async_wrapper
+        else:
+            @wraps(func)
+            def sync_wrapper(*args, **kwargs):
+                try:
+                    if body_model:
+                        kwargs["body"] = validate_body(body_model)
+                    if query_model:
+                        kwargs["query"] = validate_query_params(query_model)
 
-                return result
-            except ValidationError as e:
-                return ValidationErrorResponse.from_pydantic_error(e)
+                    return func(*args, **kwargs)
+                except ValidationError as e:
+                    return ValidationErrorResponse.from_pydantic_error(e)
 
-        return wrapper
+            return sync_wrapper
 
     return decorator
 
