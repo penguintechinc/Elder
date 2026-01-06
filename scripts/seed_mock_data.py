@@ -9,6 +9,7 @@ Usage:
 
 Options:
     --base-url URL      API base URL (default: http://localhost:4000)
+    --tenant-id ID      Tenant ID for authentication (default: 1)
     --email EMAIL       Admin email (default: admin@localhost)
     --password PASS     Admin password (default: admin123)
     --count N           Number of items per type (default: 10)
@@ -64,6 +65,7 @@ class MockDataSeeder:
     def __init__(
         self,
         base_url: str,
+        tenant_id: int,
         email: str,
         password: str,
         count: int = 10,
@@ -71,6 +73,7 @@ class MockDataSeeder:
         dry_run: bool = False,
     ):
         self.base_url = base_url.rstrip("/")
+        self.tenant_id = tenant_id
         self.email = email
         self.password = password
         self.count = count
@@ -116,7 +119,11 @@ class MockDataSeeder:
         try:
             response = self.session.post(
                 f"{self.base_url}/api/v1/portal-auth/login",
-                json={"email": self.email, "password": self.password},
+                json={
+                    "tenant_id": self.tenant_id,
+                    "email": self.email,
+                    "password": self.password,
+                },
             )
 
             if response.status_code == 200:
@@ -885,6 +892,12 @@ Examples:
         help="API base URL (default: http://localhost:4000)",
     )
     parser.add_argument(
+        "--tenant-id",
+        type=int,
+        default=1,
+        help="Tenant ID for authentication (default: 1)",
+    )
+    parser.add_argument(
         "--email",
         default="admin@localhost",
         help="Admin email (default: admin@localhost)",
@@ -916,6 +929,7 @@ Examples:
 
     seeder = MockDataSeeder(
         base_url=args.base_url,
+        tenant_id=args.tenant_id,
         email=args.email,
         password=args.password,
         count=args.count,
