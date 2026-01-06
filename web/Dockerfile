@@ -11,7 +11,10 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+# Use npm install instead of npm ci to allow platform-specific optional dependencies
+# to be resolved at build time (required for multi-arch builds with native packages
+# like @rollup/rollup-linux-arm64-gnu, esbuild, and lightningcss)
+RUN npm install --include=optional
 
 # Copy source code
 COPY . .
