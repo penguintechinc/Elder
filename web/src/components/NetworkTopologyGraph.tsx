@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   ReactFlow,
@@ -34,8 +34,8 @@ const NODE_COLORS = {
 }
 
 export default function NetworkTopologyGraph({ organizationId }: NetworkTopologyGraphProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
 
   const { data: graphData, isLoading } = useQuery({
     queryKey: ['networkTopologyGraph', organizationId],

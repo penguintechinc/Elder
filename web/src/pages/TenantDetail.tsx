@@ -8,7 +8,7 @@ import Button from '@/components/Button'
 import Input from '@/components/Input'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import CreateIdentityModal from '@/components/CreateIdentityModal'
-import type { Tenant, PortalUser } from '@/types'
+import type { PortalUser } from '@/types'
 
 export default function TenantDetail() {
   const { id } = useParams<{ id: string }>()

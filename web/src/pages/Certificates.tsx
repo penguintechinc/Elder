@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
-import Input from '@/components/Input'
+// Input is used in form configs only, not directly imported for this component
 import Select from '@/components/Select'
 import ModalFormBuilder from '@/components/ModalFormBuilder'
 import { FormConfig } from '@/types/form'

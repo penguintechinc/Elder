@@ -16,10 +16,7 @@ export default function Login() {
   // Check if guest login is enabled
   const { data: guestConfig } = useQuery({
     queryKey: ['guest-enabled'],
-    queryFn: async () => {
-      const response = await api.client.get('/auth/guest-enabled')
-      return response.data
-    },
+    queryFn: () => api.getGuestEnabled(),
     staleTime: 60000, // Cache for 1 minute
   })
 

@@ -78,7 +78,7 @@ export default function Tenants() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: Record<string, any>) => api.createTenant(data),
+    mutationFn: (data: Record<string, any>) => api.createTenant(data as Parameters<typeof api.createTenant>[0]),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['tenants'] })
       toast.success('Tenant created successfully')

@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Edit, Trash2, Plus, X, Calendar, AlertCircle, HistoryIcon } from 'lucide-react'
+import { Edit, Trash2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
-import { invalidateCache } from '@/lib/invalidateCache'
-import { confirmDelete } from '@/lib/confirmActions'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 
@@ -311,7 +309,7 @@ function HistoryTab({ history }: any) {
   )
 }
 
-function EscalationsTab({ escalationPolicies, onDelete, isDeleting }: any) {
+function EscalationsTab({ escalationPolicies, onDelete, isDeleting }: { escalationPolicies: any; onDelete: (id: number) => void; isDeleting: boolean }) {
   if (!escalationPolicies?.items || escalationPolicies.items.length === 0) {
     return <p className="text-sm text-slate-400">No escalation policies configured</p>
   }

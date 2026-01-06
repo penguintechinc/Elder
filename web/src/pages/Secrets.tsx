@@ -7,7 +7,7 @@ import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
-import ModalFormBuilder from '@/components/ModalFormBuilder'
+// ModalFormBuilder not currently used
 import { FormConfig } from '@/types/form'
 
 const PROVIDER_TYPES = [

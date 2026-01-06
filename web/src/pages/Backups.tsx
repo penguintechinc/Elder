@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Database, Play, Trash2, RotateCcw, Calendar, Cloud } from 'lucide-react'
+import { Plus, Play, Trash2, RotateCcw, Calendar, Cloud } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
@@ -10,7 +10,6 @@ import Select from '@/components/Select'
 
 export default function Backups() {
   const [showCreateJobModal, setShowCreateJobModal] = useState(false)
-  const [selectedBackup, setSelectedBackup] = useState<number | null>(null)
   const queryClient = useQueryClient()
 
   const { data: jobs, isLoading: jobsLoading } = useQuery({

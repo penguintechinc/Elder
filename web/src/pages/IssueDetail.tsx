@@ -2,14 +2,14 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  ArrowLeft, Edit, Trash2, MessageSquare, Tag, User, Link as LinkIcon,
+  ArrowLeft, Trash2, MessageSquare, Tag, User, Link as LinkIcon,
   Send, X, Plus, Copy
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
-import Input from '@/components/Input'
+// Input component not currently used
 import Select from '@/components/Select'
 
 type IssueStatus = 'open' | 'in_progress' | 'closed'
@@ -199,6 +199,7 @@ export default function IssueDetail() {
       toast.error('Failed to unlink project')
     },
   })
+  void unlinkProjectMutation  // Preserve for future use
 
   const linkMilestoneMutation = useMutation({
     mutationFn: (milestoneId: number) => api.linkIssueToMilestone(parseInt(id!), milestoneId),
@@ -228,6 +229,7 @@ export default function IssueDetail() {
       toast.error('Failed to unlink milestone')
     },
   })
+  void unlinkMilestoneMutation  // Preserve for future use
 
   const handleDelete = () => {
     if (window.confirm(`Delete issue "${issue?.title}"?`)) {

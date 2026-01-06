@@ -4,7 +4,7 @@ import { Plus, Search, Trash2, Edit, ChevronRight, ChevronDown, Network, Globe, 
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
-import Card, { CardHeader, CardContent } from '@/components/Card'
+import Card, { CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
 import ModalFormBuilder from '@/components/ModalFormBuilder'

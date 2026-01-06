@@ -47,6 +47,12 @@ class ApiClient {
     )
   }
 
+  // Public API access for specific endpoints
+  async getGuestEnabled() {
+    const response = await this.client.get('/auth/guest-enabled')
+    return response.data
+  }
+
   // Health check
   async health() {
     const response = await axios.get(`${API_BASE_URL}/healthz`)
@@ -92,7 +98,7 @@ class ApiClient {
   }
 
   // Organizations
-  async getOrganizations(params?: { page?: number; per_page?: number; search?: string }) {
+  async getOrganizations(params?: { page?: number; per_page?: number; search?: string; parent_id?: number }) {
     const response = await this.client.get('/organizations', { params })
     return response.data
   }
@@ -219,14 +225,20 @@ class ApiClient {
     per_page?: number
     source_entity_id?: number
     target_entity_id?: number
+    source_type?: string
+    target_type?: string
   }) {
     const response = await this.client.get('/dependencies', { params })
     return response.data
   }
 
   async createDependency(data: {
-    source_entity_id: number
-    target_entity_id: number
+    source_entity_id?: number
+    target_entity_id?: number
+    source_type?: string
+    source_id?: number
+    target_type?: string
+    target_id?: number
     dependency_type: string
     metadata?: any
   }) {
@@ -264,7 +276,7 @@ class ApiClient {
   }
 
   // Identities
-  async getIdentities(params?: { page?: number; per_page?: number; search?: string; organization_id?: number }) {
+  async getIdentities(params?: { page?: number; per_page?: number; search?: string; organization_id?: number; identity_type?: string }) {
     const response = await this.client.get('/identities', { params })
     return response.data
   }
@@ -417,8 +429,11 @@ class ApiClient {
 
   // Issues
   async getIssues(params?: {
+    page?: number
+    per_page?: number
     organization_id?: number
     entity_id?: number
+    project_id?: number
     status?: string
     priority?: string
     assigned_to?: number
@@ -1988,6 +2003,8 @@ class ApiClient {
     service_id?: number
     status?: string
     search?: string
+    schedule_type?: string
+    scope_type?: string
   }) {
     const response = await this.client.get('/on-call/rotations', { params })
     return response.data
@@ -2120,6 +2137,7 @@ class ApiClient {
     page?: number
     per_page?: number
     organization_id?: number
+    rotation_id?: number
     search?: string
   }) {
     const response = await this.client.get('/on-call/escalation-policies', { params })

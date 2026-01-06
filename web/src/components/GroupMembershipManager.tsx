@@ -40,7 +40,7 @@ const PROVIDERS = [
   { value: 'okta', label: 'Okta' },
 ]
 
-export default function GroupMembershipManager({ organizationId }: GroupMembershipManagerProps) {
+export default function GroupMembershipManager({ organizationId: _organizationId }: GroupMembershipManagerProps) {
   const [selectedGroup, setSelectedGroup] = useState<any>(null)
   const [showGroupDetails, setShowGroupDetails] = useState(false)
   const [showRequestModal, setShowRequestModal] = useState(false)

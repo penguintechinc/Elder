@@ -815,7 +815,7 @@ export default function OrganizationDetail() {
               </div>
             </CardHeader>
             <CardContent>
-              <RelationshipGraphSection organizationId={id} />
+              <RelationshipGraphSection organizationId={id!} />
             </CardContent>
           </Card>
         </div>
@@ -935,7 +935,7 @@ export default function OrganizationDetail() {
         defaultIsPortalUser={false}
         defaultPermissionScope="organization"
         invalidateQueryKeys={[
-          ['identities', { organization_id: id }],
+          ['identities', 'organization', orgId],
           ['identities'],
         ]}
       />
@@ -1128,7 +1128,7 @@ interface MetadataModalProps {
   onSuccess: () => void
 }
 
-function MetadataModal({ organizationId, onClose, onSuccess }: MetadataModalProps) {
+function MetadataModal({ organizationId, onClose, onSuccess: _onSuccess }: MetadataModalProps) {
   const [key, setKey] = useState('')
   const [value, setValue] = useState('')
   const [fieldType, setFieldType] = useState('string')

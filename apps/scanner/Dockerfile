@@ -37,9 +37,9 @@ ENV SCREENSHOT_DIR=/app/screenshots
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-# Health check
+# Health check - verifies imports, API config, and writability
 HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
-    CMD python -c "print('OK')" || exit 1
+    CMD python healthcheck.py || exit 1
 
 # Run the scanner
 CMD ["python", "main.py"]

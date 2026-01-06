@@ -456,7 +456,7 @@ interface AddDependencyFormProps {
 
 function AddDependencyForm({ sourceEntityId, onSuccess }: AddDependencyFormProps) {
   const [targetEntityId, setTargetEntityId] = useState<number | undefined>()
-  const [dependencyType, setDependencyType] = useState<DependencyType>('depends_on')
+  const [dependencyType, setDependencyType] = useState<DependencyType>('depends')
 
   const { data: entities } = useQuery({
     queryKey: ['entities-all'],

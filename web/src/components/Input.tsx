@@ -1,13 +1,14 @@
 import { InputHTMLAttributes, forwardRef } from 'react'
 import { clsx } from 'clsx'
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
+  helperText?: string
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, ...props }, ref) => {
+  ({ className, label, error, helperText, ...props }, ref) => {
     return (
       <div className="w-full">
         {label && (
@@ -28,6 +29,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           {...props}
         />
+        {helperText && !error && (
+          <p className="mt-1.5 text-xs text-slate-400">{helperText}</p>
+        )}
         {error && (
           <p className="mt-1.5 text-sm text-red-500">{error}</p>
         )}

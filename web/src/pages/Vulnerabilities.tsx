@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, Search, Calendar } from 'lucide-react'
-import api from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
-import Button from '@/components/Button'
-import Card, { CardHeader, CardContent } from '@/components/Card'
+// api import reserved for future SBOM vulnerability integration
+import Card, { CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 
 const SEVERITY_LEVELS = [

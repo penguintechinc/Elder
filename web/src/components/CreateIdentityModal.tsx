@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
@@ -27,7 +27,7 @@ interface CreateIdentityModalProps {
   defaultIdentityType?: string
   defaultPermissionScope?: 'global' | 'tenant' | 'organization'
   // Query keys to invalidate on success
-  invalidateQueryKeys?: string[][]
+  invalidateQueryKeys?: (string | number)[][]
 }
 
 export default function CreateIdentityModal({

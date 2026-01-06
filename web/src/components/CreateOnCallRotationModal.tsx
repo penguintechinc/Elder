@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
@@ -35,7 +35,9 @@ export default function CreateOnCallRotationModal({
   rotation,
   onSuccess,
 }: CreateOnCallRotationModalProps) {
-  const [scopeType, setScopeType] = useState(rotation?.scope_type || 'organization')
+  // scopeType is controlled by form values, not separate state
+  const _unusedScopeType = rotation?.scope_type || 'organization'
+  void _unusedScopeType // Suppress unused variable warning - form handles scope_type
 
   // Fetch organizations and services
   const { data: organizations } = useQuery({

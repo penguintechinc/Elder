@@ -4,7 +4,7 @@ import { Map as MapIcon, Filter, RefreshCw } from 'lucide-react'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
-import Input from '@/components/Input'
+// Input component not currently used
 import { NetworkGraph } from '@/components/NetworkGraph'
 
 // Resource type options
@@ -133,7 +133,7 @@ export default function Map() {
 
           <div className="flex items-center gap-3">
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
             >
@@ -141,7 +141,7 @@ export default function Map() {
               {showFilters ? 'Hide Filters' : 'Show Filters'}
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => refetch()}
             >

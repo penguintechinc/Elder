@@ -355,9 +355,9 @@ export default function Services() {
                       {service.name}
                     </h3>
                     {service.is_public ? (
-                      <Globe className="w-4 h-4 text-green-400 flex-shrink-0" title="Public" />
+                      <span title="Public"><Globe className="w-4 h-4 text-green-400 flex-shrink-0" /></span>
                     ) : (
-                      <Lock className="w-4 h-4 text-slate-400 flex-shrink-0" title="Private" />
+                      <span title="Private"><Lock className="w-4 h-4 text-slate-400 flex-shrink-0" /></span>
                     )}
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
@@ -484,9 +484,9 @@ function ServiceDetailsModal({ service, onClose, onEdit }: ServiceDetailsModalPr
               <Server className="w-5 h-5 text-primary-400" />
               <h2 className="text-xl font-semibold text-white">{service.name}</h2>
               {service.is_public ? (
-                <Globe className="w-4 h-4 text-green-400" title="Public" />
+                <span title="Public"><Globe className="w-4 h-4 text-green-400" /></span>
               ) : (
-                <Lock className="w-4 h-4 text-slate-400" title="Private" />
+                <span title="Private"><Lock className="w-4 h-4 text-slate-400" /></span>
               )}
             </div>
             <button

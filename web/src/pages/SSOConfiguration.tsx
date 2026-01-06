@@ -96,7 +96,7 @@ export default function SSOConfiguration() {
   })
 
   const createIdPMutation = useMutation({
-    mutationFn: (data: Record<string, any>) => api.createIdPConfig(data),
+    mutationFn: (data: Record<string, any>) => api.createIdPConfig(data as Parameters<typeof api.createIdPConfig>[0]),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['idp-configs'] })
       toast.success('IdP configuration created')

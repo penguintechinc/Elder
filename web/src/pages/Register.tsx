@@ -5,7 +5,6 @@ import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
-import FormBuilder from '@/components/FormBuilder'
 import { FormConfig } from '@/types/form'
 
 const registerFormConfig: FormConfig = {
@@ -50,7 +49,6 @@ const registerFormConfig: FormConfig = {
 
 export default function Register() {
   const navigate = useNavigate()
-  const [formKey, setFormKey] = useState(0)
 
   const registerMutation = useMutation({
     mutationFn: (data: { email: string; password: string; full_name?: string; tenant?: string }) =>

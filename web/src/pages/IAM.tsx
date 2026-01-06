@@ -181,12 +181,12 @@ function IdentityRelationshipsTab() {
     queryKey: ['identity-relationships'],
     queryFn: async () => {
       // Get dependencies where source is identity
-      const sourceResp = await api.get('/dependencies', { params: { source_type: 'identity', per_page: 100 } })
+      const sourceResp = await api.getDependencies({ source_type: 'identity', per_page: 100 })
       // Get dependencies where target is identity
-      const targetResp = await api.get('/dependencies', { params: { target_type: 'identity', per_page: 100 } })
+      const targetResp = await api.getDependencies({ target_type: 'identity', per_page: 100 })
 
-      const sourceItems = sourceResp.data?.items || []
-      const targetItems = targetResp.data?.items || []
+      const sourceItems = sourceResp?.items || []
+      const targetItems = targetResp?.items || []
 
       // Combine and deduplicate
       const allItems = [...sourceItems]
@@ -201,7 +201,7 @@ function IdentityRelationshipsTab() {
 
   // Delete relationship mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/dependencies/${id}`),
+    mutationFn: (id: number) => api.deleteDependency(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['identity-relationships'] })
       toast.success('Relationship removed')
@@ -293,7 +293,6 @@ function IdentityRelationshipsTab() {
                 placeholder="Search relationships..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                leftIcon={<Search className="w-4 h-4" />}
               />
             </div>
             <Select
@@ -439,7 +438,7 @@ function IdentityRelationshipsTab() {
           ]
         }}
         onSubmit={async (data) => {
-          await api.post('/dependencies', data)
+          await api.createDependency(data as Parameters<typeof api.createDependency>[0])
           queryClient.invalidateQueries({ queryKey: ['identity-relationships'] })
           setShowAddModal(false)
           toast.success('Relationship created')
@@ -793,7 +792,7 @@ export default function IAM() {
 
     // Only submit if there are changes
     if (Object.keys(updateData).length === 0) {
-      toast.info('No changes to save')
+      toast('No changes to save', { icon: 'ℹ️' })
       return
     }
 

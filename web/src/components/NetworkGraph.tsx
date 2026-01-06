@@ -8,7 +8,6 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
-  ConnectionMode,
   NodeTypes,
   MarkerType,
   Handle,
@@ -276,9 +275,9 @@ export const NetworkGraph: React.FC<NetworkGraphProps> = ({
       if (onNodeClick) {
         const graphNode: GraphNode = {
           id: node.id,
-          label: node.data.label,
-          type: node.data.nodeType,
-          metadata: node.data.metadata,
+          label: node.data.label as string,
+          type: node.data.nodeType as string,
+          metadata: node.data.metadata as Record<string, any> | undefined,
         };
         onNodeClick(graphNode);
       }

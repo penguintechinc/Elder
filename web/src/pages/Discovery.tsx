@@ -4,7 +4,7 @@ import { Plus, Compass, Play, Trash2, Clock, CheckCircle, XCircle, AlertCircle }
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
-import Card, { CardHeader, CardContent } from '@/components/Card'
+import Card, { CardContent } from '@/components/Card'
 import ModalFormBuilder from '@/components/ModalFormBuilder'
 import { FormConfig } from '@/types/form'
 import { getStatusColor } from '@/lib/colorHelpers'

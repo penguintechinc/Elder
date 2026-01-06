@@ -124,7 +124,7 @@ export default function Profile() {
               </div>
             </div>
             {!isEditing && (
-              <Button onClick={handleEdit} variant="outline">
+              <Button onClick={handleEdit} variant="ghost">
                 Edit Profile
               </Button>
             )}
