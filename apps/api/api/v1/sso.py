@@ -373,7 +373,7 @@ def oidc_callback():
     """
     code = request.args.get("code")
     # TODO: Validate state parameter for CSRF protection
-    _state = request.args.get("state")
+    request.args.get("state")
     idp_id = request.args.get("idp_id", type=int)
     redirect_uri = request.args.get("redirect_uri")
 

@@ -168,7 +168,7 @@ async def sync_vulnerabilities():
 
     component_ids = validated_req.component_ids
     # TODO: Implement force re-sync functionality
-    _force = validated_req.force
+    validated_req.force
 
     def get_components():
         query = db.sbom_components.id > 0
