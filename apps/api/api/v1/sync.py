@@ -6,7 +6,7 @@ project management platforms (GitHub, GitLab, Jira, Trello, OpenProject).
 
 from datetime import datetime
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 from flask_cors import cross_origin
 
 from apps.api.auth.decorators import admin_required, login_required
@@ -212,7 +212,7 @@ def resolve_conflict(conflict_id):
     db(db.sync_conflicts.id == conflict_id).update(
         resolved=True,
         resolved_at=datetime.now(),
-        resolved_by_id=current_user.id,
+        resolved_by_id=g.current_user.id,
         resolution_strategy=strategy,
     )
     db.commit()

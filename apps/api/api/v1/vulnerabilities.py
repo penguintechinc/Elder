@@ -167,7 +167,8 @@ async def sync_vulnerabilities():
         return ValidationErrorResponse.from_pydantic_error(e)
 
     component_ids = validated_req.component_ids
-    force = validated_req.force
+    # TODO: Implement force re-sync functionality
+    _force = validated_req.force
 
     def get_components():
         query = db.sbom_components.id > 0

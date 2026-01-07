@@ -137,26 +137,6 @@ async def handle_alertmanager_webhook():
                 if not current:
                     continue
 
-                # Get participant details for notification preferences
-                def get_participant():
-                    participant = (
-                        db(
-                            (
-                                db.on_call_rotation_participants.rotation_id
-                                == rotation.id
-                            )
-                            & (
-                                db.on_call_rotation_participants.identity_id
-                                == current["identity_id"]
-                            )
-                        )
-                        .select()
-                        .first()
-                    )
-                    return participant
-
-                participant = await run_in_threadpool(get_participant)
-
                 # Record notification
                 subject = f"Alert: {labels.get('alertname', 'Unknown')}"
                 message = annotations.get("summary", "No summary")

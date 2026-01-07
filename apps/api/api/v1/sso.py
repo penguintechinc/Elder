@@ -372,7 +372,8 @@ def oidc_callback():
         JWT tokens on success
     """
     code = request.args.get("code")
-    state = request.args.get("state")
+    # TODO: Validate state parameter for CSRF protection
+    _state = request.args.get("state")
     idp_id = request.args.get("idp_id", type=int)
     redirect_uri = request.args.get("redirect_uri")
 

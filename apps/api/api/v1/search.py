@@ -222,7 +222,11 @@ def search_issues():
         # Parse labels
         labels = None
         if labels_str:
-            labels = [l.strip() for l in labels_str.split(",") if l.strip()]
+            labels = [
+                label.strip()
+                for label in labels_str.split(",")
+                if label.strip()
+            ]
 
         results = service.search_issues(
             query=query,

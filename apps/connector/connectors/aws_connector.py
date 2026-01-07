@@ -648,7 +648,7 @@ class AWSConnector(BaseConnector):
                     name=f"S3: {bucket_name}",
                     entity_type="network",  # S3 is networked storage
                     organization_id=aws_org_id,
-                    description=f"AWS S3 bucket",
+                    description="AWS S3 bucket",
                     attributes={
                         "bucket_name": bucket_name,
                         "region": region,
