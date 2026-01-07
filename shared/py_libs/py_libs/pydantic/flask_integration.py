@@ -27,15 +27,17 @@ class ValidationErrorResponse:
         """
         validation_errors = []
         for err in error.errors():
-            validation_errors.append({
-                "field": ".".join(str(x) for x in err["loc"]),
-                "message": err["msg"],
-                "type": err["type"]
-            })
+            validation_errors.append(
+                {
+                    "field": ".".join(str(x) for x in err["loc"]),
+                    "message": err["msg"],
+                    "type": err["type"],
+                }
+            )
 
         return {
             "error": "Validation failed",
-            "validation_errors": validation_errors
+            "validation_errors": validation_errors,
         }, 400
 
 
@@ -75,7 +77,7 @@ def validate_query_params(model_class: Type[T]) -> T:
 
 def validated_request(
     body_model: Optional[Type[BaseModel]] = None,
-    query_model: Optional[Type[BaseModel]] = None
+    query_model: Optional[Type[BaseModel]] = None,
 ) -> Callable:
     """
     Decorator that validates request body and/or query parameters.
@@ -95,10 +97,12 @@ def validated_request(
         def create_user(body: CreateUserRequest, query: PaginationParams):
             return {"user": body.model_dump(), "page": query.page}
     """
+
     def decorator(func: Callable) -> Callable:
         is_async = asyncio.iscoroutinefunction(func)
 
         if is_async:
+
             @wraps(func)
             async def async_wrapper(*args, **kwargs):
                 try:
@@ -113,6 +117,7 @@ def validated_request(
 
             return async_wrapper
         else:
+
             @wraps(func)
             def sync_wrapper(*args, **kwargs):
                 try:
@@ -131,9 +136,7 @@ def validated_request(
 
 
 def model_response(
-    model: BaseModel,
-    status_code: int = 200,
-    exclude_none: bool = True
+    model: BaseModel, status_code: int = 200, exclude_none: bool = True
 ) -> Tuple[Response, int]:
     """
     Convert Pydantic model to Flask JSON response.
@@ -162,6 +165,6 @@ def model_response(
 
     # Otherwise, create a mock Response for testing
     response = Response()
-    response.set_data(__import__('json').dumps(data))
-    response.headers['Content-Type'] = 'application/json'
+    response.set_data(__import__("json").dumps(data))
+    response.headers["Content-Type"] = "application/json"
     return response, status_code

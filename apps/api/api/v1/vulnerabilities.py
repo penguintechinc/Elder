@@ -238,10 +238,17 @@ async def sync_vulnerabilities():
                         total_vulns += 1
 
                         # Check if link exists
-                        existing_link = db(
-                            (db.component_vulnerabilities.component_id == comp_id)
-                            & (db.component_vulnerabilities.vulnerability_id == vuln_id)
-                        ).select().first()
+                        existing_link = (
+                            db(
+                                (db.component_vulnerabilities.component_id == comp_id)
+                                & (
+                                    db.component_vulnerabilities.vulnerability_id
+                                    == vuln_id
+                                )
+                            )
+                            .select()
+                            .first()
+                        )
 
                         if not existing_link:
                             # Create component-vulnerability link
@@ -395,6 +402,7 @@ async def update_component_vulnerability(id: int):
             # Set remediated_at if status is remediated
             if validated_req.status == "remediated":
                 from datetime import datetime, timezone
+
                 update_dict["remediated_at"] = datetime.now(timezone.utc)
 
         if validated_req.remediation_notes is not None:
@@ -471,10 +479,15 @@ async def trigger_nvd_sync():
         force_refresh=force_refresh,
     )
 
-    return jsonify({
-        "message": "NVD sync completed",
-        "stats": stats,
-    }), 202
+    return (
+        jsonify(
+            {
+                "message": "NVD sync completed",
+                "stats": stats,
+            }
+        ),
+        202,
+    )
 
 
 @bp.route("/nvd-sync/status", methods=["GET"])

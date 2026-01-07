@@ -14,7 +14,7 @@ Models:
 from typing import Any, Dict, TypeVar
 from pydantic import BaseModel, ConfigDict
 
-T = TypeVar('T', bound='ElderBaseModel')
+T = TypeVar("T", bound="ElderBaseModel")
 
 
 class ElderBaseModel(BaseModel):
@@ -42,10 +42,7 @@ class ElderBaseModel(BaseModel):
     )
 
     def to_dict(
-        self,
-        exclude_none: bool = False,
-        exclude_unset: bool = False,
-        **kwargs: Any
+        self, exclude_none: bool = False, exclude_unset: bool = False, **kwargs: Any
     ) -> Dict[str, Any]:
         """
         Convert model instance to dictionary.
@@ -59,9 +56,7 @@ class ElderBaseModel(BaseModel):
             Dictionary representation of the model
         """
         return self.model_dump(
-            exclude_none=exclude_none,
-            exclude_unset=exclude_unset,
-            **kwargs
+            exclude_none=exclude_none, exclude_unset=exclude_unset, **kwargs
         )
 
     @classmethod
@@ -88,11 +83,10 @@ class ElderBaseModel(BaseModel):
             >>> model = MyModel.from_pydal_row(row)
         """
         # Convert PyDAL row to dictionary, handling None values
-        row_dict = dict(row) if hasattr(row, '__iter__') else row.as_dict()
+        row_dict = dict(row) if hasattr(row, "__iter__") else row.as_dict()
         # Filter out None values that may cause validation issues
         cleaned_dict = {
-            k: v for k, v in row_dict.items()
-            if v is not None or k in cls.model_fields
+            k: v for k, v in row_dict.items() if v is not None or k in cls.model_fields
         }
         return cls(**cleaned_dict)
 
@@ -211,10 +205,7 @@ class ConfigurableModel(ElderBaseModel):
     )
 
     def to_dict(
-        self,
-        exclude_none: bool = False,
-        exclude_unset: bool = False,
-        **kwargs: Any
+        self, exclude_none: bool = False, exclude_unset: bool = False, **kwargs: Any
     ) -> Dict[str, Any]:
         """
         Convert model instance to dictionary, including extra fields.
@@ -231,9 +222,7 @@ class ConfigurableModel(ElderBaseModel):
             Dictionary representation including both defined and extra fields
         """
         result = self.model_dump(
-            exclude_none=exclude_none,
-            exclude_unset=exclude_unset,
-            **kwargs
+            exclude_none=exclude_none, exclude_unset=exclude_unset, **kwargs
         )
         # Merge extra fields if present
         if self.__pydantic_extra__:

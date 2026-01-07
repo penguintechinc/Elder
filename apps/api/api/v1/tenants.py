@@ -18,6 +18,7 @@ bp = Blueprint("tenants", __name__)
 # Pydantic Models for request validation
 class CreateTenantRequest(RequestModel):
     """Validation model for creating a new tenant."""
+
     name: Name255
     slug: SlugStr
     domain: Optional[str] = Field(default=None, max_length=255)
@@ -31,6 +32,7 @@ class CreateTenantRequest(RequestModel):
 
 class UpdateTenantRequest(RequestModel):
     """Validation model for updating a tenant."""
+
     name: Optional[Name255] = None
     domain: Optional[str] = Field(default=None, max_length=255)
     slug: Optional[SlugStr] = None

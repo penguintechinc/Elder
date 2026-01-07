@@ -240,7 +240,9 @@ class SBOMParser(BaseDependencyParser):
 
         # Parse components
         for component_elem in root.findall(".//component", ns):
-            comp_dict = self._parse_cyclonedx_xml_component(component_elem, filename, ns)
+            comp_dict = self._parse_cyclonedx_xml_component(
+                component_elem, filename, ns
+            )
             if comp_dict:
                 components.append(comp_dict)
 

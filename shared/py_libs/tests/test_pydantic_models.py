@@ -61,19 +61,13 @@ class TestCreateOrganizationRequest:
     def test_valid_description_at_max_length(self):
         """Test description validation at maximum length (1000 chars)."""
         long_desc = "B" * 1000
-        req = CreateOrganizationRequest(
-            name="Test",
-            description=long_desc
-        )
+        req = CreateOrganizationRequest(name="Test", description=long_desc)
         assert req.description == long_desc
         assert len(req.description) == 1000
 
     def test_valid_empty_description(self):
         """Test that empty description is allowed."""
-        req = CreateOrganizationRequest(
-            name="Test",
-            description=""
-        )
+        req = CreateOrganizationRequest(name="Test", description="")
         assert req.description == ""
 
     def test_invalid_name_empty_string(self):
@@ -98,70 +92,47 @@ class TestCreateOrganizationRequest:
         """Test that description exceeding 1000 chars raises validation error."""
         too_long_desc = "B" * 1001
         with pytest.raises(ValidationError):
-            CreateOrganizationRequest(
-                name="Test",
-                description=too_long_desc
-            )
+            CreateOrganizationRequest(name="Test", description=too_long_desc)
 
     def test_invalid_extra_field_rejected(self):
         """Test that RequestModel rejects unknown fields (security)."""
         with pytest.raises(ValidationError) as exc_info:
-            CreateOrganizationRequest(
-                name="Test",
-                admin=True  # Unknown field
-            )
+            CreateOrganizationRequest(name="Test", admin=True)  # Unknown field
         assert "Extra inputs are not permitted" in str(exc_info.value)
 
     def test_invalid_parent_id_negative(self):
         """Test that negative parent_id is handled."""
         # Note: parent_id is int without validation constraints
         # This test documents the current behavior
-        req = CreateOrganizationRequest(
-            name="Test",
-            parent_id=-1
-        )
+        req = CreateOrganizationRequest(name="Test", parent_id=-1)
         assert req.parent_id == -1
 
     def test_invalid_owner_identity_id_negative(self):
         """Test that negative owner_identity_id is handled."""
-        req = CreateOrganizationRequest(
-            name="Test",
-            owner_identity_id=-1
-        )
+        req = CreateOrganizationRequest(name="Test", owner_identity_id=-1)
         assert req.owner_identity_id == -1
 
     def test_invalid_owner_group_id_negative(self):
         """Test that negative owner_group_id is handled."""
-        req = CreateOrganizationRequest(
-            name="Test",
-            owner_group_id=-1
-        )
+        req = CreateOrganizationRequest(name="Test", owner_group_id=-1)
         assert req.owner_group_id == -1
 
     def test_valid_all_organization_type_values(self):
         """Test valid organization_type values."""
         types = ["department", "organization", "team", "collection", "other"]
         for org_type in types:
-            req = CreateOrganizationRequest(
-                name="Test",
-                organization_type=org_type
-            )
+            req = CreateOrganizationRequest(name="Test", organization_type=org_type)
             assert req.organization_type == org_type
 
     def test_valid_custom_organization_type(self):
         """Test that custom organization_type strings are accepted."""
-        req = CreateOrganizationRequest(
-            name="Test",
-            organization_type="custom-type"
-        )
+        req = CreateOrganizationRequest(name="Test", organization_type="custom-type")
         assert req.organization_type == "custom-type"
 
     def test_to_dict_conversion(self):
         """Test RequestModel to_dict() conversion."""
         req = CreateOrganizationRequest(
-            name="Test",
-            description="Test Description",
-            parent_id=5
+            name="Test", description="Test Description", parent_id=5
         )
         result = req.to_dict()
         assert result["name"] == "Test"
@@ -170,20 +141,14 @@ class TestCreateOrganizationRequest:
 
     def test_to_dict_exclude_none(self):
         """Test RequestModel to_dict() with exclude_none=True."""
-        req = CreateOrganizationRequest(
-            name="Test",
-            description=None
-        )
+        req = CreateOrganizationRequest(name="Test", description=None)
         result = req.to_dict(exclude_none=True)
         assert "name" in result
         assert "description" not in result
 
     def test_model_dump_method(self):
         """Test Pydantic model_dump() method."""
-        req = CreateOrganizationRequest(
-            name="Test",
-            organization_type="team"
-        )
+        req = CreateOrganizationRequest(name="Test", organization_type="team")
         dumped = req.model_dump()
         assert dumped["name"] == "Test"
         assert dumped["organization_type"] == "team"
@@ -200,7 +165,7 @@ class TestOrganizationDTO:
             name="Engineering",
             organization_type="department",
             created_at=now,
-            updated_at=now
+            updated_at=now,
         )
         assert dto.id == 1
         assert dto.name == "Engineering"
@@ -227,7 +192,7 @@ class TestOrganizationDTO:
             updated_at=now,
             tenant_id=5,
             village_id="a1b2-c3d4-e5f67890",
-            village_segment="c3d4"
+            village_segment="c3d4",
         )
         assert dto.id == 42
         assert dto.name == "Sales Department"
@@ -247,10 +212,7 @@ class TestOrganizationDTO:
         now = datetime.now()
         with pytest.raises(ValidationError):
             OrganizationDTO(
-                name="Test",
-                organization_type="team",
-                created_at=now,
-                updated_at=now
+                name="Test", organization_type="team", created_at=now, updated_at=now
             )
 
     def test_invalid_missing_required_name(self):
@@ -258,44 +220,26 @@ class TestOrganizationDTO:
         now = datetime.now()
         with pytest.raises(ValidationError):
             OrganizationDTO(
-                id=1,
-                organization_type="team",
-                created_at=now,
-                updated_at=now
+                id=1, organization_type="team", created_at=now, updated_at=now
             )
 
     def test_invalid_missing_required_organization_type(self):
         """Test that missing organization_type raises validation error."""
         now = datetime.now()
         with pytest.raises(ValidationError):
-            OrganizationDTO(
-                id=1,
-                name="Test",
-                created_at=now,
-                updated_at=now
-            )
+            OrganizationDTO(id=1, name="Test", created_at=now, updated_at=now)
 
     def test_invalid_missing_required_created_at(self):
         """Test that missing created_at raises validation error."""
         now = datetime.now()
         with pytest.raises(ValidationError):
-            OrganizationDTO(
-                id=1,
-                name="Test",
-                organization_type="team",
-                updated_at=now
-            )
+            OrganizationDTO(id=1, name="Test", organization_type="team", updated_at=now)
 
     def test_invalid_missing_required_updated_at(self):
         """Test that missing updated_at raises validation error."""
         now = datetime.now()
         with pytest.raises(ValidationError):
-            OrganizationDTO(
-                id=1,
-                name="Test",
-                organization_type="team",
-                created_at=now
-            )
+            OrganizationDTO(id=1, name="Test", organization_type="team", created_at=now)
 
     def test_immutable_prevents_modification(self):
         """Test that ImmutableModel prevents field modification."""
@@ -305,7 +249,7 @@ class TestOrganizationDTO:
             name="Original Name",
             organization_type="team",
             created_at=now,
-            updated_at=now
+            updated_at=now,
         )
         with pytest.raises(ValidationError):
             dto.name = "Modified Name"
@@ -314,11 +258,7 @@ class TestOrganizationDTO:
         """Test that ImmutableModel prevents field deletion."""
         now = datetime.now()
         dto = OrganizationDTO(
-            id=1,
-            name="Test",
-            organization_type="team",
-            created_at=now,
-            updated_at=now
+            id=1, name="Test", organization_type="team", created_at=now, updated_at=now
         )
         with pytest.raises(ValidationError):
             del dto.name
@@ -333,7 +273,7 @@ class TestOrganizationDTO:
                 organization_type="team",
                 created_at=now,
                 updated_at=now,
-                custom_field="value"  # Unknown field
+                custom_field="value",  # Unknown field
             )
 
     def test_invalid_wrong_type_id(self):
@@ -345,7 +285,7 @@ class TestOrganizationDTO:
                 name="Test",
                 organization_type="team",
                 created_at=now,
-                updated_at=now
+                updated_at=now,
             )
 
     def test_invalid_wrong_type_created_at(self):
@@ -356,7 +296,7 @@ class TestOrganizationDTO:
                 name="Test",
                 organization_type="team",
                 created_at="2025-01-01",  # String instead of datetime
-                updated_at=datetime.now()
+                updated_at=datetime.now(),
             )
 
     def test_type_coercion_datetime_string(self):
@@ -367,7 +307,7 @@ class TestOrganizationDTO:
             name="Test",
             organization_type="team",
             created_at="2025-01-01T12:00:00",
-            updated_at="2025-01-01T12:00:00"
+            updated_at="2025-01-01T12:00:00",
         )
         assert isinstance(dto.created_at, datetime)
         assert isinstance(dto.updated_at, datetime)
@@ -381,7 +321,7 @@ class TestOrganizationDTO:
             organization_type="team",
             created_at=now,
             updated_at=now,
-            parent_id="5"  # String instead of int
+            parent_id="5",  # String instead of int
         )
         assert isinstance(dto.id, int)
         assert dto.id == 42
@@ -397,7 +337,7 @@ class TestOrganizationDTO:
             organization_type="team",
             created_at=now,
             updated_at=now,
-            parent_id=2
+            parent_id=2,
         )
         result = dto.to_dict()
         assert result["id"] == 1
@@ -414,7 +354,7 @@ class TestOrganizationDTO:
             created_at=now,
             updated_at=now,
             description=None,
-            parent_id=None
+            parent_id=None,
         )
         result = dto.to_dict(exclude_none=True)
         assert "id" in result
@@ -426,11 +366,7 @@ class TestOrganizationDTO:
         """Test to_dict() with exclude_unset=True."""
         now = datetime.now()
         dto = OrganizationDTO(
-            id=1,
-            name="Test",
-            organization_type="team",
-            created_at=now,
-            updated_at=now
+            id=1, name="Test", organization_type="team", created_at=now, updated_at=now
         )
         result = dto.to_dict(exclude_unset=True)
         assert "id" in result
@@ -442,11 +378,7 @@ class TestOrganizationDTO:
         """Test Pydantic model_dump() method."""
         now = datetime.now()
         dto = OrganizationDTO(
-            id=1,
-            name="Test",
-            organization_type="team",
-            created_at=now,
-            updated_at=now
+            id=1, name="Test", organization_type="team", created_at=now, updated_at=now
         )
         dumped = dto.model_dump()
         assert dumped["id"] == 1
@@ -468,11 +400,7 @@ class TestOrganizationDTO:
         now = datetime.now()
         # Test that field names work
         dto = OrganizationDTO(
-            id=1,
-            name="Test",
-            organization_type="team",
-            created_at=now,
-            updated_at=now
+            id=1, name="Test", organization_type="team", created_at=now, updated_at=now
         )
         assert dto.name == "Test"
 
@@ -487,7 +415,7 @@ class TestIntegration:
             description="Eng team",
             organization_type="department",
             parent_id=1,
-            owner_identity_id=10
+            owner_identity_id=10,
         )
 
         # Simulate database storage and retrieval
@@ -497,7 +425,7 @@ class TestIntegration:
             "id": 1,
             "created_at": now,
             "updated_at": now,
-            "tenant_id": 5
+            "tenant_id": 5,
         }
 
         dto = OrganizationDTO(**dto_data)
@@ -509,10 +437,7 @@ class TestIntegration:
 
     def test_populate_by_name_both_formats(self):
         """Test that both camelCase and snake_case can be used."""
-        req = CreateOrganizationRequest(
-            name="Test",
-            organization_type="team"
-        )
+        req = CreateOrganizationRequest(name="Test", organization_type="team")
         assert req.organization_type == "team"
 
     def test_validation_error_messages_are_clear(self):

@@ -59,9 +59,7 @@ class CreateSBOMComponentRequest(BaseModel):
         description="Package type (library, framework, application, container, etc)",
     )
     version: Optional[str] = Field(None, description="Component version")
-    purl: Optional[str] = Field(
-        None, description="Package URL (PURL) identifier"
-    )
+    purl: Optional[str] = Field(None, description="Package URL (PURL) identifier")
     scope: Optional[str] = Field(
         None, description="Scope (required, optional, dev, test, etc)"
     )
@@ -69,9 +67,7 @@ class CreateSBOMComponentRequest(BaseModel):
     license_id: Optional[int] = Field(None, description="License ID")
     license_name: Optional[str] = Field(None, description="License name")
     source_file: Optional[str] = Field(None, description="Source file path")
-    metadata: Optional[dict] = Field(
-        None, description="Additional component metadata"
-    )
+    metadata: Optional[dict] = Field(None, description="Additional component metadata")
 
     class Config:
         from_attributes = True
@@ -166,9 +162,7 @@ class CreateSBOMScanRequest(BaseModel):
             "source",
         }
         if v not in valid_types:
-            raise ValueError(
-                f"Invalid scan_type: {v}. Must be one of {valid_types}"
-            )
+            raise ValueError(f"Invalid scan_type: {v}. Must be one of {valid_types}")
         return v
 
     class Config:
@@ -256,9 +250,7 @@ class ComponentVulnerabilityDTO(BaseModel):
         """Validate remediation status."""
         valid_statuses = {"open", "in_progress", "resolved", "ignored"}
         if v not in valid_statuses:
-            raise ValueError(
-                f"Invalid status: {v}. Must be one of {valid_statuses}"
-            )
+            raise ValueError(f"Invalid status: {v}. Must be one of {valid_statuses}")
         return v
 
     class Config:
@@ -289,9 +281,7 @@ class LicensePolicyDTO(BaseModel):
         """Validate policy action."""
         valid_actions = {"warn", "block", "audit"}
         if v not in valid_actions:
-            raise ValueError(
-                f"Invalid action: {v}. Must be one of {valid_actions}"
-            )
+            raise ValueError(f"Invalid action: {v}. Must be one of {valid_actions}")
         return v
 
     class Config:
@@ -318,9 +308,7 @@ class CreateLicensePolicyRequest(BaseModel):
         """Validate policy action."""
         valid_actions = {"warn", "block", "audit"}
         if v not in valid_actions:
-            raise ValueError(
-                f"Invalid action: {v}. Must be one of {valid_actions}"
-            )
+            raise ValueError(f"Invalid action: {v}. Must be one of {valid_actions}")
         return v
 
     class Config:
@@ -344,9 +332,7 @@ class UpdateLicensePolicyRequest(BaseModel):
             return v
         valid_actions = {"warn", "block", "audit"}
         if v not in valid_actions:
-            raise ValueError(
-                f"Invalid action: {v}. Must be one of {valid_actions}"
-            )
+            raise ValueError(f"Invalid action: {v}. Must be one of {valid_actions}")
         return v
 
     class Config:
@@ -373,9 +359,7 @@ class UploadSBOMRequest(BaseModel):
         """Validate parent type."""
         valid_types = {"service", "software"}
         if v not in valid_types:
-            raise ValueError(
-                f"Invalid parent_type: {v}. Must be one of {valid_types}"
-            )
+            raise ValueError(f"Invalid parent_type: {v}. Must be one of {valid_types}")
         return v
 
     class Config:

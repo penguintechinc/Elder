@@ -239,7 +239,8 @@ class TestValidatedRequestDecorator:
             return {"success": True, "name": body.name}
 
         response = client.post(
-            "/test", json={"name": "Alice", "age": "not_a_number", "email": "alice@example.com"}
+            "/test",
+            json={"name": "Alice", "age": "not_a_number", "email": "alice@example.com"},
         )
 
         assert response.status_code == 400

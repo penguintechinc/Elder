@@ -40,9 +40,15 @@ def _get_current_oncall_for_rotation(db, rotation_id: int) -> dict:
     now = datetime.datetime.now(datetime.timezone.utc)
 
     # Get active shift for this moment
-    shift = db((db.on_call_shifts.rotation_id == rotation_id)
-               & (db.on_call_shifts.shift_start <= now)
-               & (db.on_call_shifts.shift_end > now)).select().first()
+    shift = (
+        db(
+            (db.on_call_shifts.rotation_id == rotation_id)
+            & (db.on_call_shifts.shift_start <= now)
+            & (db.on_call_shifts.shift_end > now)
+        )
+        .select()
+        .first()
+    )
 
     if not shift:
         return None
@@ -102,7 +108,9 @@ async def list_rotations():
             query &= db.on_call_rotations.scope_type == request.args.get("scope_type")
 
         if request.args.get("schedule_type"):
-            query &= db.on_call_rotations.schedule_type == request.args.get("schedule_type")
+            query &= db.on_call_rotations.schedule_type == request.args.get(
+                "schedule_type"
+            )
 
         if request.args.get("is_active"):
             is_active = request.args.get("is_active").lower() == "true"
@@ -208,7 +216,8 @@ async def create_rotation():
     if schedule_type == "weekly":
         if not data.get("rotation_length_days") or not data.get("rotation_start_date"):
             return ApiResponse.error(
-                "rotation_length_days and rotation_start_date required for weekly schedule", 400
+                "rotation_length_days and rotation_start_date required for weekly schedule",
+                400,
             )
         schedule_data["rotation_length_days"] = data["rotation_length_days"]
         schedule_data["rotation_start_date"] = data["rotation_start_date"]
@@ -226,7 +235,8 @@ async def create_rotation():
     elif schedule_type == "follow_the_sun":
         if not data.get("handoff_timezone") or not data.get("shift_config"):
             return ApiResponse.error(
-                "handoff_timezone and shift_config required for follow_the_sun schedule", 400
+                "handoff_timezone and shift_config required for follow_the_sun schedule",
+                400,
             )
         schedule_data["handoff_timezone"] = data["handoff_timezone"]
         schedule_data["shift_split"] = data.get("shift_split", False)
@@ -306,22 +316,24 @@ async def get_rotation(rotation_id: int):
         for row in participant_rows:
             participant = row.on_call_rotation_participants
             identity = row.identities
-            participants.append({
-                "id": participant.id,
-                "rotation_id": participant.rotation_id,
-                "identity_id": participant.identity_id,
-                "identity_name": identity.username,
-                "identity_email": identity.email,
-                "order_index": participant.order_index,
-                "is_active": participant.is_active,
-                "start_date": participant.start_date,
-                "end_date": participant.end_date,
-                "notification_email": participant.notification_email,
-                "notification_phone": participant.notification_phone,
-                "notification_slack": participant.notification_slack,
-                "created_at": participant.created_at,
-                "updated_at": participant.updated_at,
-            })
+            participants.append(
+                {
+                    "id": participant.id,
+                    "rotation_id": participant.rotation_id,
+                    "identity_id": participant.identity_id,
+                    "identity_name": identity.username,
+                    "identity_email": identity.email,
+                    "order_index": participant.order_index,
+                    "is_active": participant.is_active,
+                    "start_date": participant.start_date,
+                    "end_date": participant.end_date,
+                    "notification_email": participant.notification_email,
+                    "notification_phone": participant.notification_phone,
+                    "notification_slack": participant.notification_slack,
+                    "created_at": participant.created_at,
+                    "updated_at": participant.updated_at,
+                }
+            )
 
         # Get current on-call
         current_oncall = _get_current_oncall_for_rotation(db, rotation_id)

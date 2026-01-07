@@ -250,8 +250,8 @@ curl -X POST http://localhost:5000/api/v1/auth/login \
 ### 1. Start Development Environment
 
 ```bash
-make dev        # Start all services
-make seed-data  # Populate with test data (3-4 items per entity)
+make dev              # Start all services
+make seed-mock-data   # Populate with test data (3-4 items per entity)
 ```
 
 ### 2. Make Code Changes

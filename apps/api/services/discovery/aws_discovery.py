@@ -596,7 +596,9 @@ class AWSDiscoveryClient(BaseDiscoveryProvider):
                     access_keys_count = 0
                     try:
                         keys_response = iam.list_access_keys(UserName=user_name)
-                        access_keys_count = len(keys_response.get("AccessKeyMetadata", []))
+                        access_keys_count = len(
+                            keys_response.get("AccessKeyMetadata", [])
+                        )
                     except (ClientError, BotoCoreError):
                         pass
 

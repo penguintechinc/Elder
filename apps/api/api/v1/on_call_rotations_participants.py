@@ -71,22 +71,24 @@ async def list_participants(rotation_id: int):
     for row in rows:
         participant = row.on_call_rotation_participants
         identity = row.identities
-        items.append({
-            "id": participant.id,
-            "rotation_id": participant.rotation_id,
-            "identity_id": participant.identity_id,
-            "identity_name": identity.username,
-            "identity_email": identity.email,
-            "order_index": participant.order_index,
-            "is_active": participant.is_active,
-            "start_date": participant.start_date,
-            "end_date": participant.end_date,
-            "notification_email": participant.notification_email,
-            "notification_phone": participant.notification_phone,
-            "notification_slack": participant.notification_slack,
-            "created_at": participant.created_at,
-            "updated_at": participant.updated_at,
-        })
+        items.append(
+            {
+                "id": participant.id,
+                "rotation_id": participant.rotation_id,
+                "identity_id": participant.identity_id,
+                "identity_name": identity.username,
+                "identity_email": identity.email,
+                "order_index": participant.order_index,
+                "is_active": participant.is_active,
+                "start_date": participant.start_date,
+                "end_date": participant.end_date,
+                "notification_email": participant.notification_email,
+                "notification_phone": participant.notification_phone,
+                "notification_slack": participant.notification_slack,
+                "created_at": participant.created_at,
+                "updated_at": participant.updated_at,
+            }
+        )
 
     response = PaginatedResponse(
         items=items,
@@ -165,7 +167,9 @@ async def add_participant(rotation_id: int):
         # Handle dates
         if "start_date" in data:
             if isinstance(data["start_date"], str):
-                insert_data["start_date"] = datetime.date.fromisoformat(data["start_date"])
+                insert_data["start_date"] = datetime.date.fromisoformat(
+                    data["start_date"]
+                )
             else:
                 insert_data["start_date"] = data["start_date"]
 
@@ -267,7 +271,9 @@ async def update_participant(rotation_id: int, participant_id: int):
         # Handle dates
         if "start_date" in data:
             if isinstance(data["start_date"], str):
-                update_dict["start_date"] = datetime.date.fromisoformat(data["start_date"])
+                update_dict["start_date"] = datetime.date.fromisoformat(
+                    data["start_date"]
+                )
             else:
                 update_dict["start_date"] = data["start_date"]
 
@@ -278,7 +284,9 @@ async def update_participant(rotation_id: int, participant_id: int):
                 update_dict["end_date"] = data["end_date"]
 
         if update_dict:
-            db(db.on_call_rotation_participants.id == participant_id).update(**update_dict)
+            db(db.on_call_rotation_participants.id == participant_id).update(
+                **update_dict
+            )
             db.commit()
 
         participant = db.on_call_rotation_participants[participant_id]
@@ -393,21 +401,23 @@ async def list_overrides(rotation_id: int):
     for row in rows:
         original_identity = db.identities[row.original_identity_id]
         override_identity = db.identities[row.override_identity_id]
-        items.append({
-            "id": row.id,
-            "rotation_id": row.rotation_id,
-            "original_identity_id": row.original_identity_id,
-            "original_identity_name": original_identity.username,
-            "original_identity_email": original_identity.email,
-            "override_identity_id": row.override_identity_id,
-            "override_identity_name": override_identity.username,
-            "override_identity_email": override_identity.email,
-            "start_datetime": row.start_datetime,
-            "end_datetime": row.end_datetime,
-            "reason": row.reason,
-            "created_by_id": row.created_by_id,
-            "created_at": row.created_at,
-        })
+        items.append(
+            {
+                "id": row.id,
+                "rotation_id": row.rotation_id,
+                "original_identity_id": row.original_identity_id,
+                "original_identity_name": original_identity.username,
+                "original_identity_email": original_identity.email,
+                "override_identity_id": row.override_identity_id,
+                "override_identity_name": override_identity.username,
+                "override_identity_email": override_identity.email,
+                "start_datetime": row.start_datetime,
+                "end_datetime": row.end_datetime,
+                "reason": row.reason,
+                "created_by_id": row.created_by_id,
+                "created_at": row.created_at,
+            }
+        )
 
     response = PaginatedResponse(
         items=items,
@@ -504,7 +514,10 @@ async def create_override(rotation_id: int):
     def check_overlap():
         overlap = db(
             (db.on_call_overrides.rotation_id == rotation_id)
-            & (db.on_call_overrides.original_identity_id == data["original_identity_id"])
+            & (
+                db.on_call_overrides.original_identity_id
+                == data["original_identity_id"]
+            )
             & (db.on_call_overrides.start_datetime < end_dt)
             & (db.on_call_overrides.end_datetime > start_dt)
         ).count()

@@ -627,7 +627,9 @@ class TestEdgeCases:
         assert "ç" in model.name or model.name == "François"
 
         # Unicode in descriptions should work
-        model = Description1000Model(description="Descripción con caracteres especiales: 中文")
+        model = Description1000Model(
+            description="Descripción con caracteres especiales: 中文"
+        )
         assert isinstance(model.description, str)
 
     def test_type_coercion(self):

@@ -21,21 +21,21 @@ bp = Blueprint("labels", __name__)
 
 class ListLabelsQuery(RequestModel):
     """Query parameters for listing labels."""
+
     search: Optional[str] = None
     page: int = 1
     per_page: int = 50
 
     model_config = {
         "json_schema_extra": {
-            "examples": [
-                {"search": "bug", "page": 1, "per_page": 50}
-            ]
+            "examples": [{"search": "bug", "page": 1, "per_page": 50}]
         }
     }
 
 
 class CreateLabelRequest(RequestModel):
     """Request body for creating a label."""
+
     name: Name255
     description: Optional[Description1000] = None
     color: str = "#cccccc"
@@ -43,6 +43,7 @@ class CreateLabelRequest(RequestModel):
 
 class UpdateLabelRequest(RequestModel):
     """Request body for updating a label."""
+
     name: Optional[Name255] = None
     description: Optional[Description1000] = None
     color: Optional[str] = None

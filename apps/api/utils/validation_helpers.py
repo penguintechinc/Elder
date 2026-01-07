@@ -314,7 +314,7 @@ def validate_timezone(tz_name: str) -> Optional[Tuple[Any, int]]:
     except pytz.exceptions.UnknownTimeZoneError:
         return ApiResponse.error(
             f"Invalid timezone: {tz_name}. Use standard timezone names (e.g., US/Eastern, Europe/London)",
-            400
+            400,
         )
     return None
 
@@ -358,7 +358,9 @@ def validate_shift_config(shift_config: dict) -> Optional[Tuple[Any, int]]:
 
     timezones = shift_config.get("timezones", [])
     if not isinstance(timezones, list) or not timezones:
-        return ApiResponse.error("shift_config must contain a non-empty timezones list", 400)
+        return ApiResponse.error(
+            "shift_config must contain a non-empty timezones list", 400
+        )
 
     # Track coverage hours to check for gaps and overlaps
     coverage_hours = set()
@@ -384,33 +386,28 @@ def validate_shift_config(shift_config: dict) -> Optional[Tuple[Any, int]]:
 
         if start_hour is None or end_hour is None:
             return ApiResponse.error(
-                f"Timezone {tz_name} must have shift_start_hour and shift_end_hour",
-                400
+                f"Timezone {tz_name} must have shift_start_hour and shift_end_hour", 400
             )
 
         if not isinstance(start_hour, int) or not isinstance(end_hour, int):
             return ApiResponse.error(
-                f"Timezone {tz_name}: shift hours must be integers",
-                400
+                f"Timezone {tz_name}: shift hours must be integers", 400
             )
 
         if start_hour < 0 or start_hour > 23:
             return ApiResponse.error(
-                f"Timezone {tz_name}: shift_start_hour must be 0-23",
-                400
+                f"Timezone {tz_name}: shift_start_hour must be 0-23", 400
             )
 
         if end_hour < 0 or end_hour > 23:
             return ApiResponse.error(
-                f"Timezone {tz_name}: shift_end_hour must be 0-23",
-                400
+                f"Timezone {tz_name}: shift_end_hour must be 0-23", 400
             )
 
         # Allow wrap-around (e.g., 22:00 to 06:00)
         if start_hour == end_hour:
             return ApiResponse.error(
-                f"Timezone {tz_name}: shift_start_hour cannot equal shift_end_hour",
-                400
+                f"Timezone {tz_name}: shift_start_hour cannot equal shift_end_hour", 400
             )
 
         # Track coverage for gap detection
@@ -419,7 +416,7 @@ def validate_shift_config(shift_config: dict) -> Optional[Tuple[Any, int]]:
                 if hour in coverage_hours:
                     return ApiResponse.error(
                         f"Timezone {tz_name}: shift hours overlap with another timezone",
-                        400
+                        400,
                     )
                 coverage_hours.add(hour)
         else:
@@ -428,7 +425,7 @@ def validate_shift_config(shift_config: dict) -> Optional[Tuple[Any, int]]:
                 if hour in coverage_hours:
                     return ApiResponse.error(
                         f"Timezone {tz_name}: shift hours overlap with another timezone",
-                        400
+                        400,
                     )
                 coverage_hours.add(hour)
 
@@ -474,6 +471,7 @@ async def validate_no_overlap(
         if error:
             return error
     """
+
     def check_overlap():
         query = (
             (db.on_call_overrides.rotation_id == rotation_id)
@@ -493,7 +491,7 @@ async def validate_no_overlap(
     if overlap_exists:
         return ApiResponse.error(
             "Override time range overlaps with an existing override for this identity",
-            400
+            400,
         )
 
     return None

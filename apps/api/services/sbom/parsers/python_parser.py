@@ -119,7 +119,8 @@ class PythonDependencyParser(BaseDependencyParser):
 
         # Route to appropriate parser
         if filename_lower == "requirements.txt" or (
-            filename_lower.startswith("requirements-") and filename_lower.endswith(".txt")
+            filename_lower.startswith("requirements-")
+            and filename_lower.endswith(".txt")
         ):
             return self._parse_requirements_txt(content, filename)
 
@@ -134,7 +135,9 @@ class PythonDependencyParser(BaseDependencyParser):
 
         return []
 
-    def _parse_requirements_txt(self, content: str, filename: str) -> List[Dict[str, Any]]:
+    def _parse_requirements_txt(
+        self, content: str, filename: str
+    ) -> List[Dict[str, Any]]:
         """Parse requirements.txt format.
 
         Handles pip requirements.txt format with support for:
@@ -175,7 +178,9 @@ class PythonDependencyParser(BaseDependencyParser):
 
         return components
 
-    def _parse_pyproject_toml(self, content: str, filename: str) -> List[Dict[str, Any]]:
+    def _parse_pyproject_toml(
+        self, content: str, filename: str
+    ) -> List[Dict[str, Any]]:
         """Parse pyproject.toml format.
 
         Supports multiple Python project formats:
@@ -256,9 +261,14 @@ class PythonDependencyParser(BaseDependencyParser):
                 if isinstance(opt_deps, dict):
                     for group, deps in opt_deps.items():
                         # Treat as dev scope if group name contains dev, test, etc.
-                        scope = "dev" if any(
-                            x in group.lower() for x in ("dev", "test", "lint", "type")
-                        ) else "runtime"
+                        scope = (
+                            "dev"
+                            if any(
+                                x in group.lower()
+                                for x in ("dev", "test", "lint", "type")
+                            )
+                            else "runtime"
+                        )
 
                         if isinstance(deps, list):
                             for dep_str in deps:
@@ -342,7 +352,7 @@ class PythonDependencyParser(BaseDependencyParser):
         # Extract install_requires list using regex
         # Matches: install_requires=[...] or install_requires = [...]
         install_requires_match = re.search(
-            r'install_requires\s*=\s*\[([^\]]*)\]', content, re.DOTALL
+            r"install_requires\s*=\s*\[([^\]]*)\]", content, re.DOTALL
         )
 
         if install_requires_match:
@@ -350,20 +360,16 @@ class PythonDependencyParser(BaseDependencyParser):
 
             # Extract individual requirement strings (quoted)
             # Matches: 'package' or "package" or 'package==1.0'
-            requirement_matches = re.findall(
-                r'["\']([^"\']+)["\']', requires_list
-            )
+            requirement_matches = re.findall(r'["\']([^"\']+)["\']', requires_list)
 
             for req_str in requirement_matches:
-                component = self._parse_requirement_line(
-                    req_str, filename, "runtime"
-                )
+                component = self._parse_requirement_line(req_str, filename, "runtime")
                 if component:
                     components.append(component)
 
         # Also try to extract extras_require for dev dependencies
         extras_match = re.search(
-            r'extras_require\s*=\s*\{([^\}]*)\}', content, re.DOTALL
+            r"extras_require\s*=\s*\{([^\}]*)\}", content, re.DOTALL
         )
 
         if extras_match:
@@ -373,18 +379,14 @@ class PythonDependencyParser(BaseDependencyParser):
             dev_extras = re.findall(
                 r'["\'](?:dev|development|test|lint|type)["\']?\s*:\s*\[([^\]]*)\]',
                 extras_str,
-                re.DOTALL | re.IGNORECASE
+                re.DOTALL | re.IGNORECASE,
             )
 
             for extras_list in dev_extras:
-                requirement_matches = re.findall(
-                    r'["\']([^"\']+)["\']', extras_list
-                )
+                requirement_matches = re.findall(r'["\']([^"\']+)["\']', extras_list)
 
                 for req_str in requirement_matches:
-                    component = self._parse_requirement_line(
-                        req_str, filename, "dev"
-                    )
+                    component = self._parse_requirement_line(req_str, filename, "dev")
                     if component:
                         components.append(component)
 
@@ -426,8 +428,7 @@ class PythonDependencyParser(BaseDependencyParser):
         # Extract package name and version using regex
         # Matches: name, name==1.0, name>=1.0, name~=1.0, etc.
         match = re.match(
-            r'^([a-zA-Z0-9._-]+)(?:\s*([><=~!]+)\s*([a-zA-Z0-9._\-+]+))?',
-            line
+            r"^([a-zA-Z0-9._-]+)(?:\s*([><=~!]+)\s*([a-zA-Z0-9._\-+]+))?", line
         )
 
         if not match:
@@ -443,9 +444,9 @@ class PythonDependencyParser(BaseDependencyParser):
         # For version, extract the first part if it's a range (e.g., ">=1.0,<2.0")
         if version and "," in line:
             # Handle complex version specs like ">=1.0,<2.0"
-            version_part = line[len(name):].strip()
+            version_part = line[len(name) :].strip()
             # Extract just the first version number for PURL
-            version_match = re.search(r'[0-9]+\.[0-9.]*', version_part)
+            version_match = re.search(r"[0-9]+\.[0-9.]*", version_part)
             if version_match:
                 version = version_match.group(0)
             else:
@@ -497,7 +498,7 @@ class PythonDependencyParser(BaseDependencyParser):
             # Simple string version (e.g., "^1.0", "1.0", "*")
             if spec != "*":
                 # Extract version number from constraint (e.g., "^1.0" -> "1.0")
-                version_match = re.search(r'[0-9]+\.[0-9.]*', spec)
+                version_match = re.search(r"[0-9]+\.[0-9.]*", spec)
                 if version_match:
                     version = version_match.group(0)
 
@@ -506,7 +507,7 @@ class PythonDependencyParser(BaseDependencyParser):
             if "version" in spec:
                 version_str = spec["version"]
                 if isinstance(version_str, str) and version_str != "*":
-                    version_match = re.search(r'[0-9]+\.[0-9.]*', version_str)
+                    version_match = re.search(r"[0-9]+\.[0-9.]*", version_str)
                     if version_match:
                         version = version_match.group(0)
 
@@ -553,7 +554,7 @@ class PythonDependencyParser(BaseDependencyParser):
         if isinstance(spec, str):
             # Simple string version
             if spec != "*":
-                version_match = re.search(r'[0-9]+\.[0-9.]*', spec)
+                version_match = re.search(r"[0-9]+\.[0-9.]*", spec)
                 if version_match:
                     version = version_match.group(0)
 
@@ -562,7 +563,7 @@ class PythonDependencyParser(BaseDependencyParser):
             if "version" in spec:
                 version_str = spec["version"]
                 if isinstance(version_str, str) and version_str != "*":
-                    version_match = re.search(r'[0-9]+\.[0-9.]*', version_str)
+                    version_match = re.search(r"[0-9]+\.[0-9.]*", version_str)
                     if version_match:
                         version = version_match.group(0)
 

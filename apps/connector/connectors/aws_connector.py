@@ -704,6 +704,17 @@ class AWSConnector(BaseConnector):
         updated = 0
 
         try:
+            # Fetch all existing compute entities once and build an index by function_arn
+            existing_response = await self.elder_client.list_entities(
+                organization_id=region_org_id,
+                entity_type="compute",
+            )
+            existing_entities_by_arn = {
+                item.get("attributes", {}).get("function_arn"): item
+                for item in existing_response.get("items", [])
+                if item.get("attributes", {}).get("function_arn")
+            }
+
             paginator = lambda_client.get_paginator("list_functions")
 
             for page in paginator.paginate():
@@ -736,7 +747,9 @@ class AWSConnector(BaseConnector):
                         attributes["vpc_config"] = {
                             "vpc_id": vpc_config.get("VpcId"),
                             "subnet_ids": vpc_config.get("SubnetIds", []),
-                            "security_group_ids": vpc_config.get("SecurityGroupIds", []),
+                            "security_group_ids": vpc_config.get(
+                                "SecurityGroupIds", []
+                            ),
                         }
 
                     # Store environment variable keys only (not values for security)
@@ -773,20 +786,8 @@ class AWSConnector(BaseConnector):
                         tags=["aws", "lambda", "serverless", region],
                     )
 
-                    # Check if entity already exists by function_arn
-                    existing = await self.elder_client.list_entities(
-                        organization_id=region_org_id,
-                        entity_type="compute",
-                    )
-
-                    found = None
-                    for item in existing.get("items", []):
-                        if (
-                            item.get("attributes", {}).get("function_arn")
-                            == function_arn
-                        ):
-                            found = item
-                            break
+                    # Check if entity already exists using the indexed lookup
+                    found = existing_entities_by_arn.get(function_arn)
 
                     if found:
                         await self.elder_client.update_entity(found["id"], entity)

@@ -23,6 +23,7 @@ def check_imports() -> bool:
         from scanners.sbom_scanner import SBOMScanner  # noqa: F401
         from scanners.banner import BannerScanner  # noqa: F401
         from scanners.http_screenshot import HTTPScreenshotScanner  # noqa: F401
+
         return True
     except ImportError as e:
         print(f"Import error: {e}", file=sys.stderr)

@@ -386,9 +386,9 @@ async def get_component_vulnerabilities(id: int):
 
         # Apply severity filter
         if request.args.get("severity"):
-            vuln_query &= db.vulnerabilities.severity == request.args.get(
-                "severity"
-            ).upper()
+            vuln_query &= (
+                db.vulnerabilities.severity == request.args.get("severity").upper()
+            )
 
         # Get vulnerabilities
         vulnerabilities = db(vuln_query).select(orderby=~db.vulnerabilities.cvss_score)

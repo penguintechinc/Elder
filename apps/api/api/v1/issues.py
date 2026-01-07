@@ -33,6 +33,7 @@ bp = Blueprint("issues", __name__)
 
 class CreateIssueRequest(RequestModel):
     """Request to create a new issue."""
+
     title: str = Field(..., min_length=1, max_length=255, description="Issue title")
     organization_id: int = Field(..., ge=1, description="Organization ID")
     description: Optional[str] = Field(default=None, description="Issue description")
@@ -45,6 +46,7 @@ class CreateIssueRequest(RequestModel):
 
 class UpdateIssueRequest(RequestModel):
     """Request to update an existing issue."""
+
     title: Optional[str] = Field(default=None, min_length=1, max_length=255)
     description: Optional[str] = Field(default=None)
     status: Optional[str] = Field(default=None)
@@ -57,11 +59,13 @@ class UpdateIssueRequest(RequestModel):
 
 class CreateIssueCommentRequest(RequestModel):
     """Request to create an issue comment."""
+
     content: str = Field(..., min_length=1, description="Comment content")
 
 
 class CreateIssueLabelRequest(RequestModel):
     """Request to create an issue label."""
+
     name: str = Field(..., min_length=1, max_length=255, description="Label name")
     color: str = Field(..., description="Label color (hex)")
     description: Optional[str] = Field(default=None, description="Label description")
@@ -69,21 +73,25 @@ class CreateIssueLabelRequest(RequestModel):
 
 class AddIssueLabelRequest(RequestModel):
     """Request to add a label to an issue."""
+
     label_id: int = Field(..., ge=1, description="Label ID")
 
 
 class CreateIssueEntityLinkRequest(RequestModel):
     """Request to link an entity to an issue."""
+
     entity_id: int = Field(..., ge=1, description="Entity ID")
 
 
 class LinkIssueToProjectRequest(RequestModel):
     """Request to link an issue to a project."""
+
     project_id: int = Field(..., ge=1, description="Project ID")
 
 
 class LinkIssueToMilestoneRequest(RequestModel):
     """Request to link an issue to a milestone."""
+
     milestone_id: int = Field(..., ge=1, description="Milestone ID")
 
 
@@ -1006,9 +1014,7 @@ async def link_issue_to_project(id: int, body: LinkIssueToProjectRequest):
             return None, "Issue is already linked to this project", 400
 
         # Create link
-        link_id = db.issue_project_links.insert(
-            issue_id=id, project_id=body.project_id
-        )
+        link_id = db.issue_project_links.insert(issue_id=id, project_id=body.project_id)
         db.commit()
 
         link = db.issue_project_links[link_id]

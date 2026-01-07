@@ -53,7 +53,9 @@ def _match_license_pattern(license_id: str, pattern: str) -> bool:
     return fnmatch.fnmatch(license_id.lower(), pattern.lower())
 
 
-def _resolve_credential(db, credential_type: str, credential_id: int, credential_mapping: dict) -> str:
+def _resolve_credential(
+    db, credential_type: str, credential_id: int, credential_mapping: dict
+) -> str:
     """
     Resolve a credential to extract the authentication token.
 
@@ -261,7 +263,11 @@ async def create_scan():
     if not repository_url:
         if parent_type == "service" and parent.repository_url:
             repository_url = parent.repository_url
-        elif parent_type == "software" and hasattr(parent, "repository_url") and parent.repository_url:
+        elif (
+            parent_type == "software"
+            and hasattr(parent, "repository_url")
+            and parent.repository_url
+        ):
             repository_url = parent.repository_url
 
     def create():
@@ -390,7 +396,7 @@ async def get_pending_scans():
                 db,
                 item.credential_type,
                 item.credential_id,
-                item.credential_mapping or {}
+                item.credential_mapping or {},
             )
             if token:
                 scan_dict["_resolved_token"] = token
@@ -507,9 +513,8 @@ async def submit_results(id: int):
 
     def process_results():
         # Get existing components for this parent
-        existing_query = (
-            (db.sbom_components.parent_type == scan.parent_type)
-            & (db.sbom_components.parent_id == scan.parent_id)
+        existing_query = (db.sbom_components.parent_type == scan.parent_type) & (
+            db.sbom_components.parent_id == scan.parent_id
         )
         existing_components = db(existing_query).select()
         existing_map = {(c.name, c.version): c for c in existing_components}
@@ -578,9 +583,8 @@ async def submit_results(id: int):
         violations = []
         if parent_org_id:
             # Get active policies for this organization
-            policy_query = (
-                (db.license_policies.organization_id == parent_org_id)
-                & (db.license_policies.is_active is True)
+            policy_query = (db.license_policies.organization_id == parent_org_id) & (
+                db.license_policies.is_active is True
             )
             policies = db(policy_query).select()
 
@@ -665,10 +669,14 @@ async def submit_results(id: int):
                         for comp_id, vulns in results.items():
                             for vuln in vulns:
                                 # Check if vulnerability already exists
-                                existing_vuln = db(
-                                    (db.vulnerabilities.cve_id == vuln.cve_id)
-                                    & (db.vulnerabilities.tenant_id == tenant_id)
-                                ).select().first()
+                                existing_vuln = (
+                                    db(
+                                        (db.vulnerabilities.cve_id == vuln.cve_id)
+                                        & (db.vulnerabilities.tenant_id == tenant_id)
+                                    )
+                                    .select()
+                                    .first()
+                                )
 
                                 if existing_vuln:
                                     vuln_id = existing_vuln.id
@@ -691,13 +699,20 @@ async def submit_results(id: int):
                                     )
 
                                 # Check if component-vulnerability link exists
-                                existing_link = db(
-                                    (db.component_vulnerabilities.component_id == comp_id)
-                                    & (
-                                        db.component_vulnerabilities.vulnerability_id
-                                        == vuln_id
+                                existing_link = (
+                                    db(
+                                        (
+                                            db.component_vulnerabilities.component_id
+                                            == comp_id
+                                        )
+                                        & (
+                                            db.component_vulnerabilities.vulnerability_id
+                                            == vuln_id
+                                        )
                                     )
-                                ).select().first()
+                                    .select()
+                                    .first()
+                                )
 
                                 if not existing_link:
                                     # Create component-vulnerability link
@@ -794,7 +809,7 @@ async def upload_sbom():
         return ApiResponse.error(
             f"Unsupported SBOM file format. Filename: {filename}. "
             "Supported formats: CycloneDX (JSON/XML), SPDX (JSON)",
-            400
+            400,
         )
 
     try:
@@ -831,9 +846,8 @@ async def upload_sbom():
         )
 
         # Get existing components for this parent
-        existing_query = (
-            (db.sbom_components.parent_type == parent_type)
-            & (db.sbom_components.parent_id == parent_id)
+        existing_query = (db.sbom_components.parent_type == parent_type) & (
+            db.sbom_components.parent_id == parent_id
         )
         existing_components = db(existing_query).select()
         existing_map = {(c.name, c.version): c for c in existing_components}

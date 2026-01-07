@@ -229,9 +229,7 @@ async def create_policy():
 
     # Validate action
     if req.action not in ["warn", "block"]:
-        return ApiResponse.error(
-            "action must be 'warn' or 'block'", 400
-        )
+        return ApiResponse.error("action must be 'warn' or 'block'", 400)
 
     def create():
         policy_id = db.license_policies.insert(
@@ -342,9 +340,7 @@ async def update_policy(id: int):
 
     # Validate action if provided
     if req.action is not None and req.action not in ["warn", "block"]:
-        return ApiResponse.error(
-            "action must be 'warn' or 'block'", 400
-        )
+        return ApiResponse.error("action must be 'warn' or 'block'", 400)
 
     def update():
         update_data = {}

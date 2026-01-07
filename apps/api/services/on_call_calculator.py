@@ -205,12 +205,8 @@ class OnCallCalculator:
         participant = participants[participant_index]
 
         # Calculate shift start and end
-        shift_start = rotation_start_dt + datetime.timedelta(
-            days=position_in_cycle
-        )
-        shift_end = shift_start + datetime.timedelta(
-            days=rotation.rotation_length_days
-        )
+        shift_start = rotation_start_dt + datetime.timedelta(days=position_in_cycle)
+        shift_end = shift_start + datetime.timedelta(days=rotation.rotation_length_days)
 
         return OnCallShiftInfo(
             identity_id=participant.identity_id,
@@ -372,16 +368,12 @@ class OnCallCalculator:
                     def get_participant():
                         for pid in participant_ids:
                             participant = db.on_call_rotation_participants[
-                                (db.on_call_rotation_participants.rotation_id
-                                 == rotation.id)
-                                & (
-                                    db.on_call_rotation_participants.identity_id
-                                    == pid
+                                (
+                                    db.on_call_rotation_participants.rotation_id
+                                    == rotation.id
                                 )
-                                & (
-                                    db.on_call_rotation_participants.is_active
-                                    is True
-                                )
+                                & (db.on_call_rotation_participants.identity_id == pid)
+                                & (db.on_call_rotation_participants.is_active is True)
                             ]
                             if participant:
                                 return participant
@@ -392,10 +384,16 @@ class OnCallCalculator:
                         continue
 
                     # Calculate shift boundaries in UTC
-                    shift_start_local = local_dt.replace(hour=shift_start_hour, minute=0, second=0, microsecond=0)
-                    shift_end_local = local_dt.replace(hour=shift_end_hour, minute=0, second=0, microsecond=0)
+                    shift_start_local = local_dt.replace(
+                        hour=shift_start_hour, minute=0, second=0, microsecond=0
+                    )
+                    shift_end_local = local_dt.replace(
+                        hour=shift_end_hour, minute=0, second=0, microsecond=0
+                    )
 
-                    shift_start_utc = shift_start_local.astimezone(datetime.timezone.utc)
+                    shift_start_utc = shift_start_local.astimezone(
+                        datetime.timezone.utc
+                    )
                     shift_end_utc = shift_end_local.astimezone(datetime.timezone.utc)
 
                     return OnCallShiftInfo(
@@ -411,9 +409,7 @@ class OnCallCalculator:
             return None
 
     @staticmethod
-    async def get_escalation_chain(
-        db, rotation_id: int
-    ) -> list:
+    async def get_escalation_chain(db, rotation_id: int) -> list:
         """
         Get ordered escalation policies for a rotation.
 
@@ -426,6 +422,7 @@ class OnCallCalculator:
         Returns:
             List of escalation policy dicts with identity/group details
         """
+
         def get_policies():
             policies = db(
                 db.on_call_escalation_policies.rotation_id == rotation_id

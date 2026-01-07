@@ -12,10 +12,10 @@ from pydantic import Field, field_validator
 from py_libs.pydantic.base import ImmutableModel, RequestModel
 
 # Generic type variable for paginated items
-T = TypeVar('T')
+T = TypeVar("T")
 
 # Sort order enumeration
-SortOrder = Literal['asc', 'desc']
+SortOrder = Literal["asc", "desc"]
 
 
 class PaginationParams(RequestModel):
@@ -34,18 +34,14 @@ class PaginationParams(RequestModel):
 
     page: int = Field(default=1, ge=1, description="Page number (1-indexed)")
     per_page: int = Field(
-        default=20,
-        ge=1,
-        le=100,
-        description="Items per page (1-100)"
+        default=20, ge=1, le=100, description="Items per page (1-100)"
     )
     sort_by: Optional[str] = Field(None, max_length=255, description="Field to sort by")
     sort_order: SortOrder = Field(
-        default='asc',
-        description="Sort order: 'asc' or 'desc'"
+        default="asc", description="Sort order: 'asc' or 'desc'"
     )
 
-    @field_validator('sort_by')
+    @field_validator("sort_by")
     @classmethod
     def sort_by_not_empty(cls, v: Optional[str]) -> Optional[str]:
         """Ensure sort_by is not just whitespace if provided."""
@@ -91,12 +87,12 @@ class PaginatedResponse(ImmutableModel, Generic[T]):
     per_page: int = Field(ge=1, le=100, description="Items per page")
     pages: int = Field(ge=0, description="Total number of pages")
 
-    @field_validator('pages')
+    @field_validator("pages")
     @classmethod
     def validate_pages(cls, v: int, info) -> int:
         """Ensure pages count matches total and per_page."""
-        total = info.data.get('total', 0)
-        per_page = info.data.get('per_page', 1)
+        total = info.data.get("total", 0)
+        per_page = info.data.get("per_page", 1)
 
         expected_pages = (total + per_page - 1) // per_page if total > 0 else 0
         if v != expected_pages:
@@ -133,15 +129,14 @@ class BulkOperationResult(ImmutableModel):
     succeeded: int = Field(ge=0, description="Number of successfully processed items")
     failed: int = Field(ge=0, description="Number of failed items")
     errors: Optional[list[dict]] = Field(
-        None,
-        description="List of error details (one per failed item)"
+        None, description="List of error details (one per failed item)"
     )
 
-    @field_validator('errors')
+    @field_validator("errors")
     @classmethod
     def errors_matches_failed_count(cls, v: Optional[list], info) -> Optional[list]:
         """Ensure errors list length matches failed count."""
-        failed = info.data.get('failed', 0)
+        failed = info.data.get("failed", 0)
 
         if v is None:
             if failed > 0:
@@ -149,9 +144,7 @@ class BulkOperationResult(ImmutableModel):
             return None
 
         if len(v) != failed:
-            raise ValueError(
-                f"len(errors)={len(v)} does not match failed={failed}"
-            )
+            raise ValueError(f"len(errors)={len(v)} does not match failed={failed}")
         return v
 
 
@@ -178,20 +171,13 @@ class ErrorResponse(ImmutableModel):
         ... )
     """
 
-    error: str = Field(
-        max_length=255,
-        description="Error code or type"
-    )
-    message: str = Field(
-        max_length=1000,
-        description="Human-readable error message"
-    )
+    error: str = Field(max_length=255, description="Error code or type")
+    message: str = Field(max_length=1000, description="Human-readable error message")
     details: Optional[dict] = Field(
-        None,
-        description="Optional additional error context or structured details"
+        None, description="Optional additional error context or structured details"
     )
 
-    @field_validator('error')
+    @field_validator("error")
     @classmethod
     def error_not_empty(cls, v: str) -> str:
         """Ensure error code is not just whitespace."""
@@ -199,7 +185,7 @@ class ErrorResponse(ImmutableModel):
             raise ValueError("error cannot be empty or whitespace-only")
         return v.strip()
 
-    @field_validator('message')
+    @field_validator("message")
     @classmethod
     def message_not_empty(cls, v: str) -> str:
         """Ensure message is not just whitespace."""

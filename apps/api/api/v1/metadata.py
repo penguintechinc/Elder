@@ -564,7 +564,9 @@ async def create_organization_metadata(id: int, body: CreateMetadataRequest):
 @license_required("enterprise")
 @resource_role_required("maintainer", resource_param="id")
 @validated_request(body_model=UpdateMetadataRequest)
-async def update_organization_metadata(id: int, field_key: str, body: UpdateMetadataRequest):
+async def update_organization_metadata(
+    id: int, field_key: str, body: UpdateMetadataRequest
+):
     """
     Update a metadata field for an organization.
 

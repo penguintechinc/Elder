@@ -88,9 +88,7 @@ class DotnetParser(BaseDependencyParser):
         except Exception as e:
             raise ValueError(f"Error parsing {filename}: {str(e)}")
 
-    def _parse_project_file(
-        self, content: str, filename: str
-    ) -> List[Dict[str, Any]]:
+    def _parse_project_file(self, content: str, filename: str) -> List[Dict[str, Any]]:
         """Parse .csproj or .fsproj file for package references.
 
         Args:

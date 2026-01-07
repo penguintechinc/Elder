@@ -109,7 +109,9 @@ class CycloneDXExporter:
                     "version": metadata.get("version", "unknown"),
                 }
                 if "description" in metadata:
-                    bom["metadata"]["component"]["description"] = metadata["description"]
+                    bom["metadata"]["component"]["description"] = metadata[
+                        "description"
+                    ]
 
         # Convert components
         for comp in components:
@@ -156,13 +158,9 @@ class CycloneDXExporter:
         # Add external references
         external_refs = []
         if component.get("repository_url"):
-            external_refs.append(
-                {"type": "vcs", "url": component["repository_url"]}
-            )
+            external_refs.append({"type": "vcs", "url": component["repository_url"]})
         if component.get("homepage_url"):
-            external_refs.append(
-                {"type": "website", "url": component["homepage_url"]}
-            )
+            external_refs.append({"type": "website", "url": component["homepage_url"]})
         if external_refs:
             cdx_comp["externalReferences"] = external_refs
 
@@ -325,9 +323,7 @@ class CycloneDXExporter:
 
         # External references
         if "externalReferences" in component:
-            refs_elem = ET.SubElement(
-                comp_elem, "{%s}externalReferences" % self.XMLNS
-            )
+            refs_elem = ET.SubElement(comp_elem, "{%s}externalReferences" % self.XMLNS)
             for ref in component["externalReferences"]:
                 ref_elem = ET.SubElement(refs_elem, "{%s}reference" % self.XMLNS)
                 ref_elem.set("type", ref["type"])
