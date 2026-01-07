@@ -1,11 +1,12 @@
 """On-call rotation webhook handlers for alert integrations."""
 
+import datetime
+
 from flask import Blueprint, current_app, request
 
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.validation_helpers import validate_json_body
 from shared.async_utils import run_in_threadpool
-import datetime
 
 bp = Blueprint("on_call_webhooks", __name__)
 

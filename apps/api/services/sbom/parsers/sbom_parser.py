@@ -7,9 +7,10 @@ and JSON format for SPDX.
 
 import json
 import re
-import defusedxml.ElementTree as ET
 from typing import Any, Dict, List, Optional
 from xml.etree.ElementTree import Element  # For type hints only
+
+import defusedxml.ElementTree as ET
 
 from ..base import BaseDependencyParser
 

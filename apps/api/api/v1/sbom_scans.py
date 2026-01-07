@@ -1,33 +1,24 @@
 """SBOM scans management API endpoints for Elder using PyDAL with async/await and shared helpers."""
 
 import fnmatch
-import structlog
 from dataclasses import asdict
 
+import structlog
 from flask import Blueprint, current_app, jsonify, request
 from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.dataclasses import (
-    PaginatedResponse,
-    SBOMScanDTO,
-    from_pydal_row,
-    from_pydal_rows,
-)
+from apps.api.models.dataclasses import (PaginatedResponse, SBOMScanDTO,
+                                         from_pydal_row, from_pydal_rows)
 from apps.api.services.sbom.parsers import SBOMParser
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.pydal_helpers import PaginationParams
 from apps.api.utils.validation_helpers import validate_resource_exists
 from shared.async_utils import run_in_threadpool
-from shared.py_libs.py_libs.pydantic.models.sbom import (
-    CreateSBOMScanRequest,
-    SubmitSBOMResultsRequest,
-    UploadSBOMRequest,
-)
 from shared.py_libs.py_libs.pydantic.flask_integration import (
-    ValidationErrorResponse,
-    validate_body,
-)
+    ValidationErrorResponse, validate_body)
+from shared.py_libs.py_libs.pydantic.models.sbom import (
+    CreateSBOMScanRequest, SubmitSBOMResultsRequest, UploadSBOMRequest)
 
 bp = Blueprint("sbom_scans", __name__)
 logger = structlog.get_logger()
@@ -629,7 +620,8 @@ async def submit_results(id: int):
     # Trigger vulnerability matching for all components (async, non-blocking)
     if success and component_ids:
         # Import here to avoid circular dependency
-        from apps.api.services.sbom.vulnerability.matcher import VulnerabilityMatcher
+        from apps.api.services.sbom.vulnerability.matcher import \
+            VulnerabilityMatcher
 
         async def match_vulnerabilities():
             """Background task to match vulnerabilities."""

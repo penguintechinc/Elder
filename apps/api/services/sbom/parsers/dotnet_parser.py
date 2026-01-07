@@ -10,9 +10,10 @@ information compatible with the SBOM service.
 """
 
 import re
-import defusedxml.ElementTree as ET
 from typing import Any, Dict, List, Optional
 from xml.etree.ElementTree import Element  # For type hints only
+
+import defusedxml.ElementTree as ET
 
 from apps.api.services.sbom.base import BaseDependencyParser
 

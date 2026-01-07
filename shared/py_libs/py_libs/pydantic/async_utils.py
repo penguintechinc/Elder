@@ -1,7 +1,9 @@
 """Async validation utilities for Pydantic with PyDAL."""
 
-from typing import Callable, Any
+from typing import Any, Callable
+
 from pydantic import BaseModel
+
 from shared.async_utils import run_in_threadpool
 
 

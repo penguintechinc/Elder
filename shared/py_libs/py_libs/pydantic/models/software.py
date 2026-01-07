@@ -10,9 +10,8 @@ Provides validated Pydantic 2 equivalents of Software dataclasses:
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import Field
-
 from py_libs.pydantic.base import ImmutableModel, RequestModel
+from pydantic import Field
 
 
 class SoftwareDTO(ImmutableModel):

@@ -8,16 +8,10 @@ from google.api_core import exceptions as google_exceptions
 from google.cloud import secretmanager
 from google.oauth2 import service_account
 
-from .base import (
-    InvalidSecretConfigException,
-    SecretAccessDeniedException,
-    SecretAlreadyExistsException,
-    SecretMetadata,
-    SecretNotFoundException,
-    SecretProviderClient,
-    SecretProviderException,
-    SecretValue,
-)
+from .base import (InvalidSecretConfigException, SecretAccessDeniedException,
+                   SecretAlreadyExistsException, SecretMetadata,
+                   SecretNotFoundException, SecretProviderClient,
+                   SecretProviderException, SecretValue)
 
 logger = logging.getLogger(__name__)
 

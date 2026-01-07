@@ -3,11 +3,12 @@
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, g, jsonify, request
+from py_libs.pydantic.models import (CreateResourceRoleRequest,
+                                     ResourceRoleResponse)
 from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required
 from apps.api.models.dataclasses import ResourceRoleDTO, from_pydal_rows
-from py_libs.pydantic.models import ResourceRoleResponse, CreateResourceRoleRequest
 from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
 

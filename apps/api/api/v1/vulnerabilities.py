@@ -3,26 +3,20 @@
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, jsonify, request
+from py_libs.pydantic.flask_integration import ValidationErrorResponse
+from py_libs.pydantic.models.vulnerability import (
+    NVDSyncRequest, SyncVulnerabilitiesRequest,
+    UpdateComponentVulnerabilityRequest)
 from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.dataclasses import (
-    ComponentVulnerabilityDTO,
-    PaginatedResponse,
-    VulnerabilityDTO,
-    from_pydal_row,
-    from_pydal_rows,
-)
+from apps.api.models.dataclasses import (ComponentVulnerabilityDTO,
+                                         PaginatedResponse, VulnerabilityDTO,
+                                         from_pydal_row, from_pydal_rows)
 from apps.api.services.sbom.vulnerability.matcher import VulnerabilityMatcher
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.pydal_helpers import PaginationParams
 from apps.api.utils.validation_helpers import validate_resource_exists
-from py_libs.pydantic.flask_integration import ValidationErrorResponse
-from py_libs.pydantic.models.vulnerability import (
-    SyncVulnerabilitiesRequest,
-    NVDSyncRequest,
-    UpdateComponentVulnerabilityRequest,
-)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("vulnerabilities", __name__)

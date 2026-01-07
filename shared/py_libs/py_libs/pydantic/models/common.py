@@ -7,9 +7,8 @@ with proper validation, immutability for responses, and generic type support.
 
 from typing import Generic, Literal, Optional, TypeVar
 
-from pydantic import Field, field_validator
-
 from py_libs.pydantic.base import ImmutableModel, RequestModel
+from pydantic import Field, field_validator
 
 # Generic type variable for paginated items
 T = TypeVar("T")

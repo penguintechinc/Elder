@@ -4,23 +4,16 @@ import datetime
 from dataclasses import asdict
 
 from croniter import croniter
-from flask import Blueprint, current_app, request
+from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.dataclasses import (
-    OnCallRotationDTO,
-    from_pydal_row,
-    from_pydal_rows,
-    PaginatedResponse,
-)
+from apps.api.models.dataclasses import (OnCallRotationDTO, PaginatedResponse,
+                                         from_pydal_row, from_pydal_rows)
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.pydal_helpers import PaginationParams
-from apps.api.utils.validation_helpers import (
-    validate_json_body,
-    validate_required_fields,
-    validate_resource_exists,
-)
-from flask import jsonify
+from apps.api.utils.validation_helpers import (validate_json_body,
+                                               validate_required_fields,
+                                               validate_resource_exists)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("on_call_rotations_crud", __name__)

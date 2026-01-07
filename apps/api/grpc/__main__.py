@@ -1,7 +1,8 @@
 """Entry point for running gRPC server as a module."""
 
-from apps.api.grpc.server import serve
 import os
+
+from apps.api.grpc.server import serve
 
 if __name__ == "__main__":
     # Get configuration from environment

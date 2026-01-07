@@ -14,8 +14,8 @@ import datetime
 from dataclasses import dataclass
 from typing import Optional
 
-from croniter import croniter
 import pytz
+from croniter import croniter
 
 from apps.api.models.dataclasses import CurrentOnCallDTO
 from shared.async_utils import run_in_threadpool

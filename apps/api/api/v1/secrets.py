@@ -7,11 +7,9 @@ from flask import Blueprint, jsonify, request
 from apps.api.auth.decorators import login_required
 from apps.api.logging_config import log_error_and_respond
 from apps.api.services.secrets import SecretsService
-from apps.api.services.secrets.base import (
-    SecretAccessDeniedException,
-    SecretNotFoundException,
-    SecretProviderException,
-)
+from apps.api.services.secrets.base import (SecretAccessDeniedException,
+                                            SecretNotFoundException,
+                                            SecretProviderException)
 
 logger = logging.getLogger(__name__)
 bp = Blueprint("secrets", __name__)

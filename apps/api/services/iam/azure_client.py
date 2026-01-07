@@ -107,7 +107,8 @@ class AzureADClient(BaseIAMProvider):
     ) -> Dict[str, Any]:
         """Create a new Azure AD user."""
         try:
-            from msgraph.generated.models.password_profile import PasswordProfile
+            from msgraph.generated.models.password_profile import \
+                PasswordProfile
             from msgraph.generated.models.user import User
 
             user = User()
@@ -266,7 +267,8 @@ class AzureADClient(BaseIAMProvider):
     ) -> Dict[str, Any]:
         """Add user to Azure AD group (role assignment)."""
         try:
-            from msgraph.generated.models.reference_create import ReferenceCreate
+            from msgraph.generated.models.reference_create import \
+                ReferenceCreate
 
             reference = ReferenceCreate()
             reference.odata_id = (

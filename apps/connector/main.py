@@ -14,9 +14,8 @@ from apps.connector.connectors.authentik_connector import AuthentikConnector
 from apps.connector.connectors.aws_connector import AWSConnector
 from apps.connector.connectors.base import BaseConnector, SyncResult
 from apps.connector.connectors.gcp_connector import GCPConnector
-from apps.connector.connectors.google_workspace_connector import (
-    GoogleWorkspaceConnector,
-)
+from apps.connector.connectors.google_workspace_connector import \
+    GoogleWorkspaceConnector
 from apps.connector.connectors.ldap_connector import LDAPConnector
 from apps.connector.connectors.okta_connector import OktaConnector
 from apps.connector.utils.logger import configure_logging, get_logger

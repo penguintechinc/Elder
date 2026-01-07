@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse, urlunparse
 
-from parsers.endpoint_parser_flask import FlaskEndpointParser
 from parsers.endpoint_parser_django import DjangoEndpointParser
 from parsers.endpoint_parser_express import ExpressEndpointParser
+from parsers.endpoint_parser_flask import FlaskEndpointParser
 from parsers.endpoint_parser_go import GoEndpointParser
 
 from .base import BaseScanner
@@ -425,14 +425,11 @@ class SBOMScanner(BaseScanner):
         """
         try:
             # Import parsers dynamically
-            from apps.api.services.sbom.parsers import (
-                DotnetParser,
-                GoParser,
-                JavaDependencyParser,
-                NodeDependencyParser,
-                PythonDependencyParser,
-                RustDependencyParser,
-            )
+            from apps.api.services.sbom.parsers import (DotnetParser, GoParser,
+                                                        JavaDependencyParser,
+                                                        NodeDependencyParser,
+                                                        PythonDependencyParser,
+                                                        RustDependencyParser)
 
             # Map ecosystems to parser classes
             parser_map = {

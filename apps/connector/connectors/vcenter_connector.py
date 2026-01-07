@@ -4,7 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from apps.connector.config.settings import settings
 from apps.connector.connectors.base import BaseConnector, SyncResult
-from apps.connector.utils.elder_client import ElderAPIClient, Entity, Organization
+from apps.connector.utils.elder_client import (ElderAPIClient, Entity,
+                                               Organization)
 
 
 class VCenterConnector(BaseConnector):

@@ -5,16 +5,8 @@ import json
 from datetime import datetime
 from typing import Any, Optional
 
-from sqlalchemy import (
-    Boolean,
-    Column,
-    Enum,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-)
+from sqlalchemy import (Boolean, Column, Enum, ForeignKey, Integer, String,
+                        Text, UniqueConstraint)
 from sqlalchemy.orm import Mapped, relationship, validates
 
 from apps.api.models.base import Base, IDMixin, TimestampMixin

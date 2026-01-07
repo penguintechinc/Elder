@@ -5,8 +5,10 @@ from dataclasses import asdict
 from flask import Blueprint, current_app, jsonify, request
 from werkzeug.security import generate_password_hash
 
-from apps.api.auth.decorators import get_current_user, login_required, role_required
-from apps.api.models.dataclasses import IdentityDTO, PaginatedResponse, from_pydal_rows
+from apps.api.auth.decorators import (get_current_user, login_required,
+                                      role_required)
+from apps.api.models.dataclasses import (IdentityDTO, PaginatedResponse,
+                                         from_pydal_rows)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("users", __name__)

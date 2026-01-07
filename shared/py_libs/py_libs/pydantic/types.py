@@ -24,19 +24,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
+from py_libs.validation import (IsEmail, IsHostname, IsIPAddress, IsLength,
+                                IsNotEmpty, IsSlug, IsStrongPassword, IsURL,
+                                PasswordOptions)
 from pydantic import AfterValidator
-
-from py_libs.validation import (
-    IsEmail,
-    IsHostname,
-    IsIPAddress,
-    IsLength,
-    IsNotEmpty,
-    IsSlug,
-    IsStrongPassword,
-    IsURL,
-    PasswordOptions,
-)
 
 
 def _validate_with_is_validator(validator_instance) -> callable:

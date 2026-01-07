@@ -6,26 +6,12 @@ valid and invalid inputs using pytest.
 """
 
 import pytest
+from py_libs.pydantic.types import (Description1000, EmailStr, HostnameStr,
+                                    IPAddressStr, IPv4Str, IPv6Str,
+                                    ModeratePassword, Name255, NonEmptyStr,
+                                    ShortText100, SlugStr, StrongPassword,
+                                    URLStr, bounded_str, strong_password)
 from pydantic import BaseModel, ValidationError
-
-from py_libs.pydantic.types import (
-    EmailStr,
-    URLStr,
-    StrongPassword,
-    Name255,
-    IPAddressStr,
-    IPv4Str,
-    IPv6Str,
-    HostnameStr,
-    NonEmptyStr,
-    SlugStr,
-    ModeratePassword,
-    Description1000,
-    ShortText100,
-    strong_password,
-    bounded_str,
-)
-
 
 # Test models
 

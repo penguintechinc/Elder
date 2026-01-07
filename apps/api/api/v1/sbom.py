@@ -5,19 +5,13 @@ from dataclasses import asdict
 from flask import Blueprint, current_app, jsonify, request
 
 from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.dataclasses import (
-    PaginatedResponse,
-    SBOMComponentDTO,
-    from_pydal_row,
-    from_pydal_rows,
-)
+from apps.api.models.dataclasses import (PaginatedResponse, SBOMComponentDTO,
+                                         from_pydal_row, from_pydal_rows)
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.pydal_helpers import PaginationParams
-from apps.api.utils.validation_helpers import (
-    validate_json_body,
-    validate_required_fields,
-    validate_resource_exists,
-)
+from apps.api.utils.validation_helpers import (validate_json_body,
+                                               validate_required_fields,
+                                               validate_resource_exists)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("sbom", __name__)

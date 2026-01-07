@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional
 
 from py_libs.pydantic.base import ImmutableModel, RequestModel
-from py_libs.pydantic.types import Name255, Description1000
+from py_libs.pydantic.types import Description1000, Name255
 
 
 class LicensePolicyDTO(ImmutableModel):

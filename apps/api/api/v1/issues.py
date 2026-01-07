@@ -6,19 +6,14 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from flask import Blueprint, current_app, g, jsonify, request
+from py_libs.pydantic import RequestModel
+from py_libs.pydantic.flask_integration import validated_request
 from pydantic import Field
 
 from apps.api.auth.decorators import login_required
-from apps.api.models.dataclasses import (
-    IssueCommentDTO,
-    IssueDTO,
-    IssueLabelDTO,
-    PaginatedResponse,
-    from_pydal_row,
-    from_pydal_rows,
-)
-from py_libs.pydantic import RequestModel
-from py_libs.pydantic.flask_integration import validated_request
+from apps.api.models.dataclasses import (IssueCommentDTO, IssueDTO,
+                                         IssueLabelDTO, PaginatedResponse,
+                                         from_pydal_row, from_pydal_rows)
 from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
 from shared.webhooks import send_issue_created_webhooks

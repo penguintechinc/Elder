@@ -16,9 +16,8 @@ Provides validated Pydantic 2 models for IPAM entities:
 from datetime import datetime
 from typing import Optional
 
-from pydantic import Field
-
 from py_libs.pydantic.base import ImmutableModel, RequestModel
+from pydantic import Field
 
 
 class IPAMPrefixDTO(ImmutableModel):

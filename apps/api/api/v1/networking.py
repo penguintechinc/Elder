@@ -3,16 +3,14 @@
 import logging
 
 from flask import Blueprint, jsonify, request
+from py_libs.pydantic.flask_integration import ValidationErrorResponse
+from py_libs.pydantic.models.network import (CreateNetworkRequest,
+                                             UpdateNetworkRequest)
 from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required
 from apps.api.logging_config import log_error_and_respond
 from apps.api.services.networking import NetworkingService
-from py_libs.pydantic.flask_integration import ValidationErrorResponse
-from py_libs.pydantic.models.network import (
-    CreateNetworkRequest,
-    UpdateNetworkRequest,
-)
 
 logger = logging.getLogger(__name__)
 

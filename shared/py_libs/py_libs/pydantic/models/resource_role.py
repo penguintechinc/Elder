@@ -6,9 +6,8 @@ Provides validation, serialization, and type safety for resource role operations
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import Field
-
 from py_libs.pydantic.base import ImmutableModel, RequestModel
+from pydantic import Field
 
 # ==================== Type Definitions ====================
 

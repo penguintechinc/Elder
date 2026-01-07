@@ -11,10 +11,8 @@ Provides request/response models for group operations including:
 from datetime import datetime
 from typing import Optional
 
-from pydantic import Field, field_validator
-
 from py_libs.pydantic.base import ImmutableModel, RequestModel
-
+from pydantic import Field, field_validator
 
 # ==================== Group Request Models ====================
 

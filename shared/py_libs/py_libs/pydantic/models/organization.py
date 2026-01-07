@@ -8,11 +8,9 @@ with field validation and type safety.
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import Field, field_validator
-
 from py_libs.pydantic.base import ImmutableModel, RequestModel
 from py_libs.pydantic.types import Name255
-
+from pydantic import Field, field_validator
 
 OrganizationType = Literal["department", "organization", "team", "collection", "other"]
 """Organization unit type enumeration."""

@@ -6,13 +6,11 @@ with valid and invalid data using pytest.
 """
 
 from datetime import datetime
-from pydantic import ValidationError
-import pytest
 
-from py_libs.pydantic.models.organization import (
-    CreateOrganizationRequest,
-    OrganizationDTO,
-)
+import pytest
+from py_libs.pydantic.models.organization import (CreateOrganizationRequest,
+                                                  OrganizationDTO)
+from pydantic import ValidationError
 
 
 class TestCreateOrganizationRequest:

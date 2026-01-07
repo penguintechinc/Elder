@@ -7,10 +7,10 @@ and usage statistics for the Super Admin Console.
 from typing import Optional
 
 from flask import Blueprint, current_app, jsonify, request
+from py_libs.pydantic import Name255, RequestModel, SlugStr
 from pydantic import Field, ValidationError
 
 from apps.api.api.v1.portal_auth import portal_token_required
-from py_libs.pydantic import RequestModel, Name255, SlugStr
 
 bp = Blueprint("tenants", __name__)
 

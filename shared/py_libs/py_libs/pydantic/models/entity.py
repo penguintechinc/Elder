@@ -10,9 +10,8 @@ Provides validated Pydantic 2 equivalents of Entity dataclasses:
 from datetime import datetime
 from typing import Optional
 
-from pydantic import Field
-
 from py_libs.pydantic.base import ImmutableModel, RequestModel
+from pydantic import Field
 
 
 class EntityDTO(ImmutableModel):
