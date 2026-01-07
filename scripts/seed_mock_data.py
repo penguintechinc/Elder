@@ -100,6 +100,11 @@ class MockDataSeeder:
             "ipam_vlans": [],
             "ipam_addresses": [],
             "dependencies": [],
+            "data_stores": [],
+            "secrets": [],
+            "secret_providers": [],
+            "api_keys": [],
+            "certificates": [],
         }
 
     def log(self, message: str, force: bool = False) -> None:
@@ -797,6 +802,239 @@ class MockDataSeeder:
                     f"  Created dependency: {source.get('name')} -> {target.get('name')}"
                 )
 
+    def seed_data_stores(self) -> None:
+        """Create data stores."""
+        self.log("\nSeeding Data Stores...")
+
+        if not self.created["organizations"]:
+            self.log("  No organizations - skipping data stores")
+            return
+
+        storage_types = [
+            "database",
+            "file_storage",
+            "data_warehouse",
+            "cache",
+            "blob_storage",
+            "message_queue",
+        ]
+        providers = ["AWS", "GCP", "Azure", "On-Premise", "MinIO"]
+        regions = ["us-west-2", "us-east-1", "eu-west-1", "ap-southeast-1"]
+        classifications = ["public", "internal", "confidential", "restricted"]
+
+        for i in range(self.count):
+            storage_type = random.choice(storage_types)
+            provider = random.choice(providers)
+
+            name = f"{storage_type}-{provider.lower()}-{i + 1:02d}"
+
+            result = self._api_post(
+                "/api/v1/data-stores",
+                {
+                    "name": name,
+                    "description": f"{storage_type.replace('_', ' ').title()} on {provider}",
+                    "organization_id": self._random_org_id(),
+                    "storage_type": storage_type,
+                    "storage_provider": provider,
+                    "location_region": random.choice(regions),
+                    "data_classification": random.choice(classifications),
+                    "encryption_at_rest": random.random() > 0.3,
+                    "encryption_in_transit": random.random() > 0.2,
+                    "retention_days": random.choice([30, 90, 180, 365, 730]),
+                    "backup_enabled": random.random() > 0.4,
+                    "backup_frequency": random.choice(["daily", "hourly", "weekly"]),
+                    "access_control_type": random.choice(["iam", "rbac", "private"]),
+                    "compliance_frameworks": random.sample(
+                        ["SOC2", "HIPAA", "GDPR", "PCI-DSS"], k=random.randint(0, 2)
+                    ),
+                    "contains_pii": random.random() > 0.7,
+                    "contains_phi": random.random() > 0.9,
+                    "contains_pci": random.random() > 0.8,
+                    "size_bytes": random.randint(1000000, 10000000000),
+                    "is_active": True,
+                },
+            )
+            if result:
+                self.created["data_stores"].append(result)
+                self.log(f"  Created data store: {name}")
+
+    def seed_secret_providers(self) -> None:
+        """Create secret providers."""
+        self.log("\nSeeding Secret Providers...")
+
+        if not self.created["organizations"]:
+            self.log("  No organizations - skipping secret providers")
+            return
+
+        providers = [
+            ("AWS Secrets Manager", "aws", "AWS-managed secrets"),
+            ("HashiCorp Vault", "vault", "Vault secrets storage"),
+            ("GCP Secret Manager", "gcp", "Google Cloud secrets"),
+            ("Azure Key Vault", "azure", "Azure secrets management"),
+            ("Builtin", "builtin", "Built-in secret storage"),
+        ]
+
+        for name, provider_type, description in providers[: max(2, self.count // 3)]:
+            result = self._api_post(
+                "/api/v1/secret-providers",
+                {
+                    "name": name,
+                    "description": description,
+                    "provider_type": provider_type,
+                    "organization_id": self._random_org_id(),
+                    "config_json": {"endpoint": f"https://{provider_type}.example.com"},
+                    "is_active": True,
+                },
+            )
+            if result:
+                self.created["secret_providers"].append(result)
+                self.log(f"  Created secret provider: {name}")
+
+    def seed_secrets(self) -> None:
+        """Create secrets."""
+        self.log("\nSeeding Secrets...")
+
+        # Need at least one secret provider
+        if not self.created["secret_providers"]:
+            self.log("  No secret providers - seeding providers first")
+            self.seed_secret_providers()
+
+        if not self.created["secret_providers"]:
+            self.log("  Failed to create secret providers - skipping secrets")
+            return
+
+        secret_types = ["generic", "api_key", "password", "certificate", "ssh_key"]
+        secret_names = [
+            "database-password",
+            "api-key-stripe",
+            "api-key-sendgrid",
+            "ssh-deploy-key",
+            "tls-certificate",
+            "jwt-signing-key",
+            "encryption-key",
+            "oauth-client-secret",
+        ]
+
+        for i in range(self.count):
+            provider = random.choice(self.created["secret_providers"])
+            secret_type = random.choice(secret_types)
+            name = random.choice(secret_names) + f"-{i + 1}"
+
+            result = self._api_post(
+                "/api/v1/secrets",
+                {
+                    "name": name,
+                    "provider_id": provider.get("id"),
+                    "provider_path": f"/secrets/{name}",
+                    "secret_type": secret_type,
+                    "is_kv": secret_type == "generic",
+                    "organization_id": self._random_org_id(),
+                    "metadata": {
+                        "created_by": "mock_seeder",
+                        "purpose": f"{secret_type} for testing",
+                    },
+                },
+            )
+            if result:
+                self.created["secrets"].append(result)
+                self.log(f"  Created secret: {name}")
+
+    def seed_api_keys(self) -> None:
+        """Create API keys for identities."""
+        self.log("\nSeeding API Keys...")
+
+        if not self.created["identities"]:
+            self.log("  No identities - skipping API keys")
+            return
+
+        # Create 1-3 API keys for a few random identities
+        identities_to_use = random.sample(
+            self.created["identities"],
+            k=min(max(2, self.count // 3), len(self.created["identities"])),
+        )
+
+        for identity in identities_to_use:
+            for i in range(random.randint(1, 3)):
+                name = f"{identity.get('username', 'user')}-key-{i + 1}"
+
+                # Calculate expiration (30-365 days from now)
+                expires_days = random.randint(30, 365)
+                expires_at = (
+                    datetime.now(timezone.utc) + timedelta(days=expires_days)
+                ).isoformat()
+
+                result = self._api_post(
+                    "/api/v1/api-keys",
+                    {
+                        "name": name,
+                        "expires_at": expires_at,
+                    },
+                )
+                if result:
+                    self.created["api_keys"].append(result)
+                    self.log(
+                        f"  Created API key: {name} for {identity.get('username')}"
+                    )
+
+    def seed_certificates(self) -> None:
+        """Create certificates."""
+        self.log("\nSeeding Certificates...")
+
+        if not self.created["organizations"]:
+            self.log("  No organizations - skipping certificates")
+            return
+
+        creators = ["letsencrypt", "digicert", "self_signed", "certbot"]
+        cert_types = ["server_cert", "wildcard", "san", "client_cert"]
+        domains = [
+            "api.example.com",
+            "*.example.com",
+            "app.example.com",
+            "www.example.com",
+            "dashboard.example.com",
+        ]
+
+        for i in range(self.count):
+            creator = random.choice(creators)
+            cert_type = random.choice(cert_types)
+            common_name = random.choice(domains)
+
+            # Generate issue and expiration dates
+            issue_date = datetime.now(timezone.utc) - timedelta(
+                days=random.randint(1, 300)
+            )
+            expiration_date = issue_date + timedelta(days=random.choice([90, 180, 365]))
+
+            result = self._api_post(
+                "/api/v1/certificates",
+                {
+                    "name": f"cert-{common_name.replace('*', 'wildcard').replace('.', '-')}-{i + 1}",
+                    "description": f"SSL/TLS certificate for {common_name}",
+                    "organization_id": self._random_org_id(),
+                    "creator": creator,
+                    "cert_type": cert_type,
+                    "common_name": common_name,
+                    "subject_alternative_names": (
+                        [common_name, f"www.{common_name}"]
+                        if cert_type == "san"
+                        else []
+                    ),
+                    "key_algorithm": random.choice(["RSA", "ECDSA"]),
+                    "key_size": random.choice([2048, 4096, 256]),
+                    "signature_algorithm": random.choice(
+                        ["SHA256WithRSA", "SHA384WithRSA", "SHA256WithECDSA"]
+                    ),
+                    "issue_date": issue_date.date().isoformat(),
+                    "expiration_date": expiration_date.date().isoformat(),
+                    "auto_renew": random.random() > 0.5,
+                    "renewal_days_before": 30,
+                    "is_active": True,
+                },
+            )
+            if result:
+                self.created["certificates"].append(result)
+                self.log(f"  Created certificate: {common_name}")
+
     def _random_org_id(self) -> int | None:
         """Get random organization ID from created orgs."""
         if self.created["organizations"]:
@@ -850,6 +1088,11 @@ class MockDataSeeder:
         self.seed_software()
         self.seed_ipam()
         self.seed_dependencies()
+        self.seed_data_stores()
+        self.seed_secret_providers()
+        self.seed_secrets()
+        self.seed_api_keys()
+        self.seed_certificates()
 
         # Print summary
         self._print_summary()
