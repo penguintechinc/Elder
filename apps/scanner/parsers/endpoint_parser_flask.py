@@ -5,6 +5,9 @@ to extract API endpoint information including paths, HTTP methods, and
 authentication requirements.
 """
 
+# flake8: noqa: E501
+
+
 import re
 from typing import Any, Dict, List
 
@@ -38,7 +41,7 @@ class FlaskEndpointParser:
         if not filename:
             return False
 
-        return filename.lower().endswith('.py')
+        return filename.lower().endswith(".py")
 
     def get_supported_files(self) -> List[str]:
         """Return list of supported file patterns.
@@ -46,7 +49,7 @@ class FlaskEndpointParser:
         Returns:
             List containing Python file patterns.
         """
-        return ['*.py']
+        return ["*.py"]
 
     def parse(self, content: str, filename: str) -> List[Dict[str, Any]]:
         """Parse Python source code to extract Flask API endpoints.
@@ -84,7 +87,9 @@ class FlaskEndpointParser:
 
         return endpoints
 
-    def _parse_decorator_routes(self, content: str, filename: str) -> List[Dict[str, Any]]:
+    def _parse_decorator_routes(
+        self, content: str, filename: str
+    ) -> List[Dict[str, Any]]:
         """Parse Flask decorator-style routes.
 
         Detects patterns like:
@@ -105,14 +110,14 @@ class FlaskEndpointParser:
         # Pattern for route decorators
         # Matches: @app.route('/path'), @bp.route('/path', methods=[...])
         route_pattern = re.compile(
-            r'@(?:app|bp|blueprint)\.(?:route|get|post|put|patch|delete|head|options)'
+            r"@(?:app|bp|blueprint)\.(?:route|get|post|put|patch|delete|head|options)"
             r'\s*\(\s*["\']([^"\']+)["\'](?:.*?methods\s*=\s*\[([^\]]+)\])?',
-            re.DOTALL
+            re.DOTALL,
         )
 
         # Pattern for authentication decorators
         auth_pattern = re.compile(
-            r'@(?:login_required|jwt_required|auth_required|token_required|require_auth)'
+            r"@(?:login_required|jwt_required|auth_required|token_required|require_auth)"
         )
 
         i = 0
@@ -138,13 +143,13 @@ class FlaskEndpointParser:
                 normalized_path = self._normalize_path(path)
 
                 endpoint = {
-                    'path': normalized_path,
-                    'methods': methods,
-                    'function_name': function_name,
-                    'line_number': i + 1,
-                    'framework': 'flask',
-                    'source_file': filename,
-                    'auth_required': auth_required
+                    "path": normalized_path,
+                    "methods": methods,
+                    "function_name": function_name,
+                    "line_number": i + 1,
+                    "framework": "flask",
+                    "source_file": filename,
+                    "auth_required": auth_required,
                 }
                 endpoints.append(endpoint)
 
@@ -152,7 +157,9 @@ class FlaskEndpointParser:
 
         return endpoints
 
-    def _parse_restful_resources(self, content: str, filename: str) -> List[Dict[str, Any]]:
+    def _parse_restful_resources(
+        self, content: str, filename: str
+    ) -> List[Dict[str, Any]]:
         """Parse Flask-RESTful resource registrations.
 
         Detects patterns like:
@@ -182,19 +189,19 @@ class FlaskEndpointParser:
 
                 # Flask-RESTful resources typically support all methods
                 # We'll default to common REST methods
-                methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+                methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
 
                 # Normalize path
                 normalized_path = self._normalize_path(path)
 
                 endpoint = {
-                    'path': normalized_path,
-                    'methods': methods,
-                    'function_name': class_name,
-                    'line_number': i + 1,
-                    'framework': 'flask',
-                    'source_file': filename,
-                    'auth_required': False  # Cannot easily detect for resources
+                    "path": normalized_path,
+                    "methods": methods,
+                    "function_name": class_name,
+                    "line_number": i + 1,
+                    "framework": "flask",
+                    "source_file": filename,
+                    "auth_required": False,  # Cannot easily detect for resources
                 }
                 endpoints.append(endpoint)
 
@@ -211,7 +218,10 @@ class FlaskEndpointParser:
             List of HTTP method strings.
         """
         # Check for method-specific shortcuts (@app.get, @app.post, etc.)
-        shortcut_match = re.search(r'@(?:app|bp|blueprint)\.(get|post|put|patch|delete|head|options)', full_line)
+        shortcut_match = re.search(
+            r"@(?:app|bp|blueprint)\.(get|post|put|patch|delete|head|options)",
+            full_line,
+        )
         if shortcut_match:
             method = shortcut_match.group(1).upper()
             return [method]
@@ -224,9 +234,11 @@ class FlaskEndpointParser:
                 return method_matches
 
         # Default to GET if no methods specified
-        return ['GET']
+        return ["GET"]
 
-    def _check_auth_decorators(self, lines: List[str], route_line_idx: int, auth_pattern: re.Pattern) -> bool:
+    def _check_auth_decorators(
+        self, lines: List[str], route_line_idx: int, auth_pattern: re.Pattern
+    ) -> bool:
         """Check for authentication decorators above route decorator.
 
         Args:
@@ -255,7 +267,7 @@ class FlaskEndpointParser:
             Function name or 'unknown' if not found.
         """
         # Look for "def function_name(" in following lines (up to 10 lines)
-        func_pattern = re.compile(r'def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(')
+        func_pattern = re.compile(r"def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(")
 
         end_idx = min(len(lines), route_line_idx + 10)
         for i in range(route_line_idx, end_idx):
@@ -263,7 +275,7 @@ class FlaskEndpointParser:
             if match:
                 return match.group(1)
 
-        return 'unknown'
+        return "unknown"
 
     def _normalize_path(self, path: str) -> str:
         """Normalize Flask path parameters to OpenAPI format.
@@ -281,5 +293,5 @@ class FlaskEndpointParser:
         """
         # Replace Flask path parameters with OpenAPI format
         # Matches: <int:id>, <string:name>, <id>, etc.
-        normalized = re.sub(r'<(?:[^:>]+:)?([^>]+)>', r'{\1}', path)
+        normalized = re.sub(r"<(?:[^:>]+:)?([^>]+)>", r"{\1}", path)
         return normalized

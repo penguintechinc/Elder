@@ -7,12 +7,14 @@ Provides validated Pydantic 2 equivalents of Software dataclasses:
 - UpdateSoftwareRequest: Flexible update request with all optional fields
 """
 
+# flake8: noqa: E501
+
+
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import Field
-
 from py_libs.pydantic.base import ImmutableModel, RequestModel
+from pydantic import Field
 
 
 class SoftwareDTO(ImmutableModel):

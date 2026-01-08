@@ -1,5 +1,8 @@
 """Google Workspace Integration API endpoints for Elder v1.2.0 (Phase 7)."""
 
+# flake8: noqa: E501
+
+
 import logging
 
 from flask import Blueprint, current_app, jsonify, request

@@ -1,5 +1,8 @@
 """Keys management service for Elder v2.0.0 - encryption and signing operations."""
 
+# flake8: noqa: E501
+
+
 from apps.api.services.keys.aws_client import AWSKMSClient
 from apps.api.services.keys.base import BaseKeyProvider
 from apps.api.services.keys.gcp_client import GCPKMSClient

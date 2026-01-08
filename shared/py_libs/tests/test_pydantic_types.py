@@ -5,27 +5,28 @@ Tests EmailStr, URLStr, StrongPassword, Name255 and other types with
 valid and invalid inputs using pytest.
 """
 
-import pytest
-from pydantic import BaseModel, ValidationError
+# flake8: noqa: E501
 
+
+import pytest
 from py_libs.pydantic.types import (
+    Description1000,
     EmailStr,
-    URLStr,
-    StrongPassword,
-    Name255,
+    HostnameStr,
     IPAddressStr,
     IPv4Str,
     IPv6Str,
-    HostnameStr,
-    NonEmptyStr,
-    SlugStr,
     ModeratePassword,
-    Description1000,
+    Name255,
+    NonEmptyStr,
     ShortText100,
-    strong_password,
+    SlugStr,
+    StrongPassword,
+    URLStr,
     bounded_str,
+    strong_password,
 )
-
+from pydantic import BaseModel, ValidationError
 
 # Test models
 
@@ -627,7 +628,9 @@ class TestEdgeCases:
         assert "ç" in model.name or model.name == "François"
 
         # Unicode in descriptions should work
-        model = Description1000Model(description="Descripción con caracteres especiales: 中文")
+        model = Description1000Model(
+            description="Descripción con caracteres especiales: 中文"
+        )
         assert isinstance(model.description, str)
 
     def test_type_coercion(self):

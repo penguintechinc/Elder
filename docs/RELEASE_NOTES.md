@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.0.2] - 2026-01-06
+
+### ✨ New Features
+
+#### AWS Lambda Function Ingestion
+- **Lambda Sync**: AWS connector now syncs Lambda functions as entities
+  - Entity type: `compute` with sub-type `serverless`
+  - Tags: `["aws", "lambda", "serverless", {region}]`
+- **Metadata captured**:
+  - Function ARN, name, runtime, handler
+  - Memory (MB), timeout (seconds), code size (bytes)
+  - Architectures (arm64/x86_64), package type (Zip/Image)
+  - VPC configuration (if attached): VPC ID, subnets, security groups
+  - Environment variable keys (values excluded for security)
+  - Lambda layers (ARNs)
+  - Ephemeral storage size (/tmp)
+  - Execution role ARN
+- **Status tracking**: Lambda state (Active, Pending, Inactive, Failed) tracked in `status_metadata`
+- **Pagination support**: Handles AWS accounts with many Lambda functions
+
+### 🐛 Bug Fixes
+
+#### Multi-Architecture Docker Builds (ARM64/Mac Silicon)
+- **Fixed**: Web UI container now builds successfully on ARM64/Apple Silicon
+- **Root cause**: npm bug #4828 where `package-lock.json` generated on x64 doesn't resolve ARM64 optional dependencies
+- **Solution**: Added `.dockerignore` to exclude lock file, allowing fresh dependency resolution per-architecture
+- **Affected packages**: `@rollup/rollup-linux-arm64-gnu`, `@esbuild/linux-arm64`, `lightningcss-linux-arm64-gnu`
+
+### 📦 CI/CD Improvements
+
+- Added `scanner`, `connector`, and `envoy` containers to multi-arch build workflow
+- All 5 containers now build for both `linux/amd64` and `linux/arm64`
+- Security scanning enabled for all container images
+
+---
+
 ## [3.0.1] - 2026-01-05
 
 ### 🔒 Security Fixes

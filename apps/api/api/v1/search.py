@@ -1,5 +1,8 @@
 """Advanced Search API endpoints for Elder v1.2.0 (Phase 10)."""
 
+# flake8: noqa: E501
+
+
 import json
 import logging
 
@@ -222,7 +225,7 @@ def search_issues():
         # Parse labels
         labels = None
         if labels_str:
-            labels = [l.strip() for l in labels_str.split(",") if l.strip()]
+            labels = [label.strip() for label in labels_str.split(",") if label.strip()]
 
         results = service.search_issues(
             query=query,

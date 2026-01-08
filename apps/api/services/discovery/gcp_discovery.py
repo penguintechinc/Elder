@@ -1,5 +1,8 @@
 """GCP cloud discovery client for Elder."""
 
+# flake8: noqa: E501
+
+
 from datetime import datetime
 from typing import Any, Dict, List
 

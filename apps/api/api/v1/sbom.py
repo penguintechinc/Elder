@@ -1,5 +1,8 @@
 """SBOM components management API endpoints for Elder using PyDAL with async/await and shared helpers."""
 
+# flake8: noqa: E501
+
+
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, jsonify, request
@@ -386,9 +389,9 @@ async def get_component_vulnerabilities(id: int):
 
         # Apply severity filter
         if request.args.get("severity"):
-            vuln_query &= db.vulnerabilities.severity == request.args.get(
-                "severity"
-            ).upper()
+            vuln_query &= (
+                db.vulnerabilities.severity == request.args.get("severity").upper()
+            )
 
         # Get vulnerabilities
         vulnerabilities = db(vuln_query).select(orderby=~db.vulnerabilities.cvss_score)

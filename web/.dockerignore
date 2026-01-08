@@ -1,0 +1,25 @@
+# Ignore node_modules - installed fresh in container
+node_modules/
+
+# Ignore lock file for multi-arch builds
+# The lock file may contain platform-specific optional dependency resolutions
+# that don't work on other architectures (npm bug #4828)
+package-lock.json
+
+# Build artifacts
+dist/
+build/
+
+# Development files
+.git/
+.gitignore
+*.md
+.env*
+.vscode/
+.idea/
+
+# Test files
+coverage/
+*.test.*
+*.spec.*
+__tests__/

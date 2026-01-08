@@ -5,6 +5,9 @@ This module provides a Python client for integrating with the PenguinTech Licens
 to validate licenses and check feature entitlements.
 """
 
+# flake8: noqa: E501
+
+
 import logging
 import os
 import time

@@ -1,9 +1,15 @@
-"""PyDAL table definitions for Elder application."""
+"""PyDAL table definitions for Elder application.
+
+This module defines all PyDAL database tables. Long lines are unavoidable
+due to Field() definition syntax and are suppressed from linting.
+"""
+
+# flake8: noqa: E501
 
 import datetime
 
 from pydal import Field
-from pydal.validators import *
+from pydal.validators import *  # noqa: F401, F403
 
 from apps.api.utils.village_id import generate_village_id
 
@@ -2832,9 +2838,7 @@ def define_all_tables(db):
             notnull=True,
             requires=IS_IN_SET(["organization", "service"]),
         ),
-        Field(
-            "organization_id", "reference organizations", ondelete="CASCADE"
-        ),
+        Field("organization_id", "reference organizations", ondelete="CASCADE"),
         Field("service_id", "reference services", ondelete="CASCADE"),
         # Schedule configuration (conditional based on schedule_type)
         Field(
@@ -2847,12 +2851,8 @@ def define_all_tables(db):
         Field("rotation_length_days", "integer"),  # Weekly: 7, 14, 21, etc.
         Field("rotation_start_date", "date"),  # Weekly: when rotation started
         Field("schedule_cron", "string", length=255),  # Cron: expression
-        Field(
-            "handoff_timezone", "string", length=100
-        ),  # Follow-the-sun: timezone
-        Field(
-            "shift_split", "boolean", default=False
-        ),  # Follow-the-sun: split shifts?
+        Field("handoff_timezone", "string", length=100),  # Follow-the-sun: timezone
+        Field("shift_split", "boolean", default=False),  # Follow-the-sun: split shifts?
         Field("shift_config", "json"),  # Follow-the-sun: shift definitions
         Field(
             "created_at",
@@ -2876,9 +2876,7 @@ def define_all_tables(db):
             notnull=True,
             ondelete="CASCADE",
         ),
-        Field(
-            "identity_id", "reference identities", notnull=True, ondelete="CASCADE"
-        ),
+        Field("identity_id", "reference identities", notnull=True, ondelete="CASCADE"),
         Field(
             "order_index", "integer", notnull=True
         ),  # Position in rotation (0, 1, 2, ...)
@@ -2922,9 +2920,7 @@ def define_all_tables(db):
             notnull=True,
             requires=IS_IN_SET(["identity", "group", "rotation_participant"]),
         ),
-        Field(
-            "identity_id", "reference identities", ondelete="CASCADE"
-        ),
+        Field("identity_id", "reference identities", ondelete="CASCADE"),
         Field("group_id", "reference identity_groups", ondelete="CASCADE"),
         Field(
             "escalation_delay_minutes", "integer", default=15
@@ -2987,9 +2983,7 @@ def define_all_tables(db):
             notnull=True,
             ondelete="CASCADE",
         ),
-        Field(
-            "identity_id", "reference identities", notnull=True, ondelete="CASCADE"
-        ),
+        Field("identity_id", "reference identities", notnull=True, ondelete="CASCADE"),
         Field("shift_start", "datetime", notnull=True),
         Field("shift_end", "datetime", notnull=True),
         Field("is_override", "boolean", default=False, notnull=True),

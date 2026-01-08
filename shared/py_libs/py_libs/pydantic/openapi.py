@@ -1,5 +1,8 @@
 """Flask-RESTX integration for OpenAPI schema generation from Pydantic models."""
 
+# flake8: noqa: E501
+
+
 from typing import Any, Dict, Optional, Type, get_args, get_origin
 
 from flask_restx import fields as restx_fields
@@ -47,15 +50,12 @@ def pydantic_to_restx_field(field_info: FieldInfo, annotation: Any) -> restx_fie
 
     field_class = type_map.get(annotation, restx_fields.String)
     return field_class(
-        required=field_info.is_required(),
-        description=field_info.description
+        required=field_info.is_required(), description=field_info.description
     )
 
 
 def pydantic_to_restx_model(
-    api: Any,
-    model_class: Type[BaseModel],
-    name: Optional[str] = None
+    api: Any, model_class: Type[BaseModel], name: Optional[str] = None
 ) -> Any:
     """Convert Pydantic model to Flask-RESTX model for Swagger.
 

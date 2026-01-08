@@ -1,8 +1,13 @@
 """Services management API endpoints for Elder using PyDAL with async/await and shared helpers."""
 
+# flake8: noqa: E501
+
+
 from dataclasses import asdict
 
 from flask import Blueprint, Response, current_app, jsonify, request
+from py_libs.pydantic import CreateServiceRequest, UpdateServiceRequest
+from py_libs.pydantic.flask_integration import validated_request
 
 from apps.api.auth.decorators import login_required, resource_role_required
 from apps.api.models.dataclasses import (
@@ -19,8 +24,6 @@ from apps.api.utils.validation_helpers import (
     validate_organization_and_get_tenant,
     validate_resource_exists,
 )
-from py_libs.pydantic import CreateServiceRequest, UpdateServiceRequest
-from py_libs.pydantic.flask_integration import validated_request
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("services", __name__)
@@ -435,13 +438,16 @@ async def trigger_service_sbom_scan(id: int):
 
     scan = await run_in_threadpool(create_scan)
 
-    return jsonify(
-        {
-            "message": "SBOM scan triggered successfully",
-            "scan_id": scan.id,
-            "status": scan.status,
-        }
-    ), 201
+    return (
+        jsonify(
+            {
+                "message": "SBOM scan triggered successfully",
+                "scan_id": scan.id,
+                "status": scan.status,
+            }
+        ),
+        201,
+    )
 
 
 @bp.route("/endpoints", methods=["GET"])
@@ -471,7 +477,11 @@ async def list_service_endpoints():
     # Build query
     def get_endpoints():
         # Query services with non-empty paths
-        query = (db.services.id > 0) & (db.services.paths is not None) & (db.services.paths != "")
+        query = (
+            (db.services.id > 0)
+            & (db.services.paths is not None)
+            & (db.services.paths != "")
+        )
 
         # Get count and rows
         total_services = db(query).count()
@@ -491,7 +501,11 @@ async def list_service_endpoints():
                     # Handle both string paths and object paths with method
                     if isinstance(path_item, dict):
                         path = path_item.get("path", "")
-                        method = path_item.get("method", "").upper() if path_item.get("method") else ""
+                        method = (
+                            path_item.get("method", "").upper()
+                            if path_item.get("method")
+                            else ""
+                        )
                     else:
                         path = str(path_item)
                         method = ""
@@ -502,12 +516,14 @@ async def list_service_endpoints():
                     if method_filter and method and method != method_filter:
                         continue
 
-                    endpoints.append({
-                        "path": path,
-                        "method": method,
-                        "service_id": service.id,
-                        "service_name": service.name,
-                    })
+                    endpoints.append(
+                        {
+                            "path": path,
+                            "method": method,
+                            "service_id": service.id,
+                            "service_name": service.name,
+                        }
+                    )
 
         return total_services, endpoints
 

@@ -20,11 +20,12 @@ Usage:
     user = User(email="user@example.com", password="SecureP@ss123", name="John Doe")
 """
 
+# flake8: noqa: E501
+
+
 from __future__ import annotations
 
 from typing import Annotated
-
-from pydantic import AfterValidator
 
 from py_libs.validation import (
     IsEmail,
@@ -37,6 +38,7 @@ from py_libs.validation import (
     IsURL,
     PasswordOptions,
 )
+from pydantic import AfterValidator
 
 
 def _validate_with_is_validator(validator_instance) -> callable:
@@ -85,7 +87,9 @@ Example:
     url: URLStr = "not-a-url"                 # Raises ValidationError
 """
 
-IPAddressStr = Annotated[str, AfterValidator(_validate_with_is_validator(IsIPAddress()))]
+IPAddressStr = Annotated[
+    str, AfterValidator(_validate_with_is_validator(IsIPAddress()))
+]
 """
 IP address string type (IPv4 or IPv6).
 
@@ -97,7 +101,9 @@ Example:
     ip: IPAddressStr = "not-an-ip"      # Raises ValidationError
 """
 
-IPv4Str = Annotated[str, AfterValidator(_validate_with_is_validator(IsIPAddress(version=4)))]
+IPv4Str = Annotated[
+    str, AfterValidator(_validate_with_is_validator(IsIPAddress(version=4)))
+]
 """
 IPv4 address string type.
 
@@ -108,7 +114,9 @@ Example:
     ip: IPv4Str = "::1"            # Raises ValidationError
 """
 
-IPv6Str = Annotated[str, AfterValidator(_validate_with_is_validator(IsIPAddress(version=6)))]
+IPv6Str = Annotated[
+    str, AfterValidator(_validate_with_is_validator(IsIPAddress(version=6)))
+]
 """
 IPv6 address string type.
 
@@ -290,12 +298,13 @@ Example:
 
 # Pre-built text length types
 
+
 def _name255_validator():
     """Create Name255 type with custom error message."""
     validator = IsLength(
         min_length=1,
         max_length=255,
-        error_message="name cannot be empty or whitespace-only"
+        error_message="name cannot be empty or whitespace-only",
     )
     return Annotated[str, AfterValidator(_validate_with_is_validator(validator))]
 

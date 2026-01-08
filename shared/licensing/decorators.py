@@ -1,5 +1,8 @@
 """License validation decorators for Elder enterprise features."""
 
+# flake8: noqa: E501
+
+
 import inspect
 from functools import wraps
 

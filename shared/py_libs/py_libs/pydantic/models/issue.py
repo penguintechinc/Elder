@@ -10,12 +10,14 @@ Provides validated Pydantic 2 equivalents of Issue dataclasses:
 - IssueSeverity: Literal type for valid issue severities
 """
 
+# flake8: noqa: E501
+
+
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import Field
-
 from py_libs.pydantic.base import ImmutableModel, RequestModel
+from pydantic import Field
 
 # Issue status types
 IssueStatus = Literal["open", "in_progress", "resolved", "closed", "reopened"]

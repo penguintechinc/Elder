@@ -1,5 +1,8 @@
 """Base client interface for secret providers."""
 
+# flake8: noqa: E501
+
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime

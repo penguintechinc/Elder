@@ -10,6 +10,9 @@ formats for compliance, vulnerability tracking, and integration with
 security tools.
 """
 
+# flake8: noqa: E501
+
+
 from .cyclonedx import CycloneDXExporter
 from .spdx import SPDXExporter
 

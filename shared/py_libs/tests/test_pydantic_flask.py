@@ -1,17 +1,19 @@
 """Tests for Flask integration with Pydantic models."""
 
+# flake8: noqa: E501
+
+
 import pytest
 from flask import Flask
-from pydantic import ValidationError, field_validator
-
 from py_libs.pydantic.base import ImmutableModel, RequestModel
 from py_libs.pydantic.flask_integration import (
     ValidationErrorResponse,
+    model_response,
     validate_body,
     validate_query_params,
     validated_request,
-    model_response,
 )
+from pydantic import ValidationError, field_validator
 
 
 class TestModel(RequestModel):
@@ -239,7 +241,8 @@ class TestValidatedRequestDecorator:
             return {"success": True, "name": body.name}
 
         response = client.post(
-            "/test", json={"name": "Alice", "age": "not_a_number", "email": "alice@example.com"}
+            "/test",
+            json={"name": "Alice", "age": "not_a_number", "email": "alice@example.com"},
         )
 
         assert response.status_code == 400

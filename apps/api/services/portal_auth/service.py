@@ -4,6 +4,9 @@ Handles portal user registration, login, MFA, and session management
 with tenant context for multi-tenancy support.
 """
 
+# flake8: noqa: E501
+
+
 import datetime
 import secrets
 from typing import Optional

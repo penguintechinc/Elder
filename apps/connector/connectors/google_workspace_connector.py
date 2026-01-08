@@ -1,5 +1,8 @@
 """Google Workspace connector for syncing users, groups, and org units to Elder."""
 
+# flake8: noqa: E501
+
+
 from typing import Dict, Optional
 
 from google.oauth2 import service_account

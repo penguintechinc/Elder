@@ -1,5 +1,8 @@
 """Banner grabber for collecting service banners from open ports."""
 
+# flake8: noqa: E501
+
+
 import asyncio
 import logging
 from typing import Any, Dict, Optional

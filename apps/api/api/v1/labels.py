@@ -1,9 +1,14 @@
 """Labels management API endpoints for Elder using PyDAL with async/await."""
 
+# flake8: noqa: E501
+
+
 from dataclasses import asdict
 from typing import Optional
 
 from flask import Blueprint, current_app, jsonify
+from py_libs.pydantic import Description1000, Name255, RequestModel
+from py_libs.pydantic.flask_integration import validated_request
 
 from apps.api.auth.decorators import login_required
 from apps.api.models.dataclasses import (
@@ -12,8 +17,6 @@ from apps.api.models.dataclasses import (
     from_pydal_row,
     from_pydal_rows,
 )
-from py_libs.pydantic import RequestModel, Description1000, Name255
-from py_libs.pydantic.flask_integration import validated_request
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("labels", __name__)
@@ -21,21 +24,21 @@ bp = Blueprint("labels", __name__)
 
 class ListLabelsQuery(RequestModel):
     """Query parameters for listing labels."""
+
     search: Optional[str] = None
     page: int = 1
     per_page: int = 50
 
     model_config = {
         "json_schema_extra": {
-            "examples": [
-                {"search": "bug", "page": 1, "per_page": 50}
-            ]
+            "examples": [{"search": "bug", "page": 1, "per_page": 50}]
         }
     }
 
 
 class CreateLabelRequest(RequestModel):
     """Request body for creating a label."""
+
     name: Name255
     description: Optional[Description1000] = None
     color: str = "#cccccc"
@@ -43,6 +46,7 @@ class CreateLabelRequest(RequestModel):
 
 class UpdateLabelRequest(RequestModel):
     """Request body for updating a label."""
+
     name: Optional[Name255] = None
     description: Optional[Description1000] = None
     color: Optional[str] = None

@@ -1,11 +1,12 @@
-"""
-Pydantic 2 integration module for py_libs.
+"""Pydantic 2 integration module for py_libs.
 
-Provides custom base models for Elder applications and custom Annotated types that
-integrate with py_libs.validation validators for seamless Pydantic model validation.
+Provides custom base models for Elder applications and custom Annotated
+types that integrate with py_libs.validation validators for seamless
+Pydantic model validation.
 
 Features:
-- Base models with Elder-specific configuration (ElderBaseModel, ImmutableModel, RequestModel, ConfigurableModel)
+- Base models with Elder-specific configuration (ElderBaseModel,
+  ImmutableModel, RequestModel, ConfigurableModel)
 - Pre-built Annotated types for common use cases (email, URL, IP, hostname)
 - Factory functions for customizable types (strong_password, bounded_str)
 - Full integration with py_libs.validation IS_* validators
@@ -33,6 +34,8 @@ Usage:
     )
 """
 
+# flake8: noqa: E501
+
 # Base Models
 from py_libs.pydantic.base import (
     ConfigurableModel,
@@ -40,6 +43,18 @@ from py_libs.pydantic.base import (
     ImmutableModel,
     RequestModel,
 )
+
+# Flask Integration
+from py_libs.pydantic.flask_integration import (
+    ValidationErrorResponse,
+    model_response,
+    validate_body,
+    validate_query_params,
+    validated_request,
+)
+
+# Domain Models - re-export everything from models submodule
+from py_libs.pydantic.models import *  # noqa: F401, F403
 
 # Type Aliases
 from py_libs.pydantic.types import (
@@ -59,18 +74,6 @@ from py_libs.pydantic.types import (
     bounded_str,
     strong_password,
 )
-
-# Flask Integration
-from py_libs.pydantic.flask_integration import (
-    ValidationErrorResponse,
-    validate_body,
-    validate_query_params,
-    validated_request,
-    model_response,
-)
-
-# Domain Models - re-export everything from models submodule
-from py_libs.pydantic.models import *  # noqa: F401, F403
 
 __all__ = [
     # Base Models

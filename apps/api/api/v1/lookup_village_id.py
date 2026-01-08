@@ -4,6 +4,9 @@ Searches all resource tables for a matching village_id and returns the resource
 type, ID, and redirect URL for navigation.
 """
 
+# flake8: noqa: E501
+
+
 from flask import Blueprint, current_app, jsonify
 
 from shared.async_utils import run_in_threadpool

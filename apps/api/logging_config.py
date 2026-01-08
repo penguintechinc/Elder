@@ -8,6 +8,9 @@ Provides secure logging that:
 - Follows OWASP security best practices
 """
 
+# flake8: noqa: E501
+
+
 import logging
 import logging.handlers
 import os

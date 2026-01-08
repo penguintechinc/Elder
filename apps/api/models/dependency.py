@@ -1,5 +1,8 @@
 """Dependency model for tracking relationships between entities."""
 
+# flake8: noqa: E501
+
+
 import enum
 from datetime import datetime, timezone
 

@@ -9,10 +9,14 @@ Extracts package dependencies and converts them to standardized component
 information compatible with the SBOM service.
 """
 
+# flake8: noqa: E501
+
+
 import re
-import defusedxml.ElementTree as ET
 from typing import Any, Dict, List, Optional
 from xml.etree.ElementTree import Element  # For type hints only
+
+import defusedxml.ElementTree as ET
 
 from apps.api.services.sbom.base import BaseDependencyParser
 
@@ -88,9 +92,7 @@ class DotnetParser(BaseDependencyParser):
         except Exception as e:
             raise ValueError(f"Error parsing {filename}: {str(e)}")
 
-    def _parse_project_file(
-        self, content: str, filename: str
-    ) -> List[Dict[str, Any]]:
+    def _parse_project_file(self, content: str, filename: str) -> List[Dict[str, Any]]:
         """Parse .csproj or .fsproj file for package references.
 
         Args:

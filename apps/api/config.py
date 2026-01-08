@@ -1,5 +1,8 @@
 """Configuration management for Elder application."""
 
+# flake8: noqa: E501
+
+
 import os
 from datetime import timedelta
 from typing import Any, Dict

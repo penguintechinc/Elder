@@ -1,5 +1,8 @@
 """AWS connector for syncing AWS resources to Elder."""
 
+# flake8: noqa: E501
+
+
 import time
 from typing import Any, Dict, Optional
 
@@ -647,7 +650,7 @@ class AWSConnector(BaseConnector):
                     name=f"S3: {bucket_name}",
                     entity_type="network",  # S3 is networked storage
                     organization_id=aws_org_id,
-                    description=f"AWS S3 bucket",
+                    description="AWS S3 bucket",
                     attributes={
                         "bucket_name": bucket_name,
                         "region": region,
@@ -683,6 +686,123 @@ class AWSConnector(BaseConnector):
 
         except ClientError as e:
             self.logger.error("Failed to sync S3 buckets", error=str(e))
+
+        return created, updated
+
+    async def _sync_lambda_functions(
+        self, region: str, region_org_id: int
+    ) -> tuple[int, int]:
+        """
+        Sync AWS Lambda functions for a region.
+
+        Args:
+            region: AWS region
+            region_org_id: Elder organization ID for this region
+
+        Returns:
+            Tuple of (created_count, updated_count)
+        """
+        lambda_client = self._get_aws_client("lambda", region)
+        created = 0
+        updated = 0
+
+        try:
+            # Fetch all existing compute entities once and build an index by function_arn
+            existing_response = await self.elder_client.list_entities(
+                organization_id=region_org_id,
+                entity_type="compute",
+            )
+            existing_entities_by_arn = {
+                item.get("attributes", {}).get("function_arn"): item
+                for item in existing_response.get("items", [])
+                if item.get("attributes", {}).get("function_arn")
+            }
+
+            paginator = lambda_client.get_paginator("list_functions")
+
+            for page in paginator.paginate():
+                for func in page.get("Functions", []):
+                    function_arn = func.get("FunctionArn")
+                    function_name = func.get("FunctionName")
+                    state = func.get("State", "Active")
+
+                    # Build attributes with Lambda metadata
+                    attributes = {
+                        "function_arn": function_arn,
+                        "function_name": function_name,
+                        "runtime": func.get("Runtime"),
+                        "handler": func.get("Handler"),
+                        "code_size_bytes": func.get("CodeSize"),
+                        "memory_mb": func.get("MemorySize"),
+                        "timeout_seconds": func.get("Timeout"),
+                        "last_modified": func.get("LastModified"),
+                        "role_arn": func.get("Role"),
+                        "architectures": func.get("Architectures", ["x86_64"]),
+                        "package_type": func.get("PackageType", "Zip"),
+                        "region": region,
+                        "provider": "aws",
+                        "service": "lambda",
+                    }
+
+                    # Add VPC config if present
+                    vpc_config = func.get("VpcConfig", {})
+                    if vpc_config.get("VpcId"):
+                        attributes["vpc_config"] = {
+                            "vpc_id": vpc_config.get("VpcId"),
+                            "subnet_ids": vpc_config.get("SubnetIds", []),
+                            "security_group_ids": vpc_config.get(
+                                "SecurityGroupIds", []
+                            ),
+                        }
+
+                    # Store environment variable keys only (not values for security)
+                    env_vars = func.get("Environment", {}).get("Variables", {})
+                    if env_vars:
+                        attributes["environment_variable_keys"] = list(env_vars.keys())
+
+                    # Add layer ARNs
+                    layers = func.get("Layers", [])
+                    if layers:
+                        attributes["layers"] = [layer.get("Arn") for layer in layers]
+
+                    # Add ephemeral storage size
+                    ephemeral = func.get("EphemeralStorage", {})
+                    if ephemeral.get("Size"):
+                        attributes["ephemeral_storage_mb"] = ephemeral.get("Size")
+
+                    status_metadata = {
+                        "status": state.capitalize(),
+                        "timestamp": int(time.time()),
+                    }
+
+                    entity = Entity(
+                        name=f"Lambda: {function_name}",
+                        entity_type="compute",
+                        sub_type="serverless",
+                        organization_id=region_org_id,
+                        description=(
+                            func.get("Description")
+                            or f"AWS Lambda function in {region}"
+                        ),
+                        attributes=attributes,
+                        status_metadata=status_metadata,
+                        tags=["aws", "lambda", "serverless", region],
+                    )
+
+                    # Check if entity already exists using the indexed lookup
+                    found = existing_entities_by_arn.get(function_arn)
+
+                    if found:
+                        await self.elder_client.update_entity(found["id"], entity)
+                        updated += 1
+                    else:
+                        await self.elder_client.create_entity(entity)
+                        created += 1
+
+        except ClientError as e:
+            self.logger.error(
+                "Failed to sync Lambda functions", region=region, error=str(e)
+            )
 
         return created, updated
 
@@ -753,6 +873,13 @@ class AWSConnector(BaseConnector):
                 )
                 result.entities_created += sqs_created
                 result.entities_updated += sqs_updated
+
+                # Sync Lambda functions (v3.0.2)
+                lambda_created, lambda_updated = await self._sync_lambda_functions(
+                    region, region_org_id
+                )
+                result.entities_created += lambda_created
+                result.entities_updated += lambda_updated
 
             self.logger.info(
                 "AWS sync completed",

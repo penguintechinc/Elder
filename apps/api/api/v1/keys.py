@@ -1,5 +1,8 @@
 """Keys Management API endpoints for Elder v1.2.0 (Phase 3)."""
 
+# flake8: noqa: E501
+
+
 import logging
 
 from flask import Blueprint, current_app, jsonify, request

@@ -1,5 +1,8 @@
 """gRPC server for Elder application."""
 
+# flake8: noqa: E501
+
+
 import os
 import signal
 import sys

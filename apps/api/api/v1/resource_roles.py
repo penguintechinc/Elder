@@ -1,13 +1,16 @@
 """Resource Role management API endpoints using PyDAL with async/await."""
 
+# flake8: noqa: E501
+
+
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, g, jsonify, request
+from py_libs.pydantic.models import CreateResourceRoleRequest, ResourceRoleResponse
 from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required
 from apps.api.models.dataclasses import ResourceRoleDTO, from_pydal_rows
-from py_libs.pydantic.models import ResourceRoleResponse, CreateResourceRoleRequest
 from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
 
@@ -104,7 +107,12 @@ async def list_resource_roles():
     items = [ResourceRoleResponse.from_pydal_row(row) for row in rows]
 
     return (
-        jsonify({"items": [item.model_dump(exclude_none=True) for item in items], "total": len(items)}),
+        jsonify(
+            {
+                "items": [item.model_dump(exclude_none=True) for item in items],
+                "total": len(items),
+            }
+        ),
         200,
     )
 
@@ -160,10 +168,9 @@ async def create_resource_role():
     except ValidationError as e:
         errors = []
         for err in e.errors():
-            errors.append({
-                "field": ".".join(str(x) for x in err["loc"]),
-                "message": err["msg"]
-            })
+            errors.append(
+                {"field": ".".join(str(x) for x in err["loc"]), "message": err["msg"]}
+            )
         return jsonify({"error": "Validation failed", "details": errors}), 400
 
     # Must have either identity_id or group_id

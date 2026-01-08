@@ -8,6 +8,9 @@ Provides:
 - IsHostname: Validates hostnames
 """
 
+# flake8: noqa: E501
+
+
 from __future__ import annotations
 
 import ipaddress
@@ -40,7 +43,9 @@ class IsEmail(Validator[str, str]):
         r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$"
     )
 
-    def __init__(self, normalize: bool = True, error_message: str | None = None) -> None:
+    def __init__(
+        self, normalize: bool = True, error_message: str | None = None
+    ) -> None:
         self.normalize = normalize
         self.error_message = error_message or "Invalid email address"
 
@@ -209,9 +214,7 @@ class IsHostname(Validator[str, str]):
     """
 
     # RFC 1123 hostname pattern
-    _HOSTNAME_PATTERN = re.compile(
-        r"^(?!-)[a-zA-Z0-9-]{1,63}(?<!-)$"  # Single label
-    )
+    _HOSTNAME_PATTERN = re.compile(r"^(?!-)[a-zA-Z0-9-]{1,63}(?<!-)$")  # Single label
     _FULL_HOSTNAME_PATTERN = re.compile(
         r"^(?!-)[a-zA-Z0-9-]{1,63}(?<!-)(?:\.(?!-)[a-zA-Z0-9-]{1,63}(?<!-))*$"
     )

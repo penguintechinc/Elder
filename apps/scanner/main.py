@@ -3,6 +3,9 @@
 Polls the Elder API for pending scan jobs and executes them.
 """
 
+# flake8: noqa: E501
+
+
 import asyncio
 import datetime
 import logging
@@ -23,7 +26,9 @@ API_URL = os.getenv("ELDER_API_URL", "http://api:5000")
 API_TOKEN = os.getenv("ELDER_API_TOKEN", "")
 SCREENSHOT_DIR = os.getenv("SCREENSHOT_DIR", "/app/screenshots")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-NVD_SYNC_INTERVAL_HOURS = int(os.getenv("NVD_SYNC_INTERVAL_HOURS", "24"))  # Run NVD sync once per day
+NVD_SYNC_INTERVAL_HOURS = int(
+    os.getenv("NVD_SYNC_INTERVAL_HOURS", "24")
+)  # Run NVD sync once per day
 
 # Setup logging
 logging.basicConfig(
@@ -165,17 +170,25 @@ class ScannerService:
                     )
 
                     if response.status_code == 200:
-                        logger.info(f"Updated schedule {schedule_id}, next run at {next_run.isoformat()}")
+                        logger.info(
+                            f"Updated schedule {schedule_id}, next run at {next_run.isoformat()}"
+                        )
                         return True
                     else:
-                        logger.error(f"Failed to update schedule {schedule_id}: {response.status_code}")
+                        logger.error(
+                            f"Failed to update schedule {schedule_id}: {response.status_code}"
+                        )
                         return False
                 else:
-                    logger.error(f"Failed to create scan for schedule {schedule_id}: {response.status_code}")
+                    logger.error(
+                        f"Failed to create scan for schedule {schedule_id}: {response.status_code}"
+                    )
                     return False
 
         except Exception as e:
-            logger.error(f"Error creating scheduled scan for schedule {schedule_id}: {e}")
+            logger.error(
+                f"Error creating scheduled scan for schedule {schedule_id}: {e}"
+            )
             return False
 
     async def mark_job_running(self, job_id: int) -> bool:
@@ -297,7 +310,9 @@ class ScannerService:
                 if response.status_code == 200:
                     logger.info(f"SBOM scan {scan_id} completed successfully")
                 else:
-                    logger.error(f"Failed to submit results for scan {scan_id}: {response.status_code}")
+                    logger.error(
+                        f"Failed to submit results for scan {scan_id}: {response.status_code}"
+                    )
 
         except Exception as e:
             error_msg = str(e)
@@ -312,12 +327,16 @@ class ScannerService:
                         json={"success": False, "error_message": error_msg},
                     )
             except Exception as submit_error:
-                logger.error(f"Failed to submit error for scan {scan_id}: {submit_error}")
+                logger.error(
+                    f"Failed to submit error for scan {scan_id}: {submit_error}"
+                )
 
     async def trigger_nvd_sync(self) -> bool:
         """Trigger NVD sync via API to enrich vulnerability CVSS data."""
         try:
-            async with httpx.AsyncClient(timeout=300.0) as client:  # Longer timeout for sync
+            async with httpx.AsyncClient(
+                timeout=300.0
+            ) as client:  # Longer timeout for sync
                 response = await client.post(
                     f"{self.api_url}/api/v1/vulnerabilities/nvd-sync",
                     headers=self.headers,
@@ -388,7 +407,9 @@ class ScannerService:
                 if self._should_run_nvd_sync():
                     logger.info("Running scheduled NVD sync...")
                     if await self.trigger_nvd_sync():
-                        self.last_nvd_sync = datetime.datetime.now(datetime.timezone.utc)
+                        self.last_nvd_sync = datetime.datetime.now(
+                            datetime.timezone.utc
+                        )
 
             except Exception as e:
                 logger.error(f"Error in poll loop: {e}")

@@ -1,8 +1,17 @@
 """Vulnerabilities management API endpoints for Elder using PyDAL with async/await and shared helpers."""
 
+# flake8: noqa: E501
+
+
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, jsonify, request
+from py_libs.pydantic.flask_integration import ValidationErrorResponse
+from py_libs.pydantic.models.vulnerability import (
+    NVDSyncRequest,
+    SyncVulnerabilitiesRequest,
+    UpdateComponentVulnerabilityRequest,
+)
 from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required, resource_role_required
@@ -17,12 +26,6 @@ from apps.api.services.sbom.vulnerability.matcher import VulnerabilityMatcher
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.pydal_helpers import PaginationParams
 from apps.api.utils.validation_helpers import validate_resource_exists
-from py_libs.pydantic.flask_integration import ValidationErrorResponse
-from py_libs.pydantic.models.vulnerability import (
-    SyncVulnerabilitiesRequest,
-    NVDSyncRequest,
-    UpdateComponentVulnerabilityRequest,
-)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("vulnerabilities", __name__)
@@ -173,7 +176,8 @@ async def sync_vulnerabilities():
         return ValidationErrorResponse.from_pydantic_error(e)
 
     component_ids = validated_req.component_ids
-    force = validated_req.force
+    # TODO: Implement force re-sync functionality
+    validated_req.force
 
     def get_components():
         query = db.sbom_components.id > 0
@@ -238,10 +242,17 @@ async def sync_vulnerabilities():
                         total_vulns += 1
 
                         # Check if link exists
-                        existing_link = db(
-                            (db.component_vulnerabilities.component_id == comp_id)
-                            & (db.component_vulnerabilities.vulnerability_id == vuln_id)
-                        ).select().first()
+                        existing_link = (
+                            db(
+                                (db.component_vulnerabilities.component_id == comp_id)
+                                & (
+                                    db.component_vulnerabilities.vulnerability_id
+                                    == vuln_id
+                                )
+                            )
+                            .select()
+                            .first()
+                        )
 
                         if not existing_link:
                             # Create component-vulnerability link
@@ -395,6 +406,7 @@ async def update_component_vulnerability(id: int):
             # Set remediated_at if status is remediated
             if validated_req.status == "remediated":
                 from datetime import datetime, timezone
+
                 update_dict["remediated_at"] = datetime.now(timezone.utc)
 
         if validated_req.remediation_notes is not None:
@@ -471,10 +483,15 @@ async def trigger_nvd_sync():
         force_refresh=force_refresh,
     )
 
-    return jsonify({
-        "message": "NVD sync completed",
-        "stats": stats,
-    }), 202
+    return (
+        jsonify(
+            {
+                "message": "NVD sync completed",
+                "stats": stats,
+            }
+        ),
+        202,
+    )
 
 
 @bp.route("/nvd-sync/status", methods=["GET"])

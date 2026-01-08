@@ -1,12 +1,19 @@
 """License policy management API endpoints for Elder using PyDAL with async/await."""
 
+# flake8: noqa: E501
+
+
 import fnmatch
-import structlog
-from pydantic import ValidationError
-
-from flask import Blueprint, current_app, jsonify, request
-
 from dataclasses import asdict
+
+import structlog
+from flask import Blueprint, current_app, jsonify, request
+from py_libs.pydantic.models import (
+    CreateLicensePolicyRequest,
+    LicensePolicyDTO,
+    UpdateLicensePolicyRequest,
+)
+from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required, resource_role_required
 from apps.api.models.dataclasses import PaginatedResponse
@@ -16,11 +23,6 @@ from apps.api.utils.validation_helpers import (
     validate_json_body,
     validate_required_fields,
     validate_resource_exists,
-)
-from py_libs.pydantic.models import (
-    CreateLicensePolicyRequest,
-    LicensePolicyDTO,
-    UpdateLicensePolicyRequest,
 )
 from shared.async_utils import run_in_threadpool
 
@@ -229,9 +231,7 @@ async def create_policy():
 
     # Validate action
     if req.action not in ["warn", "block"]:
-        return ApiResponse.error(
-            "action must be 'warn' or 'block'", 400
-        )
+        return ApiResponse.error("action must be 'warn' or 'block'", 400)
 
     def create():
         policy_id = db.license_policies.insert(
@@ -342,9 +342,7 @@ async def update_policy(id: int):
 
     # Validate action if provided
     if req.action is not None and req.action not in ["warn", "block"]:
-        return ApiResponse.error(
-            "action must be 'warn' or 'block'", 400
-        )
+        return ApiResponse.error("action must be 'warn' or 'block'", 400)
 
     def update():
         update_data = {}

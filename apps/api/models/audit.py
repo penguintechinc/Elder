@@ -1,5 +1,8 @@
 """Audit log model for tracking all system changes."""
 
+# flake8: noqa: E501
+
+
 import enum
 from datetime import datetime, timezone
 from typing import Optional

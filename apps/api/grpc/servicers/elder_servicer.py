@@ -7,6 +7,9 @@ PyDAL operations via the apps.api.api.v1 services.
 For now, all methods return UNIMPLEMENTED status until proper PyDAL integration is done.
 """
 
+# flake8: noqa: E501
+
+
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -55,13 +58,17 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
         db_name = os.getenv("DB_NAME", "elder")
         db_user = os.getenv("DB_USER", "elder")
         db_password = os.getenv("DB_PASSWORD", "elder")
-        database_url = f"postgres://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        database_url = (
+            f"postgres://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        )
 
         self.db = DAL(database_url, folder="/tmp/pydal", migrate=False, pool_size=5)
         define_all_tables(self.db)
 
         # JWT configuration
-        self.jwt_secret = os.getenv("JWT_SECRET_KEY", "default-secret-key-change-in-production")
+        self.jwt_secret = os.getenv(
+            "JWT_SECRET_KEY", "default-secret-key-change-in-production"
+        )
         self.jwt_algorithm = os.getenv("JWT_ALGORITHM", "HS256")
         self.jwt_access_token_expires = timedelta(hours=1)
         self.jwt_refresh_token_expires = timedelta(days=30)
@@ -131,7 +138,9 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
     def _verify_jwt_token(self, token: str) -> Optional[dict]:
         """Verify and decode JWT token."""
         try:
-            payload = jwt.decode(token, self.jwt_secret, algorithms=[self.jwt_algorithm])
+            payload = jwt.decode(
+                token, self.jwt_secret, algorithms=[self.jwt_algorithm]
+            )
             return payload
         except jwt.ExpiredSignatureError:
             logger.warning("Token expired")
@@ -167,7 +176,9 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
                 return auth_pb2.LoginResponse()
 
             # Verify password
-            if not identity.password_hash or not check_password_hash(identity.password_hash, request.password):
+            if not identity.password_hash or not check_password_hash(
+                identity.password_hash, request.password
+            ):
                 context.set_code(grpc.StatusCode.UNAUTHENTICATED)
                 context.set_details("Invalid username or password")
                 return auth_pb2.LoginResponse()
@@ -179,7 +190,9 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
                 return auth_pb2.LoginResponse()
 
             # Update last login
-            db(db.identities.id == identity.id).update(last_login_at=datetime.now(timezone.utc))
+            db(db.identities.id == identity.id).update(
+                last_login_at=datetime.now(timezone.utc)
+            )
             db.commit()
 
             # Refresh identity data
@@ -249,8 +262,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             # This endpoint exists for consistency and future token blacklisting
             return auth_pb2.LogoutResponse(
                 status=self._create_status_response(
-                    success=True,
-                    message="Logged out successfully"
+                    success=True, message="Logged out successfully"
                 )
             )
         except Exception as e:
@@ -435,14 +447,21 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
 
             # Get pagination params
             page = request.pagination.page if request.pagination.page > 0 else 1
-            per_page = min(request.pagination.per_page if request.pagination.per_page > 0 else 50, 1000)
+            per_page = min(
+                request.pagination.per_page if request.pagination.per_page > 0 else 50,
+                1000,
+            )
 
             # Build query
             query = db.identities.id > 0
 
             # Apply filters
             if request.identity_type != auth_pb2.IdentityType.IDENTITY_TYPE_UNSPECIFIED:
-                identity_type_str = "human" if request.identity_type == auth_pb2.IdentityType.HUMAN else "service_account"
+                identity_type_str = (
+                    "human"
+                    if request.identity_type == auth_pb2.IdentityType.HUMAN
+                    else "service_account"
+                )
                 query &= db.identities.identity_type == identity_type_str
 
             if request.auth_provider != auth_pb2.AuthProvider.AUTH_PROVIDER_UNSPECIFIED:
@@ -589,8 +608,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
 
             return auth_pb2.DeleteIdentityResponse(
                 status=self._create_status_response(
-                    success=True,
-                    message=f"Identity {request.id} deleted successfully"
+                    success=True, message=f"Identity {request.id} deleted successfully"
                 )
             )
         except Exception as e:
@@ -598,8 +616,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             self._handle_exception(context, e, "delete_identity")
             return auth_pb2.DeleteIdentityResponse(
                 status=self._create_status_response(
-                    success=False,
-                    message=f"Failed to delete identity: {str(e)}"
+                    success=False, message=f"Failed to delete identity: {str(e)}"
                 )
             )
 
@@ -639,8 +656,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
 
             # Execute query with pagination and ordering
             rows = db(query).select(
-                orderby=db.organizations.name,
-                limitby=(offset, offset + per_page)
+                orderby=db.organizations.name, limitby=(offset, offset + per_page)
             )
 
             # Convert to proto messages
@@ -779,7 +795,9 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             children_count = db(db.organizations.parent_id == request.id).count()
             if children_count > 0:
                 context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
-                context.set_details("Cannot delete organization with child organizations")
+                context.set_details(
+                    "Cannot delete organization with child organizations"
+                )
                 return organization_pb2.DeleteOrganizationResponse()
 
             # Delete organization
@@ -789,7 +807,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             return organization_pb2.DeleteOrganizationResponse(
                 status=self._create_status_response(
                     success=True,
-                    message=f"Organization {request.id} deleted successfully"
+                    message=f"Organization {request.id} deleted successfully",
                 )
             )
         except Exception as e:
@@ -819,8 +837,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             offset = (page - 1) * per_page
 
             children = db(query).select(
-                orderby=db.organizations.name,
-                limitby=(offset, offset + per_page)
+                orderby=db.organizations.name, limitby=(offset, offset + per_page)
             )
 
             # Convert to proto messages
@@ -832,7 +849,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
 
             return organization_pb2.GetOrganizationChildrenResponse(
                 children=organizations,
-                pagination=self._create_pagination_response(page, per_page, total)
+                pagination=self._create_pagination_response(page, per_page, total),
             )
         except Exception as e:
             self._handle_exception(context, e, "get_organization_children")
@@ -951,9 +968,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
 
             # Convert to DTO and proto
             entity_dto = from_pydal_row(entity, EntityDTO)
-            return entity_pb2.GetEntityResponse(
-                entity=entity_to_proto(entity_dto)
-            )
+            return entity_pb2.GetEntityResponse(entity=entity_to_proto(entity_dto))
         except Exception as e:
             self._handle_exception(context, e, "get_entity")
             return entity_pb2.GetEntityResponse()
@@ -988,9 +1003,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             entity = db.entities[entity_id]
             entity_dto = from_pydal_row(entity, EntityDTO)
 
-            return entity_pb2.CreateEntityResponse(
-                entity=entity_to_proto(entity_dto)
-            )
+            return entity_pb2.CreateEntityResponse(entity=entity_to_proto(entity_dto))
         except Exception as e:
             db.rollback()
             self._handle_exception(context, e, "create_entity")
@@ -1030,9 +1043,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             updated_entity = db.entities[request.id]
             entity_dto = from_pydal_row(updated_entity, EntityDTO)
 
-            return entity_pb2.UpdateEntityResponse(
-                entity=entity_to_proto(entity_dto)
-            )
+            return entity_pb2.UpdateEntityResponse(entity=entity_to_proto(entity_dto))
         except Exception as e:
             db.rollback()
             self._handle_exception(context, e, "update_entity")
@@ -1055,8 +1066,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
 
             return entity_pb2.DeleteEntityResponse(
                 status=self._create_status_response(
-                    success=True,
-                    message=f"Entity {request.id} deleted successfully"
+                    success=True, message=f"Entity {request.id} deleted successfully"
                 )
             )
         except Exception as e:
@@ -1064,8 +1074,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             self._handle_exception(context, e, "delete_entity")
             return entity_pb2.DeleteEntityResponse(
                 status=self._create_status_response(
-                    success=False,
-                    message=f"Failed to delete entity: {str(e)}"
+                    success=False, message=f"Failed to delete entity: {str(e)}"
                 )
             )
 
@@ -1086,13 +1095,14 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             per_page = min(pagination.per_page if pagination.per_page > 0 else 50, 1000)
 
             # Get all dependencies where this entity is source OR target
-            query = (db.dependencies.source_id == request.id) | (db.dependencies.target_id == request.id)
+            query = (db.dependencies.source_id == request.id) | (
+                db.dependencies.target_id == request.id
+            )
             total = db(query).count()
             offset = (page - 1) * per_page
 
             rows = db(query).select(
-                orderby=~db.dependencies.created_at,
-                limitby=(offset, offset + per_page)
+                orderby=~db.dependencies.created_at, limitby=(offset, offset + per_page)
             )
 
             # Convert to proto messages
@@ -1134,7 +1144,9 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
                     # Get tenant_id from organization
                     org = db.organizations[entity_request.organization_id]
                     if not org:
-                        errors.append(f"Index {i}: Organization {entity_request.organization_id} not found")
+                        errors.append(
+                            f"Index {i}: Organization {entity_request.organization_id} not found"
+                        )
                         continue
 
                     data["tenant_id"] = org.tenant_id
@@ -1170,7 +1182,10 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
 
             # Get pagination params
             page = request.pagination.page if request.pagination.page > 0 else 1
-            per_page = min(request.pagination.per_page if request.pagination.per_page > 0 else 50, 1000)
+            per_page = min(
+                request.pagination.per_page if request.pagination.per_page > 0 else 50,
+                1000,
+            )
 
             # Build PyDAL query
             query = db.dependencies.id > 0
@@ -1190,8 +1205,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
 
             # Execute query with pagination and ordering
             rows = db(query).select(
-                orderby=~db.dependencies.created_at,
-                limitby=(offset, offset + per_page)
+                orderby=~db.dependencies.created_at, limitby=(offset, offset + per_page)
             )
 
             # Convert to DTOs and proto messages
@@ -1260,7 +1274,9 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             source_entity = db.entities[request.source_entity_id]
             if not source_entity:
                 context.set_code(grpc.StatusCode.NOT_FOUND)
-                context.set_details(f"Source entity {request.source_entity_id} not found")
+                context.set_details(
+                    f"Source entity {request.source_entity_id} not found"
+                )
                 return dependency_pb2.CreateDependencyResponse()
 
             # Get tenant_id from the entity's organization
@@ -1341,7 +1357,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             return dependency_pb2.DeleteDependencyResponse(
                 status=self._create_status_response(
                     success=True,
-                    message=f"Dependency {request.id} deleted successfully"
+                    message=f"Dependency {request.id} deleted successfully",
                 )
             )
         except Exception as e:
@@ -1374,13 +1390,17 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
                         "target_type": "entity",
                         "target_id": dep_request.target_entity_id,
                         "dependency_type": "depends_on",
-                        "metadata": dict(dep_request.metadata) if dep_request.metadata else {},
+                        "metadata": (
+                            dict(dep_request.metadata) if dep_request.metadata else {}
+                        ),
                     }
 
                     # Get tenant_id from source entity
                     source_entity = db.entities[dep_request.source_entity_id]
                     if not source_entity:
-                        errors.append(f"Index {i}: Source entity {dep_request.source_entity_id} not found")
+                        errors.append(
+                            f"Index {i}: Source entity {dep_request.source_entity_id} not found"
+                        )
                         continue
 
                     data["tenant_id"] = source_entity.tenant_id
@@ -1397,8 +1417,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             db.commit()
 
             return dependency_pb2.BulkCreateDependenciesResponse(
-                dependencies=created_dependencies,
-                errors=errors
+                dependencies=created_dependencies, errors=errors
             )
         except Exception as e:
             db.rollback()
@@ -1428,8 +1447,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             db.commit()
 
             return dependency_pb2.BulkDeleteDependenciesResponse(
-                deleted_count=deleted_count,
-                errors=errors
+                deleted_count=deleted_count, errors=errors
             )
         except Exception as e:
             db.rollback()
@@ -1450,19 +1468,27 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
                 org = db.organizations[request.organization_id]
                 if not org:
                     context.set_code(grpc.StatusCode.NOT_FOUND)
-                    context.set_details(f"Organization with ID {request.organization_id} not found")
+                    context.set_details(
+                        f"Organization with ID {request.organization_id} not found"
+                    )
                     return graph_pb2.GetDependencyGraphResponse()
-                entities = db(db.entities.organization_id == request.organization_id).select()
+                entities = db(
+                    db.entities.organization_id == request.organization_id
+                ).select()
             elif request.entity_id > 0:
                 entity = db.entities[request.entity_id]
                 if not entity:
                     context.set_code(grpc.StatusCode.NOT_FOUND)
                     context.set_details(f"Entity with ID {request.entity_id} not found")
                     return graph_pb2.GetDependencyGraphResponse()
-                entities = self._get_entity_subgraph(db, entity, request.depth if request.depth > 0 else 2)
+                entities = self._get_entity_subgraph(
+                    db, entity, request.depth if request.depth > 0 else 2
+                )
             else:
                 context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-                context.set_details("Either organization_id or entity_id must be specified")
+                context.set_details(
+                    "Either organization_id or entity_id must be specified"
+                )
                 return graph_pb2.GetDependencyGraphResponse()
 
             entity_ids = [e.id for e in entities]
@@ -1474,7 +1500,10 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             ).select()
 
             # Build GraphNode list
-            from apps.api.grpc.converters import entity_type_to_proto, dependency_type_to_proto
+            from apps.api.grpc.converters import (
+                dependency_type_to_proto,
+                entity_type_to_proto,
+            )
 
             nodes = []
             for entity in entities:
@@ -1495,7 +1524,9 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
                         id=dep.id,
                         source_id=dep.source_id,
                         target_id=dep.target_id,
-                        type=dependency_type_to_proto(dep.dependency_type or "depends_on"),
+                        type=dependency_type_to_proto(
+                            dep.dependency_type or "depends_on"
+                        ),
                         label=dep.dependency_type or "depends_on",
                         properties={},
                     )
@@ -1524,7 +1555,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             if not entity_ids:
                 return graph_pb2.AnalyzeGraphResponse(
                     results=results,
-                    status=self._create_status_response(True, "No entities to analyze")
+                    status=self._create_status_response(True, "No entities to analyze"),
                 )
 
             dependencies = db(
@@ -1546,57 +1577,67 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             try:
                 simple_cycles = list(nx.simple_cycles(G))
                 for cycle in simple_cycles[:10]:
-                    cycle_items.append(graph_pb2.AnalysisItem(
-                        item_type="cycle",
-                        entity_id=cycle[0] if cycle else 0,
-                        severity="warning",
-                        description=f"Circular dependency detected: {' -> '.join(str(n) for n in cycle)}",
-                        related_entity_ids=list(cycle),
-                    ))
+                    cycle_items.append(
+                        graph_pb2.AnalysisItem(
+                            item_type="cycle",
+                            entity_id=cycle[0] if cycle else 0,
+                            severity="warning",
+                            description=f"Circular dependency detected: {' -> '.join(str(n) for n in cycle)}",
+                            related_entity_ids=list(cycle),
+                        )
+                    )
             except Exception:
                 pass
 
             if cycle_items:
-                results.append(graph_pb2.GraphAnalysisResult(
-                    analysis_type="circular_dependencies",
-                    items=cycle_items,
-                    statistics={"count": str(len(cycle_items))},
-                ))
+                results.append(
+                    graph_pb2.GraphAnalysisResult(
+                        analysis_type="circular_dependencies",
+                        items=cycle_items,
+                        statistics={"count": str(len(cycle_items))},
+                    )
+                )
 
             # Analyze for orphaned nodes
             orphaned_items = []
             for n in G.nodes():
                 if G.degree(n) == 0:
                     node_data = G.nodes[n]
-                    orphaned_items.append(graph_pb2.AnalysisItem(
-                        item_type="orphaned_entity",
-                        entity_id=n,
-                        entity_name=node_data.get("name", ""),
-                        severity="info",
-                        description="Entity has no dependencies",
-                    ))
+                    orphaned_items.append(
+                        graph_pb2.AnalysisItem(
+                            item_type="orphaned_entity",
+                            entity_id=n,
+                            entity_name=node_data.get("name", ""),
+                            severity="info",
+                            description="Entity has no dependencies",
+                        )
+                    )
 
             if orphaned_items:
-                results.append(graph_pb2.GraphAnalysisResult(
-                    analysis_type="orphaned_entities",
-                    items=orphaned_items,
-                    statistics={"count": str(len(orphaned_items))},
-                ))
+                results.append(
+                    graph_pb2.GraphAnalysisResult(
+                        analysis_type="orphaned_entities",
+                        items=orphaned_items,
+                        statistics={"count": str(len(orphaned_items))},
+                    )
+                )
 
             # Add statistics result
-            results.append(graph_pb2.GraphAnalysisResult(
-                analysis_type="statistics",
-                items=[],
-                statistics={
-                    "total_nodes": str(len(entities)),
-                    "total_edges": str(len(dependencies)),
-                    "is_acyclic": str(nx.is_directed_acyclic_graph(G)),
-                },
-            ))
+            results.append(
+                graph_pb2.GraphAnalysisResult(
+                    analysis_type="statistics",
+                    items=[],
+                    statistics={
+                        "total_nodes": str(len(entities)),
+                        "total_edges": str(len(dependencies)),
+                        "is_acyclic": str(nx.is_directed_acyclic_graph(G)),
+                    },
+                )
+            )
 
             return graph_pb2.AnalyzeGraphResponse(
                 results=results,
-                status=self._create_status_response(True, "Analysis complete")
+                status=self._create_status_response(True, "Analysis complete"),
             )
         except Exception as e:
             self._handle_exception(context, e, "analyze_graph")
@@ -1606,7 +1647,10 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
         """Find path between two entities."""
         try:
             db = self.db
-            from apps.api.grpc.converters import entity_type_to_proto, dependency_type_to_proto
+            from apps.api.grpc.converters import (
+                dependency_type_to_proto,
+                entity_type_to_proto,
+            )
 
             # Use correct field names from proto
             source_id = request.source_entity_id
@@ -1650,7 +1694,9 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
                             graph_pb2.GraphNode(
                                 id=eid,
                                 label=entity.name,
-                                type=entity_type_to_proto(entity.entity_type or "compute"),
+                                type=entity_type_to_proto(
+                                    entity.entity_type or "compute"
+                                ),
                                 properties={},
                             )
                         )
@@ -1664,7 +1710,9 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
                                 id=dep.id,
                                 source_id=dep.source_id,
                                 target_id=dep.target_id,
-                                type=dependency_type_to_proto(dep.dependency_type or "depends_on"),
+                                type=dependency_type_to_proto(
+                                    dep.dependency_type or "depends_on"
+                                ),
                                 properties={},
                             )
                         )
@@ -1678,13 +1726,13 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
                 return graph_pb2.FindPathResponse(
                     paths=[graph_path],
                     path_found=True,
-                    status=self._create_status_response(True, "Path found")
+                    status=self._create_status_response(True, "Path found"),
                 )
             except nx.NetworkXNoPath:
                 return graph_pb2.FindPathResponse(
                     paths=[],
                     path_found=False,
-                    status=self._create_status_response(True, "No path exists")
+                    status=self._create_status_response(True, "No path exists"),
                 )
         except Exception as e:
             self._handle_exception(context, e, "find_path")
@@ -1753,7 +1801,7 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
 
             return graph_pb2.GetEntityImpactResponse(
                 impact=impact,
-                status=self._create_status_response(True, "Impact analysis complete")
+                status=self._create_status_response(True, "Impact analysis complete"),
             )
         except Exception as e:
             self._handle_exception(context, e, "get_entity_impact")

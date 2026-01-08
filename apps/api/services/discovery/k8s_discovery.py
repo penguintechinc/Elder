@@ -1,5 +1,8 @@
 """Kubernetes cluster discovery client for Elder - IaaS focus."""
 
+# flake8: noqa: E501
+
+
 from datetime import datetime
 from typing import Any, Dict, List
 

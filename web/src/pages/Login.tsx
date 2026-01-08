@@ -131,10 +131,6 @@ export default function Login() {
             </div>
           </CardContent>
         </Card>
-
-        <p className="text-center text-xs text-gray-600 mt-6">
-          Default credentials: <span className="text-yellow-600">admin / admin123</span>
-        </p>
       </div>
     </div>
   )

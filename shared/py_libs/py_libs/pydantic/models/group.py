@@ -8,13 +8,14 @@ Provides request/response models for group operations including:
 - Bulk operations
 """
 
+# flake8: noqa: E501
+
+
 from datetime import datetime
 from typing import Optional
 
-from pydantic import Field, field_validator
-
 from py_libs.pydantic.base import ImmutableModel, RequestModel
-
+from pydantic import Field, field_validator
 
 # ==================== Group Request Models ====================
 
@@ -23,38 +24,29 @@ class UpdateGroupRequest(RequestModel):
     """Request model for updating group settings and ownership."""
 
     owner_identity_id: Optional[int] = Field(
-        None,
-        ge=1,
-        description="Identity ID of new group owner"
+        None, ge=1, description="Identity ID of new group owner"
     )
     owner_group_id: Optional[int] = Field(
-        None,
-        ge=1,
-        description="Group ID of new group owner"
+        None, ge=1, description="Group ID of new group owner"
     )
     approval_mode: Optional[str] = Field(
         None,
         pattern="^(any|all|threshold)$",
-        description="Approval mode: 'any', 'all', or 'threshold'"
+        description="Approval mode: 'any', 'all', or 'threshold'",
     )
     approval_threshold: Optional[int] = Field(
-        None,
-        ge=1,
-        description="Approval threshold for threshold mode"
+        None, ge=1, description="Approval threshold for threshold mode"
     )
     provider: Optional[str] = Field(
         None,
         pattern="^(internal|ldap|okta)$",
-        description="Provider type: 'internal', 'ldap', or 'okta'"
+        description="Provider type: 'internal', 'ldap', or 'okta'",
     )
     provider_group_id: Optional[str] = Field(
-        None,
-        max_length=500,
-        description="Provider group identifier"
+        None, max_length=500, description="Provider group identifier"
     )
     sync_enabled: Optional[bool] = Field(
-        None,
-        description="Enable sync with external provider"
+        None, description="Enable sync with external provider"
     )
 
     @field_validator("owner_identity_id", "owner_group_id")
@@ -68,33 +60,22 @@ class CreateAccessRequestRequest(RequestModel):
     """Request model for creating group access requests."""
 
     reason: str = Field(
-        ...,
-        min_length=1,
-        max_length=1000,
-        description="Reason for access request"
+        ..., min_length=1, max_length=1000, description="Reason for access request"
     )
     expires_at: Optional[datetime] = Field(
-        None,
-        description="Optional expiration datetime for the access"
+        None, description="Optional expiration datetime for the access"
     )
 
 
 class AddGroupMemberRequest(RequestModel):
     """Request model for adding members to a group."""
 
-    identity_id: int = Field(
-        ...,
-        ge=1,
-        description="Identity ID of member to add"
-    )
+    identity_id: int = Field(..., ge=1, description="Identity ID of member to add")
     expires_at: Optional[datetime] = Field(
-        None,
-        description="Optional expiration datetime for membership"
+        None, description="Optional expiration datetime for membership"
     )
     provider_member_id: Optional[str] = Field(
-        None,
-        max_length=500,
-        description="Provider member identifier"
+        None, max_length=500, description="Provider member identifier"
     )
 
 
@@ -102,9 +83,7 @@ class ApproveOrDenyRequestRequest(RequestModel):
     """Request model for approving or denying access requests."""
 
     comment: Optional[str] = Field(
-        None,
-        max_length=1000,
-        description="Optional comment for approval/denial"
+        None, max_length=1000, description="Optional comment for approval/denial"
     )
 
 
@@ -112,14 +91,10 @@ class BulkApproveRequestsRequest(RequestModel):
     """Request model for bulk approving access requests."""
 
     request_ids: list[int] = Field(
-        ...,
-        min_items=1,
-        description="List of request IDs to approve"
+        ..., min_items=1, description="List of request IDs to approve"
     )
     comment: Optional[str] = Field(
-        None,
-        max_length=1000,
-        description="Optional comment for bulk approval"
+        None, max_length=1000, description="Optional comment for bulk approval"
     )
 
     @field_validator("request_ids")
@@ -140,40 +115,23 @@ class GroupDTO(ImmutableModel):
     id: int = Field(description="Group ID")
     name: str = Field(description="Group name")
     owner_identity_id: Optional[int] = Field(
-        None,
-        description="Identity ID of group owner"
+        None, description="Identity ID of group owner"
     )
-    owner_group_id: Optional[int] = Field(
-        None,
-        description="Group ID of group owner"
-    )
+    owner_group_id: Optional[int] = Field(None, description="Group ID of group owner")
     approval_mode: str = Field(
-        default="any",
-        description="Approval mode: 'any', 'all', or 'threshold'"
+        default="any", description="Approval mode: 'any', 'all', or 'threshold'"
     )
     approval_threshold: Optional[int] = Field(
-        None,
-        description="Approval threshold for threshold mode"
+        None, description="Approval threshold for threshold mode"
     )
-    provider: Optional[str] = Field(
-        None,
-        description="Provider type"
-    )
+    provider: Optional[str] = Field(None, description="Provider type")
     provider_group_id: Optional[str] = Field(
-        None,
-        description="Provider group identifier"
+        None, description="Provider group identifier"
     )
-    sync_enabled: bool = Field(
-        default=False,
-        description="Whether sync is enabled"
-    )
-    member_count: Optional[int] = Field(
-        None,
-        description="Number of members in group"
-    )
+    sync_enabled: bool = Field(default=False, description="Whether sync is enabled")
+    member_count: Optional[int] = Field(None, description="Number of members in group")
     pending_request_count: Optional[int] = Field(
-        None,
-        description="Number of pending access requests"
+        None, description="Number of pending access requests"
     )
 
 
@@ -186,8 +144,7 @@ class AccessRequestDTO(ImmutableModel):
     status: str = Field(description="Request status")
     reason: str = Field(description="Reason for access request")
     expires_at: Optional[datetime] = Field(
-        None,
-        description="Optional expiration datetime"
+        None, description="Optional expiration datetime"
     )
     created_at: datetime = Field(description="Creation timestamp")
     updated_at: datetime = Field(description="Last update timestamp")
@@ -200,13 +157,9 @@ class GroupMemberDTO(ImmutableModel):
     group_id: int = Field(description="Group ID")
     identity_id: int = Field(description="Member identity ID")
     expires_at: Optional[datetime] = Field(
-        None,
-        description="Optional expiration datetime"
+        None, description="Optional expiration datetime"
     )
-    added_by: Optional[int] = Field(
-        None,
-        description="Identity ID who added member"
-    )
+    added_by: Optional[int] = Field(None, description="Identity ID who added member")
     added_at: datetime = Field(description="Addition timestamp")
 
 
@@ -237,8 +190,7 @@ class BulkApproveResult(ImmutableModel):
     succeeded: int = Field(ge=0, description="Number of successfully approved requests")
     failed: int = Field(ge=0, description="Number of failed approvals")
     errors: Optional[list[dict]] = Field(
-        None,
-        description="List of error details for failed requests"
+        None, description="List of error details for failed requests"
     )
 
 

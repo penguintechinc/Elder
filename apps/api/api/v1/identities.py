@@ -1,9 +1,20 @@
 """Identity and User management API endpoints using PyDAL with async/await."""
 
+# flake8: noqa: E501
+
+
 import asyncio
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, g, jsonify, request
+from py_libs.pydantic.flask_integration import validated_request
+from py_libs.pydantic.models.identity import (
+    CreateIdentityGroupRequest,
+    CreateIdentityRequest,
+    IdentityGroupDTO,
+    UpdateIdentityGroupRequest,
+    UpdateIdentityRequest,
+)
 from werkzeug.security import generate_password_hash
 
 from apps.api.auth import login_required, permission_required
@@ -12,14 +23,6 @@ from apps.api.models.dataclasses import (
     PaginatedResponse,
     from_pydal_row,
     from_pydal_rows,
-)
-from py_libs.pydantic.flask_integration import validated_request
-from py_libs.pydantic.models.identity import (
-    CreateIdentityRequest,
-    UpdateIdentityRequest,
-    CreateIdentityGroupRequest,
-    UpdateIdentityGroupRequest,
-    IdentityGroupDTO,
 )
 from shared.async_utils import run_in_threadpool
 
@@ -183,13 +186,17 @@ async def create_identity(body: CreateIdentityRequest):
             "is_active": body.is_active,
             "is_superuser": body.is_superuser,
             "mfa_enabled": body.mfa_enabled,
-            "portal_role": body.portal_role if hasattr(body, 'portal_role') else "viewer",
+            "portal_role": (
+                body.portal_role if hasattr(body, "portal_role") else "viewer"
+            ),
             "must_change_password": False,
         }
 
         # Hash password if provided (for local auth)
         if body.password:
-            insert_data["password_hash"] = generate_password_hash(body.password.get_secret_value())
+            insert_data["password_hash"] = generate_password_hash(
+                body.password.get_secret_value()
+            )
 
         # Create identity
         identity_id = db.identities.insert(**insert_data)
@@ -288,7 +295,9 @@ async def update_identity(id: int, body: UpdateIdentityRequest):
         if body.full_name is not None:
             update_fields["full_name"] = body.full_name
         if body.password is not None:
-            update_fields["password_hash"] = generate_password_hash(body.password.get_secret_value())
+            update_fields["password_hash"] = generate_password_hash(
+                body.password.get_secret_value()
+            )
         if body.is_active is not None:
             update_fields["is_active"] = body.is_active
         if body.mfa_enabled is not None:

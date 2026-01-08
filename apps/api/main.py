@@ -1,5 +1,8 @@
 """Main Flask application for Elder."""
 
+# flake8: noqa: E501
+
+
 import logging
 import os
 
@@ -198,12 +201,12 @@ def _register_blueprints(app: Flask) -> None:
     from apps.api.api.v1 import sbom_scans  # v3.0.0: SBOM Scan Management
     from apps.api.api.v1 import sbom_schedules  # v3.0.0: SBOM Scan Schedules
     from apps.api.api.v1 import search  # Phase 10: Advanced Search
-    from apps.api.api.v1 import vulnerabilities  # v3.0.0: Vulnerability Management
     from apps.api.api.v1 import secrets  # Phase 2: Secrets Management
     from apps.api.api.v1 import services  # v2.3.0: Services Tracking
     from apps.api.api.v1 import software  # v2.3.0: Software Tracking
     from apps.api.api.v1 import sso  # v2.2.0: SSO/SAML/SCIM
     from apps.api.api.v1 import tenants  # v2.2.0: Tenant Management
+    from apps.api.api.v1 import vulnerabilities  # v3.0.0: Vulnerability Management
     from apps.api.api.v1 import webhooks  # Phase 9: Webhook & Notification System
     from apps.api.api.v1 import (  # Phase 7: Google Workspace Integration
         api_keys,

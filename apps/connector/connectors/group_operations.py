@@ -6,6 +6,9 @@ group membership synchronization (write-back to identity providers).
 Enterprise feature - requires Enterprise license.
 """
 
+# flake8: noqa: E501
+
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime

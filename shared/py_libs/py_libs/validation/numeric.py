@@ -10,6 +10,9 @@ Provides:
 - IsNegative: Validates negative numbers
 """
 
+# flake8: noqa: E501
+
+
 from __future__ import annotations
 
 from typing import Union
@@ -119,7 +122,9 @@ class IsIntInRange(Validator[NumericInput, int]):
         # First validate it's an integer
         int_result = IsInt().validate(value)
         if not int_result.is_valid:
-            return ValidationResult.failure(int_result.error or "Value must be an integer")
+            return ValidationResult.failure(
+                int_result.error or "Value must be an integer"
+            )
 
         int_value = int_result.value
         assert int_value is not None  # Type narrowing
@@ -164,7 +169,9 @@ class IsFloatInRange(Validator[NumericInput, float]):
         # First validate it's a number
         float_result = IsFloat().validate(value)
         if not float_result.is_valid:
-            return ValidationResult.failure(float_result.error or "Value must be a number")
+            return ValidationResult.failure(
+                float_result.error or "Value must be a number"
+            )
 
         float_value = float_result.value
         assert float_value is not None  # Type narrowing
@@ -194,14 +201,18 @@ class IsPositive(Validator[NumericInput, float]):
         result = validator(0)    # Invalid (unless allow_zero=True)
     """
 
-    def __init__(self, allow_zero: bool = False, error_message: str | None = None) -> None:
+    def __init__(
+        self, allow_zero: bool = False, error_message: str | None = None
+    ) -> None:
         self.allow_zero = allow_zero
         self.error_message = error_message
 
     def validate(self, value: NumericInput) -> ValidationResult[float]:
         float_result = IsFloat().validate(value)
         if not float_result.is_valid:
-            return ValidationResult.failure(float_result.error or "Value must be a number")
+            return ValidationResult.failure(
+                float_result.error or "Value must be a number"
+            )
 
         float_value = float_result.value
         assert float_value is not None
@@ -232,14 +243,18 @@ class IsNegative(Validator[NumericInput, float]):
         result = validator(0)    # Invalid (unless allow_zero=True)
     """
 
-    def __init__(self, allow_zero: bool = False, error_message: str | None = None) -> None:
+    def __init__(
+        self, allow_zero: bool = False, error_message: str | None = None
+    ) -> None:
         self.allow_zero = allow_zero
         self.error_message = error_message
 
     def validate(self, value: NumericInput) -> ValidationResult[float]:
         float_result = IsFloat().validate(value)
         if not float_result.is_valid:
-            return ValidationResult.failure(float_result.error or "Value must be a number")
+            return ValidationResult.failure(
+                float_result.error or "Value must be a number"
+            )
 
         float_value = float_result.value
         assert float_value is not None

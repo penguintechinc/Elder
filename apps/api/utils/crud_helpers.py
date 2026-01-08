@@ -5,6 +5,9 @@ This module provides reusable CRUD operations with pagination, filtering,
 and validation support. These helpers reduce code duplication across API endpoints.
 """
 
+# flake8: noqa: E501
+
+
 from dataclasses import asdict
 from typing import Any, Callable, Dict, List, Optional
 
@@ -13,10 +16,7 @@ from flask import current_app, jsonify, request
 from shared.async_utils import run_in_threadpool
 
 from .api_responses import ApiResponse
-from .pydal_helpers import (
-    PaginationParams,
-    get_by_id,
-)
+from .pydal_helpers import PaginationParams, get_by_id
 from .validation_helpers import (
     validate_json_body,
     validate_required_fields,

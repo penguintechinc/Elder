@@ -5,11 +5,15 @@ component information. Supports both JSON and XML formats for CycloneDX,
 and JSON format for SPDX.
 """
 
+# flake8: noqa: E501
+
+
 import json
 import re
-import defusedxml.ElementTree as ET
 from typing import Any, Dict, List, Optional
 from xml.etree.ElementTree import Element  # For type hints only
+
+import defusedxml.ElementTree as ET
 
 from ..base import BaseDependencyParser
 
@@ -240,7 +244,9 @@ class SBOMParser(BaseDependencyParser):
 
         # Parse components
         for component_elem in root.findall(".//component", ns):
-            comp_dict = self._parse_cyclonedx_xml_component(component_elem, filename, ns)
+            comp_dict = self._parse_cyclonedx_xml_component(
+                component_elem, filename, ns
+            )
             if comp_dict:
                 components.append(comp_dict)
 

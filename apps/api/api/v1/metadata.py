@@ -1,13 +1,16 @@
 """Metadata management API endpoints for Elder enterprise features using PyDAL with async/await."""
 
+# flake8: noqa: E501
+
+
 import json
 from datetime import datetime
 from typing import Optional, Union
 
 from flask import Blueprint, current_app, jsonify
-
 from py_libs.pydantic import RequestModel
 from py_libs.pydantic.flask_integration import validated_request
+
 from apps.api.auth.decorators import login_required, resource_role_required
 from shared.async_utils import run_in_threadpool
 from shared.licensing import license_required
@@ -564,7 +567,9 @@ async def create_organization_metadata(id: int, body: CreateMetadataRequest):
 @license_required("enterprise")
 @resource_role_required("maintainer", resource_param="id")
 @validated_request(body_model=UpdateMetadataRequest)
-async def update_organization_metadata(id: int, field_key: str, body: UpdateMetadataRequest):
+async def update_organization_metadata(
+    id: int, field_key: str, body: UpdateMetadataRequest
+):
     """
     Update a metadata field for an organization.
 

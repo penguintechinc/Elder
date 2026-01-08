@@ -4,6 +4,9 @@ Provides helpers for running blocking PyDAL operations in async context using th
 Python 3.12 optimizations with asyncio TaskGroups for structured concurrency.
 """
 
+# flake8: noqa: E501
+
+
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps

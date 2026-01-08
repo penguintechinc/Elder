@@ -8,6 +8,9 @@ Supports:
 - go.sum: Hash verification for module versions (optional, for completeness)
 """
 
+# flake8: noqa: E501
+
+
 import re
 from typing import Any, Dict, List, Optional
 

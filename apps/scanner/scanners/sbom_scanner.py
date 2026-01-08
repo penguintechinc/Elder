@@ -1,5 +1,8 @@
 """SBOM scanner for analyzing git repositories and extracting dependencies."""
 
+# flake8: noqa: E501
+
+
 import asyncio
 import logging
 import os
@@ -10,9 +13,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse, urlunparse
 
-from parsers.endpoint_parser_flask import FlaskEndpointParser
 from parsers.endpoint_parser_django import DjangoEndpointParser
 from parsers.endpoint_parser_express import ExpressEndpointParser
+from parsers.endpoint_parser_flask import FlaskEndpointParser
 from parsers.endpoint_parser_go import GoEndpointParser
 
 from .base import BaseScanner
@@ -354,7 +357,14 @@ class SBOMScanner(BaseScanner):
             netloc = netloc.split("@")[-1]
 
         return urlunparse(
-            (parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment)
+            (
+                parsed.scheme,
+                netloc,
+                parsed.path,
+                parsed.params,
+                parsed.query,
+                parsed.fragment,
+            )
         )
 
     def _find_dependency_files(self, root_dir: str) -> List[Dict[str, Any]]:
@@ -482,7 +492,8 @@ class SBOMScanner(BaseScanner):
                 # Skip hidden directories and common exclusions
                 if any(
                     p.startswith(".")
-                    or p in ["node_modules", "vendor", ".git", "__pycache__", "venv", "env"]
+                    or p
+                    in ["node_modules", "vendor", ".git", "__pycache__", "venv", "env"]
                     for p in file_path.parts
                 ):
                     continue
@@ -498,18 +509,26 @@ class SBOMScanner(BaseScanner):
                     if parser.can_parse(filename):
                         try:
                             # Read file content
-                            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                            with open(
+                                file_path, "r", encoding="utf-8", errors="ignore"
+                            ) as f:
                                 content = f.read()
 
                             # Parse endpoints
-                            file_endpoints = parser.parse(content, str(file_path.relative_to(repo_path)))
+                            file_endpoints = parser.parse(
+                                content, str(file_path.relative_to(repo_path))
+                            )
 
                             if file_endpoints:
                                 endpoints.extend(file_endpoints)
-                                logger.info(f"Found {len(file_endpoints)} endpoint(s) in {filename}")
+                                logger.info(
+                                    f"Found {len(file_endpoints)} endpoint(s) in {filename}"
+                                )
 
                         except Exception as e:
-                            logger.warning(f"Failed to parse endpoints from {file_path}: {e}")
+                            logger.warning(
+                                f"Failed to parse endpoints from {file_path}: {e}"
+                            )
 
                         # Only one parser per file
                         break
