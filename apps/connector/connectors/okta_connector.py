@@ -18,8 +18,10 @@ import httpx
 
 from apps.connector.config.settings import settings
 from apps.connector.connectors.base import BaseConnector, SyncResult
-from apps.connector.connectors.group_operations import (GroupMembershipResult,
-                                                        GroupOperationsMixin)
+from apps.connector.connectors.group_operations import (
+    GroupMembershipResult,
+    GroupOperationsMixin,
+)
 from apps.connector.utils.elder_client import ElderAPIClient
 
 

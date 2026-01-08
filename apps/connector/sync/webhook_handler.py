@@ -17,9 +17,14 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, Optional
 
-from apps.connector.sync.base import (BaseSyncClient, ResourceType,
-                                      SyncDirection, SyncOperation, SyncResult,
-                                      SyncStatus)
+from apps.connector.sync.base import (
+    BaseSyncClient,
+    ResourceType,
+    SyncDirection,
+    SyncOperation,
+    SyncResult,
+    SyncStatus,
+)
 from apps.connector.sync.conflict_resolver import ConflictResolver
 
 

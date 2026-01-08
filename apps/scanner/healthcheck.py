@@ -21,8 +21,7 @@ def check_imports() -> bool:
     try:
         import httpx  # noqa: F401
         from scanners.banner import BannerScanner  # noqa: F401
-        from scanners.http_screenshot import \
-            HTTPScreenshotScanner  # noqa: F401
+        from scanners.http_screenshot import HTTPScreenshotScanner  # noqa: F401
         from scanners.network import NetworkScanner  # noqa: F401
         from scanners.sbom_scanner import SBOMScanner  # noqa: F401
 

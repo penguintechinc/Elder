@@ -7,11 +7,13 @@ from dataclasses import asdict
 
 from flask import Blueprint, current_app, jsonify, request
 from py_libs.pydantic.flask_integration import ValidationErrorResponse
-from py_libs.pydantic.models import (CreateIPAMAddressRequest,
-                                     CreateIPAMPrefixRequest,
-                                     CreateIPAMVlanRequest,
-                                     UpdateIPAMAddressRequest,
-                                     UpdateIPAMPrefixRequest)
+from py_libs.pydantic.models import (
+    CreateIPAMAddressRequest,
+    CreateIPAMPrefixRequest,
+    CreateIPAMVlanRequest,
+    UpdateIPAMAddressRequest,
+    UpdateIPAMPrefixRequest,
+)
 from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required, resource_role_required

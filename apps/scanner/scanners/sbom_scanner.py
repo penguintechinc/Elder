@@ -428,11 +428,14 @@ class SBOMScanner(BaseScanner):
         """
         try:
             # Import parsers dynamically
-            from apps.api.services.sbom.parsers import (DotnetParser, GoParser,
-                                                        JavaDependencyParser,
-                                                        NodeDependencyParser,
-                                                        PythonDependencyParser,
-                                                        RustDependencyParser)
+            from apps.api.services.sbom.parsers import (
+                DotnetParser,
+                GoParser,
+                JavaDependencyParser,
+                NodeDependencyParser,
+                PythonDependencyParser,
+                RustDependencyParser,
+            )
 
             # Map ecosystems to parser classes
             parser_map = {

@@ -27,9 +27,17 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from py_libs.validation import (IsEmail, IsHostname, IsIPAddress, IsLength,
-                                IsNotEmpty, IsSlug, IsStrongPassword, IsURL,
-                                PasswordOptions)
+from py_libs.validation import (
+    IsEmail,
+    IsHostname,
+    IsIPAddress,
+    IsLength,
+    IsNotEmpty,
+    IsSlug,
+    IsStrongPassword,
+    IsURL,
+    PasswordOptions,
+)
 from pydantic import AfterValidator
 
 

@@ -6,8 +6,7 @@
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, g, jsonify, request
-from py_libs.pydantic.models import (CreateResourceRoleRequest,
-                                     ResourceRoleResponse)
+from py_libs.pydantic.models import CreateResourceRoleRequest, ResourceRoleResponse
 from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required

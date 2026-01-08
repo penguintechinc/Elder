@@ -14,8 +14,12 @@ from pydantic import Field
 
 from apps.api.auth.decorators import login_required
 from apps.api.logging_config import log_error_and_respond
-from apps.api.models.dataclasses import (DependencyDTO, PaginatedResponse,
-                                         from_pydal_row, from_pydal_rows)
+from apps.api.models.dataclasses import (
+    DependencyDTO,
+    PaginatedResponse,
+    from_pydal_row,
+    from_pydal_rows,
+)
 from shared.async_utils import run_in_threadpool
 
 logger = logging.getLogger(__name__)

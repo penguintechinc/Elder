@@ -11,8 +11,12 @@ from py_libs.pydantic import Description1000, Name255, RequestModel
 from py_libs.pydantic.flask_integration import validated_request
 
 from apps.api.auth.decorators import login_required
-from apps.api.models.dataclasses import (IssueLabelDTO, PaginatedResponse,
-                                         from_pydal_row, from_pydal_rows)
+from apps.api.models.dataclasses import (
+    IssueLabelDTO,
+    PaginatedResponse,
+    from_pydal_row,
+    from_pydal_rows,
+)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("labels", __name__)

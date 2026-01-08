@@ -21,14 +21,23 @@ import structlog
 from pydal import DAL
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from apps.api.grpc.converters import (dependency_to_proto, entity_to_proto,
-                                      entity_type_from_proto,
-                                      identity_to_proto, organization_to_proto)
-from apps.api.grpc.generated import (auth_pb2, common_pb2, dependency_pb2,
-                                     elder_pb2_grpc, entity_pb2, graph_pb2,
-                                     organization_pb2)
-from apps.api.models import (DependencyDTO, EntityDTO, IdentityDTO,
-                             OrganizationDTO)
+from apps.api.grpc.converters import (
+    dependency_to_proto,
+    entity_to_proto,
+    entity_type_from_proto,
+    identity_to_proto,
+    organization_to_proto,
+)
+from apps.api.grpc.generated import (
+    auth_pb2,
+    common_pb2,
+    dependency_pb2,
+    elder_pb2_grpc,
+    entity_pb2,
+    graph_pb2,
+    organization_pb2,
+)
+from apps.api.models import DependencyDTO, EntityDTO, IdentityDTO, OrganizationDTO
 from apps.api.models.dataclasses import from_pydal_row
 from apps.api.models.pydal_models import define_all_tables
 
@@ -1491,8 +1500,10 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             ).select()
 
             # Build GraphNode list
-            from apps.api.grpc.converters import (dependency_type_to_proto,
-                                                  entity_type_to_proto)
+            from apps.api.grpc.converters import (
+                dependency_type_to_proto,
+                entity_type_to_proto,
+            )
 
             nodes = []
             for entity in entities:
@@ -1636,8 +1647,10 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
         """Find path between two entities."""
         try:
             db = self.db
-            from apps.api.grpc.converters import (dependency_type_to_proto,
-                                                  entity_type_to_proto)
+            from apps.api.grpc.converters import (
+                dependency_type_to_proto,
+                entity_type_to_proto,
+            )
 
             # Use correct field names from proto
             source_id = request.source_entity_id

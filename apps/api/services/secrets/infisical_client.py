@@ -11,10 +11,16 @@ from typing import Any, Dict, List, Optional
 import requests
 from requests.exceptions import HTTPError, RequestException
 
-from .base import (InvalidSecretConfigException, SecretAccessDeniedException,
-                   SecretAlreadyExistsException, SecretMetadata,
-                   SecretNotFoundException, SecretProviderClient,
-                   SecretProviderException, SecretValue)
+from .base import (
+    InvalidSecretConfigException,
+    SecretAccessDeniedException,
+    SecretAlreadyExistsException,
+    SecretMetadata,
+    SecretNotFoundException,
+    SecretProviderClient,
+    SecretProviderException,
+    SecretValue,
+)
 
 logger = logging.getLogger(__name__)
 

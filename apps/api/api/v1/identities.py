@@ -8,16 +8,22 @@ from dataclasses import asdict
 
 from flask import Blueprint, current_app, g, jsonify, request
 from py_libs.pydantic.flask_integration import validated_request
-from py_libs.pydantic.models.identity import (CreateIdentityGroupRequest,
-                                              CreateIdentityRequest,
-                                              IdentityGroupDTO,
-                                              UpdateIdentityGroupRequest,
-                                              UpdateIdentityRequest)
+from py_libs.pydantic.models.identity import (
+    CreateIdentityGroupRequest,
+    CreateIdentityRequest,
+    IdentityGroupDTO,
+    UpdateIdentityGroupRequest,
+    UpdateIdentityRequest,
+)
 from werkzeug.security import generate_password_hash
 
 from apps.api.auth import login_required, permission_required
-from apps.api.models.dataclasses import (IdentityDTO, PaginatedResponse,
-                                         from_pydal_row, from_pydal_rows)
+from apps.api.models.dataclasses import (
+    IdentityDTO,
+    PaginatedResponse,
+    from_pydal_row,
+    from_pydal_rows,
+)
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("identities", __name__)

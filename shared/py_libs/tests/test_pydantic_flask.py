@@ -6,10 +6,13 @@
 import pytest
 from flask import Flask
 from py_libs.pydantic.base import ImmutableModel, RequestModel
-from py_libs.pydantic.flask_integration import (ValidationErrorResponse,
-                                                model_response, validate_body,
-                                                validate_query_params,
-                                                validated_request)
+from py_libs.pydantic.flask_integration import (
+    ValidationErrorResponse,
+    model_response,
+    validate_body,
+    validate_query_params,
+    validated_request,
+)
 from pydantic import ValidationError, field_validator
 
 

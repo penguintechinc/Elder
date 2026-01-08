@@ -16,9 +16,14 @@ from typing import Any, Dict, Optional
 import httpx
 from pydal import DAL
 
-from apps.connector.sync.base import (BaseSyncClient, ResourceType,
-                                      SyncDirection, SyncOperation, SyncResult,
-                                      SyncStatus)
+from apps.connector.sync.base import (
+    BaseSyncClient,
+    ResourceType,
+    SyncDirection,
+    SyncOperation,
+    SyncResult,
+    SyncStatus,
+)
 from apps.connector.sync.conflict_resolver import ConflictResolver
 
 

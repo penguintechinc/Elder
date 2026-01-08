@@ -17,8 +17,11 @@ from shared.async_utils import run_in_threadpool
 
 from .api_responses import ApiResponse
 from .pydal_helpers import PaginationParams, get_by_id
-from .validation_helpers import (validate_json_body, validate_required_fields,
-                                 validate_resource_exists)
+from .validation_helpers import (
+    validate_json_body,
+    validate_required_fields,
+    validate_resource_exists,
+)
 
 
 class CrudHelper:

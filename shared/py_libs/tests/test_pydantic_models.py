@@ -11,8 +11,10 @@ with valid and invalid data using pytest.
 from datetime import datetime
 
 import pytest
-from py_libs.pydantic.models.organization import (CreateOrganizationRequest,
-                                                  OrganizationDTO)
+from py_libs.pydantic.models.organization import (
+    CreateOrganizationRequest,
+    OrganizationDTO,
+)
 from pydantic import ValidationError
 
 

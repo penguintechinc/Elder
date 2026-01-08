@@ -9,8 +9,7 @@ import httpx
 
 from apps.connector.config.settings import settings
 from apps.connector.connectors.base import BaseConnector, SyncResult
-from apps.connector.utils.elder_client import (ElderAPIClient, Entity,
-                                               Organization)
+from apps.connector.utils.elder_client import ElderAPIClient, Entity, Organization
 
 
 class IBossConnector(BaseConnector):

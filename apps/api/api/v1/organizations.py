@@ -6,10 +6,15 @@
 from flask import Blueprint, current_app, jsonify, request
 from marshmallow import ValidationError
 
-from apps.api.schemas.organization import (OrganizationCreateSchema,
-                                           OrganizationUpdateSchema)
-from shared.api_utils import (handle_validation_error, make_error_response,
-                              validate_request)
+from apps.api.schemas.organization import (
+    OrganizationCreateSchema,
+    OrganizationUpdateSchema,
+)
+from shared.api_utils import (
+    handle_validation_error,
+    make_error_response,
+    validate_request,
+)
 
 bp = Blueprint("organizations", __name__)
 
