@@ -9,6 +9,8 @@ Supports:
 - Gorilla Mux: r.HandleFunc().Methods()
 - net/http: http.HandleFunc(), mux.Handle()
 """
+# flake8: noqa: E501
+
 
 import re
 from typing import Any, Dict, List

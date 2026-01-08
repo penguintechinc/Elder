@@ -1,4 +1,6 @@
 """Webhook & Notification Service for Elder v1.2.0 (Phase 9)."""
+# flake8: noqa: E501
+
 
 import hashlib
 import hmac

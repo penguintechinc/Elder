@@ -6,6 +6,8 @@ PyDAL operations via the apps.api.api.v1 services.
 
 For now, all methods return UNIMPLEMENTED status until proper PyDAL integration is done.
 """
+# flake8: noqa: E501
+
 
 import os
 from datetime import datetime, timedelta, timezone

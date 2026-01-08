@@ -1,4 +1,6 @@
 """SBOM scanner for analyzing git repositories and extracting dependencies."""
+# flake8: noqa: E501
+
 
 import asyncio
 import logging

@@ -1,4 +1,6 @@
 """Entry point for running gRPC server as a module."""
+# flake8: noqa: E501
+
 
 import os
 

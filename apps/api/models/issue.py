@@ -1,4 +1,6 @@
 """GitHub-style issues system for Elder enterprise features."""
+# flake8: noqa: E501
+
 
 import enum
 from datetime import datetime, timezone

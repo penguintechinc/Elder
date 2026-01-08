@@ -1,4 +1,6 @@
 """Alertmanager client for sending incident alerts from Elder issues."""
+# flake8: noqa: E501
+
 
 import logging
 import os

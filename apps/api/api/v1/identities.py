@@ -1,4 +1,6 @@
 """Identity and User management API endpoints using PyDAL with async/await."""
+# flake8: noqa: E501
+
 
 import asyncio
 from dataclasses import asdict

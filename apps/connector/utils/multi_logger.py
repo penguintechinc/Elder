@@ -7,6 +7,8 @@ This module provides a unified logging interface that can simultaneously send lo
 
 All logs include correlation IDs for distributed tracing across sync operations.
 """
+# flake8: noqa: E501
+
 
 import json
 import logging

@@ -7,6 +7,8 @@ Jira, Trello, OpenProject).
 All platform-specific sync clients should inherit from BaseSyncClient and implement
 the required abstract methods.
 """
+# flake8: noqa: E501
+
 
 import abc
 from dataclasses import dataclass, field

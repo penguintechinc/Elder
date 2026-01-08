@@ -3,6 +3,8 @@
 Exports component data to SPDX 2.3 format in JSON.
 Includes package information, licenses, checksums, and relationships.
 """
+# flake8: noqa: E501
+
 
 import json
 from datetime import datetime

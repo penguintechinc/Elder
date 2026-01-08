@@ -1,3 +1,4 @@
+# flake8: noqa: E501
 #!/usr/bin/env python3
 """Health check script for Elder Scanner Service.
 

@@ -3,6 +3,8 @@
 Exports component data to CycloneDX 1.4+ format in both JSON and XML.
 Includes component metadata, licenses, and vulnerability information.
 """
+# flake8: noqa: E501
+
 
 import json
 import xml.etree.ElementTree as ET

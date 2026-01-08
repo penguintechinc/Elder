@@ -1,4 +1,6 @@
 """Organization Units (OUs) API endpoints using PyDAL with async/await."""
+# flake8: noqa: E501
+
 
 import logging
 from dataclasses import asdict

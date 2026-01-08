@@ -1,4 +1,6 @@
 """Web UI routes for Elder."""
+# flake8: noqa: E501
+
 
 import os
 

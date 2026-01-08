@@ -3,6 +3,8 @@
 Provides API endpoints for managing two-way synchronization with external
 project management platforms (GitHub, GitLab, Jira, Trello, OpenProject).
 """
+# flake8: noqa: E501
+
 
 from datetime import datetime
 

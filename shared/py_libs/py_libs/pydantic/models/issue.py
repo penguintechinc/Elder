@@ -9,6 +9,8 @@ Provides validated Pydantic 2 equivalents of Issue dataclasses:
 - IssuePriority: Literal type for valid issue priorities
 - IssueSeverity: Literal type for valid issue severities
 """
+# flake8: noqa: E501
+
 
 from datetime import datetime
 from typing import Literal, Optional

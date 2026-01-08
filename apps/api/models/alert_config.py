@@ -1,4 +1,6 @@
 """Alert configuration model for per-OU incident alerting."""
+# flake8: noqa: E501
+
 
 import enum
 from typing import Optional

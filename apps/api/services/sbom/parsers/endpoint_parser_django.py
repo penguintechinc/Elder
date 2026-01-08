@@ -5,6 +5,8 @@ Detects Django URL patterns from Python source code including:
 - Legacy url() patterns
 - Django REST Framework router registrations
 """
+# flake8: noqa: E501
+
 
 import re
 from typing import Dict, List

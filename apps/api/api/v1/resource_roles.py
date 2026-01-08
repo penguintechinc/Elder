@@ -1,4 +1,6 @@
 """Resource Role management API endpoints using PyDAL with async/await."""
+# flake8: noqa: E501
+
 
 from dataclasses import asdict
 

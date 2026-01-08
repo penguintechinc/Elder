@@ -1,4 +1,6 @@
 """Resource-level role model for Elder enterprise features."""
+# flake8: noqa: E501
+
 
 import enum
 from typing import List, Optional

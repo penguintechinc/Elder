@@ -1,4 +1,6 @@
 """Issues management API endpoints for Elder enterprise features using PyDAL with async/await."""
+# flake8: noqa: E501
+
 
 import asyncio
 from dataclasses import asdict

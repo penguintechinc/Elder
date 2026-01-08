@@ -1,4 +1,6 @@
 """Tests for Flask integration with Pydantic models."""
+# flake8: noqa: E501
+
 
 import pytest
 from flask import Flask

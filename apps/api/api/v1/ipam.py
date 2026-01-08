@@ -1,4 +1,6 @@
 """IPAM (IP Address Management) API endpoints for Elder using PyDAL with async/await."""
+# flake8: noqa: E501
+
 
 from dataclasses import asdict
 

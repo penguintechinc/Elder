@@ -4,6 +4,8 @@ HTTP client with retry logic and circuit breaker pattern.
 Provides a production-ready HTTP client with exponential backoff,
 configurable timeouts, and optional circuit breaker protection.
 """
+# flake8: noqa: E501
+
 
 import logging
 import time

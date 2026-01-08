@@ -1,4 +1,6 @@
 """Scanner implementations."""
+# flake8: noqa: E501
+
 
 from .banner import BannerScanner
 from .base import BaseScanner

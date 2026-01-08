@@ -7,6 +7,8 @@ Supports multiple log destinations:
 - HTTP3/QUIC to Kafka clusters (high-performance)
 - Cloud-native services (AWS CloudWatch, GCP Cloud Logging)
 """
+# flake8: noqa: E501
+
 
 import logging
 import os

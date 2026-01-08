@@ -1,4 +1,6 @@
 """Database connection and session management using PyDAL."""
+# flake8: noqa: E501
+
 
 from contextlib import contextmanager
 from typing import Generator

@@ -7,6 +7,8 @@ Provides:
 - IsIPAddress: Validates IPv4/IPv6 addresses
 - IsHostname: Validates hostnames
 """
+# flake8: noqa: E501
+
 
 from __future__ import annotations
 

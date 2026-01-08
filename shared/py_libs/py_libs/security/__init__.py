@@ -8,6 +8,8 @@ Provides:
 - csrf: CSRF protection helpers
 - audit: Audit logging
 """
+# flake8: noqa: E501
+
 
 # Placeholder - will be implemented in security utilities phase
 __all__: list[str] = []

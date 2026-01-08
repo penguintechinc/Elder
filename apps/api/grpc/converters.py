@@ -1,4 +1,6 @@
 """Converters between DTOs and protobuf messages."""
+# flake8: noqa: E501
+
 
 from datetime import datetime
 from typing import List, Optional

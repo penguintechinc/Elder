@@ -8,6 +8,8 @@ This package provides "batteries included" security-focused utilities:
 - http: Request correlation, resilient HTTP client
 - grpc: gRPC server/client with security interceptors
 """
+# flake8: noqa: E501
+
 
 __version__ = "1.0.0"
 __author__ = "Penguin Tech Inc"

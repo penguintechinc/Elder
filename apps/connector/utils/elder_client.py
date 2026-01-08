@@ -1,4 +1,6 @@
 """Elder API client for creating and updating organizations and entities."""
+# flake8: noqa: E501
+
 
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional

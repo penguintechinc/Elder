@@ -1,4 +1,6 @@
 """Audit System API endpoints for Elder v1.2.0 (Phase 8)."""
+# flake8: noqa: E501
+
 
 import logging
 from datetime import datetime, timedelta

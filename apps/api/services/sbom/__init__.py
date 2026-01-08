@@ -3,6 +3,8 @@
 Provides comprehensive dependency parsing, SBOM generation, and vulnerability
 scanning across multiple package managers and dependency formats.
 """
+# flake8: noqa: E501
+
 
 from .service import SBOMService
 

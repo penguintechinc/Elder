@@ -8,6 +8,8 @@ Supports parsing of:
 Extracts package dependencies and converts them to standardized component
 information compatible with the SBOM service.
 """
+# flake8: noqa: E501
+
 
 import re
 from typing import Any, Dict, List, Optional

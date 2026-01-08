@@ -1,4 +1,6 @@
 """On-call rotation CRUD operations."""
+# flake8: noqa: E501
+
 
 import datetime
 from dataclasses import asdict

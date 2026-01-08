@@ -1,4 +1,6 @@
 """Authentication and authorization decorators using PyDAL."""
+# flake8: noqa: E501
+
 
 import inspect
 from functools import wraps

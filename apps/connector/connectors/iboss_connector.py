@@ -1,4 +1,6 @@
 """iBoss cloud security platform connector for syncing to Elder."""
+# flake8: noqa: E501
+
 
 from typing import Dict, List, Optional
 

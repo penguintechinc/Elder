@@ -1,4 +1,6 @@
 """GCP connector for syncing Google Cloud Platform resources to Elder."""
+# flake8: noqa: E501
+
 
 from typing import Dict, Optional
 

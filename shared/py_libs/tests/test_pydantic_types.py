@@ -4,6 +4,8 @@ Test suite for Pydantic custom types.
 Tests EmailStr, URLStr, StrongPassword, Name255 and other types with
 valid and invalid inputs using pytest.
 """
+# flake8: noqa: E501
+
 
 import pytest
 from py_libs.pydantic.types import (Description1000, EmailStr, HostnameStr,

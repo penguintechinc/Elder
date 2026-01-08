@@ -6,6 +6,8 @@ Provides validated Pydantic 2 equivalents of Label dataclasses:
 - CreateLabelRequest: Request validation for label creation
 - UpdateLabelRequest: Flexible update request with all optional fields
 """
+# flake8: noqa: E501
+
 
 from datetime import datetime
 from typing import Optional

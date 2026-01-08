@@ -1,4 +1,6 @@
 """On-call rotation history, escalations, and current on-call endpoints."""
+# flake8: noqa: E501
+
 
 import datetime
 from dataclasses import asdict

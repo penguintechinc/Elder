@@ -6,6 +6,8 @@ Format: TTTT-OOOO-IIIIIIII (tenant-org-item)
 - Organization: 16-bit (4 hex chars)
 - Item: 32-bit (8 hex chars)
 """
+# flake8: noqa: E501
+
 
 import secrets
 

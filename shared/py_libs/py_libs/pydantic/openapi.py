@@ -1,4 +1,6 @@
 """Flask-RESTX integration for OpenAPI schema generation from Pydantic models."""
+# flake8: noqa: E501
+
 
 from typing import Any, Dict, Optional, Type, get_args, get_origin
 

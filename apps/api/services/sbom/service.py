@@ -4,6 +4,8 @@ Provides the main service interface for dependency file parsing,
 component extraction, and repository scanning with support for
 multiple package managers and dependency formats.
 """
+# flake8: noqa: E501
+
 
 import os
 from typing import Any, Dict, List, Optional

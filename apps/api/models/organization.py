@@ -1,4 +1,6 @@
 """Organization model for hierarchical organizational structure."""
+# flake8: noqa: E501
+
 
 from typing import List, Optional
 

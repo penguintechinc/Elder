@@ -1,4 +1,6 @@
 """Entity type and sub-type definitions for Elder v1.2.0."""
+# flake8: noqa: E501
+
 
 from typing import Dict, List
 

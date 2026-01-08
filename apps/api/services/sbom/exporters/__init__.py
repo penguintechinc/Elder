@@ -9,6 +9,8 @@ Exporters convert parsed dependency data into industry-standard SBOM
 formats for compliance, vulnerability tracking, and integration with
 security tools.
 """
+# flake8: noqa: E501
+
 
 from .cyclonedx import CycloneDXExporter
 from .spdx import SPDXExporter

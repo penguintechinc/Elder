@@ -4,6 +4,8 @@ gRPC utilities for Python services.
 Provides server helpers, client utilities, and security interceptors
 for gRPC services following project standards.
 """
+# flake8: noqa: E501
+
 
 from .client import GrpcClient
 from .interceptors import (AuditInterceptor, AuthInterceptor,

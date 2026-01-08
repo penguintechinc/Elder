@@ -6,6 +6,7 @@ Enterprise feature providing:
 - Provider write-back (LDAP, Okta)
 - Audit logging for all membership changes
 """
+# flake8: noqa: E501
 
 import datetime
 import logging

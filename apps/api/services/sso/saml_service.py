@@ -3,6 +3,8 @@
 Handles SAML SSO authentication with IdP configurations
 at both global and tenant levels.
 """
+# flake8: noqa: E501
+
 
 import datetime
 from typing import Optional

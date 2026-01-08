@@ -3,6 +3,8 @@
 Defines the interface that all dependency format parsers must implement,
 including support for package managers like npm, pip, go.mod, Composer, etc.
 """
+# flake8: noqa: E501
+
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List

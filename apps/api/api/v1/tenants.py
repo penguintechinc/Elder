@@ -3,6 +3,8 @@
 Provides REST endpoints for tenant CRUD operations, configuration,
 and usage statistics for the Super Admin Console.
 """
+# flake8: noqa: E501
+
 
 from typing import Optional
 

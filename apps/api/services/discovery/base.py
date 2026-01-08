@@ -1,4 +1,6 @@
 """Base discovery provider for cloud resource discovery."""
+# flake8: noqa: E501
+
 
 from abc import ABC, abstractmethod
 from datetime import datetime

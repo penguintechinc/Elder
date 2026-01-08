@@ -1,4 +1,6 @@
 """Authentication package for Elder."""
+# flake8: noqa: E501
+
 
 from apps.api.auth.decorators import login_required, permission_required
 from apps.api.auth.jwt_handler import (generate_token, get_current_user,

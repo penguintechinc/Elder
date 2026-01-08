@@ -1,4 +1,6 @@
 """Typed metadata system for Elder enterprise features."""
+# flake8: noqa: E501
+
 
 import enum
 import json

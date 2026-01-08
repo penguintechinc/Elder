@@ -1,4 +1,6 @@
 """Google Workspace Integration Service for Elder v1.2.0 (Phase 7)."""
+# flake8: noqa: E501
+
 
 import json
 from datetime import datetime

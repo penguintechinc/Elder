@@ -1,9 +1,14 @@
-"""PyDAL table definitions for Elder application."""
+"""PyDAL table definitions for Elder application.
+
+This module defines all PyDAL database tables. Long lines are unavoidable
+due to Field() definition syntax and are suppressed from linting.
+"""
+# flake8: noqa: E501
 
 import datetime
 
 from pydal import Field
-from pydal.validators import *
+from pydal.validators import *  # noqa: F401, F403
 
 from apps.api.utils.village_id import generate_village_id
 

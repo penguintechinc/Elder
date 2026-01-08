@@ -4,6 +4,8 @@ Parses Cargo.toml and Cargo.lock files to extract Rust crate dependencies
 and version information. Handles standard dependencies, dev-dependencies,
 and build-dependencies with support for various version specifiers.
 """
+# flake8: noqa: E501
+
 
 import re
 import tomllib

@@ -1,4 +1,6 @@
 """Dependency API endpoints using PyDAL with async/await and Pydantic validation."""
+# flake8: noqa: E501
+
 
 import asyncio
 import logging

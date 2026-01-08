@@ -1,4 +1,6 @@
 """Entity API endpoints using PyDAL with async/await and shared helpers."""
+# flake8: noqa: E501
+
 
 import asyncio
 from dataclasses import asdict

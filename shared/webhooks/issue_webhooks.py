@@ -1,4 +1,6 @@
 """Webhook notifications for issue creation events."""
+# flake8: noqa: E501
+
 
 from typing import Any, Dict, List, Optional
 

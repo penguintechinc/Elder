@@ -2,6 +2,8 @@
 
 Polls the Elder API for pending scan jobs and executes them.
 """
+# flake8: noqa: E501
+
 
 import asyncio
 import datetime

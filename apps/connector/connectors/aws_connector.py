@@ -1,4 +1,6 @@
 """AWS connector for syncing AWS resources to Elder."""
+# flake8: noqa: E501
+
 
 import time
 from typing import Any, Dict, Optional

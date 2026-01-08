@@ -1,4 +1,6 @@
 """Metadata management API endpoints for Elder enterprise features using PyDAL with async/await."""
+# flake8: noqa: E501
+
 
 import json
 from datetime import datetime

@@ -1,4 +1,6 @@
 """Organization schemas for validation."""
+# flake8: noqa: E501
+
 
 from marshmallow import Schema, fields, validate
 

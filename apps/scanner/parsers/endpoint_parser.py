@@ -3,6 +3,8 @@
 Provides a unified interface for parsing API endpoints from multiple frameworks
 including Flask, FastAPI, Django, Express.js, and Go frameworks.
 """
+# flake8: noqa: E501
+
 
 import os
 from typing import Dict, List

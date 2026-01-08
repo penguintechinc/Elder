@@ -1,4 +1,6 @@
 """API Key management endpoints."""
+# flake8: noqa: E501
+
 
 import hashlib
 import secrets

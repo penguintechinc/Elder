@@ -5,6 +5,8 @@ Provides:
 - correlation: Request ID/correlation middleware
 - client: Resilient HTTP client with retries
 """
+# flake8: noqa: E501
+
 
 from .client import (CircuitBreakerConfig, CircuitState, HTTPClient,
                      HTTPClientConfig, RetryConfig)

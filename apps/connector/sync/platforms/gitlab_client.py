@@ -6,6 +6,8 @@ GitLab-specific features:
 - Scoped labels (workflow::in-progress)
 - Milestones at project and group level
 """
+# flake8: noqa: E501
+
 
 from datetime import datetime
 from typing import Any, Dict, Optional

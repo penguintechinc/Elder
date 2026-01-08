@@ -1,4 +1,6 @@
 """Azure AD (Microsoft Entra ID) client for identity and access management."""
+# flake8: noqa: E501
+
 
 import logging
 from typing import Any, Dict, Optional

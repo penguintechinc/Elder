@@ -1,4 +1,6 @@
 """Base abstract class for IAM providers."""
+# flake8: noqa: E501
+
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional

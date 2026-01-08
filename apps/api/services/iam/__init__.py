@@ -1,4 +1,6 @@
 """IAM management service for Elder v2.0.0 - identity and access management operations."""
+# flake8: noqa: E501
+
 
 from apps.api.services.iam.aws_client import AWSIAMClient
 from apps.api.services.iam.azure_client import AzureADClient

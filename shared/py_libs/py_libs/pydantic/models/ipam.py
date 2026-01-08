@@ -12,6 +12,8 @@ Provides validated Pydantic 2 models for IPAM entities:
 - CreateIPAMVlanRequest: Request validation for creating VLANs
 - UpdateIPAMVlanRequest: Request validation for updating VLANs
 """
+# flake8: noqa: E501
+
 
 from datetime import datetime
 from typing import Optional

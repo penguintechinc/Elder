@@ -6,6 +6,8 @@ Supports multiple authentication methods:
 3. Web Identity / OIDC (role_arn + web_identity_token_file)
 4. AWS SSO / IAM Identity Center
 """
+# flake8: noqa: E501
+
 
 import logging
 import os

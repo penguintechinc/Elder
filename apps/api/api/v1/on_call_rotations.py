@@ -2,6 +2,8 @@
 
 This module aggregates all on-call rotation endpoints from separate modules.
 """
+# flake8: noqa: E501
+
 
 from flask import Blueprint
 

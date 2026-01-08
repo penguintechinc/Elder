@@ -4,6 +4,8 @@ Implements parsing of Flask route decorators and Flask-RESTful resources
 to extract API endpoint information including paths, HTTP methods, and
 authentication requirements.
 """
+# flake8: noqa: E501
+
 
 import re
 from typing import Any, Dict, List

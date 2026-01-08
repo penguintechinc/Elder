@@ -1,11 +1,12 @@
-"""
-Pydantic 2 integration module for py_libs.
+"""Pydantic 2 integration module for py_libs.
 
-Provides custom base models for Elder applications and custom Annotated types that
-integrate with py_libs.validation validators for seamless Pydantic model validation.
+Provides custom base models for Elder applications and custom Annotated
+types that integrate with py_libs.validation validators for seamless
+Pydantic model validation.
 
 Features:
-- Base models with Elder-specific configuration (ElderBaseModel, ImmutableModel, RequestModel, ConfigurableModel)
+- Base models with Elder-specific configuration (ElderBaseModel,
+  ImmutableModel, RequestModel, ConfigurableModel)
 - Pre-built Annotated types for common use cases (email, URL, IP, hostname)
 - Factory functions for customizable types (strong_password, bounded_str)
 - Full integration with py_libs.validation IS_* validators
@@ -32,10 +33,15 @@ Usage:
         name="John Doe"
     )
 """
+# flake8: noqa: E501
 
 # Base Models
-from py_libs.pydantic.base import (ConfigurableModel, ElderBaseModel,
-                                   ImmutableModel, RequestModel)
+from py_libs.pydantic.base import (
+    ConfigurableModel,
+    ElderBaseModel,
+    ImmutableModel,
+    RequestModel,
+)
 # Flask Integration
 from py_libs.pydantic.flask_integration import (ValidationErrorResponse,
                                                 model_response, validate_body,

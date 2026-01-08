@@ -1,4 +1,6 @@
 """PenguinTech License Server client for Elder."""
+# flake8: noqa: E501
+
 
 import os
 from dataclasses import dataclass

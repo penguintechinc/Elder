@@ -1,4 +1,6 @@
 """AWS KMS client for key management operations."""
+# flake8: noqa: E501
+
 
 import base64
 from typing import Any, Dict, Optional

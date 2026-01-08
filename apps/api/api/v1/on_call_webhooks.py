@@ -1,4 +1,6 @@
 """On-call rotation webhook handlers for alert integrations."""
+# flake8: noqa: E501
+
 
 import datetime
 

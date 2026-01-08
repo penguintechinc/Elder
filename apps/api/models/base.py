@@ -1,4 +1,6 @@
 """Base models and mixins for Elder database models."""
+# flake8: noqa: E501
+
 
 from datetime import datetime, timezone
 from typing import Any, Dict

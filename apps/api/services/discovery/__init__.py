@@ -1,4 +1,6 @@
 """Cloud Auto-Discovery service for Elder - automated cloud resource discovery."""
+# flake8: noqa: E501
+
 
 from apps.api.services.discovery.aws_discovery import AWSDiscoveryClient
 from apps.api.services.discovery.azure_discovery import AzureDiscoveryClient

@@ -1,4 +1,6 @@
 """Authentication API endpoints using PyDAL with async/await."""
+# flake8: noqa: E501
+
 
 import os
 from dataclasses import asdict

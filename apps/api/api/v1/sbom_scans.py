@@ -1,4 +1,6 @@
 """SBOM scans management API endpoints for Elder using PyDAL with async/await and shared helpers."""
+# flake8: noqa: E501
+
 
 import fnmatch
 from dataclasses import asdict

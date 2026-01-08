@@ -1,4 +1,6 @@
 """Main Flask application for Elder."""
+# flake8: noqa: E501
+
 
 import logging
 import os

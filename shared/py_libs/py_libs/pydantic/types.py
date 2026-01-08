@@ -19,6 +19,8 @@ Usage:
     # Pydantic will automatically validate using the IS_* validators
     user = User(email="user@example.com", password="SecureP@ss123", name="John Doe")
 """
+# flake8: noqa: E501
+
 
 from __future__ import annotations
 

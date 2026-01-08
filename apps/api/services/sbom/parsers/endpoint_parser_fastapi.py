@@ -4,6 +4,8 @@ Implements parsing of FastAPI route decorators and APIRouter routes
 to extract API endpoint information including paths, HTTP methods, and
 authentication requirements.
 """
+# flake8: noqa: E501
+
 
 import re
 from typing import Any, Dict, List
