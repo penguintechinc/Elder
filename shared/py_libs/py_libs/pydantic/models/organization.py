@@ -4,6 +4,7 @@ Pydantic 2 models for Organization Units (OUs).
 Provides immutable DTOs and request models for organization management
 with field validation and type safety.
 """
+
 # flake8: noqa: E501
 
 

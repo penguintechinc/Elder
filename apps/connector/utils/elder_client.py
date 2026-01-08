@@ -1,4 +1,5 @@
 """Elder API client for creating and updating organizations and entities."""
+
 # flake8: noqa: E501
 
 

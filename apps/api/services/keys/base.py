@@ -1,4 +1,5 @@
 """Base abstract class for key management providers."""
+
 # flake8: noqa: E501
 
 

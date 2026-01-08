@@ -7,6 +7,7 @@ Provides validated Pydantic 2 equivalents of Network and IPAM dataclasses:
 - CreateNetworkRequest: Request validation for creating networks
 - CreateIPAMEntryRequest: Request validation for creating IPAM entries
 """
+
 # flake8: noqa: E501
 
 

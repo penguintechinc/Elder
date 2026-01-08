@@ -1,4 +1,5 @@
 """License server integration for Elder enterprise features."""
+
 # flake8: noqa: E501
 
 

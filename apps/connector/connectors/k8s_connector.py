@@ -1,4 +1,5 @@
 """Kubernetes connector for syncing K8S resources to Elder (v1.2.1)."""
+
 # flake8: noqa: E501
 
 

@@ -4,6 +4,7 @@ Generic CRUD helper utilities for Elder API.
 This module provides reusable CRUD operations with pagination, filtering,
 and validation support. These helpers reduce code duplication across API endpoints.
 """
+
 # flake8: noqa: E501
 
 

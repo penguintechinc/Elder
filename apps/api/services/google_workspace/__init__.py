@@ -1,4 +1,5 @@
 """Google Workspace integration service for Elder."""
+
 # flake8: noqa: E501
 
 

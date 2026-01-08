@@ -7,6 +7,7 @@ webhooks effectively.
 The scheduler runs periodic batch syncs based on configurable intervals and
 monitors webhook health to automatically trigger fallback syncs when needed.
 """
+
 # flake8: noqa: E501
 
 

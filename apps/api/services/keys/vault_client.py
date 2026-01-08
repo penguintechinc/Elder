@@ -1,4 +1,5 @@
 """Hashicorp Vault Transit secrets engine client for key management."""
+
 # flake8: noqa: E501
 
 

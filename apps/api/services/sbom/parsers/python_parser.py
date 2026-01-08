@@ -9,6 +9,7 @@ Implements parsing of Python dependency files in multiple formats:
 Extracts package name, version, and scope information to generate
 standardized component dictionaries with Package URLs (PURL).
 """
+
 # flake8: noqa: E501
 
 

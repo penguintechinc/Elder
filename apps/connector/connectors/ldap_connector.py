@@ -1,4 +1,5 @@
 """LDAP/LDAPS connector for syncing directory services to Elder."""
+
 # flake8: noqa: E501
 
 

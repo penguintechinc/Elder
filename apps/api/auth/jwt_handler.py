@@ -1,4 +1,5 @@
 """JWT token handling for Elder authentication using PyDAL."""
+
 # flake8: noqa: E501
 
 

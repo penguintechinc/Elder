@@ -6,6 +6,7 @@ Provides:
 - hashing: Password hashing (Argon2id, bcrypt)
 - encryption: AES-256-GCM encryption
 """
+
 # flake8: noqa: E501
 
 

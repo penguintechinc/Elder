@@ -4,6 +4,7 @@ Pydantic 2 domain models for license policy management.
 Provides request and response models for license policy operations with
 Pydantic validation and type safety.
 """
+
 # flake8: noqa: E501
 
 

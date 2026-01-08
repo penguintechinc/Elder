@@ -1,4 +1,5 @@
 """Google Workspace connector for syncing users, groups, and org units to Elder."""
+
 # flake8: noqa: E501
 
 

@@ -1,4 +1,5 @@
 """Database connection and session management using PyDAL."""
+
 # flake8: noqa: E501
 
 

@@ -1,4 +1,5 @@
 """Organization API endpoints."""
+
 # flake8: noqa: E501
 
 

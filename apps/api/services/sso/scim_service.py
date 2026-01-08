@@ -3,6 +3,7 @@
 Implements SCIM 2.0 endpoints for user and group provisioning
 from identity providers like Okta, Azure AD, etc.
 """
+
 # flake8: noqa: E501
 
 

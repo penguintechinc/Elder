@@ -4,6 +4,7 @@ Common validation utilities for Elder API.
 This module provides reusable validation functions for common patterns
 like organization/tenant validation, required field checks, etc.
 """
+
 # flake8: noqa: E501
 
 

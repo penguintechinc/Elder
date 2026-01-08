@@ -4,6 +4,7 @@ Test suite for Pydantic models validation.
 Tests CreateOrganizationRequest and OrganizationDTO validation
 with valid and invalid data using pytest.
 """
+
 # flake8: noqa: E501
 
 

@@ -7,6 +7,7 @@ Provides secure logging that:
 - Never exposes stack traces to external users
 - Follows OWASP security best practices
 """
+
 # flake8: noqa: E501
 
 

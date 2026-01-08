@@ -6,6 +6,7 @@ Cargo.toml and Cargo.lock files in various scenarios.
 Run this file to see example output:
     python3 apps/api/services/sbom/parsers/RUST_PARSER_EXAMPLE.py
 """
+
 # flake8: noqa: E501
 
 

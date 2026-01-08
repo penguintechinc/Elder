@@ -4,6 +4,7 @@ Standardized API response utilities for Elder API.
 This module provides consistent response formatting across all API endpoints,
 ensuring uniform error handling and success responses.
 """
+
 # flake8: noqa: E501
 
 

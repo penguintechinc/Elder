@@ -1,6 +1,7 @@
 """
 Express.js endpoint parser for detecting routes in JavaScript/TypeScript source code.
 """
+
 # flake8: noqa: E501
 
 

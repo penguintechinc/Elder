@@ -1,4 +1,5 @@
 """Endpoint parsers for detecting API routes in source code."""
+
 # flake8: noqa: E501
 
 

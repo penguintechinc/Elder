@@ -1,4 +1,5 @@
 """Flask-RESTX integration for OpenAPI schema generation from Pydantic models."""
+
 # flake8: noqa: E501
 
 

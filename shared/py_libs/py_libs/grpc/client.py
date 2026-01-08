@@ -1,6 +1,7 @@
 """
 gRPC client with connection management, retries, and TLS support.
 """
+
 # flake8: noqa: E501
 
 

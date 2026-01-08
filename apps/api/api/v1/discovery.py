@@ -1,4 +1,5 @@
 """Cloud Auto-Discovery API endpoints for Elder v1.2.0 (Phase 5)."""
+
 # flake8: noqa: E501
 
 

@@ -10,6 +10,7 @@ Models:
     - RequestModel: Model for API request validation with injection protection
     - ConfigurableModel: Flexible model with dynamic field support
 """
+
 # flake8: noqa: E501
 
 

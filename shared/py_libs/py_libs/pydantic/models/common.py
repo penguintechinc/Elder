@@ -4,6 +4,7 @@ Pydantic 2 common models for Elder applications.
 Provides shared domain models for pagination, bulk operations, and error handling
 with proper validation, immutability for responses, and generic type support.
 """
+
 # flake8: noqa: E501
 
 

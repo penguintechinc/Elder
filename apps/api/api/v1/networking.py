@@ -1,4 +1,5 @@
 """REST API endpoints for networking resources and topology."""
+
 # flake8: noqa: E501
 
 

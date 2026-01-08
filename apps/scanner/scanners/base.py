@@ -1,4 +1,5 @@
 """Base scanner class."""
+
 # flake8: noqa: E501
 
 

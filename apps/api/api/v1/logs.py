@@ -1,4 +1,5 @@
 """System Logs API endpoints for admin log viewing."""
+
 # flake8: noqa: E501
 
 

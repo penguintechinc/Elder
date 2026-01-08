@@ -1,4 +1,5 @@
 """Configuration module for connector service."""
+
 # flake8: noqa: E501
 
 

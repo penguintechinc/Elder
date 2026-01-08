@@ -1,4 +1,5 @@
 """Async validation utilities for Pydantic with PyDAL."""
+
 # flake8: noqa: E501
 
 

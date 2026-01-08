@@ -1,4 +1,5 @@
 """Identity models for users, service accounts, and groups."""
+
 # flake8: noqa: E501
 
 

@@ -1,4 +1,5 @@
 """Cloud Auto-Discovery service for Elder - automated cloud resource discovery."""
+
 # flake8: noqa: E501
 
 

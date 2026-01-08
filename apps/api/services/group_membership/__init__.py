@@ -2,6 +2,7 @@
 
 Enterprise feature for group ownership, access requests, and provider write-back.
 """
+
 # flake8: noqa: E501
 
 

@@ -1,4 +1,5 @@
 """Network scanner using masscan for high-speed port scanning."""
+
 # flake8: noqa: E501
 
 

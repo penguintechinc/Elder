@@ -1,4 +1,5 @@
 """User Profile API endpoints using PyDAL with async/await."""
+
 # flake8: noqa: E501
 
 

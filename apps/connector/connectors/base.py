@@ -1,4 +1,5 @@
 """Base connector interface."""
+
 # flake8: noqa: E501
 
 

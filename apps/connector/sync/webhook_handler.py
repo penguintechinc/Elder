@@ -6,6 +6,7 @@ platforms (GitHub, GitLab, Jira, Trello, OpenProject).
 Webhooks enable real-time synchronization by receiving push notifications
 when resources are created, updated, or deleted on external platforms.
 """
+
 # flake8: noqa: E501
 
 

@@ -1,4 +1,5 @@
 """Organization model for hierarchical organizational structure."""
+
 # flake8: noqa: E501
 
 

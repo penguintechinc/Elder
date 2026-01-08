@@ -1,4 +1,5 @@
 """Configuration settings for Elder Connector Service."""
+
 # flake8: noqa: E501
 
 

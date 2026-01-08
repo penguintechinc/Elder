@@ -1,4 +1,5 @@
 """Issue comments API endpoints with Pydantic validation."""
+
 # flake8: noqa: E501
 
 

@@ -3,6 +3,7 @@
 Handles OIDC SSO authentication with IdP configurations
 at both global and tenant levels using Authlib.
 """
+
 # flake8: noqa: E501
 
 

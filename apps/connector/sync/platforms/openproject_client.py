@@ -6,6 +6,7 @@ OpenProject mapping:
 - Versions → Milestones
 - Types → Issue Types
 """
+
 # flake8: noqa: E501
 
 

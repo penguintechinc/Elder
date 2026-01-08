@@ -7,6 +7,7 @@ Provides the foundation for PyDAL-style validators with:
 - ValidationError exception for validation failures
 - chain() function for combining multiple validators
 """
+
 # flake8: noqa: E501
 
 

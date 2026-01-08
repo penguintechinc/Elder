@@ -16,6 +16,7 @@ for different package managers and dependency file formats:
 Parsers are added incrementally as support for each package manager
 is implemented.
 """
+
 # flake8: noqa: E501
 
 

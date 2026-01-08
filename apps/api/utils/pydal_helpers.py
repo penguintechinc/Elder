@@ -4,6 +4,7 @@ PyDAL async helper utilities for Elder API.
 This module provides async wrappers for common PyDAL operations,
 simplifying the use of run_in_threadpool with database queries.
 """
+
 # flake8: noqa: E501
 
 

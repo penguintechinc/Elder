@@ -1,4 +1,5 @@
 """Tests for Flask integration with Pydantic models."""
+
 # flake8: noqa: E501
 
 

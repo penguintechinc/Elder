@@ -1,4 +1,5 @@
 """Base client interface for secret providers."""
+
 # flake8: noqa: E501
 
 

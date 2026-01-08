@@ -1,4 +1,5 @@
 """Flask integration for Pydantic 2 validation."""
+
 # flake8: noqa: E501
 
 

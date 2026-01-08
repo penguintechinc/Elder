@@ -1,4 +1,5 @@
 """Networking resources service for network topology and visualization."""
+
 # flake8: noqa: E501
 
 

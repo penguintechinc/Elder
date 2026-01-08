@@ -1,6 +1,7 @@
 """
 Structured logging package for Elder application.
 """
+
 # flake8: noqa: E501
 
 

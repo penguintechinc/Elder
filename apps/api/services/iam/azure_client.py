@@ -1,4 +1,5 @@
 """Azure AD (Microsoft Entra ID) client for identity and access management."""
+
 # flake8: noqa: E501
 
 

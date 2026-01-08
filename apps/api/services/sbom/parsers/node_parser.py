@@ -9,6 +9,7 @@ Supports parsing multiple Node.js dependency file formats:
 Each parser extracts dependency information and returns standardized
 component dictionaries with package names, versions, and metadata.
 """
+
 # flake8: noqa: E501
 
 

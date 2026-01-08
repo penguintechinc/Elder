@@ -1,4 +1,5 @@
 """Discovery service - business logic layer for cloud resource discovery."""
+
 # flake8: noqa: E501
 
 

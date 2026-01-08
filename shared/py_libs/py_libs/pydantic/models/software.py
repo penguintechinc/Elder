@@ -6,6 +6,7 @@ Provides validated Pydantic 2 equivalents of Software dataclasses:
 - CreateSoftwareRequest: Request validation with security hardening
 - UpdateSoftwareRequest: Flexible update request with all optional fields
 """
+
 # flake8: noqa: E501
 
 

@@ -1,4 +1,5 @@
 """Elder Connector Service - Sync external data sources to Elder."""
+
 # flake8: noqa: E501
 
 

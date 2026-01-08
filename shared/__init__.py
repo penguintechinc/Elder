@@ -1,3 +1,3 @@
 """Shared components for Elder application."""
-# flake8: noqa: E501
 
+# flake8: noqa: E501

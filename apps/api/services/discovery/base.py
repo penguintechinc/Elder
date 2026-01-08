@@ -1,4 +1,5 @@
 """Base discovery provider for cloud resource discovery."""
+
 # flake8: noqa: E501
 
 

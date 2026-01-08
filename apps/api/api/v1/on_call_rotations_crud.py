@@ -1,4 +1,5 @@
 """On-call rotation CRUD operations."""
+
 # flake8: noqa: E501
 
 

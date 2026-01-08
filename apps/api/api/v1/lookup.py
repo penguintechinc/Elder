@@ -3,6 +3,7 @@
 NOTE: Original unique_id (64-bit) functionality not yet migrated to PyDAL schema.
 Currently uses regular entity ID. TODO: Add unique_id field to entities table.
 """
+
 # flake8: noqa: E501
 
 

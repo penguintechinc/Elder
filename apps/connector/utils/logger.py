@@ -1,4 +1,5 @@
 """Structured logging configuration for the connector service."""
+
 # flake8: noqa: E501
 
 

@@ -2,6 +2,7 @@
 
 Provides validation, serialization, and type safety for resource role operations.
 """
+
 # flake8: noqa: E501
 
 

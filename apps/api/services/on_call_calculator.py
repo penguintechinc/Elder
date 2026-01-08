@@ -9,6 +9,7 @@ Supports multiple schedule types:
 - manual: Manually assigned shifts
 - follow_the_sun: Timezone-aware follow-the-sun rotation
 """
+
 # flake8: noqa: E501
 
 

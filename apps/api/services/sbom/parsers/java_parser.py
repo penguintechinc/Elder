@@ -7,6 +7,7 @@ Parses Java dependency files including:
 
 Extracts dependency information and returns standardized component data.
 """
+
 # flake8: noqa: E501
 
 

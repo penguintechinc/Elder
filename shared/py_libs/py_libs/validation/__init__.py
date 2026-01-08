@@ -19,6 +19,7 @@ Usage:
     validators = chain(IsNotEmpty(), IsLength(3, 255), IsEmail())
     result = validators("user@example.com")
 """
+
 # flake8: noqa: E501
 
 

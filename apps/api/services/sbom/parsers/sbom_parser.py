@@ -4,6 +4,7 @@ Parses standard SBOM formats (CycloneDX 1.4+ and SPDX 2.3) and extracts
 component information. Supports both JSON and XML formats for CycloneDX,
 and JSON format for SPDX.
 """
+
 # flake8: noqa: E501
 
 

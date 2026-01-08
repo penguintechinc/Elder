@@ -5,6 +5,7 @@ Provides:
 - IsStrongPassword: Configurable password strength validation
 - PasswordOptions: Configuration dataclass for password requirements
 """
+
 # flake8: noqa: E501
 
 

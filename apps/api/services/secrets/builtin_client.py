@@ -1,4 +1,5 @@
 """Built-in secrets storage client implementation."""
+
 # flake8: noqa: E501
 
 

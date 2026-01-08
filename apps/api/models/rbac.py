@@ -1,4 +1,5 @@
 """Role-Based Access Control (RBAC) models."""
+
 # flake8: noqa: E501
 
 

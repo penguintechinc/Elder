@@ -1,4 +1,5 @@
 """On-call rotation participants and overrides management."""
+
 # flake8: noqa: E501
 
 

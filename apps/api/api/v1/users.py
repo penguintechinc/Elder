@@ -1,4 +1,5 @@
 """User management endpoints (admin only)."""
+
 # flake8: noqa: E501
 
 

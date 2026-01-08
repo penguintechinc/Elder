@@ -7,6 +7,7 @@ Supports:
 - go.mod: Module declarations, require blocks, replace and exclude directives
 - go.sum: Hash verification for module versions (optional, for completeness)
 """
+
 # flake8: noqa: E501
 
 

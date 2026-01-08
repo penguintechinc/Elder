@@ -1,4 +1,5 @@
 """API Key management endpoints."""
+
 # flake8: noqa: E501
 
 

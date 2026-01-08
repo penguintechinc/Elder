@@ -1,4 +1,5 @@
 """Authentication and authorization decorators using PyDAL."""
+
 # flake8: noqa: E501
 
 

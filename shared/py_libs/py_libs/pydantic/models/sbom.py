@@ -4,6 +4,7 @@ These models provide type-safe validation and serialization for SBOM-related
 operations including component management, vulnerability tracking, and scan
 scheduling.
 """
+
 # flake8: noqa: E501
 
 

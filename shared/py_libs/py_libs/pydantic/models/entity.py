@@ -6,6 +6,7 @@ Provides validated Pydantic 2 equivalents of Entity dataclasses:
 - CreateEntityRequest: Request validation with security hardening
 - UpdateEntityRequest: Flexible update request with all optional fields
 """
+
 # flake8: noqa: E501
 
 

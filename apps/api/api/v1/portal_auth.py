@@ -3,6 +3,7 @@
 Provides REST endpoints for portal user authentication, registration,
 MFA management, and password operations with tenant context.
 """
+
 # flake8: noqa: E501
 
 

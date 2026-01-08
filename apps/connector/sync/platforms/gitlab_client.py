@@ -6,6 +6,7 @@ GitLab-specific features:
 - Scoped labels (workflow::in-progress)
 - Milestones at project and group level
 """
+
 # flake8: noqa: E501
 
 

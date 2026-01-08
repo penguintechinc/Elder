@@ -1,4 +1,5 @@
 """Base abstract class for IAM providers."""
+
 # flake8: noqa: E501
 
 

@@ -1,4 +1,5 @@
 """License validation decorators for Elder enterprise features."""
+
 # flake8: noqa: E501
 
 

@@ -1,4 +1,5 @@
 """API endpoints for recursive organization tree operations."""
+
 # flake8: noqa: E501
 
 

@@ -3,6 +3,7 @@
 Provides REST endpoints for SSO configuration, SAML authentication,
 and SCIM 2.0 user provisioning.
 """
+
 # flake8: noqa: E501
 
 

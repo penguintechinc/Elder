@@ -7,6 +7,7 @@ Enterprise feature providing:
 
 Requires Enterprise license.
 """
+
 # flake8: noqa: E501
 
 

@@ -1,4 +1,5 @@
 """Hashicorp Vault secrets client implementation."""
+
 # flake8: noqa: E501
 
 

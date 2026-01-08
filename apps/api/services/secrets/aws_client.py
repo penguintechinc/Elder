@@ -1,4 +1,5 @@
 """AWS Secrets Manager client implementation."""
+
 # flake8: noqa: E501
 
 

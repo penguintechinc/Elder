@@ -9,6 +9,7 @@ Implements two-way synchronization between Elder and GitHub:
 
 GitHub API: REST API v3 + GraphQL for complex queries
 """
+
 # flake8: noqa: E501
 
 

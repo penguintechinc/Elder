@@ -33,15 +33,12 @@ Usage:
         name="John Doe"
     )
 """
+
 # flake8: noqa: E501
 
 # Base Models
-from py_libs.pydantic.base import (
-    ConfigurableModel,
-    ElderBaseModel,
-    ImmutableModel,
-    RequestModel,
-)
+from py_libs.pydantic.base import (ConfigurableModel, ElderBaseModel,
+                                   ImmutableModel, RequestModel)
 # Flask Integration
 from py_libs.pydantic.flask_integration import (ValidationErrorResponse,
                                                 model_response, validate_body,

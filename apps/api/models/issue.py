@@ -1,4 +1,5 @@
 """GitHub-style issues system for Elder enterprise features."""
+
 # flake8: noqa: E501
 
 

@@ -4,6 +4,7 @@ Pydantic 2 domain models for Elder application entities.
 This module provides Pydantic 2 equivalents of Elder dataclasses with proper
 validation, immutability for DTOs, and security hardening for requests.
 """
+
 # flake8: noqa: E501
 
 

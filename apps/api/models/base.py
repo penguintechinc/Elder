@@ -1,4 +1,5 @@
 """Base models and mixins for Elder database models."""
+
 # flake8: noqa: E501
 
 

@@ -9,6 +9,7 @@ Provides:
 - IsPositive: Validates positive numbers
 - IsNegative: Validates negative numbers
 """
+
 # flake8: noqa: E501
 
 

@@ -4,6 +4,7 @@ PenguinTech License Server Python Client
 This module provides a Python client for integrating with the PenguinTech License Server
 to validate licenses and check feature entitlements.
 """
+
 # flake8: noqa: E501
 
 

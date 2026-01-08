@@ -3,6 +3,7 @@
 Provides helpers for running blocking PyDAL operations in async context using thread pools.
 Python 3.12 optimizations with asyncio TaskGroups for structured concurrency.
 """
+
 # flake8: noqa: E501
 
 

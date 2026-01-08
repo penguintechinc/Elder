@@ -1,4 +1,5 @@
 """Entity model for tracking infrastructure and organizational resources."""
+
 # flake8: noqa: E501
 
 

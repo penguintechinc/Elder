@@ -1,4 +1,5 @@
 """Secrets Management service layer."""
+
 # flake8: noqa: E501
 
 

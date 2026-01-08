@@ -1,4 +1,5 @@
 """Database models for Elder application using PyDAL."""
+
 # flake8: noqa: E501
 
 

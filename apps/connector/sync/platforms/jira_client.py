@@ -6,6 +6,7 @@ Jira-specific features:
 - Sprint tracking
 - Custom fields support
 """
+
 # flake8: noqa: E501
 
 

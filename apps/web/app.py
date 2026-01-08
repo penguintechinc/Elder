@@ -1,6 +1,7 @@
 """
 py4web application with license integration
 """
+
 # flake8: noqa: E501
 
 

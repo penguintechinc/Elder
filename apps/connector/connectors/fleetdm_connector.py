@@ -1,4 +1,5 @@
 """FleetDM endpoint manager connector for syncing to Elder."""
+
 # flake8: noqa: E501
 
 

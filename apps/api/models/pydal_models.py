@@ -3,6 +3,7 @@
 This module defines all PyDAL database tables. Long lines are unavoidable
 due to Field() definition syntax and are suppressed from linting.
 """
+
 # flake8: noqa: E501
 
 import datetime

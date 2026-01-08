@@ -1,4 +1,5 @@
 """SSO/SAML/OIDC/SCIM services for v2.2.0/v3.0.0 Enterprise Edition."""
+
 # flake8: noqa: E501
 
 

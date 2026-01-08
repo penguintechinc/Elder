@@ -3,6 +3,7 @@
 Provides comprehensive audit logging for SOC 2, ISO 27001,
 HIPAA, and GDPR compliance requirements.
 """
+
 # flake8: noqa: E501
 
 

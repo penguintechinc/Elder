@@ -1,4 +1,5 @@
 """Dependency model for tracking relationships between entities."""
+
 # flake8: noqa: E501
 
 
