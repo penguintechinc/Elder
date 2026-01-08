@@ -1,399 +1,109 @@
-# Elder API Testing Guide
+# Testing Guide for Elder
 
-Quick guide for testing the Elder API locally.
+This document outlines the testing strategy and local pre-commit checklist for the Elder project.
 
-## Prerequisites
+## Testing Strategy
 
-```bash
-# Ensure cluster is running
-docker-compose ps
+### GitHub Actions CI (Automated)
 
-# All services should show "Up" or "Up (healthy)"
-```
+The GitHub Actions CI pipeline runs on every push and pull request:
 
-## Quick Test
+- **Code Quality**: Black, isort, flake8, mypy
+- **Unit Tests**: Pytest with mocked dependencies (no external services)
+- **Security Scans**: Trivy (filesystem), Semgrep, Dependabot
+- **Build Tests**: Docker image builds (amd64 & arm64)
+- **Web Builds**: TypeScript compilation, bundling
 
-```bash
-# Health check
-curl http://localhost:5000/healthz
+### Local Testing (Pre-Commit Checklist)
 
-# Expected output:
-# {"service":"elder","status":"healthy"}
-```
+Run these checks **locally BEFORE committing** to catch issues early:
 
-## API Authentication
+## Pre-Commit Checklist
 
-### Login
-```bash
-curl -X POST http://localhost:5000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
-```
-
-**Response:**
-```json
-{
-  "access_token": "eyJhbGci...",
-  "refresh_token": "eyJhbGci...",
-  "token_type": "Bearer",
-  "user": {
-    "id": 1,
-    "username": "admin",
-    "email": "admin@localhost",
-    "is_superuser": true
-  }
-}
-```
-
-### Using the Token
-
-Save the access token and use it in subsequent requests:
+### 1. Code Quality (2 min)
 
 ```bash
-# Save token to variable
-export TOKEN="<your-access-token-here>"
+# Format code with Black (matches CI version 25.12.0)
+docker compose exec -T api black apps/ shared/ --exclude=apps/api/grpc/generated
 
-# Or get it dynamically (in a script)
-TOKEN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}' | jq -r '.access_token')
+# Sort imports with isort (matches CI version 7.0.0)
+docker compose exec -T api isort apps/ shared/ --skip apps/api/grpc/generated
+
+# Lint with flake8
+docker compose exec -T api flake8 apps/ shared/ --exclude=apps/api/grpc/generated
 ```
 
-## Testing Organizations
-
-### List Organizations
-```bash
-curl http://localhost:5000/api/v1/organizations \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Create Organization
-```bash
-curl -X POST http://localhost:5000/api/v1/organizations \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Engineering",
-    "description": "Engineering department",
-    "parent_id": null,
-    "attributes": {
-      "cost_center": "ENG-001",
-      "region": "us-east-1"
-    }
-  }'
-```
-
-### Get Organization
-```bash
-curl http://localhost:5000/api/v1/organizations/1 \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Update Organization
-```bash
-curl -X PATCH http://localhost:5000/api/v1/organizations/1 \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "description": "Updated description",
-    "attributes": {"region": "us-west-2"}
-  }'
-```
-
-### Delete Organization
-```bash
-curl -X DELETE http://localhost:5000/api/v1/organizations/1 \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-## Testing Entities
-
-### List Entities
-```bash
-curl http://localhost:5000/api/v1/entities \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Create Entity
-```bash
-curl -X POST http://localhost:5000/api/v1/entities \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "web-server-01",
-    "description": "Primary web server",
-    "entity_type": "compute",
-    "organization_id": 1,
-    "attributes": {
-      "hostname": "web-01.example.com",
-      "ip_address": "10.0.1.5",
-      "os": "Ubuntu 22.04 LTS",
-      "cpu_cores": 4,
-      "memory_gb": 16,
-      "disk_gb": 100
-    }
-  }'
-```
-
-### Get Entity
-```bash
-curl http://localhost:5000/api/v1/entities/1 \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Update Entity
-```bash
-curl -X PATCH http://localhost:5000/api/v1/entities/1 \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "description": "Updated description",
-    "attributes": {"status": "active"}
-  }'
-```
-
-## Testing Dependencies
-
-### Create Dependency
-```bash
-# Entity 1 depends on Entity 2
-curl -X POST http://localhost:5000/api/v1/dependencies \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "source_entity_id": 1,
-    "target_entity_id": 2,
-    "dependency_type": "runtime",
-    "description": "Web server depends on database"
-  }'
-```
-
-### List Dependencies
-```bash
-curl http://localhost:5000/api/v1/dependencies \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Get Entity Dependencies
-```bash
-# Get all dependencies for entity 1
-curl "http://localhost:5000/api/v1/dependencies?source_entity_id=1" \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-## Testing Graph Analysis
-
-### Analyze Organization Graph
-```bash
-curl "http://localhost:5000/api/v1/graph/analyze?organization_id=1" \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-**Response includes:**
-- Total entities and dependencies
-- Entities by type breakdown
-- Graph metrics (density, is_acyclic)
-- Critical nodes
-
-### Get Full Graph
-```bash
-curl "http://localhost:5000/api/v1/graph?organization_id=1" \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Find Path Between Entities
-```bash
-curl "http://localhost:5000/api/v1/graph/path?source_id=1&target_id=5" \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-## Testing Public Lookup
-
-The lookup endpoint doesn't require authentication:
+### 2. Unit Tests (5 min)
 
 ```bash
-# Lookup entity by ID
-curl http://localhost:5000/lookup/1
-
-# Batch lookup
-curl -X POST http://localhost:5000/lookup/batch \
-  -H "Content-Type: application/json" \
-  -d '{"ids": [1, 2, 3, 4, 5]}'
+# Run unit tests (exclude integration and e2e)
+docker compose exec -T api pytest tests/unit/ -v --tb=short -m "not integration and not e2e"
 ```
 
-## Testing User Management
+### 3. E2E Tests (10 min - Local Only)
 
-### List Users
-```bash
-curl http://localhost:5000/api/v1/identities \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Create User
-```bash
-curl -X POST http://localhost:5000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "johndoe",
-    "email": "john@example.com",
-    "password": "SecurePassword123",
-    "full_name": "John Doe"
-  }'
-```
-
-### Get Current User
-```bash
-curl http://localhost:5000/api/v1/auth/me \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### Change Password
-```bash
-curl -X POST http://localhost:5000/api/v1/auth/change-password \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "old_password": "admin123",
-    "new_password": "NewPassword123"
-  }'
-```
-
-## Troubleshooting
-
-### "Internal Server Error" when creating resources
-
-If you get 500 errors, the database connection may be in a bad state. Restart the API:
+**ONLY run locally if you have docker compose services running:**
 
 ```bash
-docker-compose restart api
-sleep 3
-curl http://localhost:5000/healthz
+make dev
+pytest tests/e2e/ -v --tb=short
+docker compose down
 ```
 
-### "Authentication required"
-
-Make sure your token is still valid (tokens expire after 1 hour):
+### 4. Security Checks (2 min)
 
 ```bash
-# Get a fresh token
-TOKEN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}' | jq -r '.access_token')
+safety check  # Check Python dependencies
 ```
 
-### Check API logs
+### 5. Build Verification
 
 ```bash
-docker-compose logs -f api
+docker compose build --no-cache api
+docker compose build --no-cache web
 ```
 
-### Database Connection Issues
+## What Gets Tested Where
 
+| Test Type | GitHub Actions | Status |
+|-----------|-----------------|--------|
+| Code Quality | Yes | ✅ Blocking |
+| Unit Tests | Yes | ✅ Blocking |
+| E2E Tests | No | ❌ Disabled |
+| Integration Tests | No | ❌ Disabled |
+| Container Security | No | ❌ Disabled |
+
+## Why Tests Are Disabled in CI
+
+- **E2E Tests**: Require full docker compose; resource-intensive
+- **Integration Tests**: Using outdated SQLAlchemy (needs PyDAL rewrite)
+- **Container Security**: Registry propagation issues; Trivy runs on filesystem
+
+## Logo Issue (ARM Deployment)
+
+**Issue**: "cannot find /elder-logo.png" on ARM/other systems
+
+**Root Cause**: Static assets path configuration differs between architectures/environments
+
+**Solution**: Check the following:
+
+1. Verify logo exists in web build:
 ```bash
-# Check if PostgreSQL is running
-docker-compose ps postgres
-
-# Check database logs
-docker-compose logs postgres
-
-# Connect to database directly
-docker-compose exec postgres psql -U elder -d elder
+docker compose exec web ls -la /app/public/elder-logo.png
 ```
 
-## Complete Test Script
-
-Save this as `test-complete.sh`:
-
+2. Check web Dockerfile uses correct base image for your architecture:
 ```bash
-#!/bin/bash
-set -e
+# For ARM:
+FROM node:18-alpine
 
-echo "=== Elder API Complete Test ==="
-echo ""
-
-# Login
-echo "1. Logging in..."
-TOKEN=$(curl -s -X POST http://localhost:5000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}' | jq -r '.access_token')
-echo "✓ Logged in successfully"
-echo ""
-
-# Create Organization
-echo "2. Creating organization..."
-ORG=$(curl -s -X POST http://localhost:5000/api/v1/organizations \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Test Org","description":"Test"}')
-ORG_ID=$(echo "$ORG" | jq -r '.id')
-echo "✓ Created organization ID: $ORG_ID"
-echo ""
-
-# Create Entities
-echo "3. Creating entities..."
-WEB=$(curl -s -X POST http://localhost:5000/api/v1/entities \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{\"name\":\"web-server\",\"entity_type\":\"compute\",\"organization_id\":$ORG_ID}")
-WEB_ID=$(echo "$WEB" | jq -r '.id')
-echo "✓ Created web server ID: $WEB_ID"
-
-DB=$(curl -s -X POST http://localhost:5000/api/v1/entities \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{\"name\":\"database\",\"entity_type\":\"database\",\"organization_id\":$ORG_ID}")
-DB_ID=$(echo "$DB" | jq -r '.id')
-echo "✓ Created database ID: $DB_ID"
-echo ""
-
-# Create Dependency
-echo "4. Creating dependency..."
-curl -s -X POST http://localhost:5000/api/v1/dependencies \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{\"source_entity_id\":$WEB_ID,\"target_entity_id\":$DB_ID,\"dependency_type\":\"runtime\"}" > /dev/null
-echo "✓ Created dependency: web-server -> database"
-echo ""
-
-# Analyze Graph
-echo "5. Analyzing graph..."
-ANALYSIS=$(curl -s "http://localhost:5000/api/v1/graph/analyze?organization_id=$ORG_ID" \
-  -H "Authorization: Bearer $TOKEN")
-echo "$ANALYSIS" | jq '{entities: .basic_stats.total_entities, dependencies: .basic_stats.total_dependencies}'
-echo ""
-
-echo "=== All tests passed! ==="
+# For amd64:
+FROM node:18-alpine
 ```
 
-Run it:
+3. Check environment-specific asset paths in web app config
+
+4. Ensure web service is built with `--no-cache`:
 ```bash
-chmod +x test-complete.sh
-./test-complete.sh
+docker compose build --no-cache web
 ```
-
-## Metrics and Monitoring
-
-### Prometheus Metrics
-```bash
-curl http://localhost:5000/metrics
-```
-
-### Grafana Dashboards
-Open http://localhost:3001 in your browser
-- Username: admin
-- Password: admin
-
-## API Documentation
-
-For full API documentation, see:
-- Swagger/OpenAPI: Check if `/docs` or `/api/docs` is configured
-- API Reference: See `docs/api/` folder
-- Database Schema: See `docs/DATABASE.md`
-
-## Default Credentials
-
-| Service | Username | Password |
-|---------|----------|----------|
-| API/Web UI | admin | admin123 |
-| Grafana | admin | admin |
-| PostgreSQL | elder | elder_dev_password |
