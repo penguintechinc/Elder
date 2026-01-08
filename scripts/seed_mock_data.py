@@ -107,9 +107,37 @@ class MockDataSeeder:
             "certificates": [],
         }
 
-    def log(self, message: str, force: bool = False) -> None:
-        """Print message if verbose mode or forced."""
-        if self.verbose or force:
+    def log(self, message: Any, force: bool = False) -> None:
+        """Print message if verbose mode or forced.
+
+        Avoid logging sensitive information such as passwords, tokens, or secrets
+        in clear text by redacting obvious secret-like fields from mappings.
+        """
+        if not (self.verbose or force):
+            return
+
+        # If a mapping is passed, redact common secret-like fields
+        if isinstance(message, dict):
+            redacted = {}
+            sensitive_keys = {
+                "password",
+                "passwd",
+                "secret",
+                "token",
+                "access_token",
+                "refresh_token",
+                "api_key",
+                "apikey",
+                "authorization",
+                "auth",
+            }
+            for k, v in message.items():
+                if isinstance(k, str) and k.lower() in sensitive_keys:
+                    redacted[k] = "***redacted***"
+                else:
+                    redacted[k] = v
+            print(redacted)
+        else:
             print(message)
 
     def authenticate(self) -> bool:
@@ -153,7 +181,8 @@ class MockDataSeeder:
     ) -> dict[str, Any] | None:
         """Make authenticated POST request to API."""
         if self.dry_run:
-            self.log(f"  [DRY RUN] POST {endpoint}: {data.get('name', data)}")
+            name = data.get("name", "<no-name>")
+            self.log(f"  [DRY RUN] POST {endpoint}: {name}")
             # Return mock response with fake ID
             return {"id": random.randint(1000, 9999), **data}
 
