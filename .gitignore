@@ -450,3 +450,6 @@ vagrant/.TODO
 
 *.local.json
 .claude/.mcp.json
+
+# Allow web/public for Vite static assets
+!web/public/
