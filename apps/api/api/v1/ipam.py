@@ -110,7 +110,6 @@ async def list_prefixes():
 
 @bp.route("/prefixes", methods=["POST"])
 @login_required
-@resource_role_required("viewer")
 async def create_prefix():
     """
     Create a new IPAM prefix.
@@ -451,7 +450,6 @@ async def list_addresses():
 
 @bp.route("/addresses", methods=["POST"])
 @login_required
-@resource_role_required("viewer")
 async def create_address():
     """
     Create a new IPAM address.
@@ -733,7 +731,6 @@ async def list_vlans():
 
 @bp.route("/vlans", methods=["POST"])
 @login_required
-@resource_role_required("viewer")
 async def create_vlan():
     """
     Create a new IPAM VLAN.

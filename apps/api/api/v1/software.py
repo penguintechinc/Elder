@@ -72,7 +72,6 @@ async def list_software():
 
 @bp.route("", methods=["POST"])
 @login_required
-@resource_role_required("viewer")
 @validated_request(body_model=CreateSoftwareRequest)
 async def create_software(body: CreateSoftwareRequest):
     """Create a new software entry."""

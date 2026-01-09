@@ -3,6 +3,7 @@
 from flask import Blueprint, current_app, jsonify, request
 from marshmallow import ValidationError
 
+from apps.api.auth.decorators import login_required
 from apps.api.schemas.organization import (
     OrganizationCreateSchema,
     OrganizationUpdateSchema,
@@ -78,6 +79,7 @@ def list_organizations():
 
 
 @bp.route("", methods=["POST"])
+@login_required
 def create_organization():
     """
     Create a new organization.

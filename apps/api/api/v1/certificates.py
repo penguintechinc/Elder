@@ -179,7 +179,6 @@ async def list_certificates():
 
 @bp.route("", methods=["POST"])
 @login_required
-@resource_role_required("viewer")
 async def create_certificate():
     """Create a new certificate entry."""
     db = current_app.db

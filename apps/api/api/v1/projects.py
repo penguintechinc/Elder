@@ -94,7 +94,6 @@ async def list_projects():
 
 @bp.route("", methods=["POST"])
 @login_required
-@resource_role_required("viewer")
 async def create_project():
     """
     Create a new project.

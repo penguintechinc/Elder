@@ -97,7 +97,6 @@ async def list_schedules():
 
 @bp.route("", methods=["POST"])
 @login_required
-@resource_role_required("viewer")
 async def create_schedule():
     """
     Create a new SBOM scan schedule.

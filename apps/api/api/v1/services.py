@@ -111,7 +111,6 @@ async def list_services():
 
 @bp.route("", methods=["POST"])
 @login_required
-@resource_role_required("viewer")
 @validated_request(body_model=CreateServiceRequest)
 async def create_service(body: CreateServiceRequest):
     """

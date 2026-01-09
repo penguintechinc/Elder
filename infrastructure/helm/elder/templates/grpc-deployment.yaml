@@ -31,7 +31,7 @@ spec:
       - name: grpc
         securityContext:
           {{- toYaml .Values.securityContext | nindent 12 }}
-        image: "{{ .Values.global.imageRegistry }}/{{ .Values.grpc.image.repository }}:{{ .Values.grpc.image.tag | default .Chart.AppVersion }}"
+        image: "{{ if .Values.global.imageRegistry }}{{ .Values.global.imageRegistry }}/{{ end }}{{ .Values.grpc.image.repository }}:{{ .Values.grpc.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.grpc.image.pullPolicy }}
         ports:
         - name: grpc

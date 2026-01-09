@@ -28,6 +28,7 @@ def list_sync_configs():
 
 @bp.route("/configs", methods=["POST"])
 @cross_origin()
+@login_required
 @admin_required
 def create_sync_config():
     """Create a new sync configuration."""

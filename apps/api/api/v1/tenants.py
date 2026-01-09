@@ -10,6 +10,7 @@ from flask import Blueprint, current_app, jsonify, request
 from pydantic import Field, ValidationError
 
 from apps.api.api.v1.portal_auth import portal_token_required
+from apps.api.auth.decorators import login_required
 from py_libs.pydantic import RequestModel, Name255, SlugStr
 
 bp = Blueprint("tenants", __name__)
@@ -172,6 +173,7 @@ def get_tenant(tenant_id):
 
 
 @bp.route("", methods=["POST"])
+@login_required
 @portal_token_required
 @global_admin_required
 def create_tenant():
