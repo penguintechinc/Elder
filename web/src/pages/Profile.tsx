@@ -1,15 +1,20 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { User, Mail, Building2 } from 'lucide-react'
+import { User, Mail, Building2, Lock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 import FormBuilder from '@/components/FormBuilder'
+import Input from '@/components/Input'
 import { FormConfig } from '@/types/form'
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const queryClient = useQueryClient()
 
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -34,6 +39,21 @@ export default function Profile() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'Failed to update profile')
+    },
+  })
+
+  const changePasswordMutation = useMutation({
+    mutationFn: (data: { current_password: string; new_password: string }) =>
+      api.changePassword(data.current_password, data.new_password),
+    onSuccess: () => {
+      toast.success('Password changed successfully')
+      setIsChangingPassword(false)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || 'Failed to change password')
     },
   })
 
@@ -80,6 +100,22 @@ export default function Profile() {
     updateMutation.mutate({
       ...data,
       organization_id: data.organization_id ? parseInt(data.organization_id) : null,
+    })
+  }
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match')
+      return
+    }
+    if (newPassword.length < 8) {
+      toast.error('New password must be at least 8 characters')
+      return
+    }
+    changePasswordMutation.mutate({
+      current_password: currentPassword,
+      new_password: newPassword,
     })
   }
 
@@ -243,6 +279,86 @@ export default function Profile() {
                 </div>
               </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Password Change Card */}
+      <Card className="mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                <Lock className="w-6 h-6 text-orange-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-white">Change Password</h2>
+                <p className="text-sm text-slate-400">Update your account password</p>
+              </div>
+            </div>
+            {!isChangingPassword && (
+              <Button onClick={() => setIsChangingPassword(true)} variant="ghost">
+                Change Password
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isChangingPassword ? (
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <Input
+                label="Current Password"
+                type="password"
+                required
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter your current password"
+                autoComplete="current-password"
+              />
+              <Input
+                label="New Password"
+                type="password"
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password (min 8 characters)"
+                autoComplete="new-password"
+              />
+              <Input
+                label="Confirm New Password"
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                autoComplete="new-password"
+              />
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="submit"
+                  isLoading={changePasswordMutation.isPending}
+                >
+                  Update Password
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setIsChangingPassword(false)
+                    setCurrentPassword('')
+                    setNewPassword('')
+                    setConfirmPassword('')
+                  }}
+                  disabled={changePasswordMutation.isPending}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <p className="text-slate-400">
+              Click "Change Password" to update your account password.
+            </p>
           )}
         </CardContent>
       </Card>

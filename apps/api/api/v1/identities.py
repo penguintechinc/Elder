@@ -151,6 +151,9 @@ async def create_identity(body: CreateIdentityRequest):
     """
     db = current_app.db
 
+    # Log the request for debugging
+    current_app.logger.info(f"Creating identity: username={body.username}, type={body.identity_type}, auth={body.auth_provider}, org_id={body.organization_id}")
+
     # Get organization to derive tenant_id
     org_id = body.organization_id
 

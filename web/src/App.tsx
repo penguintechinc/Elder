@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
@@ -60,6 +61,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    const buildTime = import.meta.env.VITE_BUILD_TIME || Math.floor(Date.now() / 1000)
+    const apiUrl = import.meta.env.VITE_API_URL || 'not set'
+    const buildDate = new Date(parseInt(buildTime) * 1000).toISOString()
+
+    console.log('%c🏛️ Elder - Entity Relationship Tracking System', 'font-size: 16px; font-weight: bold; color: #f59e0b')
+    console.log(`%cBuild Epoch: ${buildTime}`, 'color: #64748b')
+    console.log(`%cBuild Date: ${buildDate}`, 'color: #64748b')
+    console.log(`%cAPI URL: ${apiUrl}`, 'color: #64748b')
+    console.log(`%cEnvironment: ${import.meta.env.MODE}`, 'color: #64748b')
+  }, [])
+
   return (
     <Routes>
       <Route path="/login" element={<Login />} />

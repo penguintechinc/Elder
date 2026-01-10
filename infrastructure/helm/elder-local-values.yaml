@@ -54,7 +54,7 @@ web:
   replicaCount: 1
   image:
     repository: registry-dal2.penguintech.io/elder-web
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
     tag: "latest"
 
   service:
@@ -64,8 +64,10 @@ web:
     nodePort: 30300  # Fixed port for web UI
 
   # Environment variables for web container
+  # NOTE: VITE_API_URL should be set to the base path only (without /v1)
+  # because ApiClient in api.ts appends /api/v1 automatically
   env:
-    VITE_API_URL: "https://elder.penguintech.io/api/v1"
+    VITE_API_URL: "/api"
 
   resources:
     requests:

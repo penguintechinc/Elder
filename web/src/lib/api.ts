@@ -82,9 +82,10 @@ class ApiClient {
     localStorage.removeItem('elder_token')
   }
 
-  // Profile
+  // Profile (Portal Users)
+  // Updated: 2026-01-10 - All profile endpoints use /portal-auth/*
   async getProfile() {
-    const response = await this.client.get('/profile/me')
+    const response = await this.client.get('/portal-auth/me')
     return response.data
   }
 
@@ -93,7 +94,15 @@ class ApiClient {
     full_name: string
     organization_id: number | null
   }>) {
-    const response = await this.client.patch('/profile/me', data)
+    const response = await this.client.patch('/portal-auth/me', data)
+    return response.data
+  }
+
+  async changePassword(current_password: string, new_password: string) {
+    const response = await this.client.post('/portal-auth/password/change', {
+      current_password,
+      new_password,
+    })
     return response.data
   }
 
