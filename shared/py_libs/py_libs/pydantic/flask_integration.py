@@ -123,6 +123,10 @@ def validated_request(
 
                 return result
             except ValidationError as e:
+                # Log validation errors for debugging
+                from flask import current_app
+                if current_app:
+                    current_app.logger.error(f"Validation error: {e.errors()}")
                 return ValidationErrorResponse.from_pydantic_error(e)
 
         return wrapper
