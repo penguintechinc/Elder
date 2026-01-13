@@ -5,11 +5,13 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 
 from flask import Blueprint, current_app, g, jsonify, request
+from pydantic import ValidationError
 from werkzeug.security import generate_password_hash
 
 from apps.api.auth import generate_token, login_required, verify_password
 from apps.api.auth.jwt_handler import verify_token
 from apps.api.models.dataclasses import IdentityDTO, from_pydal_row
+from apps.api.models.schemas import LoginRequest, RegisterRequest
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("auth", __name__)
@@ -22,15 +24,16 @@ async def register():
 
     Request Body:
         {
-            "username": "string",
-            "password": "string",
-            "email": "string",
+            "username": "email@example.com" (must be valid email for portal auth),
+            "password": "string" (minimum 8 characters),
+            "email": "email@example.com" (must match username),
             "full_name": "string" (optional)
         }
 
     Returns:
         201: User created successfully
         400: Validation error or username already exists
+        422: Invalid email format
     """
     db = current_app.db
 
@@ -38,42 +41,32 @@ async def register():
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
-    # Validate required fields
-    if not data.get("username"):
-        return jsonify({"error": "username is required"}), 400
-    if not data.get("password"):
-        return jsonify({"error": "password is required"}), 400
-    if not data.get("email"):
-        return jsonify({"error": "email is required"}), 400
-
-    # Validate username length
-    if len(data["username"]) < 3 or len(data["username"]) > 255:
-        return jsonify({"error": "username must be between 3 and 255 characters"}), 400
-
-    # Validate password length
-    if len(data["password"]) < 8:
-        return jsonify({"error": "password must be at least 8 characters"}), 400
+    # Validate request using Pydantic schema
+    try:
+        validated_data = RegisterRequest(**data)
+    except ValidationError as e:
+        return jsonify({"error": "Validation failed", "details": e.errors()}), 422
 
     # Check if username or email already exists and create user
     def create_user():
         # Check if username already exists
-        existing = db(db.identities.username == data["username"]).select().first()
+        existing = db(db.identities.username == validated_data.username).select().first()
         if existing:
             return None, "Username already exists", 400
 
         # Check if email already exists
-        existing_email = db(db.identities.email == data["email"]).select().first()
+        existing_email = db(db.identities.email == validated_data.email).select().first()
         if existing_email:
             return None, "Email already exists", 400
 
         # Create new identity
         identity_id = db.identities.insert(
-            username=data["username"],
-            email=data["email"],
-            full_name=data.get("full_name"),
+            username=validated_data.username,
+            email=validated_data.email,
+            full_name=validated_data.full_name,
             identity_type="human",
             auth_provider="local",
-            password_hash=generate_password_hash(data["password"]),
+            password_hash=generate_password_hash(validated_data.password),
             is_active=True,
             is_superuser=False,
             mfa_enabled=False,
@@ -139,17 +132,18 @@ async def guest_enabled():
 @bp.route("/login", methods=["POST"])
 async def login():
     """
-    Login with username and password.
+    Login with email and password (portal authentication).
 
     Request Body:
         {
-            "username": "string",
+            "username": "email@example.com" (must be valid email),
             "password": "string"
         }
 
     Returns:
         200: Login successful with access and refresh tokens
         401: Invalid credentials
+        422: Invalid email format
     """
     db = current_app.db
 
@@ -157,21 +151,21 @@ async def login():
     if not data:
         return jsonify({"error": "Request body must be JSON"}), 400
 
-    # Validate required fields
-    if not data.get("username"):
-        return jsonify({"error": "username is required"}), 400
-    if not data.get("password"):
-        return jsonify({"error": "password is required"}), 400
+    # Validate request using Pydantic schema
+    try:
+        validated_data = LoginRequest(**data)
+    except ValidationError as e:
+        return jsonify({"error": "Validation failed", "details": e.errors()}), 422
 
     # Find user and verify password
     def authenticate():
-        identity = db(db.identities.username == data["username"]).select().first()
+        identity = db(db.identities.username == validated_data.username).select().first()
 
         if not identity:
             return None, "Invalid username or password", 401
 
         # Verify password using the identity row
-        if not verify_password(identity, data["password"]):
+        if not verify_password(identity, validated_data.password):
             # Create failed login audit log
             _create_audit_log_sync(
                 db=db,

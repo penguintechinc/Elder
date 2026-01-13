@@ -73,7 +73,7 @@ setup-env: ## Setup - Create environment file from template
 		echo "# Admin User (optional)" >> .env; \
 		echo "ADMIN_USERNAME=admin" >> .env; \
 		echo "ADMIN_PASSWORD=" >> .env; \
-		echo "ADMIN_EMAIL=admin@localhost" >> .env; \
+		echo "ADMIN_EMAIL=admin@localhost.local" >> .env; \
 		echo "" >> .env; \
 		echo "# License (optional)" >> .env; \
 		echo "LICENSE_KEY=" >> .env; \

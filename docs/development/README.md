@@ -101,7 +101,7 @@ FLASK_ENV=development
 # Admin
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
-ADMIN_EMAIL=admin@localhost
+ADMIN_EMAIL=admin@localhost.local
 ```
 
 ### 5. Start Services

@@ -111,8 +111,8 @@ def auth_headers(client, app):
         response = client.post(
             "/api/v1/auth/login",
             json={
-                "email": os.getenv("ADMIN_EMAIL", "admin@localhost"),
-                "password": os.getenv("ADMIN_PASSWORD", "admin"),
+                "email": os.getenv("ADMIN_EMAIL", "admin@localhost.local"),
+                "password": os.getenv("ADMIN_PASSWORD", "admin123"),
             },
         )
 

@@ -451,7 +451,7 @@ def _init_default_data(db: DAL) -> None:
             # Create admin user
             admin_id = db.identities.insert(
                 username=admin_username,
-                email=os.getenv("ADMIN_EMAIL", f"{admin_username}@localhost"),
+                email=os.getenv("ADMIN_EMAIL", "admin@localhost.local"),
                 full_name="System Administrator",
                 identity_type="human",
                 auth_provider="local",
@@ -470,7 +470,7 @@ def _init_default_data(db: DAL) -> None:
                 )
 
         # Also create portal user with global_role='admin' for v2.2.0+ web UI
-        admin_email = os.getenv("ADMIN_EMAIL", f"{admin_username}@localhost")
+        admin_email = os.getenv("ADMIN_EMAIL", "admin@localhost.local")
         existing_portal_admin = (
             db(db.portal_users.email == admin_email).select().first()
         )

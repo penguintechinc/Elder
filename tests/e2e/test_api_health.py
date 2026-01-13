@@ -32,7 +32,7 @@ class TestAPIAuthentication:
         """Test successful login returns a token."""
         response = requests.post(
             f"{api_url}/api/v1/auth/login",
-            json={"email": "admin@localhost", "password": "admin"},
+            json={"email": "admin@localhost.local", "password": "admin123"},
         )
 
         assert response.status_code == 200

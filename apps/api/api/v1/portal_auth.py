@@ -9,8 +9,10 @@ from functools import wraps
 
 import jwt
 from flask import Blueprint, current_app, jsonify, request
+from pydantic import ValidationError
 
 import shared.database.connection as database
+from apps.api.models.schemas import PortalLoginRequest, PortalRegisterRequest
 from apps.api.services.portal_auth import PortalAuthService
 
 bp = Blueprint("portal_auth", __name__)
@@ -81,24 +83,27 @@ def register():
     """Register a new portal user.
 
     Request body:
-        tenant_id: int - Tenant to register in (or use tenant slug)
-        tenant: str - Tenant slug (alternative to tenant_id)
-        email: str - Email address
-        password: str - Password
+        tenant: str - Tenant slug (or use tenant_id)
+        email: str - Email address (validated format)
+        password: str - Password (minimum 8 characters)
         full_name: str (optional) - Full name
 
     Returns:
         User info and tokens on success
+        422: Invalid email format or validation error
     """
     data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
+    # Validate request using Pydantic schema
+    try:
+        validated_data = PortalRegisterRequest(**data)
+    except ValidationError as e:
+        return jsonify({"error": "Validation failed", "details": e.errors()}), 422
+
     tenant_id = data.get("tenant_id")
-    tenant_slug = data.get("tenant")
-    email = data.get("email")
-    password = data.get("password")
-    full_name = data.get("full_name")
+    tenant_slug = validated_data.tenant
 
     # Resolve tenant_id from slug if not provided
     if not tenant_id and tenant_slug:
@@ -108,13 +113,8 @@ def register():
         if tenant_record:
             tenant_id = tenant_record.id
 
-    if not all([tenant_id, email, password]):
-        return (
-            jsonify(
-                {"error": "tenant (or tenant_id), email, and password are required"}
-            ),
-            400,
-        )
+    if not tenant_id:
+        return jsonify({"error": "Valid tenant is required"}), 400
 
     # Verify tenant exists
     tenant = database.db.tenants[tenant_id]
@@ -123,9 +123,9 @@ def register():
 
     result = PortalAuthService.create_portal_user(
         tenant_id=tenant_id,
-        email=email,
-        password=password,
-        full_name=full_name,
+        email=validated_data.email,
+        password=validated_data.password,
+        full_name=validated_data.full_name,
         tenant_role="reader",  # Default role for self-registration
     )
 
@@ -151,22 +151,26 @@ def login():
     """Authenticate a portal user.
 
     Request body:
-        tenant_id: int - Tenant context (or use tenant slug)
-        tenant: str - Tenant slug (alternative to tenant_id)
-        email: str - Email address
+        tenant: str - Tenant slug (or use tenant_id)
+        email: str - Email address (validated format)
         password: str - Password
 
     Returns:
         Tokens on success, or MFA challenge
+        422: Invalid email format or validation error
     """
     data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
 
+    # Validate request using Pydantic schema
+    try:
+        validated_data = PortalLoginRequest(**data)
+    except ValidationError as e:
+        return jsonify({"error": "Validation failed", "details": e.errors()}), 422
+
     tenant_id = data.get("tenant_id")
-    tenant_slug = data.get("tenant")
-    email = data.get("email")
-    password = data.get("password")
+    tenant_slug = validated_data.tenant
 
     # Resolve tenant_id from slug if not provided
     if not tenant_id and tenant_slug:
@@ -174,15 +178,12 @@ def login():
         if tenant:
             tenant_id = tenant.id
 
-    if not all([tenant_id, email, password]):
-        return (
-            jsonify(
-                {"error": "tenant (or tenant_id), email, and password are required"}
-            ),
-            400,
-        )
+    if not tenant_id:
+        return jsonify({"error": "Valid tenant is required"}), 400
 
-    result = PortalAuthService.authenticate(tenant_id, email, password)
+    result = PortalAuthService.authenticate(
+        tenant_id, validated_data.email, validated_data.password
+    )
 
     if "error" in result:
         return jsonify(result), 401

@@ -307,7 +307,7 @@ jobs:
         env:
           API_URL: http://localhost:4000
           WEB_URL: http://localhost:3000
-          ADMIN_EMAIL: admin@localhost
+          ADMIN_EMAIL: admin@localhost.local
           ADMIN_PASSWORD: admin
 
       - name: Show logs on failure

@@ -18,8 +18,8 @@ import requests
 # Configuration
 API_URL = os.getenv("API_URL", "http://localhost:4000")
 WEB_URL = os.getenv("WEB_URL", "http://localhost:3000")
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@localhost")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@localhost.local")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 MAX_WAIT = 60  # seconds
 
 

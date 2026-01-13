@@ -69,7 +69,7 @@ async function testPages() {
 
   const inputs = await page.$$('input');
   if (inputs.length >= 2) {
-    await inputs[0].type('admin@localhost');
+    await inputs[0].type('admin@localhost.local');
     await inputs[1].type('admin123');
   }
 

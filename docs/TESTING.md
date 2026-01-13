@@ -39,7 +39,7 @@ curl -X POST http://localhost:5000/api/v1/auth/login \
   "user": {
     "id": 1,
     "username": "admin",
-    "email": "admin@localhost",
+    "email": "admin@localhost.local",
     "is_superuser": true
   }
 }
