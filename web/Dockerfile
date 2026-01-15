@@ -13,7 +13,10 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+# Use npm install instead of npm ci for cross-platform builds (QEMU/buildx)
+# This ensures architecture-specific optional dependencies (like @rollup/rollup-linux-arm64-gnu)
+# are properly resolved for the target platform
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
