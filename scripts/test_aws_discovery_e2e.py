@@ -17,7 +17,7 @@ import requests
 
 # Configuration
 API_BASE_URL = os.environ.get("ELDER_API_URL", "http://localhost:4000")
-ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin@localhost.local")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 
 # AWS credentials from environment

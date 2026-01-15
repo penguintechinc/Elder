@@ -1,8 +1,29 @@
 """Pydantic schemas for API request/response validation."""
 
-from typing import Optional
+import re
+from typing import Annotated, Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import AfterValidator, BaseModel, Field, field_validator
+
+
+# Custom email validator that allows .local domains for development
+# Standard Email rejects .local as it's a special-use TLD, but we need it for dev
+EMAIL_PATTERN = re.compile(
+    r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+)
+
+
+def validate_email_with_local(value: str) -> str:
+    """Validate email format, allowing .local domains for development."""
+    if not EMAIL_PATTERN.match(value):
+        raise ValueError(
+            "value is not a valid email address: Invalid email format"
+        )
+    return value.lower()  # Normalize to lowercase
+
+
+# Custom email type that allows .local domains
+Email = Annotated[str, AfterValidator(validate_email_with_local)]
 
 
 # ============================================================================
@@ -18,12 +39,12 @@ class RegisterRequest(BaseModel):
     For external system tracking (integrations, scans), username can be any string.
     """
 
-    username: EmailStr = Field(
+    username: Email = Field(
         ...,
         description="Email address to use as username for portal authentication",
     )
     password: str = Field(..., min_length=8, description="Password (minimum 8 characters)")
-    email: EmailStr = Field(
+    email: Email = Field(
         ..., description="Email address (must match username for portal auth)"
     )
     full_name: Optional[str] = Field(None, max_length=255, description="Full name")
@@ -44,7 +65,7 @@ class LoginRequest(BaseModel):
     For portal authentication, username MUST be a valid email address.
     """
 
-    username: EmailStr = Field(
+    username: Email = Field(
         ..., description="Email address for authentication"
     )
     password: str = Field(..., min_length=1, description="Password")
@@ -53,7 +74,7 @@ class LoginRequest(BaseModel):
 class PortalRegisterRequest(BaseModel):
     """Portal user registration request schema."""
 
-    email: EmailStr = Field(..., description="Email address")
+    email: Email = Field(..., description="Email address")
     password: str = Field(..., min_length=8, description="Password (minimum 8 characters)")
     full_name: Optional[str] = Field(None, max_length=255, description="Full name")
     tenant: Optional[str] = Field(None, description="Tenant slug or ID")
@@ -62,7 +83,7 @@ class PortalRegisterRequest(BaseModel):
 class PortalLoginRequest(BaseModel):
     """Portal user login request schema."""
 
-    email: EmailStr = Field(..., description="Email address")
+    email: Email = Field(..., description="Email address")
     password: str = Field(..., min_length=1, description="Password")
     tenant: Optional[str] = Field(None, description="Tenant slug or ID")
 

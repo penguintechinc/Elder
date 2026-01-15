@@ -5,7 +5,7 @@
 set -e
 
 API_URL="http://localhost:5000"
-ADMIN_USER="admin"
+ADMIN_USER="admin@localhost.local"
 ADMIN_PASS="admin123"
 
 echo "========================================="
@@ -53,7 +53,7 @@ echo -e "${YELLOW}Test 3: Get Current User${NC}"
 me_response=$(curl -s "$API_URL/api/v1/auth/me" \
   -H "Authorization: Bearer $ACCESS_TOKEN")
 
-if echo "$me_response" | jq -e '.username == "admin"' > /dev/null 2>&1; then
+if echo "$me_response" | jq -e '.username == "admin@localhost.local" or .email == "admin@localhost.local"' > /dev/null 2>&1; then
     echo -e "${GREEN}✓ Current user retrieved${NC}"
     echo "$me_response" | jq '{username, email, is_superuser, is_active}'
 else
