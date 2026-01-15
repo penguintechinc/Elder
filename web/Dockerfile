@@ -9,11 +9,12 @@ ENV VITE_BUILD_TIME=$VITE_BUILD_TIME
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files (only package.json, not lock file)
+# For cross-platform builds, package-lock.json contains platform-specific optional deps
+# that break ARM64 builds under QEMU emulation
+COPY package.json ./
 
-# Install dependencies
-# Use npm install instead of npm ci for cross-platform builds (QEMU/buildx)
+# Install dependencies fresh without lock file
 # This ensures architecture-specific optional dependencies (like @rollup/rollup-linux-arm64-gnu)
 # are properly resolved for the target platform
 RUN npm install --legacy-peer-deps
