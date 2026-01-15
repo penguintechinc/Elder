@@ -71,6 +71,8 @@ This template provides three base containers representing the core footprints:
 | **Maintainer** | Read/write access to resources, no user management |
 | **Viewer** | Read-only access to resources |
 
+📚 **Complete RBAC Reference**: See [App Standards](../APP_STANDARDS.md) for three-tier permission system (global, tenant, resource-level roles).
+
 ### Design Principles
 
 - **Single Responsibility**: Each container has one clear purpose

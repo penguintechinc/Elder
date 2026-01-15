@@ -85,7 +85,9 @@ This is a comprehensive project template incorporating best practices and patter
   - Password hashing with bcrypt
   - Email confirmation and password reset
   - Two-factor authentication (2FA)
-- **Permissions Model**: Global, container/team, and resource-level roles with custom scope-based permissions
+- **Permissions Model**: Three-tier RBAC system (global, tenant, resource-level)
+  - 📚 See [App Standards](docs/APP_STANDARDS.md) for Elder-specific role definitions
+  - 📚 See [Security Standards](docs/standards/SECURITY.md) for scope patterns
 - **TLS**: Enforce TLS 1.2 minimum, prefer TLS 1.3
 - **HTTP3/QUIC**: Utilize UDP with TLS for high-performance connections where possible
 - **Authentication**: JWT and MFA (standard), mTLS where applicable

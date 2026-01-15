@@ -685,3 +685,58 @@ SECURITY_SEND_PASSWORD_RESET_EMAIL=true
 5. **Token Expiration**: Clearly communicate token lifetime to users
 6. **Password Complexity**: Display password requirements inline
 7. **Success Confirmation**: Provide clear feedback when password changed successfully
+
+---
+
+## RBAC Integration
+
+Authentication (who you are) and authorization (what you can do) work together in Elder:
+
+### Authentication vs Authorization Flow
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  Authentication │ --> │   Token issued   │ --> │  Authorization  │
+│ (Flask-Security)│     │   (with roles)   │     │ (Elder RBAC)    │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+```
+
+1. **Authentication**: Flask-Security-Too validates credentials
+2. **Token Generation**: JWT includes user roles and scopes
+3. **Authorization Check**: Elder decorators verify permissions per endpoint
+
+### Decorator Chain Pattern
+
+```python
+from flask import Blueprint
+from apps.api.auth.decorators import login_required, role_required, resource_role_required
+
+bp = Blueprint('api', __name__)
+
+@bp.route('/api/v1/entities/<int:id>', methods=['PUT'])
+@login_required                              # Step 1: Verify JWT token
+@role_required(['admin', 'editor'])          # Step 2: Check portal role
+@resource_role_required('operator')          # Step 3: Check resource role
+def update_entity(id):
+    """Update entity - requires editor role AND operator on resource"""
+    pass
+```
+
+### JWT Token Structure with Roles
+
+```json
+{
+  "sub": "user_123",
+  "email": "user@example.com",
+  "portal_role": "editor",
+  "tenant_id": 1,
+  "tenant_role": "maintainer",
+  "is_superuser": false,
+  "exp": 1704067200
+}
+```
+
+### Related Documentation
+
+- **[Security Standards](SECURITY.md)** - OAuth2-style scopes, role definitions, implementation patterns
+- **[App Standards](../APP_STANDARDS.md)** - Elder-specific roles, database schema, decorator reference
