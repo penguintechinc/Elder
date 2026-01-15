@@ -26,41 +26,6 @@ Part of [Development Standards](../STANDARDS.md)
 - Endpoints check requested operation against available scopes
 - Scopes are hierarchical and composable
 
-📚 **Elder-Specific Implementation**: See [App Standards](../APP_STANDARDS.md) for Elder's actual role definitions and database schema.
-
-### Scope Naming Convention
-
-Scopes follow the pattern: `{resource}:{action}`
-
-| Action | Description | Example |
-|--------|-------------|---------|
-| `read` | View/list resources | `entities:read` |
-| `write` | Create/update resources | `entities:write` |
-| `delete` | Remove resources | `entities:delete` |
-| `admin` | Full control including management | `entities:admin` |
-| `*` | Wildcard (all actions) | `entities:*` |
-
-### Scope Hierarchy
-
-**Hierarchical Scopes** - Higher levels include lower:
-```
-:admin  ⊃  :delete  ⊃  :write  ⊃  :read
-   │          │          │         │
-   └──────────┴──────────┴─────────┘
-        (admin includes all)
-```
-
-A user with `entities:admin` automatically has `entities:write` and `entities:read`.
-
-**Non-Hierarchical Scopes** - Independent permissions:
-```
-role:assign     (assign roles - independent)
-role:revoke     (revoke roles - independent)
-audit:read      (view audit logs - independent)
-```
-
-These do NOT imply each other and must be granted explicitly.
-
 **Role-Based Access Control with Scopes:**
 
 Implement three-tier role system at multiple levels:

@@ -12,7 +12,7 @@ This template provides three base containers representing the core footprints:
 
 | Container | Technology | Purpose | When to Use |
 |-----------|------------|---------|-------------|
-| **flask-backend** | Flask + PyDAL | Standard APIs, auth, CRUD | <10K req/sec, business logic |
+| **teams-api** (flask-backend) | Flask + PyDAL | Teams APIs, auth, users, CRUD | <10K req/sec, business logic |
 | **go-backend** | Go + XDP/AF_XDP | High-performance networking | >10K req/sec, <10ms latency |
 | **webui** | Node.js + React | Frontend shell | All frontend applications |
 
@@ -70,8 +70,6 @@ This template provides three base containers representing the core footprints:
 | **Admin** | Full access: user CRUD, settings, all features |
 | **Maintainer** | Read/write access to resources, no user management |
 | **Viewer** | Read-only access to resources |
-
-📚 **Complete RBAC Reference**: See [App Standards](../APP_STANDARDS.md) for three-tier permission system (global, tenant, resource-level roles).
 
 ### Design Principles
 
@@ -363,7 +361,7 @@ if __name__ == "__main__":
 ```
 project-name/
 ├── services/
-│   ├── flask-backend/      # Flask + PyDAL backend (auth, users, APIs)
+│   ├── flask-backend/      # Flask + PyDAL teams API backend (auth, teams, users, APIs)
 │   ├── go-backend/         # Go high-performance backend (XDP, NUMA)
 │   ├── webui/              # Node.js + React frontend shell
 │   └── connector/          # Integration services (placeholder)
