@@ -133,7 +133,7 @@ Created automatically on first startup:
 
 - **Username:** admin
 - **Password:** admin123
-- **Email:** admin@localhost
+- **Email:** admin@localhost.local
 - **Role:** Superuser
 
 ## Environment Variables
@@ -158,7 +158,7 @@ REDIS_PORT=6382
 # Admin User
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
-ADMIN_EMAIL=admin@localhost
+ADMIN_EMAIL=admin@localhost.local
 
 # Monitoring
 PROMETHEUS_PORT=9091

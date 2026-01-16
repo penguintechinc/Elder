@@ -107,6 +107,7 @@ async def list_entities():
 
 
 @bp.route("", methods=["POST"])
+@login_required
 @validated_request(body_model=CreateEntityRequest)
 async def create_entity(body: CreateEntityRequest):
     """

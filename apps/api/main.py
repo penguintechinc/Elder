@@ -16,7 +16,7 @@ from prometheus_flask_exporter import PrometheusMetrics
 
 from apps.api.config import get_config
 from apps.api.logging_config import setup_logging
-from shared.database import init_db
+from shared.database import ensure_database_ready, init_db, log_startup_status
 
 # Configure standard library logging
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -74,7 +74,16 @@ def create_app(config_name: str = None) -> Flask:
     # Initialize extensions
     _init_extensions(app)
 
+    # Check database status before initialization
+    # This uses SQLAlchemy to inspect the schema and report what init_db() will do
+    db_status = ensure_database_ready(app)
+    log_startup_status(db_status)
+
+    if not db_status["connected"]:
+        raise RuntimeError("Cannot start application - database not available")
+
     # Initialize database (includes default admin user creation)
+    # PyDAL handles table creation via migrate=True if tables are missing
     init_db(app)
 
     # Initialize license client

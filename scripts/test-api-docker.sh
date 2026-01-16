@@ -17,7 +17,7 @@ docker run --rm --network elder_elder-network \
     apk add --no-cache jq bash
 
     API_URL="http://api:5000"
-    ADMIN_USER="admin"
+    ADMIN_USER="admin@localhost.local"
     ADMIN_PASS="admin123"
 
     # Colors
@@ -57,7 +57,7 @@ docker run --rm --network elder_elder-network \
     me_response=$(curl -s "$API_URL/api/v1/auth/me" \
       -H "Authorization: Bearer $ACCESS_TOKEN")
 
-    if echo "$me_response" | jq -e ".username == \"admin\"" > /dev/null 2>&1; then
+    if echo "$me_response" | jq -e ".username == \"admin@localhost.local\" or .email == \"admin@localhost.local\"" > /dev/null 2>&1; then
         echo -e "${GREEN}✓ Current user retrieved${NC}"
         echo "$me_response" | jq "{username, email, is_superuser, is_active}"
     else

@@ -103,7 +103,6 @@ async def list_milestones():
 
 @bp.route("", methods=["POST"])
 @login_required
-@resource_role_required("viewer")
 async def create_milestone():
     """
     Create a new milestone.

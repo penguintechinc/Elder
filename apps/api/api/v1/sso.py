@@ -12,6 +12,7 @@ from functools import wraps
 from flask import Blueprint, Response, jsonify, request
 
 from apps.api.api.v1.portal_auth import generate_tokens, portal_token_required
+from apps.api.auth.decorators import login_required
 from apps.api.services.sso import OIDCService, SAMLService, SCIMService
 
 bp = Blueprint("sso", __name__)
@@ -87,6 +88,7 @@ def list_idp_configs():
 
 
 @bp.route("/idp", methods=["POST"])
+@login_required
 @portal_token_required
 def create_idp_config():
     """Create a new IdP configuration.
@@ -529,6 +531,7 @@ def oidc_refresh(idp_id):
 
 
 @bp.route("/scim/config", methods=["POST"])
+@login_required
 @portal_token_required
 def create_scim_config():
     """Create SCIM configuration for a tenant.

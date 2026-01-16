@@ -114,7 +114,6 @@ async def list_data_stores():
 
 @bp.route("", methods=["POST"])
 @login_required
-@resource_role_required("viewer")
 async def create_data_store():
     """Create a new data store entry."""
     db = current_app.db

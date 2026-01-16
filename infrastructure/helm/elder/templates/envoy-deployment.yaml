@@ -29,7 +29,7 @@ spec:
       - name: envoy
         securityContext:
           {{- toYaml .Values.securityContext | nindent 12 }}
-        image: "{{ .Values.global.imageRegistry }}/{{ .Values.envoy.image.repository }}:{{ .Values.envoy.image.tag | default .Chart.AppVersion }}"
+        image: "{{ if .Values.global.imageRegistry }}{{ .Values.global.imageRegistry }}/{{ end }}{{ .Values.envoy.image.repository }}:{{ .Values.envoy.image.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.envoy.image.pullPolicy }}
         ports:
         - name: http

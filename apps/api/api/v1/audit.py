@@ -85,6 +85,7 @@ def get_retention_policy(policy_id):
 
 
 @bp.route("/retention-policies", methods=["POST"])
+@login_required
 @admin_required
 def create_retention_policy():
     """

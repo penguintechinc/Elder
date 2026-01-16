@@ -2,18 +2,22 @@
 FROM node:18-slim AS builder
 
 # Build arguments for Vite
-ARG VITE_API_URL=http://localhost:4000
+# VITE_API_URL defaults to empty string - nginx proxies /api/* to API server
+# Only set VITE_API_URL for development or when API is on a different domain
+ARG VITE_API_URL=
+ARG VITE_BUILD_TIME
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_BUILD_TIME=$VITE_BUILD_TIME
 
 WORKDIR /app
 
 # Copy package.json only (not lock file) for multi-arch compatibility
-COPY package.json ./
-
-# Install dependencies fresh for current architecture
 # This works around npm bug https://github.com/npm/cli/issues/4828 where
 # optional platform-specific packages (rollup, esbuild, lightningcss) fail
 # when package-lock.json was generated on a different architecture
+COPY package.json ./
+
+# Install dependencies fresh for current architecture
 RUN npm install --ignore-scripts && \
     npm rebuild esbuild
 

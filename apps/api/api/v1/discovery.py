@@ -61,6 +61,7 @@ def list_discovery_jobs():
 
 
 @bp.route("/jobs", methods=["POST"])
+@login_required
 @admin_required
 def create_discovery_job():
     """

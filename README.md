@@ -535,7 +535,7 @@ For local development and testing, Elder creates a default admin user:
 | Field | Value |
 |-------|-------|
 | **URL** | http://localhost:3005 |
-| **Email** | admin@localhost |
+| **Email** | admin@localhost.local |
 | **Password** | admin123 |
 | **Tenant** | System (ID: 1) |
 

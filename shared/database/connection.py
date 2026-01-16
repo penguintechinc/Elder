@@ -443,18 +443,27 @@ def _init_default_data(db: DAL) -> None:
             )
 
     # Create default admin user if specified in environment (idempotent)
-    admin_username = os.getenv("ADMIN_USERNAME", "admin")
+    # For portal authentication, username must be email format
+    admin_email = os.getenv("ADMIN_EMAIL", "admin@localhost.local")
+    admin_username = os.getenv("ADMIN_USERNAME", admin_email)  # Default to email
     admin_password = os.getenv("ADMIN_PASSWORD")
 
     if admin_password and root_org_id:
-        # Check if admin user already exists
-        existing_admin = db(db.identities.username == admin_username).select().first()
+        # Check if admin user already exists (check both username and email)
+        existing_admin = (
+            db(
+                (db.identities.username == admin_username)
+                | (db.identities.email == admin_email)
+            )
+            .select()
+            .first()
+        )
 
         if not existing_admin:
-            # Create admin user
+            # Create admin user - username is email for portal auth
             admin_id = db.identities.insert(
-                username=admin_username,
-                email=os.getenv("ADMIN_EMAIL", f"{admin_username}@localhost"),
+                username=admin_email,  # Use email as username for portal auth
+                email=admin_email,
                 full_name="System Administrator",
                 identity_type="human",
                 auth_provider="local",
@@ -473,7 +482,6 @@ def _init_default_data(db: DAL) -> None:
                 )
 
         # Also create portal user with global_role='admin' for v2.2.0+ web UI
-        admin_email = os.getenv("ADMIN_EMAIL", f"{admin_username}@localhost")
         existing_portal_admin = (
             db(db.portal_users.email == admin_email).select().first()
         )

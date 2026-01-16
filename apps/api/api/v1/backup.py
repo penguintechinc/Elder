@@ -10,7 +10,7 @@ import tempfile
 from flask import Blueprint, current_app, jsonify, request, send_file
 from werkzeug.utils import secure_filename
 
-from apps.api.auth.decorators import admin_required
+from apps.api.auth.decorators import admin_required, login_required
 from apps.api.logging_config import log_error_and_respond
 from apps.api.services.backup import BackupService
 
@@ -60,6 +60,7 @@ def list_backup_jobs():
 
 
 @bp.route("/jobs", methods=["POST"])
+@login_required
 @admin_required
 def create_backup_job():
     """

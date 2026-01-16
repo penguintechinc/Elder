@@ -61,6 +61,7 @@ def list_webhooks():
 
 
 @bp.route("", methods=["POST"])
+@login_required
 @admin_required
 def create_webhook():
     """
@@ -318,6 +319,7 @@ def list_notification_rules():
 
 
 @bp.route("/notification-rules", methods=["POST"])
+@login_required
 @admin_required
 def create_notification_rule():
     """

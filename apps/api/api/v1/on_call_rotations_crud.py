@@ -144,7 +144,6 @@ async def list_rotations():
 
 @bp.route("", methods=["POST"])
 @login_required
-@resource_role_required("maintainer")
 async def create_rotation():
     """
     Create a new on-call rotation.

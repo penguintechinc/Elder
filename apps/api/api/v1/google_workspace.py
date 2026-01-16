@@ -52,6 +52,7 @@ def list_providers():
 
 
 @bp.route("/providers", methods=["POST"])
+@login_required
 @admin_required
 def create_provider():
     """
@@ -276,6 +277,7 @@ def get_user(provider_id, user_key):
 
 
 @bp.route("/providers/<int:provider_id>/users", methods=["POST"])
+@login_required
 @admin_required
 def create_user(provider_id):
     """
@@ -451,6 +453,7 @@ def get_group(provider_id, group_key):
 
 
 @bp.route("/providers/<int:provider_id>/groups", methods=["POST"])
+@login_required
 @admin_required
 def create_group(provider_id):
     """

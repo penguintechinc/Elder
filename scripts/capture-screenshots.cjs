@@ -75,11 +75,11 @@ async function captureScreenshots() {
   const inputs = await page.$$('input');
   console.log(`Found ${inputs.length} input fields`);
   if (inputs.length >= 3) {
-    await inputs[0].type('admin@localhost');  // Email field
+    await inputs[0].type('admin@localhost.local');  // Email field
     await inputs[1].type('admin123');          // Password field
     // inputs[2] is tenant field, already has default "Global" so we leave it
   } else if (inputs.length >= 2) {
-    await inputs[0].type('admin@localhost');  // Email field
+    await inputs[0].type('admin@localhost.local');  // Email field
     await inputs[1].type('admin123');          // Password field
   }
 
@@ -141,7 +141,7 @@ async function captureScreenshots() {
         console.log('  Attempting re-login...');
         const inputs = await page.$$('input');
         if (inputs.length >= 2) {
-          await inputs[0].type('admin@localhost');
+          await inputs[0].type('admin@localhost.local');
           await inputs[1].type('admin123');
           await page.click('button[type="submit"]');
           await sleep(2000);

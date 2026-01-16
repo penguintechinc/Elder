@@ -28,6 +28,12 @@ class ValidationErrorResponse:
         Returns:
             Tuple of (error dict, status code)
         """
+        # Log validation errors for debugging
+        from flask import current_app, has_app_context
+
+        if has_app_context() and current_app:
+            current_app.logger.error(f"Validation error: {error.errors()}")
+
         validation_errors = []
         for err in error.errors():
             validation_errors.append(

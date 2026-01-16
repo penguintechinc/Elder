@@ -4,7 +4,7 @@
 
 BASE_URL="http://localhost:4000/api/v1"
 TENANT_ID=1
-EMAIL="admin@localhost"
+EMAIL="admin@localhost.local"
 PASSWORD="admin123"
 
 # Colors for output

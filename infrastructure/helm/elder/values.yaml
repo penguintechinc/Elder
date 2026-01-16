@@ -39,7 +39,7 @@ api:
   resources:
     requests:
       memory: "256Mi"
-      cpu: "250m"
+      cpu: "150m"
     limits:
       memory: "512Mi"
       cpu: "500m"
@@ -72,7 +72,7 @@ grpc:
   resources:
     requests:
       memory: "256Mi"
-      cpu: "250m"
+      cpu: "150m"
     limits:
       memory: "512Mi"
       cpu: "500m"
@@ -103,7 +103,7 @@ envoy:
   resources:
     requests:
       memory: "128Mi"
-      cpu: "100m"
+      cpu: "75m"
     limits:
       memory: "256Mi"
       cpu: "200m"
@@ -126,7 +126,7 @@ postgresql:
     resources:
       requests:
         memory: "256Mi"
-        cpu: "250m"
+        cpu: "150m"
 
 # Redis configuration (Bitnami chart)
 redis:
@@ -141,7 +141,7 @@ redis:
     resources:
       requests:
         memory: "128Mi"
-        cpu: "100m"
+        cpu: "50m"
 
 # Elder configuration
 config:

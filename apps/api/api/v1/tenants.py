@@ -177,6 +177,7 @@ def get_tenant(tenant_id):
 
 
 @bp.route("", methods=["POST"])
+@login_required
 @portal_token_required
 @global_admin_required
 def create_tenant():
