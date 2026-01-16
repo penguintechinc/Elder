@@ -62,28 +62,27 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Read version from .version file
+      id: version
+      run: |
+        VERSION=$(cat .version | tr -d '\n')
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
     - name: Extract metadata (tags, labels)
       id: meta
       uses: docker/metadata-action@v5
       with:
         images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-${{ matrix.service.name }}
         tags: |
-          # Prototype tag for all non-main branches
-          type=raw,value=prototype-{{branch}},enable=${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
-          # Beta tag for main branch
-          type=raw,value=beta,enable=${{ github.ref == 'refs/heads/main' }}
-          # Latest tag for releases
+          # Alpha tag for non-main branches: {version}-alpha
+          type=raw,value=${{ steps.version.outputs.version }}-alpha,enable=${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
+          # Beta tag for main branch: {version}-beta
+          type=raw,value=${{ steps.version.outputs.version }}-beta,enable=${{ github.ref == 'refs/heads/main' }}
+          # Version tag for releases: {version} (from git tag)
+          type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+          # Latest tag for all releases (including pre-releases)
           type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-          # Version tags for releases
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          # SHA tag for all commits
-          type=sha,format=short
-          # Branch name tag
-          type=ref,event=branch
-          # PR tags
-          type=ref,event=pr
 
     - name: Build and push Docker image
       id: build
@@ -100,7 +99,7 @@ jobs:
         build-args: |
           BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
           VCS_REF=${{ github.sha }}
-          VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
+          VERSION=${{ steps.version.outputs.version }}
 
     - name: Output image digest
       run: |
@@ -584,6 +583,15 @@ jobs:
       if: steps.check-config.outputs.skip != 'true'
       uses: actions/checkout@v4
 
+    - name: Read version from .version file
+      if: steps.check-config.outputs.skip != 'true'
+      id: version
+      run: |
+        VERSION=$(cat .version | tr -d '\n')
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+        echo "Image tag will be: ${VERSION}-beta"
+
     - name: Wait for GHCR propagation
       if: steps.check-config.outputs.skip != 'true'
       run: |
@@ -631,21 +639,22 @@ jobs:
     - name: Deploy to Kubernetes with Helm
       if: steps.check-config.outputs.skip != 'true'
       run: |
+        IMAGE_TAG="${{ steps.version.outputs.version }}-beta"
         echo "=== Deploying Elder to Kubernetes ==="
         echo "Namespace: ${{ env.K8S_NAMESPACE }}"
-        echo "Image tag: beta"
+        echo "Image tag: $IMAGE_TAG"
 
         helm upgrade --install elder ./infrastructure/helm/elder \
           --namespace ${{ env.K8S_NAMESPACE }} \
           --create-namespace \
           --set api.image.repository=${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api \
-          --set api.image.tag="beta" \
+          --set api.image.tag="$IMAGE_TAG" \
           --set web.image.repository=${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-web \
-          --set web.image.tag="beta" \
+          --set web.image.tag="$IMAGE_TAG" \
           --set grpc.image.repository=${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-grpc \
-          --set grpc.image.tag="beta" \
+          --set grpc.image.tag="$IMAGE_TAG" \
           --set envoy.image.repository=${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-envoy \
-          --set envoy.image.tag="beta" \
+          --set envoy.image.tag="$IMAGE_TAG" \
           --set config.secretKey="${{ secrets.SECRET_KEY || 'changeme-secret-key' }}" \
           --set config.license.key="${{ secrets.LICENSE_KEY || '' }}" \
           --set postgresql.auth.password="${{ secrets.POSTGRES_PASSWORD || 'changeme-postgres' }}" \
