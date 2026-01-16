@@ -2,15 +2,22 @@
 # Unified Smoke Test Script for Elder
 # Tests all containers end-to-end: build, run, API health, and page loads
 #
-# Usage: ./scripts/smoke-test.sh [--skip-build] [--verbose]
+# Usage: ./scripts/smoke-test.sh [OPTIONS]
 #
-# This script:
-# 1. Builds all containers (unless --skip-build)
-# 2. Starts all services
-# 3. Tests health endpoints for each container
-# 4. Tests API authentication and basic CRUD
-# 5. Tests web UI page loads (if puppeteer available)
-# 6. Reports results summary
+# Modes:
+#   --alpha          Alpha testing: local docker-compose cluster (default)
+#   --beta           Beta testing: K8s deployment at elder.penguintech.io
+#
+# Options:
+#   --skip-build     Skip container build (alpha mode only)
+#   --verbose, -v    Enable verbose output
+#   --help, -h       Show this help message
+#
+# Examples:
+#   ./scripts/smoke-test.sh                    # Run alpha tests (local)
+#   ./scripts/smoke-test.sh --alpha            # Explicit alpha tests
+#   ./scripts/smoke-test.sh --beta             # Run beta tests against K8s
+#   ./scripts/smoke-test.sh --alpha --skip-build  # Alpha without rebuild
 
 set -e
 
@@ -19,22 +26,25 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Configuration - read from docker-compose port mappings or use defaults
-API_URL="${API_URL:-http://localhost:4000}"
-WEB_URL="${WEB_URL:-http://localhost:3005}"
-GRPC_PORT="${GRPC_PORT:-50052}"
-ADMIN_USERNAME="${ADMIN_USERNAME:-admin@localhost.local}"
-ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin123}"
-MAX_WAIT=120  # Maximum seconds to wait for services
-RETRY_INTERVAL=2
-
-# Parse arguments
+# Default mode: alpha (local docker-compose)
+TEST_MODE="alpha"
 SKIP_BUILD=false
 VERBOSE=false
+
+# Parse arguments
 for arg in "$@"; do
     case $arg in
+        --alpha)
+            TEST_MODE="alpha"
+            shift
+            ;;
+        --beta)
+            TEST_MODE="beta"
+            shift
+            ;;
         --skip-build)
             SKIP_BUILD=true
             shift
@@ -43,8 +53,33 @@ for arg in "$@"; do
             VERBOSE=true
             shift
             ;;
+        --help|-h)
+            head -24 "$0" | tail -22
+            exit 0
+            ;;
     esac
 done
+
+# Configuration based on mode
+if [ "$TEST_MODE" = "beta" ]; then
+    # Beta mode: K8s deployment
+    API_URL="${API_URL:-https://elder.penguintech.io}"
+    WEB_URL="${WEB_URL:-https://elder.penguintech.io}"
+    ADMIN_USERNAME="${ADMIN_USERNAME:-admin@localhost.local}"
+    ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin123}"
+    MODE_LABEL="BETA (K8s: elder.penguintech.io)"
+else
+    # Alpha mode: local docker-compose
+    API_URL="${API_URL:-http://localhost:4000}"
+    WEB_URL="${WEB_URL:-http://localhost:3005}"
+    ADMIN_USERNAME="${ADMIN_USERNAME:-admin@localhost.local}"
+    ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin123}"
+    MODE_LABEL="ALPHA (Local Docker Compose)"
+fi
+
+GRPC_PORT="${GRPC_PORT:-50052}"
+MAX_WAIT=120  # Maximum seconds to wait for services
+RETRY_INTERVAL=2
 
 # Logging functions
 log_info() {
@@ -65,7 +100,7 @@ log_warn() {
 
 log_verbose() {
     if [ "$VERBOSE" = true ]; then
-        echo -e "${BLUE}[DEBUG]${NC} $1"
+        echo -e "${CYAN}[DEBUG]${NC} $1"
     fi
 }
 
@@ -92,122 +127,194 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT"
 
 log_info "=========================================="
-log_info "Elder Unified Smoke Test"
+log_info "Elder Smoke Test - $MODE_LABEL"
 log_info "=========================================="
 log_info "API URL: $API_URL"
 log_info "Web URL: $WEB_URL"
 log_info ""
 
-# Step 1: Build containers (unless skipped)
-if [ "$SKIP_BUILD" = false ]; then
-    log_info "Step 1: Building containers..."
-    if docker compose build --no-cache; then
-        record_pass "Docker build completed successfully"
+# ============================================================
+# ALPHA MODE: Local Docker Compose Tests
+# ============================================================
+if [ "$TEST_MODE" = "alpha" ]; then
+    # Step 1: Build containers (unless skipped)
+    if [ "$SKIP_BUILD" = false ]; then
+        log_info "Step 1: Building containers..."
+        if docker compose build --no-cache; then
+            record_pass "Docker build completed successfully"
+        else
+            record_fail "Docker build failed"
+            exit 1
+        fi
     else
-        record_fail "Docker build failed"
+        log_info "Step 1: Skipping build (--skip-build flag set)"
+    fi
+
+    # Step 2: Start services
+    log_info ""
+    log_info "Step 2: Starting services..."
+    docker compose down --volumes 2>/dev/null || true
+    if docker compose up -d; then
+        record_pass "Docker Compose services started"
+    else
+        record_fail "Failed to start Docker Compose services"
         exit 1
     fi
-else
-    log_info "Step 1: Skipping build (--skip-build flag set)"
-fi
 
-# Step 2: Start services
-log_info ""
-log_info "Step 2: Starting services..."
-docker compose down --volumes 2>/dev/null || true
-if docker compose up -d; then
-    record_pass "Docker Compose services started"
-else
-    record_fail "Failed to start Docker Compose services"
-    exit 1
-fi
+    # Step 3: Wait for services to be healthy
+    log_info ""
+    log_info "Step 3: Waiting for services to become healthy..."
 
-# Step 3: Wait for services to be healthy
-log_info ""
-log_info "Step 3: Waiting for services to become healthy..."
+    wait_for_health() {
+        local service_name="$1"
+        local url="$2"
+        local waited=0
 
-wait_for_health() {
-    local service_name="$1"
-    local url="$2"
-    local waited=0
+        log_verbose "Waiting for $service_name at $url..."
 
-    log_verbose "Waiting for $service_name at $url..."
+        while [ $waited -lt $MAX_WAIT ]; do
+            if curl -sf "$url" > /dev/null 2>&1; then
+                return 0
+            fi
+            sleep $RETRY_INTERVAL
+            waited=$((waited + RETRY_INTERVAL))
+            log_verbose "Waiting for $service_name... ($waited/$MAX_WAIT seconds)"
+        done
+        return 1
+    }
 
-    while [ $waited -lt $MAX_WAIT ]; do
-        if curl -sf "$url" > /dev/null 2>&1; then
-            return 0
+    # Wait for PostgreSQL (via docker compose health check)
+    log_info "Waiting for PostgreSQL..."
+    POSTGRES_WAIT=0
+    while [ $POSTGRES_WAIT -lt $MAX_WAIT ]; do
+        if docker compose exec -T postgres pg_isready -U elder > /dev/null 2>&1; then
+            record_pass "PostgreSQL is ready"
+            break
         fi
         sleep $RETRY_INTERVAL
-        waited=$((waited + RETRY_INTERVAL))
-        log_verbose "Waiting for $service_name... ($waited/$MAX_WAIT seconds)"
+        POSTGRES_WAIT=$((POSTGRES_WAIT + RETRY_INTERVAL))
     done
-    return 1
-}
-
-# Wait for PostgreSQL (via docker compose health check)
-log_info "Waiting for PostgreSQL..."
-POSTGRES_WAIT=0
-while [ $POSTGRES_WAIT -lt $MAX_WAIT ]; do
-    if docker compose exec -T postgres pg_isready -U elder > /dev/null 2>&1; then
-        record_pass "PostgreSQL is ready"
-        break
+    if [ $POSTGRES_WAIT -ge $MAX_WAIT ]; then
+        record_fail "PostgreSQL failed to become ready"
     fi
-    sleep $RETRY_INTERVAL
-    POSTGRES_WAIT=$((POSTGRES_WAIT + RETRY_INTERVAL))
-done
-if [ $POSTGRES_WAIT -ge $MAX_WAIT ]; then
-    record_fail "PostgreSQL failed to become ready"
-fi
 
-# Wait for Redis
-log_info "Waiting for Redis..."
-REDIS_WAIT=0
-while [ $REDIS_WAIT -lt $MAX_WAIT ]; do
-    if docker compose exec -T redis redis-cli ping > /dev/null 2>&1; then
-        record_pass "Redis is ready"
-        break
+    # Wait for Redis
+    log_info "Waiting for Redis..."
+    REDIS_WAIT=0
+    while [ $REDIS_WAIT -lt $MAX_WAIT ]; do
+        if docker compose exec -T redis redis-cli ping > /dev/null 2>&1; then
+            record_pass "Redis is ready"
+            break
+        fi
+        sleep $RETRY_INTERVAL
+        REDIS_WAIT=$((REDIS_WAIT + RETRY_INTERVAL))
+    done
+    if [ $REDIS_WAIT -ge $MAX_WAIT ]; then
+        record_fail "Redis failed to become ready"
     fi
-    sleep $RETRY_INTERVAL
-    REDIS_WAIT=$((REDIS_WAIT + RETRY_INTERVAL))
-done
-if [ $REDIS_WAIT -ge $MAX_WAIT ]; then
-    record_fail "Redis failed to become ready"
+
+    # Wait for API
+    log_info "Waiting for API..."
+    if wait_for_health "API" "$API_URL/healthz"; then
+        record_pass "API health check passed"
+    else
+        record_fail "API health check failed"
+        log_error "API logs:"
+        docker compose logs api --tail=50
+    fi
+
+    # Wait for Web UI
+    log_info "Waiting for Web UI..."
+    if wait_for_health "Web UI" "$WEB_URL"; then
+        record_pass "Web UI is accessible"
+    else
+        record_fail "Web UI health check failed"
+        log_error "Web UI logs:"
+        docker compose logs web --tail=50
+    fi
+
+# ============================================================
+# BETA MODE: K8s Deployment Tests
+# ============================================================
+else
+    log_info "Step 1-3: Skipped (beta mode uses existing K8s deployment)"
+
+    # Function to wait for HTTPS endpoints
+    wait_for_health() {
+        local service_name="$1"
+        local url="$2"
+        local waited=0
+
+        log_verbose "Waiting for $service_name at $url..."
+
+        while [ $waited -lt $MAX_WAIT ]; do
+            # Use -k to allow self-signed certs in some environments
+            if curl -sf -k "$url" > /dev/null 2>&1; then
+                return 0
+            fi
+            sleep $RETRY_INTERVAL
+            waited=$((waited + RETRY_INTERVAL))
+            log_verbose "Waiting for $service_name... ($waited/$MAX_WAIT seconds)"
+        done
+        return 1
+    }
+
+    # Verify K8s deployment is accessible
+    log_info ""
+    log_info "Verifying K8s deployment accessibility..."
+
+    if wait_for_health "K8s API" "$API_URL/healthz"; then
+        record_pass "K8s API is accessible"
+    else
+        record_fail "K8s API not accessible at $API_URL"
+        log_error "Check K8s deployment: kubectl get pods -n elder"
+        exit 1
+    fi
+
+    if wait_for_health "K8s Web" "$WEB_URL"; then
+        record_pass "K8s Web UI is accessible"
+    else
+        record_fail "K8s Web UI not accessible at $WEB_URL"
+    fi
 fi
 
-# Wait for API
-log_info "Waiting for API..."
-if wait_for_health "API" "$API_URL/healthz"; then
-    record_pass "API health check passed"
-else
-    record_fail "API health check failed"
-    log_error "API logs:"
-    docker compose logs api --tail=50
-fi
-
-# Wait for Web UI
-log_info "Waiting for Web UI..."
-if wait_for_health "Web UI" "$WEB_URL"; then
-    record_pass "Web UI is accessible"
-else
-    record_fail "Web UI health check failed"
-    log_error "Web UI logs:"
-    docker compose logs web --tail=50
-fi
+# ============================================================
+# COMMON TESTS (both alpha and beta modes)
+# ============================================================
 
 # Step 4: API Smoke Tests
 log_info ""
 log_info "Step 4: API Smoke Tests..."
 
+# For HTTPS (beta), use -k flag to handle certificates
+CURL_OPTS=""
+if [ "$TEST_MODE" = "beta" ]; then
+    CURL_OPTS="-k"
+fi
+
 # Test health endpoint response content
-HEALTH_RESPONSE=$(curl -sf "$API_URL/healthz" 2>/dev/null || echo "")
-if echo "$HEALTH_RESPONSE" | grep -qi "healthy\|ok\|status.*up"; then
-    record_pass "API /healthz returns healthy status"
+# In beta mode, /healthz isn't proxied through nginx, so use an API endpoint for health check
+if [ "$TEST_MODE" = "beta" ]; then
+    # For K8s, test API health by checking a valid API endpoint returns JSON error
+    # Note: don't use -f flag here since we expect 401 which is still a valid API response
+    HEALTH_RESPONSE=$(curl -s $CURL_OPTS "$API_URL/api/v1/organizations" 2>/dev/null || echo "")
+    if echo "$HEALTH_RESPONSE" | grep -qi "authentication\|unauthorized\|error\|items"; then
+        record_pass "API is responding (via /api/v1/organizations)"
+    else
+        record_fail "API health check failed (no valid response from /api/v1/organizations): $HEALTH_RESPONSE"
+    fi
 else
-    record_fail "API /healthz response invalid: $HEALTH_RESPONSE"
+    # For local, use the direct /healthz endpoint
+    HEALTH_RESPONSE=$(curl -sf $CURL_OPTS "$API_URL/healthz" 2>/dev/null || echo "")
+    if echo "$HEALTH_RESPONSE" | grep -qi "healthy\|ok\|status.*up"; then
+        record_pass "API /healthz returns healthy status"
+    else
+        record_fail "API /healthz response invalid: $HEALTH_RESPONSE"
+    fi
 fi
 
 # Test API version endpoint
-VERSION_RESPONSE=$(curl -sf "$API_URL/api/v1/version" 2>/dev/null || echo "")
+VERSION_RESPONSE=$(curl -sf $CURL_OPTS "$API_URL/api/v1/version" 2>/dev/null || echo "")
 if echo "$VERSION_RESPONSE" | grep -qi "version"; then
     record_pass "API /api/v1/version returns version info"
 else
@@ -216,7 +323,7 @@ fi
 
 # Test authentication - login
 log_info "Testing authentication..."
-LOGIN_RESPONSE=$(curl -sf -X POST "$API_URL/api/v1/auth/login" \
+LOGIN_RESPONSE=$(curl -sf $CURL_OPTS -X POST "$API_URL/api/v1/auth/login" \
     -H "Content-Type: application/json" \
     -d "{\"username\": \"$ADMIN_USERNAME\", \"password\": \"$ADMIN_PASSWORD\"}" 2>/dev/null || echo "")
 
@@ -234,7 +341,7 @@ fi
 # Test authenticated endpoints (if we got a token)
 if [ -n "$TOKEN" ]; then
     # Test organizations endpoint
-    ORGS_RESPONSE=$(curl -sf -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/organizations" 2>/dev/null || echo "")
+    ORGS_RESPONSE=$(curl -sf $CURL_OPTS -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/organizations" 2>/dev/null || echo "")
     if echo "$ORGS_RESPONSE" | grep -qi "items\|organizations\|\[\]"; then
         record_pass "API GET /organizations works"
     else
@@ -242,7 +349,7 @@ if [ -n "$TOKEN" ]; then
     fi
 
     # Test entities endpoint
-    ENTITIES_RESPONSE=$(curl -sf -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/entities" 2>/dev/null || echo "")
+    ENTITIES_RESPONSE=$(curl -sf $CURL_OPTS -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/entities" 2>/dev/null || echo "")
     if echo "$ENTITIES_RESPONSE" | grep -qi "items\|entities\|\[\]"; then
         record_pass "API GET /entities works"
     else
@@ -250,7 +357,7 @@ if [ -n "$TOKEN" ]; then
     fi
 
     # Test services endpoint
-    SERVICES_RESPONSE=$(curl -sf -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/services" 2>/dev/null || echo "")
+    SERVICES_RESPONSE=$(curl -sf $CURL_OPTS -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/services" 2>/dev/null || echo "")
     if echo "$SERVICES_RESPONSE" | grep -qi "items\|services\|\[\]"; then
         record_pass "API GET /services works"
     else
@@ -263,7 +370,7 @@ log_info ""
 log_info "Step 5: Web UI Smoke Tests..."
 
 # Test main page loads
-WEB_CONTENT=$(curl -sf "$WEB_URL" 2>/dev/null || echo "")
+WEB_CONTENT=$(curl -sf $CURL_OPTS "$WEB_URL" 2>/dev/null || echo "")
 if echo "$WEB_CONTENT" | grep -qi "elder\|<!DOCTYPE\|<html"; then
     record_pass "Web UI main page loads"
 else
@@ -271,71 +378,104 @@ else
 fi
 
 # Test static assets (check if JS/CSS are served)
-if curl -sf "$WEB_URL/assets/" > /dev/null 2>&1 || curl -sf "$WEB_URL" | grep -q "assets/"; then
+if curl -sf $CURL_OPTS "$WEB_URL/assets/" > /dev/null 2>&1 || curl -sf $CURL_OPTS "$WEB_URL" | grep -q "assets/"; then
     record_pass "Web UI static assets accessible"
 else
     log_warn "Web UI static assets check inconclusive"
 fi
 
 # Test login page
-LOGIN_PAGE=$(curl -sf "$WEB_URL/login" 2>/dev/null || curl -sf "$WEB_URL/#/login" 2>/dev/null || echo "")
+LOGIN_PAGE=$(curl -sf $CURL_OPTS "$WEB_URL/login" 2>/dev/null || curl -sf $CURL_OPTS "$WEB_URL/#/login" 2>/dev/null || echo "")
 if [ -n "$LOGIN_PAGE" ]; then
     record_pass "Web UI login page accessible"
 else
     log_warn "Web UI login page not directly accessible (SPA routing)"
 fi
 
-# Step 6: Scanner Container Test (if running)
-log_info ""
-log_info "Step 6: Scanner Container Test..."
+# ============================================================
+# ALPHA-ONLY TESTS (local container tests)
+# ============================================================
+if [ "$TEST_MODE" = "alpha" ]; then
+    # Step 6: Scanner Container Test (if running)
+    log_info ""
+    log_info "Step 6: Scanner Container Test..."
 
-SCANNER_RUNNING=$(docker compose ps scanner --format json 2>/dev/null | grep -c "running" || echo "0")
-if [ "$SCANNER_RUNNING" -gt "0" ]; then
-    # Check scanner health via docker exec
-    if docker compose exec -T scanner python -c "import sys; sys.exit(0)" 2>/dev/null; then
-        record_pass "Scanner container is running and Python works"
+    SCANNER_RUNNING=$(docker compose ps scanner --format json 2>/dev/null | grep -c "running" || echo "0")
+    if [ "$SCANNER_RUNNING" -gt "0" ]; then
+        # Check scanner health via docker exec
+        if docker compose exec -T scanner python -c "import sys; sys.exit(0)" 2>/dev/null; then
+            record_pass "Scanner container is running and Python works"
+        else
+            record_fail "Scanner container Python test failed"
+        fi
     else
-        record_fail "Scanner container Python test failed"
+        log_warn "Scanner container not running (may be expected for dev setup)"
     fi
+
+    # Step 7: Connector Container Test (if running)
+    log_info ""
+    log_info "Step 7: Connector Container Test..."
+
+    CONNECTOR_RUNNING=$(docker compose ps connector --format json 2>/dev/null | grep -c "running" || echo "0")
+    if [ "$CONNECTOR_RUNNING" -gt "0" ]; then
+        if docker compose exec -T connector python -c "import sys; sys.exit(0)" 2>/dev/null; then
+            record_pass "Connector container is running and Python works"
+        else
+            record_fail "Connector container Python test failed"
+        fi
+    else
+        log_warn "Connector container not running (may be expected for dev setup)"
+    fi
+
+    # Step 8: gRPC Server Test (if running)
+    log_info ""
+    log_info "Step 8: gRPC Server Test..."
+
+    GRPC_RUNNING=$(docker compose ps grpc-server --format json 2>/dev/null | grep -c "running" || echo "0")
+    if [ "$GRPC_RUNNING" -gt "0" ]; then
+        # Simple TCP check on gRPC port
+        if nc -z localhost $GRPC_PORT 2>/dev/null; then
+            record_pass "gRPC server is listening on port $GRPC_PORT"
+        else
+            record_fail "gRPC server not responding on port $GRPC_PORT"
+        fi
+    else
+        log_warn "gRPC server not running (enterprise feature)"
+    fi
+
+# ============================================================
+# BETA-ONLY TESTS (K8s-specific tests)
+# ============================================================
 else
-    log_warn "Scanner container not running (may be expected for dev setup)"
+    # Step 6: K8s-specific health checks
+    log_info ""
+    log_info "Step 6: K8s Deployment Checks..."
+
+    # Check if we can reach the K8s API through the ingress
+    if curl -sf $CURL_OPTS "$API_URL/api/v1/organizations" -H "Authorization: Bearer $TOKEN" > /dev/null 2>&1; then
+        record_pass "K8s ingress routing to API works"
+    else
+        log_warn "K8s ingress routing check inconclusive"
+    fi
+
+    # Verify nginx proxy is working (API calls through web URL)
+    PROXY_TEST=$(curl -sf $CURL_OPTS "$WEB_URL/api/v1/organizations" -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo "")
+    if echo "$PROXY_TEST" | grep -qi "items\|organizations\|\[\]"; then
+        record_pass "K8s nginx proxy routing works"
+    else
+        log_warn "K8s nginx proxy routing check inconclusive"
+    fi
+
+    log_info ""
+    log_info "Step 7-8: Skipped (container-specific tests not applicable in K8s mode)"
 fi
 
-# Step 7: Connector Container Test (if running)
-log_info ""
-log_info "Step 7: Connector Container Test..."
-
-CONNECTOR_RUNNING=$(docker compose ps connector --format json 2>/dev/null | grep -c "running" || echo "0")
-if [ "$CONNECTOR_RUNNING" -gt "0" ]; then
-    if docker compose exec -T connector python -c "import sys; sys.exit(0)" 2>/dev/null; then
-        record_pass "Connector container is running and Python works"
-    else
-        record_fail "Connector container Python test failed"
-    fi
-else
-    log_warn "Connector container not running (may be expected for dev setup)"
-fi
-
-# Step 8: gRPC Server Test (if running)
-log_info ""
-log_info "Step 8: gRPC Server Test..."
-
-GRPC_RUNNING=$(docker compose ps grpc-server --format json 2>/dev/null | grep -c "running" || echo "0")
-if [ "$GRPC_RUNNING" -gt "0" ]; then
-    # Simple TCP check on gRPC port
-    if nc -z localhost $GRPC_PORT 2>/dev/null; then
-        record_pass "gRPC server is listening on port $GRPC_PORT"
-    else
-        record_fail "gRPC server not responding on port $GRPC_PORT"
-    fi
-else
-    log_warn "gRPC server not running (enterprise feature)"
-fi
-
-# Step 9: Summary
+# ============================================================
+# SUMMARY
+# ============================================================
 log_info ""
 log_info "=========================================="
-log_info "Smoke Test Summary"
+log_info "Smoke Test Summary - $MODE_LABEL"
 log_info "=========================================="
 echo -e "${GREEN}Passed: $TESTS_PASSED${NC}"
 echo -e "${RED}Failed: $TESTS_FAILED${NC}"
@@ -343,7 +483,11 @@ echo -e "${RED}Failed: $TESTS_FAILED${NC}"
 if [ $TESTS_FAILED -gt 0 ]; then
     echo -e "\n${RED}Failed tests:${NC}$FAILED_TESTS"
     log_info ""
-    log_info "Service logs available via: docker compose logs <service>"
+    if [ "$TEST_MODE" = "alpha" ]; then
+        log_info "Service logs available via: docker compose logs <service>"
+    else
+        log_info "Check K8s logs via: kubectl logs -n elder <pod-name>"
+    fi
     exit 1
 else
     log_success "All smoke tests passed!"
