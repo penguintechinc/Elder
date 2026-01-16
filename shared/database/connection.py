@@ -450,10 +450,14 @@ def _init_default_data(db: DAL) -> None:
 
     if admin_password and root_org_id:
         # Check if admin user already exists (check both username and email)
-        existing_admin = db(
-            (db.identities.username == admin_username) |
-            (db.identities.email == admin_email)
-        ).select().first()
+        existing_admin = (
+            db(
+                (db.identities.username == admin_username)
+                | (db.identities.email == admin_email)
+            )
+            .select()
+            .first()
+        )
 
         if not existing_admin:
             # Create admin user - username is email for portal auth

@@ -53,12 +53,16 @@ async def register():
     # Check if username or email already exists and create user
     def create_user():
         # Check if username already exists
-        existing = db(db.identities.username == validated_data.username).select().first()
+        existing = (
+            db(db.identities.username == validated_data.username).select().first()
+        )
         if existing:
             return None, "Username already exists", 400
 
         # Check if email already exists
-        existing_email = db(db.identities.email == validated_data.email).select().first()
+        existing_email = (
+            db(db.identities.email == validated_data.email).select().first()
+        )
         if existing_email:
             return None, "Email already exists", 400
 
@@ -162,7 +166,9 @@ async def login():
 
     # Find user and verify password
     def authenticate():
-        identity = db(db.identities.username == validated_data.username).select().first()
+        identity = (
+            db(db.identities.username == validated_data.username).select().first()
+        )
 
         if not identity:
             return None, "Invalid username or password", 401

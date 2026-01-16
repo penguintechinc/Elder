@@ -8,17 +8,13 @@ from pydantic import AfterValidator, BaseModel, Field, field_validator
 
 # Custom email validator that allows .local domains for development
 # Standard Email rejects .local as it's a special-use TLD, but we need it for dev
-EMAIL_PATTERN = re.compile(
-    r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-)
+EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
 
 def validate_email_with_local(value: str) -> str:
     """Validate email format, allowing .local domains for development."""
     if not EMAIL_PATTERN.match(value):
-        raise ValueError(
-            "value is not a valid email address: Invalid email format"
-        )
+        raise ValueError("value is not a valid email address: Invalid email format")
     return value.lower()  # Normalize to lowercase
 
 
@@ -43,7 +39,9 @@ class RegisterRequest(BaseModel):
         ...,
         description="Email address to use as username for portal authentication",
     )
-    password: str = Field(..., min_length=8, description="Password (minimum 8 characters)")
+    password: str = Field(
+        ..., min_length=8, description="Password (minimum 8 characters)"
+    )
     email: Email = Field(
         ..., description="Email address (must match username for portal auth)"
     )
@@ -65,9 +63,7 @@ class LoginRequest(BaseModel):
     For portal authentication, username MUST be a valid email address.
     """
 
-    username: Email = Field(
-        ..., description="Email address for authentication"
-    )
+    username: Email = Field(..., description="Email address for authentication")
     password: str = Field(..., min_length=1, description="Password")
 
 
@@ -75,7 +71,9 @@ class PortalRegisterRequest(BaseModel):
     """Portal user registration request schema."""
 
     email: Email = Field(..., description="Email address")
-    password: str = Field(..., min_length=8, description="Password (minimum 8 characters)")
+    password: str = Field(
+        ..., min_length=8, description="Password (minimum 8 characters)"
+    )
     full_name: Optional[str] = Field(None, max_length=255, description="Full name")
     tenant: Optional[str] = Field(None, description="Tenant slug or ID")
 
@@ -92,7 +90,9 @@ class ChangePasswordRequest(BaseModel):
     """Change password request schema."""
 
     current_password: str = Field(..., min_length=1, description="Current password")
-    new_password: str = Field(..., min_length=8, description="New password (minimum 8 characters)")
+    new_password: str = Field(
+        ..., min_length=8, description="New password (minimum 8 characters)"
+    )
 
 
 class TokenRefreshRequest(BaseModel):

@@ -23,13 +23,13 @@ logger = logging.getLogger(__name__)
 # Core tables that must exist for the application to function
 # These are checked in order of dependency (tables with no deps first)
 REQUIRED_TABLES = [
-    "tenants",           # L0: Multi-tenancy foundation
-    "roles",             # L1: Base table
-    "permissions",       # L1: Base table
-    "identities",        # L1: Users/accounts
-    "organizations",     # L2: Depends on tenants, identities
-    "portal_users",      # L2: Depends on tenants
-    "user_roles",        # L3: Depends on identities, roles
+    "tenants",  # L0: Multi-tenancy foundation
+    "roles",  # L1: Base table
+    "permissions",  # L1: Base table
+    "identities",  # L1: Users/accounts
+    "organizations",  # L2: Depends on tenants, identities
+    "portal_users",  # L2: Depends on tenants
+    "user_roles",  # L3: Depends on identities, roles
     "role_permissions",  # L3: Depends on roles, permissions
 ]
 
@@ -72,7 +72,9 @@ def get_sqlalchemy_url(app) -> str:
         return f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 
-def wait_for_database(engine: Engine, max_retries: int = 30, retry_delay: int = 2) -> bool:
+def wait_for_database(
+    engine: Engine, max_retries: int = 30, retry_delay: int = 2
+) -> bool:
     """Wait for database to become available.
 
     Args:
@@ -97,7 +99,9 @@ def wait_for_database(engine: Engine, max_retries: int = 30, retry_delay: int = 
                 )
                 time.sleep(retry_delay)
             else:
-                logger.error(f"Failed to connect to database after {max_retries} attempts")
+                logger.error(
+                    f"Failed to connect to database after {max_retries} attempts"
+                )
                 return False
     return False
 
