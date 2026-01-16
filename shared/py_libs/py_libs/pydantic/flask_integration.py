@@ -30,6 +30,7 @@ class ValidationErrorResponse:
         """
         # Log validation errors for debugging
         from flask import current_app, has_app_context
+
         if has_app_context() and current_app:
             current_app.logger.error(f"Validation error: {error.errors()}")
 
