@@ -14,7 +14,7 @@ import os
 import time
 from typing import Optional
 
-from sqlalchemy import MetaData, create_engine, inspect, text
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError
 
