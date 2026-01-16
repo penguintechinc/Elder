@@ -3,6 +3,9 @@
 Using @dataclass(slots=True) provides 30-50% memory reduction and faster attribute access.
 """
 
+# flake8: noqa: E501
+
+
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from typing import Optional

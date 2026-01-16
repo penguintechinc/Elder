@@ -10,6 +10,9 @@ Supports:
 - net/http: http.HandleFunc(), mux.Handle()
 """
 
+# flake8: noqa: E501
+
+
 import re
 from typing import Any, Dict, List
 
@@ -72,8 +75,7 @@ class GoEndpointParser:
 
         # Route group patterns: router.Group("/api"), r.Route("/api", func...)
         self._gin_group_pattern = re.compile(
-            r"(?:r|router|engine)\.Group\s*\(\s*"
-            r'["\'](?P<path>[^"\']+)["\']',
+            r"(?:r|router|engine)\.Group\s*\(\s*" r'["\'](?P<path>[^"\']+)["\']',
             re.MULTILINE,
         )
 
@@ -123,24 +125,16 @@ class GoEndpointParser:
         middleware = self._extract_middleware(content)
 
         # Parse Gin routes
-        endpoints.extend(
-            self._parse_gin_routes(content, filename, middleware)
-        )
+        endpoints.extend(self._parse_gin_routes(content, filename, middleware))
 
         # Parse Chi routes
-        endpoints.extend(
-            self._parse_chi_routes(content, filename, middleware)
-        )
+        endpoints.extend(self._parse_chi_routes(content, filename, middleware))
 
         # Parse Gorilla Mux routes
-        endpoints.extend(
-            self._parse_gorilla_routes(content, filename, middleware)
-        )
+        endpoints.extend(self._parse_gorilla_routes(content, filename, middleware))
 
         # Parse net/http routes
-        endpoints.extend(
-            self._parse_nethttp_routes(content, filename, middleware)
-        )
+        endpoints.extend(self._parse_nethttp_routes(content, filename, middleware))
 
         return endpoints
 

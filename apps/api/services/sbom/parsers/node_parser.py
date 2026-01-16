@@ -10,6 +10,9 @@ Each parser extracts dependency information and returns standardized
 component dictionaries with package names, versions, and metadata.
 """
 
+# flake8: noqa: E501
+
+
 import json
 import re
 from typing import Any, Dict, List, Optional
@@ -116,26 +119,36 @@ class NodeDependencyParser(BaseDependencyParser):
         # Process runtime dependencies
         if "dependencies" in data:
             for name, version in data["dependencies"].items():
-                components.append(self._create_component(name, version, "runtime", True, filename))
+                components.append(
+                    self._create_component(name, version, "runtime", True, filename)
+                )
 
         # Process development dependencies
         if "devDependencies" in data:
             for name, version in data["devDependencies"].items():
-                components.append(self._create_component(name, version, "dev", True, filename))
+                components.append(
+                    self._create_component(name, version, "dev", True, filename)
+                )
 
         # Process peer dependencies (but mark them as runtime for distinction)
         if "peerDependencies" in data:
             for name, version in data["peerDependencies"].items():
-                components.append(self._create_component(name, version, "runtime", True, filename))
+                components.append(
+                    self._create_component(name, version, "runtime", True, filename)
+                )
 
         # Process optional dependencies (mark as runtime)
         if "optionalDependencies" in data:
             for name, version in data["optionalDependencies"].items():
-                components.append(self._create_component(name, version, "runtime", True, filename))
+                components.append(
+                    self._create_component(name, version, "runtime", True, filename)
+                )
 
         return components
 
-    def _parse_package_lock_json(self, content: str, filename: str) -> List[Dict[str, Any]]:
+    def _parse_package_lock_json(
+        self, content: str, filename: str
+    ) -> List[Dict[str, Any]]:
         """Parse package-lock.json and extract dependencies.
 
         Handles both npm v6 (dependencies key) and npm v7+ (packages key) formats.
@@ -165,7 +178,9 @@ class NodeDependencyParser(BaseDependencyParser):
                     version = package_info.get("version")
                     dev = package_info.get("dev", False)
                     scope = "dev" if dev else "runtime"
-                    components.append(self._create_component(name, version, scope, False, filename))
+                    components.append(
+                        self._create_component(name, version, scope, False, filename)
+                    )
 
         # npm v6 format uses 'dependencies' key
         elif "dependencies" in data:
@@ -175,7 +190,9 @@ class NodeDependencyParser(BaseDependencyParser):
                     version = dep_info.get("version")
                     dev = dep_info.get("dev", False)
                     scope = "dev" if dev else "runtime"
-                    components.append(self._create_component(name, version, scope, False, filename))
+                    components.append(
+                        self._create_component(name, version, scope, False, filename)
+                    )
 
         return components
 
@@ -226,7 +243,9 @@ class NodeDependencyParser(BaseDependencyParser):
                             break
                         if next_line.startswith('resolved "'):
                             # Extract resolved version URL or version string
-                            resolved_version = self._extract_yarn_resolved_version(next_line)
+                            resolved_version = self._extract_yarn_resolved_version(
+                                next_line
+                            )
                             i += 1
                             break
                         elif next_line.endswith(":"):
@@ -236,7 +255,11 @@ class NodeDependencyParser(BaseDependencyParser):
 
                     # Use resolved version if available, otherwise use spec
                     final_version = resolved_version or version_spec
-                    components.append(self._create_component(name, final_version, "runtime", False, filename))
+                    components.append(
+                        self._create_component(
+                            name, final_version, "runtime", False, filename
+                        )
+                    )
 
         return components
 
@@ -292,7 +315,9 @@ class NodeDependencyParser(BaseDependencyParser):
                 return resolved_url
         return None
 
-    def _parse_pnpm_lock_yaml(self, content: str, filename: str) -> List[Dict[str, Any]]:
+    def _parse_pnpm_lock_yaml(
+        self, content: str, filename: str
+    ) -> List[Dict[str, Any]]:
         """Parse pnpm-lock.yaml and extract dependencies.
 
         Args:
@@ -319,9 +344,15 @@ class NodeDependencyParser(BaseDependencyParser):
                 match = self._parse_pnpm_package_key(package_key)
                 if match:
                     name, version = match
-                    dev = package_info.get("dev", False) if isinstance(package_info, dict) else False
+                    dev = (
+                        package_info.get("dev", False)
+                        if isinstance(package_info, dict)
+                        else False
+                    )
                     scope = "dev" if dev else "runtime"
-                    components.append(self._create_component(name, version, scope, False, filename))
+                    components.append(
+                        self._create_component(name, version, scope, False, filename)
+                    )
 
         # Process dependencies section (direct dependencies from package.json)
         if "dependencies" in data and isinstance(data["dependencies"], dict):
@@ -329,7 +360,11 @@ class NodeDependencyParser(BaseDependencyParser):
                 if isinstance(dep_info, dict):
                     version = dep_info.get("version")
                     if version:
-                        components.append(self._create_component(name, version, "runtime", True, filename))
+                        components.append(
+                            self._create_component(
+                                name, version, "runtime", True, filename
+                            )
+                        )
 
         # Process devDependencies section
         if "devDependencies" in data and isinstance(data["devDependencies"], dict):
@@ -337,7 +372,9 @@ class NodeDependencyParser(BaseDependencyParser):
                 if isinstance(dep_info, dict):
                     version = dep_info.get("version")
                     if version:
-                        components.append(self._create_component(name, version, "dev", True, filename))
+                        components.append(
+                            self._create_component(name, version, "dev", True, filename)
+                        )
 
         return components
 

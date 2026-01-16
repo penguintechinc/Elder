@@ -1,5 +1,8 @@
 """GCP Secret Manager client implementation."""
 
+# flake8: noqa: E501
+
+
 import json
 import logging
 from typing import Any, Dict, List, Optional

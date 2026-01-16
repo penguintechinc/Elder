@@ -1,22 +1,23 @@
 """IPAM (IP Address Management) API endpoints for Elder using PyDAL with async/await."""
 
+# flake8: noqa: E501
+
+
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, jsonify, request
+from py_libs.pydantic.flask_integration import ValidationErrorResponse
+from py_libs.pydantic.models import (
+    CreateIPAMAddressRequest,
+    CreateIPAMPrefixRequest,
+    CreateIPAMVlanRequest,
+    UpdateIPAMAddressRequest,
+    UpdateIPAMPrefixRequest,
+)
 from pydantic import ValidationError
 
 from apps.api.auth.decorators import login_required, resource_role_required
-from apps.api.models.dataclasses import (
-    PaginatedResponse,
-)
-from py_libs.pydantic.flask_integration import ValidationErrorResponse
-from py_libs.pydantic.models import (
-    CreateIPAMPrefixRequest,
-    UpdateIPAMPrefixRequest,
-    CreateIPAMAddressRequest,
-    UpdateIPAMAddressRequest,
-    CreateIPAMVlanRequest,
-)
+from apps.api.models.dataclasses import PaginatedResponse
 from shared.async_utils import run_in_threadpool
 
 bp = Blueprint("ipam", __name__)

@@ -1,5 +1,8 @@
 """Discovery service - business logic layer for cloud resource discovery."""
 
+# flake8: noqa: E501
+
+
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 

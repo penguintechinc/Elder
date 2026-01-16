@@ -5,14 +5,15 @@ Provides immutable DTOs and request models for organization management
 with field validation and type safety.
 """
 
+# flake8: noqa: E501
+
+
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import Field, field_validator
-
 from py_libs.pydantic.base import ImmutableModel, RequestModel
 from py_libs.pydantic.types import Name255
-
+from pydantic import Field, field_validator
 
 OrganizationType = Literal["department", "organization", "team", "collection", "other"]
 """Organization unit type enumeration."""

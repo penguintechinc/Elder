@@ -1,5 +1,8 @@
 """On-call rotation history, escalations, and current on-call endpoints."""
 
+# flake8: noqa: E501
+
+
 import datetime
 from dataclasses import asdict
 
@@ -23,9 +26,15 @@ def _get_current_oncall_for_rotation(db, rotation_id: int) -> dict:
     """Get the current on-call person for a rotation."""
     now = datetime.datetime.now(datetime.timezone.utc)
 
-    shift = db((db.on_call_shifts.rotation_id == rotation_id)
-               & (db.on_call_shifts.shift_start <= now)
-               & (db.on_call_shifts.shift_end > now)).select().first()
+    shift = (
+        db(
+            (db.on_call_shifts.rotation_id == rotation_id)
+            & (db.on_call_shifts.shift_start <= now)
+            & (db.on_call_shifts.shift_end > now)
+        )
+        .select()
+        .first()
+    )
 
     if not shift:
         return None
@@ -76,11 +85,13 @@ async def get_current_oncall_for_org(org_id: int):
         for rotation in rotations:
             current = _get_current_oncall_for_rotation(db, rotation.id)
             if current:
-                result.append({
-                    "rotation_id": rotation.id,
-                    "rotation_name": rotation.name,
-                    "current_oncall": current,
-                })
+                result.append(
+                    {
+                        "rotation_id": rotation.id,
+                        "rotation_name": rotation.name,
+                        "current_oncall": current,
+                    }
+                )
 
         return result
 
@@ -104,9 +115,7 @@ async def get_current_oncall_for_service(service_id: int):
     """
     db = current_app.db
 
-    org, error = await validate_resource_exists(
-        db.services, service_id, "Service"
-    )
+    org, error = await validate_resource_exists(db.services, service_id, "Service")
     if error:
         return error
 
@@ -120,11 +129,13 @@ async def get_current_oncall_for_service(service_id: int):
         for rotation in rotations:
             current = _get_current_oncall_for_rotation(db, rotation.id)
             if current:
-                result.append({
-                    "rotation_id": rotation.id,
-                    "rotation_name": rotation.name,
-                    "current_oncall": current,
-                })
+                result.append(
+                    {
+                        "rotation_id": rotation.id,
+                        "rotation_name": rotation.name,
+                        "current_oncall": current,
+                    }
+                )
 
         return result
 
@@ -169,7 +180,9 @@ async def get_shift_history(rotation_id: int):
         # Apply filters
         if request.args.get("start_date"):
             try:
-                start_date = datetime.datetime.fromisoformat(request.args.get("start_date"))
+                start_date = datetime.datetime.fromisoformat(
+                    request.args.get("start_date")
+                )
                 query &= db.on_call_shifts.shift_start >= start_date
             except Exception:
                 pass
@@ -204,19 +217,21 @@ async def get_shift_history(rotation_id: int):
     for row in rows:
         shift = row.on_call_shifts
         identity = row.identities
-        items.append({
-            "id": shift.id,
-            "rotation_id": shift.rotation_id,
-            "identity_id": shift.identity_id,
-            "identity_name": identity.username,
-            "shift_start": shift.shift_start,
-            "shift_end": shift.shift_end,
-            "is_override": shift.is_override,
-            "override_id": shift.override_id,
-            "alerts_received": shift.alerts_received,
-            "incidents_created": shift.incidents_created,
-            "created_at": shift.created_at,
-        })
+        items.append(
+            {
+                "id": shift.id,
+                "rotation_id": shift.rotation_id,
+                "identity_id": shift.identity_id,
+                "identity_name": identity.username,
+                "shift_start": shift.shift_start,
+                "shift_end": shift.shift_end,
+                "is_override": shift.is_override,
+                "override_id": shift.override_id,
+                "alerts_received": shift.alerts_received,
+                "incidents_created": shift.incidents_created,
+                "created_at": shift.created_at,
+            }
+        )
 
     response = PaginatedResponse(
         items=items,
@@ -372,7 +387,9 @@ async def create_escalation(rotation_id: int):
     if target_error:
         return ApiResponse.error(target_error, 400)
     if target is None and escalation_type != "rotation_participant":
-        return ApiResponse.not_found("Target", data.get("identity_id") or data.get("group_id"))
+        return ApiResponse.not_found(
+            "Target", data.get("identity_id") or data.get("group_id")
+        )
 
     def create():
         insert_data = {

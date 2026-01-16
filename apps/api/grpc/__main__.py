@@ -1,7 +1,11 @@
 """Entry point for running gRPC server as a module."""
 
-from apps.api.grpc.server import serve
+# flake8: noqa: E501
+
+
 import os
+
+from apps.api.grpc.server import serve
 
 if __name__ == "__main__":
     # Get configuration from environment

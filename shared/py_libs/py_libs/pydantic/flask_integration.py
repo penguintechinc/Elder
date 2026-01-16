@@ -1,6 +1,10 @@
 """Flask integration for Pydantic 2 validation."""
 
+# flake8: noqa: E501
+
+
 import asyncio
+import inspect
 from functools import wraps
 from typing import Any, Callable, Dict, Optional, Tuple, Type, TypeVar
 
@@ -24,17 +28,24 @@ class ValidationErrorResponse:
         Returns:
             Tuple of (error dict, status code)
         """
+        # Log validation errors for debugging
+        from flask import current_app, has_app_context
+        if has_app_context() and current_app:
+            current_app.logger.error(f"Validation error: {error.errors()}")
+
         validation_errors = []
         for err in error.errors():
-            validation_errors.append({
-                "field": ".".join(str(x) for x in err["loc"]),
-                "message": err["msg"],
-                "type": err["type"]
-            })
+            validation_errors.append(
+                {
+                    "field": ".".join(str(x) for x in err["loc"]),
+                    "message": err["msg"],
+                    "type": err["type"],
+                }
+            )
 
         return {
             "error": "Validation failed",
-            "validation_errors": validation_errors
+            "validation_errors": validation_errors,
         }, 400
 
 
@@ -74,7 +85,7 @@ def validate_query_params(model_class: Type[T]) -> T:
 
 def validated_request(
     body_model: Optional[Type[BaseModel]] = None,
-    query_model: Optional[Type[BaseModel]] = None
+    query_model: Optional[Type[BaseModel]] = None,
 ) -> Callable:
     """
     Decorator that validates request body and/or query parameters.
@@ -94,50 +105,46 @@ def validated_request(
         def create_user(body: CreateUserRequest, query: PaginationParams):
             return {"user": body.model_dump(), "page": query.page}
     """
+
     def decorator(func: Callable) -> Callable:
         is_async = asyncio.iscoroutinefunction(func)
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                if body_model:
-                    kwargs["body"] = validate_body(body_model)
-                if query_model:
-                    kwargs["query"] = validate_query_params(query_model)
+        if is_async:
 
-                result = func(*args, **kwargs)
+            @wraps(func)
+            async def async_wrapper(*args, **kwargs):
+                try:
+                    if body_model:
+                        kwargs["body"] = validate_body(body_model)
+                    if query_model:
+                        kwargs["query"] = validate_query_params(query_model)
 
-                # Handle async functions by running them in the event loop
-                if is_async:
-                    # Try to get existing loop, or create new one
-                    try:
-                        loop = asyncio.get_running_loop()
-                        # If we have a running loop, create a task
-                        import concurrent.futures
-                        with concurrent.futures.ThreadPoolExecutor() as executor:
-                            future = executor.submit(asyncio.run, result)
-                            return future.result()
-                    except RuntimeError:
-                        # No running loop, just run it
-                        return asyncio.run(result)
+                    return await func(*args, **kwargs)
+                except ValidationError as e:
+                    return ValidationErrorResponse.from_pydantic_error(e)
 
-                return result
-            except ValidationError as e:
-                # Log validation errors for debugging
-                from flask import current_app
-                if current_app:
-                    current_app.logger.error(f"Validation error: {e.errors()}")
-                return ValidationErrorResponse.from_pydantic_error(e)
+            return async_wrapper
+        else:
 
-        return wrapper
+            @wraps(func)
+            def sync_wrapper(*args, **kwargs):
+                try:
+                    if body_model:
+                        kwargs["body"] = validate_body(body_model)
+                    if query_model:
+                        kwargs["query"] = validate_query_params(query_model)
+
+                    return func(*args, **kwargs)
+                except ValidationError as e:
+                    return ValidationErrorResponse.from_pydantic_error(e)
+
+            return sync_wrapper
 
     return decorator
 
 
 def model_response(
-    model: BaseModel,
-    status_code: int = 200,
-    exclude_none: bool = True
+    model: BaseModel, status_code: int = 200, exclude_none: bool = True
 ) -> Tuple[Response, int]:
     """
     Convert Pydantic model to Flask JSON response.
@@ -166,6 +173,6 @@ def model_response(
 
     # Otherwise, create a mock Response for testing
     response = Response()
-    response.set_data(__import__('json').dumps(data))
-    response.headers['Content-Type'] = 'application/json'
+    response.set_data(__import__("json").dumps(data))
+    response.headers["Content-Type"] = "application/json"
     return response, status_code

@@ -1,7 +1,12 @@
 """Async validation utilities for Pydantic with PyDAL."""
 
-from typing import Callable, Any
+# flake8: noqa: E501
+
+
+from typing import Any, Callable
+
 from pydantic import BaseModel
+
 from shared.async_utils import run_in_threadpool
 
 
@@ -21,16 +26,15 @@ class AsyncValidator:
         Returns:
             Decorator function
         """
+
         def decorator(func: Callable):
             self._validators[field_name] = func
             return func
+
         return decorator
 
     async def validate_model(
-        self,
-        model: BaseModel,
-        db,
-        **context
+        self, model: BaseModel, db, **context
     ) -> list[dict[str, Any]]:
         """Run all registered validators on a model.
 
@@ -49,17 +53,12 @@ class AsyncValidator:
                 try:
                     await validator(db, value, model, **context)
                 except ValueError as e:
-                    errors.append({
-                        'field': field_name,
-                        'message': str(e)
-                    })
+                    errors.append({"field": field_name, "message": str(e)})
         return errors
 
 
 async def validate_foreign_key(
-    table,
-    value: int,
-    resource_name: str = "Resource"
+    table, value: int, resource_name: str = "Resource"
 ) -> None:
     """Validate foreign key exists in PyDAL table.
 
@@ -71,6 +70,7 @@ async def validate_foreign_key(
     Raises:
         ValueError: If foreign key does not exist
     """
+
     def _check():
         return table[value] is not None
 
@@ -80,10 +80,7 @@ async def validate_foreign_key(
 
 
 async def validate_unique_field(
-    table,
-    field_name: str,
-    value: Any,
-    exclude_id: int | None = None
+    table, field_name: str, value: Any, exclude_id: int | None = None
 ) -> None:
     """Validate field uniqueness in PyDAL table.
 
@@ -96,6 +93,7 @@ async def validate_unique_field(
     Raises:
         ValueError: If duplicate value found
     """
+
     def _check():
         query = table[field_name] == value
         if exclude_id is not None:

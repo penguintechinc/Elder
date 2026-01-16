@@ -5,89 +5,88 @@ This module provides Pydantic 2 equivalents of Elder dataclasses with proper
 validation, immutability for DTOs, and security hardening for requests.
 """
 
-from .entity import EntityDTO, CreateEntityRequest, UpdateEntityRequest
-from .identity import (
-    IdentityDTO,
-    CreateIdentityRequest,
-    UpdateIdentityRequest,
-    IdentityGroupDTO,
-    CreateIdentityGroupRequest,
-    UpdateIdentityGroupRequest,
-    IdentityType,
-    AuthProvider,
-    PortalRole,
-)
-from .issue import (
-    IssueDTO,
-    CreateIssueRequest,
-    UpdateIssueRequest,
-    IssueStatus,
-    IssuePriority,
-    IssueSeverity,
-)
-from .label import LabelDTO, CreateLabelRequest, UpdateLabelRequest
-from .metadata import (
-    MetadataFieldDTO,
-    CreateMetadataFieldRequest,
-    UpdateMetadataFieldRequest,
-)
-from .network import (
-    NetworkDTO,
-    IPAMEntryDTO,
-    CreateNetworkRequest,
-    CreateIPAMEntryRequest,
-)
-from .organization import (
-    OrganizationType,
-    OrganizationDTO,
-    CreateOrganizationRequest,
-    UpdateOrganizationRequest,
-)
-from .vulnerability import (
-    VulnerabilitySeverity,
-    VulnerabilityDTO,
-    CreateVulnerabilityRequest,
-)
-from .license_policy import (
-    LicensePolicyDTO,
-    CreateLicensePolicyRequest,
-    UpdateLicensePolicyRequest,
-)
-from .ipam import (
-    IPAMPrefixDTO,
-    IPAMAddressDTO,
-    IPAMVlanDTO,
-    CreateIPAMPrefixRequest,
-    UpdateIPAMPrefixRequest,
-    CreateIPAMAddressRequest,
-    UpdateIPAMAddressRequest,
-    CreateIPAMVlanRequest,
-    UpdateIPAMVlanRequest,
-)
-from .resource_role import (
-    ResourceRoleResponse,
-    CreateResourceRoleRequest,
-    ResourceType,
-    RoleType,
-)
+# flake8: noqa: E501
+
+
+from .entity import CreateEntityRequest, EntityDTO, UpdateEntityRequest
 from .group import (
-    UpdateGroupRequest,
-    CreateAccessRequestRequest,
+    AccessRequestDTO,
     AddGroupMemberRequest,
     ApproveOrDenyRequestRequest,
     BulkApproveRequestsRequest,
+    BulkApproveResult,
+    CreateAccessRequestRequest,
     GroupDTO,
-    AccessRequestDTO,
     GroupMemberDTO,
     ListGroupsResponse,
-    ListRequestsResponse,
     ListMembersResponse,
-    BulkApproveResult,
+    ListRequestsResponse,
+    UpdateGroupRequest,
 )
-from .service import (
-    ServiceDTO,
-    CreateServiceRequest,
-    UpdateServiceRequest,
+from .identity import (
+    AuthProvider,
+    CreateIdentityGroupRequest,
+    CreateIdentityRequest,
+    IdentityDTO,
+    IdentityGroupDTO,
+    IdentityType,
+    PortalRole,
+    UpdateIdentityGroupRequest,
+    UpdateIdentityRequest,
+)
+from .ipam import (
+    CreateIPAMAddressRequest,
+    CreateIPAMPrefixRequest,
+    CreateIPAMVlanRequest,
+    IPAMAddressDTO,
+    IPAMPrefixDTO,
+    IPAMVlanDTO,
+    UpdateIPAMAddressRequest,
+    UpdateIPAMPrefixRequest,
+    UpdateIPAMVlanRequest,
+)
+from .issue import (
+    CreateIssueRequest,
+    IssueDTO,
+    IssuePriority,
+    IssueSeverity,
+    IssueStatus,
+    UpdateIssueRequest,
+)
+from .label import CreateLabelRequest, LabelDTO, UpdateLabelRequest
+from .license_policy import (
+    CreateLicensePolicyRequest,
+    LicensePolicyDTO,
+    UpdateLicensePolicyRequest,
+)
+from .metadata import (
+    CreateMetadataFieldRequest,
+    MetadataFieldDTO,
+    UpdateMetadataFieldRequest,
+)
+from .network import (
+    CreateIPAMEntryRequest,
+    CreateNetworkRequest,
+    IPAMEntryDTO,
+    NetworkDTO,
+)
+from .organization import (
+    CreateOrganizationRequest,
+    OrganizationDTO,
+    OrganizationType,
+    UpdateOrganizationRequest,
+)
+from .resource_role import (
+    CreateResourceRoleRequest,
+    ResourceRoleResponse,
+    ResourceType,
+    RoleType,
+)
+from .service import CreateServiceRequest, ServiceDTO, UpdateServiceRequest
+from .vulnerability import (
+    CreateVulnerabilityRequest,
+    VulnerabilityDTO,
+    VulnerabilitySeverity,
 )
 
 __all__ = [

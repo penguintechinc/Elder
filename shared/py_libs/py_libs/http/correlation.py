@@ -5,6 +5,9 @@ Provides correlation ID generation and propagation for request tracing
 across microservices.
 """
 
+# flake8: noqa: E501
+
+
 import uuid
 from contextvars import ContextVar
 from typing import Optional

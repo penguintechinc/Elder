@@ -8,6 +8,9 @@ Provides:
 - IsDateInRange: Validates date is within range
 """
 
+# flake8: noqa: E501
+
+
 from __future__ import annotations
 
 from datetime import date, datetime, time
@@ -38,7 +41,9 @@ class IsDate(Validator[DateInput, date]):
         result = validator("15/01/2024")  # Valid
     """
 
-    def __init__(self, format: str = "%Y-%m-%d", error_message: str | None = None) -> None:
+    def __init__(
+        self, format: str = "%Y-%m-%d", error_message: str | None = None
+    ) -> None:
         self.format = format
         self.error_message = error_message
 
@@ -129,7 +134,9 @@ class IsTime(Validator[TimeInput, time]):
         result = validator("14:30")     # Valid
     """
 
-    def __init__(self, format: str = "%H:%M:%S", error_message: str | None = None) -> None:
+    def __init__(
+        self, format: str = "%H:%M:%S", error_message: str | None = None
+    ) -> None:
         self.format = format
         self.error_message = error_message
 

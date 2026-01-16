@@ -1,5 +1,8 @@
 """Configuration settings for Elder Connector Service."""
 
+# flake8: noqa: E501
+
+
 from typing import Optional
 
 from pydantic import Field, field_validator

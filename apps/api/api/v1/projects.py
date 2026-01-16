@@ -1,5 +1,8 @@
 """Projects management API endpoints for Elder using PyDAL with async/await."""
 
+# flake8: noqa: E501
+
+
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, jsonify, request

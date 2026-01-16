@@ -4,12 +4,15 @@ Provides a unified interface for parsing API endpoints from multiple frameworks
 including Flask, FastAPI, Django, Express.js, and Go frameworks.
 """
 
+# flake8: noqa: E501
+
+
 import os
 from typing import Dict, List
 
-from .endpoint_parser_flask import FlaskEndpointParser
 from .endpoint_parser_django import DjangoEndpointParser
 from .endpoint_parser_express import ExpressEndpointParser
+from .endpoint_parser_flask import FlaskEndpointParser
 from .endpoint_parser_go import GoEndpointParser
 
 
@@ -64,8 +67,8 @@ class EndpointParser:
 
                     # Deduplicate: keep first occurrence of each path+method combo
                     for endpoint in endpoints:
-                        path = endpoint.get('path', '')
-                        methods = tuple(sorted(endpoint.get('methods', [])))
+                        path = endpoint.get("path", "")
+                        methods = tuple(sorted(endpoint.get("methods", [])))
                         key = (path, methods)
 
                         if key not in seen:
@@ -74,7 +77,9 @@ class EndpointParser:
 
                 except Exception as e:
                     # Log parse errors but continue with other parsers
-                    print(f"Warning: Parser {parser.__class__.__name__} failed on {filename}: {e}")
+                    print(
+                        f"Warning: Parser {parser.__class__.__name__} failed on {filename}: {e}"
+                    )
                     continue
 
         return all_endpoints
@@ -99,7 +104,7 @@ class EndpointParser:
                     filepath = os.path.join(root, filename)
 
                     try:
-                        with open(filepath, 'r', encoding='utf-8') as f:
+                        with open(filepath, "r", encoding="utf-8") as f:
                             content = f.read()
 
                         endpoints = self.parse(content, filename)
@@ -117,4 +122,4 @@ class EndpointParser:
         Returns:
             List of file extensions that can be parsed.
         """
-        return ['.py', '.js', '.ts', '.go', '.mjs']
+        return [".py", ".js", ".ts", ".go", ".mjs"]

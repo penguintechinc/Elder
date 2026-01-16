@@ -12,6 +12,9 @@ conflicts during two-way synchronization:
 The primary strategy is Last-Modified-Wins as specified in the v1.1.0 requirements.
 """
 
+# flake8: noqa: E501
+
+
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional

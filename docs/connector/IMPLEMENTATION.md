@@ -7,7 +7,7 @@ A comprehensive connector service has been added to Elder that synchronizes data
 ## Features Implemented
 
 ### 1. Multi-Source Connectors
-- **AWS Connector**: Syncs EC2 instances, VPCs, and S3 buckets across multiple regions
+- **AWS Connector**: Syncs EC2, Lambda, RDS, ElastiCache, SQS, S3, and VPCs across multiple regions
 - **GCP Connector**: Syncs Compute Engine instances, VPC networks, and Cloud Storage buckets
 - **Google Workspace Connector**: Syncs users, groups, and organizational units
 - **LDAP/LDAPS Connector**: Syncs directory services including users, groups, and organizational units
@@ -24,7 +24,7 @@ A comprehensive connector service has been added to Elder that synchronizes data
 ```
 Elder Connector Service
 ├── Connector Implementations
-│   ├── AWS Connector (EC2, VPC, S3)
+│   ├── AWS Connector (EC2, Lambda, RDS, ElastiCache, SQS, S3, VPC)
 │   ├── GCP Connector (Compute, VPC, Storage)
 │   ├── Google Workspace Connector (Users, Groups, OrgUnits)
 │   └── LDAP Connector (Users, Groups, OUs)

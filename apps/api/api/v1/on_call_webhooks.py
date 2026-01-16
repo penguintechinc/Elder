@@ -1,11 +1,15 @@
 """On-call rotation webhook handlers for alert integrations."""
 
+# flake8: noqa: E501
+
+
+import datetime
+
 from flask import Blueprint, current_app, request
 
 from apps.api.utils.api_responses import ApiResponse
 from apps.api.utils.validation_helpers import validate_json_body
 from shared.async_utils import run_in_threadpool
-import datetime
 
 bp = Blueprint("on_call_webhooks", __name__)
 
@@ -14,9 +18,15 @@ def _get_current_oncall_for_rotation(db, rotation_id: int) -> dict:
     """Get the current on-call person for a rotation."""
     now = datetime.datetime.now(datetime.timezone.utc)
 
-    shift = db((db.on_call_shifts.rotation_id == rotation_id)
-               & (db.on_call_shifts.shift_start <= now)
-               & (db.on_call_shifts.shift_end > now)).select().first()
+    shift = (
+        db(
+            (db.on_call_shifts.rotation_id == rotation_id)
+            & (db.on_call_shifts.shift_start <= now)
+            & (db.on_call_shifts.shift_end > now)
+        )
+        .select()
+        .first()
+    )
 
     if not shift:
         return None
@@ -130,16 +140,6 @@ async def handle_alertmanager_webhook():
                 if not current:
                     continue
 
-                # Get participant details for notification preferences
-                def get_participant():
-                    participant = db(
-                        (db.on_call_rotation_participants.rotation_id == rotation.id)
-                        & (db.on_call_rotation_participants.identity_id == current["identity_id"])
-                    ).select().first()
-                    return participant
-
-                participant = await run_in_threadpool(get_participant)
-
                 # Record notification
                 subject = f"Alert: {labels.get('alertname', 'Unknown')}"
                 message = annotations.get("summary", "No summary")
@@ -159,7 +159,9 @@ async def handle_alertmanager_webhook():
                         "status": "pending",
                     }
 
-                    notification_id = db.on_call_notifications.insert(**notification_data)
+                    notification_id = db.on_call_notifications.insert(
+                        **notification_data
+                    )
                     db.commit()
 
                     return notification_id
@@ -168,4 +170,7 @@ async def handle_alertmanager_webhook():
 
     await process_alerts()
 
-    return ApiResponse.success({"status": "accepted", "alerts_processed": len(alerts)}), 202
+    return (
+        ApiResponse.success({"status": "accepted", "alerts_processed": len(alerts)}),
+        202,
+    )

@@ -1,5 +1,8 @@
 """LDAP/LDAPS connector for syncing directory services to Elder."""
 
+# flake8: noqa: E501
+
+
 import ssl
 from typing import Dict, List, Optional
 

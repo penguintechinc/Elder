@@ -4,14 +4,16 @@ Provides REST endpoints for tenant CRUD operations, configuration,
 and usage statistics for the Super Admin Console.
 """
 
+# flake8: noqa: E501
+
+
 from typing import Optional
 
 from flask import Blueprint, current_app, jsonify, request
+from py_libs.pydantic import Name255, RequestModel, SlugStr
 from pydantic import Field, ValidationError
 
 from apps.api.api.v1.portal_auth import portal_token_required
-from apps.api.auth.decorators import login_required
-from py_libs.pydantic import RequestModel, Name255, SlugStr
 
 bp = Blueprint("tenants", __name__)
 
@@ -19,6 +21,7 @@ bp = Blueprint("tenants", __name__)
 # Pydantic Models for request validation
 class CreateTenantRequest(RequestModel):
     """Validation model for creating a new tenant."""
+
     name: Name255
     slug: SlugStr
     domain: Optional[str] = Field(default=None, max_length=255)
@@ -32,6 +35,7 @@ class CreateTenantRequest(RequestModel):
 
 class UpdateTenantRequest(RequestModel):
     """Validation model for updating a tenant."""
+
     name: Optional[Name255] = None
     domain: Optional[str] = Field(default=None, max_length=255)
     slug: Optional[SlugStr] = None

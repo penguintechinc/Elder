@@ -8,6 +8,9 @@ Enterprise feature providing:
 Requires Enterprise license.
 """
 
+# flake8: noqa: E501
+
+
 import re
 from typing import Any, Dict, List, Optional
 

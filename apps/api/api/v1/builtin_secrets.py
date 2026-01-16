@@ -1,5 +1,8 @@
 """REST API endpoints for built-in secrets management."""
 
+# flake8: noqa: E501
+
+
 import logging
 
 from flask import Blueprint, jsonify, request

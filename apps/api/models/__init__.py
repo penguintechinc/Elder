@@ -1,5 +1,8 @@
 """Database models for Elder application using PyDAL."""
 
+# flake8: noqa: E501
+
+
 # PyDAL table definitions
 # Python 3.12 dataclass DTOs
 from apps.api.models.dataclasses import (

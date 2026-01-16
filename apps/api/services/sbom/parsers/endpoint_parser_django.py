@@ -6,6 +6,9 @@ Detects Django URL patterns from Python source code including:
 - Django REST Framework router registrations
 """
 
+# flake8: noqa: E501
+
+
 import re
 from typing import Dict, List
 
@@ -16,28 +19,27 @@ class DjangoEndpointParser:
     # Regex patterns for Django URL definitions
     PATH_PATTERN = re.compile(
         r"path\(['\"]([^'\"]+)['\"],\s*([^,\)]+)(?:,\s*name=['\"]([^'\"]+)['\"])?\)",
-        re.MULTILINE
+        re.MULTILINE,
     )
     RE_PATH_PATTERN = re.compile(
         r"re_path\(r['\"]([^'\"]+)['\"],\s*([^,\)]+)(?:,\s*name=['\"]([^'\"]+)['\"])?\)",
-        re.MULTILINE
+        re.MULTILINE,
     )
     URL_PATTERN = re.compile(
         r"url\(r['\"]([^'\"]+)['\"],\s*([^,\)]+)(?:,\s*name=['\"]([^'\"]+)['\"])?\)",
-        re.MULTILINE
+        re.MULTILINE,
     )
     ROUTER_PATTERN = re.compile(
-        r"router\.register\(r?['\"]([^'\"]+)['\"],\s*([^,\)]+)",
-        re.MULTILINE
+        r"router\.register\(r?['\"]([^'\"]+)['\"],\s*([^,\)]+)", re.MULTILINE
     )
 
     # Path converter mapping
     PATH_CONVERTERS = {
-        'int': r'\d+',
-        'str': r'[^/]+',
-        'slug': r'[-a-zA-Z0-9_]+',
-        'uuid': r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
-        'path': r'.+'
+        "int": r"\d+",
+        "str": r"[^/]+",
+        "slug": r"[-a-zA-Z0-9_]+",
+        "uuid": r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        "path": r".+",
     }
 
     def can_parse(self, filename: str) -> bool:
@@ -49,7 +51,7 @@ class DjangoEndpointParser:
         Returns:
             True if file is a Python file
         """
-        return filename.endswith('.py')
+        return filename.endswith(".py")
 
     def parse(self, content: str, filename: str) -> List[Dict]:
         """Parse Django URL patterns from content.
@@ -66,63 +68,71 @@ class DjangoEndpointParser:
         # Parse path() patterns
         for match in self.PATH_PATTERN.finditer(content):
             path, view_name, url_name = match.groups()
-            line_number = content[:match.start()].count('\n') + 1
+            line_number = content[: match.start()].count("\n") + 1
 
-            endpoints.append({
-                'path': self._normalize_path(path),
-                'methods': self._infer_methods(view_name),
-                'view_name': view_name.strip(),
-                'line_number': line_number,
-                'framework': 'django',
-                'source_file': filename,
-                'url_name': url_name or None
-            })
+            endpoints.append(
+                {
+                    "path": self._normalize_path(path),
+                    "methods": self._infer_methods(view_name),
+                    "view_name": view_name.strip(),
+                    "line_number": line_number,
+                    "framework": "django",
+                    "source_file": filename,
+                    "url_name": url_name or None,
+                }
+            )
 
         # Parse re_path() patterns
         for match in self.RE_PATH_PATTERN.finditer(content):
             path, view_name, url_name = match.groups()
-            line_number = content[:match.start()].count('\n') + 1
+            line_number = content[: match.start()].count("\n") + 1
 
-            endpoints.append({
-                'path': self._normalize_regex_path(path),
-                'methods': self._infer_methods(view_name),
-                'view_name': view_name.strip(),
-                'line_number': line_number,
-                'framework': 'django',
-                'source_file': filename,
-                'url_name': url_name or None
-            })
+            endpoints.append(
+                {
+                    "path": self._normalize_regex_path(path),
+                    "methods": self._infer_methods(view_name),
+                    "view_name": view_name.strip(),
+                    "line_number": line_number,
+                    "framework": "django",
+                    "source_file": filename,
+                    "url_name": url_name or None,
+                }
+            )
 
         # Parse legacy url() patterns
         for match in self.URL_PATTERN.finditer(content):
             path, view_name, url_name = match.groups()
-            line_number = content[:match.start()].count('\n') + 1
+            line_number = content[: match.start()].count("\n") + 1
 
-            endpoints.append({
-                'path': self._normalize_regex_path(path),
-                'methods': self._infer_methods(view_name),
-                'view_name': view_name.strip(),
-                'line_number': line_number,
-                'framework': 'django',
-                'source_file': filename,
-                'url_name': url_name or None
-            })
+            endpoints.append(
+                {
+                    "path": self._normalize_regex_path(path),
+                    "methods": self._infer_methods(view_name),
+                    "view_name": view_name.strip(),
+                    "line_number": line_number,
+                    "framework": "django",
+                    "source_file": filename,
+                    "url_name": url_name or None,
+                }
+            )
 
         # Parse DRF router registrations
         for match in self.ROUTER_PATTERN.finditer(content):
             prefix, viewset_name = match.groups()
-            line_number = content[:match.start()].count('\n') + 1
+            line_number = content[: match.start()].count("\n") + 1
 
             # ViewSets get all CRUD methods
-            endpoints.append({
-                'path': f'/{prefix.strip("/")}/',
-                'methods': ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-                'view_name': viewset_name.strip(),
-                'line_number': line_number,
-                'framework': 'django',
-                'source_file': filename,
-                'url_name': None
-            })
+            endpoints.append(
+                {
+                    "path": f'/{prefix.strip("/")}/',
+                    "methods": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+                    "view_name": viewset_name.strip(),
+                    "line_number": line_number,
+                    "framework": "django",
+                    "source_file": filename,
+                    "url_name": None,
+                }
+            )
 
         return endpoints
 
@@ -138,15 +148,11 @@ class DjangoEndpointParser:
             Normalized path
         """
         # Convert <int:pk> to {pk}
-        normalized = re.sub(
-            r'<(?:[^:>]+):([^>]+)>',
-            r'{\1}',
-            path
-        )
+        normalized = re.sub(r"<(?:[^:>]+):([^>]+)>", r"{\1}", path)
 
         # Ensure leading slash
-        if not normalized.startswith('/'):
-            normalized = '/' + normalized
+        if not normalized.startswith("/"):
+            normalized = "/" + normalized
 
         return normalized
 
@@ -162,29 +168,21 @@ class DjangoEndpointParser:
             Normalized path
         """
         # Remove regex anchors
-        normalized = path.strip('^$')
+        normalized = path.strip("^$")
 
         # Convert named groups (?P<name>...) to {name}
-        normalized = re.sub(
-            r'\(\?P<([^>]+)>[^)]+\)',
-            r'{\1}',
-            normalized
-        )
+        normalized = re.sub(r"\(\?P<([^>]+)>[^)]+\)", r"{\1}", normalized)
 
         # Convert unnamed groups to generic parameter
-        normalized = re.sub(
-            r'\([^)]+\)',
-            '{param}',
-            normalized
-        )
+        normalized = re.sub(r"\([^)]+\)", "{param}", normalized)
 
         # Remove common regex patterns
-        normalized = normalized.replace(r'\d+', '{id}')
-        normalized = normalized.replace(r'[^/]+', '{param}')
+        normalized = normalized.replace(r"\d+", "{id}")
+        normalized = normalized.replace(r"[^/]+", "{param}")
 
         # Ensure leading slash
-        if not normalized.startswith('/'):
-            normalized = '/' + normalized
+        if not normalized.startswith("/"):
+            normalized = "/" + normalized
 
         return normalized
 
@@ -200,20 +198,20 @@ class DjangoEndpointParser:
         view_lower = view_name.lower()
 
         # ViewSets get all methods
-        if 'viewset' in view_lower:
-            return ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+        if "viewset" in view_lower:
+            return ["GET", "POST", "PUT", "PATCH", "DELETE"]
 
         # Infer from common naming patterns
-        if 'list' in view_lower or 'index' in view_lower:
-            return ['GET']
-        elif 'create' in view_lower:
-            return ['POST']
-        elif 'update' in view_lower or 'edit' in view_lower:
-            return ['PUT', 'PATCH']
-        elif 'delete' in view_lower or 'destroy' in view_lower:
-            return ['DELETE']
-        elif 'detail' in view_lower or 'retrieve' in view_lower:
-            return ['GET']
+        if "list" in view_lower or "index" in view_lower:
+            return ["GET"]
+        elif "create" in view_lower:
+            return ["POST"]
+        elif "update" in view_lower or "edit" in view_lower:
+            return ["PUT", "PATCH"]
+        elif "delete" in view_lower or "destroy" in view_lower:
+            return ["DELETE"]
+        elif "detail" in view_lower or "retrieve" in view_lower:
+            return ["GET"]
 
         # Default to common methods
-        return ['GET', 'POST']
+        return ["GET", "POST"]

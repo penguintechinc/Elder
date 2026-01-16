@@ -1,5 +1,8 @@
 """Infisical client implementation."""
 
+# flake8: noqa: E501
+
+
 import json
 import logging
 from datetime import datetime

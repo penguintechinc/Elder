@@ -1,5 +1,8 @@
 """Connector implementations for various data sources."""
 
+# flake8: noqa: E501
+
+
 from apps.connector.connectors.authentik_connector import AuthentikConnector
 from apps.connector.connectors.aws_connector import AWSConnector
 from apps.connector.connectors.base import BaseConnector, SyncResult

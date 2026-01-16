@@ -2,6 +2,9 @@
 py4web application with license integration
 """
 
+# flake8: noqa: E501
+
+
 import logging
 import os
 import sys

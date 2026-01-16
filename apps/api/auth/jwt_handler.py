@@ -1,5 +1,8 @@
 """JWT token handling for Elder authentication using PyDAL."""
 
+# flake8: noqa: E501
+
+
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional

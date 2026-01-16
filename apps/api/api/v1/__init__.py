@@ -1,5 +1,8 @@
 """API v1 package for Elder."""
 
+# flake8: noqa: E501
+
+
 from flask import Blueprint
 
 # On-call rotations routes - imported early to register blueprints

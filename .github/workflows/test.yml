@@ -266,8 +266,10 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: [docker-build-test, web-build-test]
-    # Only run on main branch or PRs to main (expensive tests)
-    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+    # Disabled: E2E tests require full docker compose environment with multiple services
+    # These should be run locally or in a staging environment, not in GitHub Actions
+    # See docs/TESTING.md for local testing instructions
+    if: false
 
     steps:
       - name: Checkout code

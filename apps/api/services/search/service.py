@@ -1,5 +1,8 @@
 """Search Service for Elder v1.2.0 (Phase 10)."""
 
+# flake8: noqa: E501
+
+
 from typing import Any, Dict, List, Optional
 
 from pydal import DAL

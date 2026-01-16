@@ -11,15 +11,15 @@ ENV VITE_BUILD_TIME=$VITE_BUILD_TIME
 
 WORKDIR /app
 
-# Copy package files (only package.json, not lock file)
-# For cross-platform builds, package-lock.json contains platform-specific optional deps
-# that break ARM64 builds under QEMU emulation
+# Copy package.json only (not lock file) for multi-arch compatibility
+# This works around npm bug https://github.com/npm/cli/issues/4828 where
+# optional platform-specific packages (rollup, esbuild, lightningcss) fail
+# when package-lock.json was generated on a different architecture
 COPY package.json ./
 
-# Install dependencies fresh without lock file
-# This ensures architecture-specific optional dependencies (like @rollup/rollup-linux-arm64-gnu)
-# are properly resolved for the target platform
-RUN npm install --legacy-peer-deps
+# Install dependencies fresh for current architecture
+RUN npm install --ignore-scripts && \
+    npm rebuild esbuild
 
 # Copy source code
 COPY . .

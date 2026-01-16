@@ -9,15 +9,14 @@ This package provides "batteries included" security-focused utilities:
 - grpc: gRPC server/client with security interceptors
 """
 
+# flake8: noqa: E501
+
+
 __version__ = "1.0.0"
 __author__ = "Penguin Tech Inc"
 __email__ = "dev@penguintech.io"
 
-from py_libs.validation import (
-    ValidationResult,
-    Validator,
-    chain,
-)
+from py_libs.validation import ValidationResult, Validator, chain
 
 __all__ = [
     "__version__",

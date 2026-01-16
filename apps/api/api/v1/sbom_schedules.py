@@ -1,5 +1,8 @@
 """SBOM scan schedules management API endpoints for Elder using PyDAL with async/await and shared helpers."""
 
+# flake8: noqa: E501
+
+
 import datetime
 from dataclasses import asdict
 
@@ -56,7 +59,9 @@ async def list_schedules():
 
         # Apply filters
         if request.args.get("parent_type"):
-            query &= db.sbom_scan_schedules.parent_type == request.args.get("parent_type")
+            query &= db.sbom_scan_schedules.parent_type == request.args.get(
+                "parent_type"
+            )
 
         if request.args.get("parent_id"):
             parent_id = request.args.get("parent_id", type=int)
@@ -133,7 +138,9 @@ async def create_schedule():
         return error
 
     # Validate required fields
-    if error := validate_required_fields(data, ["parent_type", "parent_id", "schedule_cron"]):
+    if error := validate_required_fields(
+        data, ["parent_type", "parent_id", "schedule_cron"]
+    ):
         return error
 
     parent_type = data["parent_type"]
@@ -208,7 +215,9 @@ async def get_schedule(id: int):
     db = current_app.db
 
     # Validate resource exists using helper
-    schedule, error = await validate_resource_exists(db.sbom_scan_schedules, id, "SBOM Scan Schedule")
+    schedule, error = await validate_resource_exists(
+        db.sbom_scan_schedules, id, "SBOM Scan Schedule"
+    )
     if error:
         return error
 
@@ -257,7 +266,9 @@ async def update_schedule(id: int):
         return error
 
     # Validate schedule exists
-    schedule, error = await validate_resource_exists(db.sbom_scan_schedules, id, "SBOM Scan Schedule")
+    schedule, error = await validate_resource_exists(
+        db.sbom_scan_schedules, id, "SBOM Scan Schedule"
+    )
     if error:
         return error
 
@@ -289,13 +300,17 @@ async def update_schedule(id: int):
         # Handle datetime fields
         if "last_run_at" in data:
             if isinstance(data["last_run_at"], str):
-                update_dict["last_run_at"] = datetime.datetime.fromisoformat(data["last_run_at"].replace("Z", "+00:00"))
+                update_dict["last_run_at"] = datetime.datetime.fromisoformat(
+                    data["last_run_at"].replace("Z", "+00:00")
+                )
             else:
                 update_dict["last_run_at"] = data["last_run_at"]
 
         if "next_run_at" in data:
             if isinstance(data["next_run_at"], str):
-                update_dict["next_run_at"] = datetime.datetime.fromisoformat(data["next_run_at"].replace("Z", "+00:00"))
+                update_dict["next_run_at"] = datetime.datetime.fromisoformat(
+                    data["next_run_at"].replace("Z", "+00:00")
+                )
             elif isinstance(data["next_run_at"], datetime.datetime):
                 update_dict["next_run_at"] = data["next_run_at"]
 
@@ -334,7 +349,9 @@ async def delete_schedule(id: int):
     db = current_app.db
 
     # Validate resource exists using helper
-    schedule, error = await validate_resource_exists(db.sbom_scan_schedules, id, "SBOM Scan Schedule")
+    schedule, error = await validate_resource_exists(
+        db.sbom_scan_schedules, id, "SBOM Scan Schedule"
+    )
     if error:
         return error
 
@@ -367,9 +384,8 @@ async def get_due_schedules():
 
     def get_schedules():
         now = datetime.datetime.now(datetime.timezone.utc)
-        query = (
-            (db.sbom_scan_schedules.is_active is True)
-            & (db.sbom_scan_schedules.next_run_at <= now)
+        query = (db.sbom_scan_schedules.is_active is True) & (
+            db.sbom_scan_schedules.next_run_at <= now
         )
         rows = db(query).select(orderby=db.sbom_scan_schedules.next_run_at)
         return rows

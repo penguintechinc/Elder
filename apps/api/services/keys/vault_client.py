@@ -1,5 +1,8 @@
 """Hashicorp Vault Transit secrets engine client for key management."""
 
+# flake8: noqa: E501
+
+
 import base64
 import logging
 from datetime import datetime

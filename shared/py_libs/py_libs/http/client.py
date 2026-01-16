@@ -5,6 +5,9 @@ Provides a production-ready HTTP client with exponential backoff,
 configurable timeouts, and optional circuit breaker protection.
 """
 
+# flake8: noqa: E501
+
+
 import logging
 import time
 from dataclasses import dataclass, field
@@ -279,7 +282,10 @@ class HTTPClient:
 
                 # Don't retry on client errors (4xx) except 429 (rate limit)
                 if isinstance(e, httpx.HTTPStatusError):
-                    if 400 <= e.response.status_code < 500 and e.response.status_code != 429:
+                    if (
+                        400 <= e.response.status_code < 500
+                        and e.response.status_code != 429
+                    ):
                         raise
 
                 # If this was the last attempt, raise

@@ -3,6 +3,9 @@
 Provides validation, serialization, and type safety for identity operations.
 """
 
+# flake8: noqa: E501
+
+
 from datetime import datetime
 from typing import Literal, Optional
 

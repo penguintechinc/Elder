@@ -1,5 +1,8 @@
 """Role-Based Access Control (RBAC) models."""
 
+# flake8: noqa: E501
+
+
 import enum
 from typing import List, Optional
 

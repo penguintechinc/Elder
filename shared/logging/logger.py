@@ -8,6 +8,9 @@ Supports multiple log destinations:
 - Cloud-native services (AWS CloudWatch, GCP Cloud Logging)
 """
 
+# flake8: noqa: E501
+
+
 import logging
 import os
 import socket

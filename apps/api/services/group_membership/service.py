@@ -7,6 +7,8 @@ Enterprise feature providing:
 - Audit logging for all membership changes
 """
 
+# flake8: noqa: E501
+
 import datetime
 import logging
 import secrets

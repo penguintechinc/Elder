@@ -8,10 +8,14 @@ Parses Java dependency files including:
 Extracts dependency information and returns standardized component data.
 """
 
+# flake8: noqa: E501
+
+
 import re
-import defusedxml.ElementTree as ET
 from typing import Any, Dict, List, Optional
 from xml.etree.ElementTree import Element  # For type hints only
+
+import defusedxml.ElementTree as ET
 
 from apps.api.services.sbom.base import BaseDependencyParser
 
@@ -204,7 +208,9 @@ class JavaDependencyParser(BaseDependencyParser):
         matches = re.finditer(gradle_pattern, content)
 
         for match in matches:
-            scope_keyword = match.group(1)  # e.g., "implementation", "testImplementation"
+            scope_keyword = match.group(
+                1
+            )  # e.g., "implementation", "testImplementation"
             group_id = match.group(2)  # e.g., "org.springframework"
             artifact_id = match.group(3)  # e.g., "spring-core"
             version = match.group(4)  # e.g., "5.3.0"
@@ -261,7 +267,9 @@ class JavaDependencyParser(BaseDependencyParser):
         matches = re.finditer(kotlin_pattern, content)
 
         for match in matches:
-            scope_keyword = match.group(1)  # e.g., "implementation", "testImplementation"
+            scope_keyword = match.group(
+                1
+            )  # e.g., "implementation", "testImplementation"
             group_id = match.group(2)  # e.g., "org.springframework"
             artifact_id = match.group(3)  # e.g., "spring-core"
             version = match.group(4)  # e.g., "5.3.0"

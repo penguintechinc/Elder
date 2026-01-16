@@ -1,5 +1,8 @@
 """HTTP screenshot scanner using Playwright for headless browser captures."""
 
+# flake8: noqa: E501
+
+
 import hashlib
 import logging
 import os

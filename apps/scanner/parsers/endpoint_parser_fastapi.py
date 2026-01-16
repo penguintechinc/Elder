@@ -5,10 +5,11 @@ to extract API endpoint information including paths, HTTP methods, and
 authentication requirements.
 """
 
+# flake8: noqa: E501
+
+
 import re
 from typing import Any, Dict, List
-
-
 
 
 class FastAPIEndpointParser:
@@ -39,7 +40,7 @@ class FastAPIEndpointParser:
         if not filename:
             return False
 
-        return filename.lower().endswith('.py')
+        return filename.lower().endswith(".py")
 
     def get_supported_files(self) -> List[str]:
         """Return list of supported file patterns.
@@ -47,7 +48,7 @@ class FastAPIEndpointParser:
         Returns:
             List containing Python file patterns.
         """
-        return ['*.py']
+        return ["*.py"]
 
     def validate_content(self, content: str) -> bool:
         """Validate that content is valid Python source code.
@@ -96,7 +97,9 @@ class FastAPIEndpointParser:
 
         return endpoints
 
-    def _parse_decorator_routes(self, content: str, filename: str) -> List[Dict[str, Any]]:
+    def _parse_decorator_routes(
+        self, content: str, filename: str
+    ) -> List[Dict[str, Any]]:
         """Parse FastAPI decorator-style routes.
 
         Detects patterns like:
@@ -117,13 +120,13 @@ class FastAPIEndpointParser:
         # Pattern for route decorators
         # Matches: @app.get('/path'), @router.post('/path', ...), @app.api_route('/path', methods=[...])
         route_pattern = re.compile(
-            r'@(?:app|router)\.(?:get|post|put|patch|delete|head|options|api_route)'
+            r"@(?:app|router)\.(?:get|post|put|patch|delete|head|options|api_route)"
             r'\s*\(\s*["\']([^"\']+)["\'](?:.*?methods\s*=\s*\[([^\]]+)\])?',
-            re.DOTALL
+            re.DOTALL,
         )
 
         # Pattern for Depends() authentication
-        depends_pattern = re.compile(r'Depends\s*\(')
+        depends_pattern = re.compile(r"Depends\s*\(")
 
         i = 0
         while i < len(lines):
@@ -145,13 +148,13 @@ class FastAPIEndpointParser:
                 function_name = self._find_function_name(lines, i)
 
                 endpoint = {
-                    'path': path,
-                    'methods': methods,
-                    'function_name': function_name,
-                    'line_number': i + 1,
-                    'framework': 'fastapi',
-                    'source_file': filename,
-                    'auth_required': auth_required
+                    "path": path,
+                    "methods": methods,
+                    "function_name": function_name,
+                    "line_number": i + 1,
+                    "framework": "fastapi",
+                    "source_file": filename,
+                    "auth_required": auth_required,
                 }
                 endpoints.append(endpoint)
 
@@ -171,8 +174,7 @@ class FastAPIEndpointParser:
         """
         # Check for method-specific decorators (@app.get, @router.post, etc.)
         shortcut_match = re.search(
-            r'@(?:app|router)\.(get|post|put|patch|delete|head|options)',
-            full_line
+            r"@(?:app|router)\.(get|post|put|patch|delete|head|options)", full_line
         )
         if shortcut_match:
             method = shortcut_match.group(1).upper()
@@ -186,13 +188,10 @@ class FastAPIEndpointParser:
                 return method_matches
 
         # Default to GET if no methods specified
-        return ['GET']
+        return ["GET"]
 
     def _check_auth_dependencies(
-        self,
-        lines: List[str],
-        route_line_idx: int,
-        depends_pattern: re.Pattern
+        self, lines: List[str], route_line_idx: int, depends_pattern: re.Pattern
     ) -> bool:
         """Check for Depends() authentication in function signature.
 
@@ -209,14 +208,14 @@ class FastAPIEndpointParser:
         for i in range(route_line_idx, end_idx):
             line = lines[i]
             # Check if we found the function signature
-            if 'def ' in line:
+            if "def " in line:
                 # Check this line and following lines for Depends()
                 # (function signature might span multiple lines)
                 for j in range(i, min(len(lines), i + 10)):
                     if depends_pattern.search(lines[j]):
                         return True
                     # Stop if we hit the function body
-                    if lines[j].strip().endswith(':'):
+                    if lines[j].strip().endswith(":"):
                         break
                 break
         return False
@@ -232,7 +231,7 @@ class FastAPIEndpointParser:
             Function name or 'unknown' if not found.
         """
         # Look for "def function_name(" or "async def function_name(" in following lines
-        func_pattern = re.compile(r'(?:async\s+)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(')
+        func_pattern = re.compile(r"(?:async\s+)?def\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(")
 
         end_idx = min(len(lines), route_line_idx + 10)
         for i in range(route_line_idx, end_idx):
@@ -240,4 +239,4 @@ class FastAPIEndpointParser:
             if match:
                 return match.group(1)
 
-        return 'unknown'
+        return "unknown"

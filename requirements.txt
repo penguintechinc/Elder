@@ -105,6 +105,9 @@ networkx==3.4.2
 Flask-SocketIO==5.4.1
 python-socketio==5.14.0
 
+# Mock Data Generation
+Faker==33.3.1
+
 # Development Dependencies
 pytest==8.3.4
 pytest-asyncio==0.25.0

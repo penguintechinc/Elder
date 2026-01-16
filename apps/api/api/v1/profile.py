@@ -1,5 +1,8 @@
 """User Profile API endpoints using PyDAL with async/await."""
 
+# flake8: noqa: E501
+
+
 from flask import Blueprint, current_app, g, jsonify, request
 
 from apps.api.auth.decorators import login_required

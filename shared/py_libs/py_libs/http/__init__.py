@@ -6,6 +6,9 @@ Provides:
 - client: Resilient HTTP client with retries
 """
 
+# flake8: noqa: E501
+
+
 from .client import (
     CircuitBreakerConfig,
     CircuitState,

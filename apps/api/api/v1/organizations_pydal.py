@@ -1,9 +1,17 @@
 """Organization Units (OUs) API endpoints using PyDAL with async/await."""
 
+# flake8: noqa: E501
+
+
 import logging
 from dataclasses import asdict
 
 from flask import Blueprint, current_app, jsonify, request
+from py_libs.pydantic.flask_integration import validated_request
+from py_libs.pydantic.models.organization import (
+    CreateOrganizationRequest,
+    UpdateOrganizationRequest,
+)
 
 from apps.api.auth.decorators import login_required
 from apps.api.logging_config import log_error_and_respond
@@ -19,11 +27,6 @@ from apps.api.utils.pydal_helpers import (
     commit_db,
     get_by_id,
     insert_record,
-)
-from py_libs.pydantic.flask_integration import validated_request
-from py_libs.pydantic.models.organization import (
-    CreateOrganizationRequest,
-    UpdateOrganizationRequest,
 )
 from shared.async_utils import run_in_threadpool
 

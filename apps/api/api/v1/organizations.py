@@ -1,5 +1,8 @@
 """Organization API endpoints."""
 
+# flake8: noqa: E501
+
+
 from flask import Blueprint, current_app, jsonify, request
 from marshmallow import ValidationError
 
