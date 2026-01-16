@@ -63,7 +63,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   useEffect(() => {
     const buildTime = import.meta.env.VITE_BUILD_TIME || Math.floor(Date.now() / 1000)
-    const apiUrl = import.meta.env.VITE_API_URL || 'not set'
+    const apiUrl = import.meta.env.VITE_API_URL || '(relative - using nginx proxy)'
     const buildDate = new Date(parseInt(buildTime) * 1000).toISOString()
 
     console.log('%c🏛️ Elder - Entity Relationship Tracking System', 'font-size: 16px; font-weight: bold; color: #f59e0b')

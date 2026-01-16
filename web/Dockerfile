@@ -2,7 +2,9 @@
 FROM node:18-slim AS builder
 
 # Build arguments for Vite
-ARG VITE_API_URL=http://localhost:4000
+# VITE_API_URL defaults to empty string - nginx proxies /api/* to API server
+# Only set VITE_API_URL for development or when API is on a different domain
+ARG VITE_API_URL=
 ARG VITE_BUILD_TIME
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_BUILD_TIME=$VITE_BUILD_TIME
