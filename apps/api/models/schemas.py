@@ -5,7 +5,6 @@ from typing import Annotated, Optional
 
 from pydantic import AfterValidator, BaseModel, Field, field_validator
 
-
 # Custom email validator that allows .local domains for development
 # Standard Email rejects .local as it's a special-use TLD, but we need it for dev
 EMAIL_PATTERN = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
