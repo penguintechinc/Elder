@@ -66,6 +66,8 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             )
             logger.info("using_individual_db_vars", host=db_host, port=db_port, dbname=db_name)
         else:
+            # PyDAL requires 'postgres://' scheme, not 'postgresql://'
+            database_url = database_url.replace("postgresql://", "postgres://")
             # Mask password in logs
             masked_url = database_url.split('@')[1] if '@' in database_url else database_url
             logger.info("using_database_url", database_url=f"...@{masked_url}")
