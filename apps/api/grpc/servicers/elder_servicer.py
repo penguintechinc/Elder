@@ -64,6 +64,11 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
             database_url = (
                 f"postgres://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
             )
+            logger.info("using_individual_db_vars", host=db_host, port=db_port, dbname=db_name)
+        else:
+            # Mask password in logs
+            masked_url = database_url.split('@')[1] if '@' in database_url else database_url
+            logger.info("using_database_url", database_url=f"...@{masked_url}")
 
         self.db = DAL(database_url, folder="/tmp/pydal", migrate=False, pool_size=5)
         define_all_tables(self.db)

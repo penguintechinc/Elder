@@ -75,6 +75,9 @@ def run_grpc_server():
 
 def main():
     """Start both Flask and gRPC servers in parallel processes."""
+    # Use fork start method to ensure environment variables are inherited
+    multiprocessing.set_start_method('fork', force=True)
+
     logger.info("starting_elder_api_services")
 
     # Create processes for both servers
