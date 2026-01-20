@@ -52,15 +52,18 @@ class ElderServicer(elder_pb2_grpc.ElderServiceServicer):
         super().__init__()
 
         # Initialize database connection
-        db_type = os.getenv("DB_TYPE", "postgres")
-        db_host = os.getenv("DB_HOST", "localhost")
-        db_port = os.getenv("DB_PORT", "5432")
-        db_name = os.getenv("DB_NAME", "elder")
-        db_user = os.getenv("DB_USER", "elder")
-        db_password = os.getenv("DB_PASSWORD", "elder")
-        database_url = (
-            f"postgres://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-        )
+        # Use DATABASE_URL if set (K8s/production), otherwise build from individual vars (local dev)
+        database_url = os.getenv("DATABASE_URL")
+        if not database_url:
+            db_type = os.getenv("DB_TYPE", "postgres")
+            db_host = os.getenv("DB_HOST", "localhost")
+            db_port = os.getenv("DB_PORT", "5432")
+            db_name = os.getenv("DB_NAME", "elder")
+            db_user = os.getenv("DB_USER", "elder")
+            db_password = os.getenv("DB_PASSWORD", "elder")
+            database_url = (
+                f"postgres://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+            )
 
         self.db = DAL(database_url, folder="/tmp/pydal", migrate=False, pool_size=5)
         define_all_tables(self.db)
