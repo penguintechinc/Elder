@@ -25,6 +25,9 @@ spec:
         - containerPort: 5000
           name: http
           protocol: TCP
+        - containerPort: 50051
+          name: grpc
+          protocol: TCP
         env:
         - name: FLASK_ENV
           value: "production"
@@ -48,6 +51,16 @@ spec:
             secretKeyRef:
               name: elder-secrets
               key: license-key
+        - name: GRPC_ENABLED
+          value: "true"
+        - name: GRPC_HOST
+          value: "0.0.0.0"
+        - name: GRPC_PORT
+          value: "50051"
+        - name: GRPC_MAX_WORKERS
+          value: "10"
+        - name: GRPC_REQUIRE_LICENSE
+          value: "true"
         resources:
           requests:
             memory: "256Mi"
@@ -80,78 +93,10 @@ spec:
     targetPort: 5000
     protocol: TCP
     name: http
-  selector:
-    app: elder
-    component: api
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: elder-grpc
-  namespace: elder
-  labels:
-    app: elder
-    component: grpc
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: elder
-      component: grpc
-  template:
-    metadata:
-      labels:
-        app: elder
-        component: grpc
-    spec:
-      containers:
-      - name: grpc
-        image: ghcr.io/penguintechinc/elder-grpc:latest
-        command: ["python3", "-m", "apps.api.grpc.server"]
-        ports:
-        - containerPort: 50051
-          name: grpc
-          protocol: TCP
-        env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: elder-secrets
-              key: database-url
-        - name: REDIS_URL
-          valueFrom:
-            secretKeyRef:
-              name: elder-secrets
-              key: redis-url
-        - name: LICENSE_KEY
-          valueFrom:
-            secretKeyRef:
-              name: elder-secrets
-              key: license-key
-        - name: GRPC_PORT
-          value: "50051"
-        - name: GRPC_MAX_WORKERS
-          value: "10"
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "150m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: elder-grpc
-  namespace: elder
-spec:
-  type: ClusterIP
-  ports:
   - port: 50051
     targetPort: 50051
     protocol: TCP
     name: grpc
   selector:
     app: elder
-    component: grpc
+    component: api

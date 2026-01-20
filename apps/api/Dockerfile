@@ -89,14 +89,5 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV JWT_ACCESS_TOKEN_HOURS=${JWT_ACCESS_TOKEN_HOURS}
 ENV JWT_REFRESH_TOKEN_DAYS=${JWT_REFRESH_TOKEN_DAYS}
 
-# Run application with uvicorn ASGI server for async Flask support
-CMD ["uvicorn", \
-     "apps.api.main:create_app", \
-     "--factory", \
-     "--host", "0.0.0.0", \
-     "--port", "5000", \
-     "--workers", "1", \
-     "--loop", "uvloop", \
-     "--http", "h11", \
-     "--access-log", \
-     "--log-level", "info"]
+# Run unified startup script that launches both Flask and gRPC servers
+CMD ["python3", "-m", "apps.api.start"]

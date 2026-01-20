@@ -15,20 +15,31 @@ Elder provides a high-performance gRPC API for client integrations. The gRPC API
 ## Architecture
 
 ```
-┌─────────────┐         ┌──────────────┐         ┌─────────────┐
-│   Browser   │ ─HTTP/2─┤ Envoy Proxy  │ ─gRPC──│ Elder gRPC  │
-│  (gRPC-Web) │         │   :8080      │         │ Server      │
-└─────────────┘         └──────────────┘         │   :50051    │
-                                                  └─────────────┘
-┌─────────────┐                                         │
-│   Native    │ ────────── gRPC/HTTP2 ─────────────────┘
-│   Client    │
-└─────────────┘
+┌─────────────────────────────────────────────────┐
+│          Elder API Container                     │
+│                                                  │
+│  ┌─────────────┐       ┌─────────────┐         │
+│  │ Flask REST  │       │ gRPC Server │         │
+│  │ API :5000   │       │   :50051    │         │
+│  └─────────────┘       └─────────────┘         │
+│                                                  │
+│  Both services run in parallel processes        │
+│  within the same container                      │
+└─────────────────────────────────────────────────┘
+           │                      │
+           │                      │
+    ┌──────┴────────┐      ┌─────┴──────┐
+    │ REST Clients  │      │   Native   │
+    │ (Web UI, etc) │      │   gRPC     │
+    └───────────────┘      │  Clients   │
+                           └────────────┘
 ```
 
-- **gRPC Server**: Port 50051 (native gRPC clients)
-- **Envoy Proxy**: Port 8080 (gRPC-Web for browsers)
-- **Envoy Admin**: Port 9901 (Envoy admin interface)
+**Unified Container Design:**
+- **Flask REST API**: Port 5000 (HTTP/HTTPS via external load balancer)
+- **gRPC Server**: Port 50051 (HTTP/2, native gRPC)
+- **Both services** run simultaneously in the same container via multiprocessing
+- **Production deployment**: Behind AWS ALB, MarchProxy, or other load balancers that handle TLS termination and routing
 
 ## Service Definition
 
@@ -81,14 +92,15 @@ service ElderService {
 ### Starting gRPC Services
 
 ```bash
-# Start all services including gRPC server and Envoy proxy
-docker-compose up -d grpc-server grpc-web-proxy
+# gRPC server now runs in the same container as the API
+# Start the API container (which includes both REST and gRPC)
+docker-compose up -d api
 
-# Check gRPC server logs
-docker-compose logs -f grpc-server
+# Check combined API+gRPC logs
+docker-compose logs -f api
 
-# Check Envoy proxy logs
-docker-compose logs -f grpc-web-proxy
+# You should see both Flask and gRPC servers starting:
+# "starting_flask_server" and "starting_grpc_server"
 ```
 
 ### Environment Variables
@@ -101,11 +113,11 @@ GRPC_MAX_WORKERS=10            # Thread pool size
 GRPC_REQUIRE_LICENSE=true      # Enforce enterprise license
 ```
 
-**Envoy Proxy Configuration:**
-```bash
-GRPC_WEB_PORT=8080            # gRPC-Web HTTP port
-ENVOY_ADMIN_PORT=9901         # Envoy admin interface
-```
+**Important Notes:**
+- gRPC and Flask REST API now run in the **same container**
+- Set `GRPC_ENABLED=false` to disable gRPC if not needed
+- Both services share the same database connection and Redis cache
+- gRPC requires an Enterprise license (set `GRPC_REQUIRE_LICENSE=true`)
 
 ## Client Development
 
@@ -174,30 +186,48 @@ func main() {
 }
 ```
 
-### JavaScript/TypeScript (gRPC-Web)
+### JavaScript/TypeScript (Node.js with @grpc/grpc-js)
 
 ```javascript
-const {ElderServiceClient} = require('./elder_grpc_web_pb');
-const {ListOrganizationsRequest, PaginationRequest} = require('./organization_pb');
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
 
-// Connect to Envoy proxy
-const client = new ElderServiceClient('http://localhost:8080');
+// Load proto files
+const packageDefinition = protoLoader.loadSync(
+    './elder.proto',
+    {
+        keepCase: true,
+        longs: String,
+        enums: String,
+        defaults: true,
+        oneofs: true
+    }
+);
+const elderProto = grpc.loadPackageDefinition(packageDefinition).elder;
+
+// Connect directly to gRPC server
+const client = new elderProto.ElderService(
+    'localhost:50051',
+    grpc.credentials.createInsecure()
+);
 
 // List organizations
-const request = new ListOrganizationsRequest();
-request.setPagination(new PaginationRequest().setPage(1).setPerPage(10));
+client.listOrganizations(
+    {pagination: {page: 1, per_page: 10}},
+    (err, response) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
 
-client.listOrganizations(request, {}, (err, response) => {
-    if (err) {
-        console.error(err);
-        return;
+        response.organizations.forEach(org => {
+            console.log(`${org.id}: ${org.name}`);
+        });
     }
-
-    response.getOrganizationsList().forEach(org => {
-        console.log(`${org.getId()}: ${org.getName()}`);
-    });
-});
+);
 ```
+
+**Note for Browser Clients:** For browser-based applications, use the Elder REST API instead of gRPC. Native gRPC is optimized for server-to-server communication and backend integrations. The REST API provides the same functionality with better browser compatibility.
 
 ## Code Generation
 
@@ -228,16 +258,24 @@ protoc -I apps/api/grpc/proto \
     apps/api/grpc/proto/*.proto
 ```
 
-### Generating JavaScript (gRPC-Web)
+### Generating JavaScript/TypeScript (Node.js)
 
 ```bash
-# Install protoc-gen-grpc-web
-npm install -g grpc-web
+# Install required packages
+npm install @grpc/grpc-js @grpc/proto-loader
 
-# Generate JavaScript code
+# For TypeScript, install types
+npm install -D @types/node
+
+# Use dynamic proto loading (recommended)
+# See JavaScript client example above - no code generation needed!
+
+# For static code generation (optional):
+npm install -g grpc-tools
+
 protoc -I apps/api/grpc/proto \
-    --js_out=import_style=commonjs:./client \
-    --grpc-web_out=import_style=commonjs,mode=grpcwebtext:./client \
+    --js_out=import_style=commonjs,binary:./client \
+    --grpc_out=grpc_js:./client \
     apps/api/grpc/proto/*.proto
 ```
 

@@ -17,6 +17,12 @@ spec:
       targetPort: {{ .Values.api.service.targetPort }}
       protocol: TCP
       name: http
+    {{- if .Values.grpc.enabled }}
+    - port: {{ .Values.grpc.service.port }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+    {{- end }}
   selector:
     {{- include "elder.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: api

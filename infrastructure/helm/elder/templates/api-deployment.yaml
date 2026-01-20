@@ -39,6 +39,11 @@ spec:
         - name: http
           containerPort: {{ .Values.api.service.targetPort }}
           protocol: TCP
+        {{- if .Values.grpc.enabled }}
+        - name: grpc
+          containerPort: {{ .Values.grpc.service.port }}
+          protocol: TCP
+        {{- end }}
         env:
         - name: FLASK_ENV
           value: {{ .Values.config.flaskEnv | quote }}
@@ -70,6 +75,21 @@ spec:
           value: {{ .Values.config.logging.level | quote }}
         - name: METRICS_ENABLED
           value: {{ .Values.config.metricsEnabled | quote }}
+        {{- if .Values.grpc.enabled }}
+        - name: GRPC_ENABLED
+          value: "true"
+        - name: GRPC_HOST
+          value: "0.0.0.0"
+        - name: GRPC_PORT
+          value: {{ .Values.grpc.service.port | quote }}
+        - name: GRPC_MAX_WORKERS
+          value: {{ .Values.grpc.config.maxWorkers | quote }}
+        - name: GRPC_REQUIRE_LICENSE
+          value: {{ .Values.grpc.config.requireLicense | quote }}
+        {{- else }}
+        - name: GRPC_ENABLED
+          value: "false"
+        {{- end }}
         livenessProbe:
           httpGet:
             path: /healthz

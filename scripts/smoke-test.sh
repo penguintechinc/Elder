@@ -282,9 +282,9 @@ fi
 # COMMON TESTS (both alpha and beta modes)
 # ============================================================
 
-# Step 4: API Smoke Tests
+# Step 4: Comprehensive REST API Tests
 log_info ""
-log_info "Step 4: API Smoke Tests..."
+log_info "Step 4: Comprehensive REST API Tests..."
 
 # For HTTPS (beta), use -k flag to handle certificates
 CURL_OPTS=""
@@ -363,6 +363,26 @@ if [ -n "$TOKEN" ]; then
     else
         record_fail "API GET /services failed"
     fi
+
+    # Run comprehensive REST API tests
+    log_info ""
+    log_info "Running comprehensive REST API endpoint tests..."
+    PYTHON_CMD="python3"
+    if ! command -v python3 &> /dev/null; then
+        PYTHON_CMD="python"
+    fi
+
+    if [ "$TEST_MODE" = "beta" ]; then
+        SSL_FLAG="--no-verify-ssl"
+    else
+        SSL_FLAG=""
+    fi
+
+    if $PYTHON_CMD "$SCRIPT_DIR/test-rest-api.py" --url "$API_URL" --username "$ADMIN_USERNAME" --password "$ADMIN_PASSWORD" $SSL_FLAG; then
+        record_pass "Comprehensive REST API tests passed"
+    else
+        record_fail "Comprehensive REST API tests failed"
+    fi
 fi
 
 # Step 5: Web UI Smoke Tests
@@ -427,20 +447,28 @@ if [ "$TEST_MODE" = "alpha" ]; then
         log_warn "Connector container not running (may be expected for dev setup)"
     fi
 
-    # Step 8: gRPC Server Test (if running)
+    # Step 8: gRPC Server Test
     log_info ""
-    log_info "Step 8: gRPC Server Test..."
+    log_info "Step 8: gRPC API Tests..."
 
-    GRPC_RUNNING=$(docker compose ps grpc-server --format json 2>/dev/null | grep -c "running" || echo "0")
-    if [ "$GRPC_RUNNING" -gt "0" ]; then
-        # Simple TCP check on gRPC port
-        if nc -z localhost $GRPC_PORT 2>/dev/null; then
-            record_pass "gRPC server is listening on port $GRPC_PORT"
+    # Check if gRPC is enabled (now runs in same container as API)
+    if nc -z localhost $GRPC_PORT 2>/dev/null; then
+        record_pass "gRPC server is listening on port $GRPC_PORT"
+
+        # Run comprehensive gRPC API tests
+        log_info "Running comprehensive gRPC API endpoint tests..."
+        PYTHON_CMD="python3"
+        if ! command -v python3 &> /dev/null; then
+            PYTHON_CMD="python"
+        fi
+
+        if $PYTHON_CMD "$SCRIPT_DIR/test-grpc-api.py" --host localhost --port "$GRPC_PORT" --username "$ADMIN_USERNAME" --password "$ADMIN_PASSWORD"; then
+            record_pass "Comprehensive gRPC API tests passed"
         else
-            record_fail "gRPC server not responding on port $GRPC_PORT"
+            record_fail "Comprehensive gRPC API tests failed"
         fi
     else
-        log_warn "gRPC server not running (enterprise feature)"
+        log_warn "gRPC server not listening on port $GRPC_PORT (may be disabled or enterprise feature)"
     fi
 
 # ============================================================
@@ -467,7 +495,29 @@ else
     fi
 
     log_info ""
-    log_info "Step 7-8: Skipped (container-specific tests not applicable in K8s mode)"
+    log_info "Step 7: gRPC API Tests (K8s)..."
+
+    # For K8s, gRPC runs in the same pod as the API on port 50051
+    # We need to extract the host from API_URL for gRPC testing
+    GRPC_HOST=$(echo "$API_URL" | sed -E 's#https?://([^:/]+).*#\1#')
+    GRPC_K8S_PORT="${GRPC_PORT:-50051}"
+
+    log_info "Testing gRPC at ${GRPC_HOST}:${GRPC_K8S_PORT}..."
+
+    # Run comprehensive gRPC API tests
+    PYTHON_CMD="python3"
+    if ! command -v python3 &> /dev/null; then
+        PYTHON_CMD="python"
+    fi
+
+    if $PYTHON_CMD "$SCRIPT_DIR/test-grpc-api.py" --host "$GRPC_HOST" --port "$GRPC_K8S_PORT" --username "$ADMIN_USERNAME" --password "$ADMIN_PASSWORD" --tls; then
+        record_pass "Comprehensive gRPC API tests passed (K8s)"
+    else
+        log_warn "gRPC API tests failed or not available (K8s) - may require port forwarding or ingress"
+    fi
+
+    log_info ""
+    log_info "Step 8: Skipped (container-specific tests not applicable in K8s mode)"
 fi
 
 # ============================================================

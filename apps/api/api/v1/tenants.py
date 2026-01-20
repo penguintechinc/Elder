@@ -10,6 +10,7 @@ and usage statistics for the Super Admin Console.
 from typing import Optional
 
 from flask import Blueprint, current_app, jsonify, request
+from flask_login import login_required
 from py_libs.pydantic import Name255, RequestModel, SlugStr
 from pydantic import Field, ValidationError
 
