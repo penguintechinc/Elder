@@ -514,46 +514,6 @@ jobs:
         draft: false
         prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
 
-  # Cleanup old images
-  cleanup:
-    needs: [build-and-push, security-scan, integration-test]
-    runs-on: ubuntu-latest
-    if: always()
-
-    steps:
-    - name: Delete untagged images
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const packages = ['elder-api', 'elder-web', 'elder-scanner', 'elder-connector'];
-
-          for (const pkg of packages) {
-            try {
-              const response = await github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
-                package_type: 'container',
-                package_name: pkg,
-                org: context.repo.owner,
-                per_page: 100
-              });
-
-              const untaggedVersions = response.data.filter(version =>
-                version.metadata.container.tags.length === 0
-              );
-
-              for (const version of untaggedVersions) {
-                console.log(`Deleting untagged version: ${version.id} for ${pkg}`);
-                await github.rest.packages.deletePackageVersionForOrg({
-                  package_type: 'container',
-                  package_name: pkg,
-                  org: context.repo.owner,
-                  package_version_id: version.id,
-                });
-              }
-            } catch (error) {
-              console.log(`Error cleaning up ${pkg}: ${error.message}`);
-            }
-          }
-
   # Deploy to Kubernetes cluster
   deploy-k8s:
     needs: [build-and-push, integration-test]
