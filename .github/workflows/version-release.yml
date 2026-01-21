@@ -169,8 +169,8 @@ jobs:
 
           Pull the latest Docker image:
           \`\`\`bash
-          docker pull ghcr.io/${{ github.repository }}:v$VERSION
-          docker pull ghcr.io/${{ github.repository }}:$FULL_VERSION
+          docker pull ghcr.io/${{ github.repository_owner }}/elder:v$VERSION
+          docker pull ghcr.io/${{ github.repository_owner }}/elder:$FULL_VERSION
           \`\`\`
 
           ---
