@@ -75,10 +75,10 @@ jobs:
           --query taskDefinition > task-def.json
 
         # Update container images
-        jq --arg IMAGE "${{ env.REGISTRY }}/${{ github.repository }}/api:$VERSION" \
+        jq --arg IMAGE "${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api:$VERSION" \
            '.containerDefinitions[0].image = $IMAGE' task-def.json > temp.json && mv temp.json task-def.json
 
-        jq --arg IMAGE "${{ env.REGISTRY }}/${{ github.repository }}/web:$VERSION" \
+        jq --arg IMAGE "${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-web:$VERSION" \
            '.containerDefinitions[1].image = $IMAGE' task-def.json > temp.json && mv temp.json task-def.json
 
         # Remove unnecessary fields
@@ -146,10 +146,10 @@ jobs:
           --query taskDefinition > task-def.json
 
         # Update container images
-        jq --arg IMAGE "${{ env.REGISTRY }}/${{ github.repository }}/api:$VERSION" \
+        jq --arg IMAGE "${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-api:$VERSION" \
            '.containerDefinitions[0].image = $IMAGE' task-def.json > temp.json && mv temp.json task-def.json
 
-        jq --arg IMAGE "${{ env.REGISTRY }}/${{ github.repository }}/web:$VERSION" \
+        jq --arg IMAGE "${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-web:$VERSION" \
            '.containerDefinitions[1].image = $IMAGE' task-def.json > temp.json && mv temp.json task-def.json
 
         # Clean up task definition
