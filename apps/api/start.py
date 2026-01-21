@@ -46,7 +46,9 @@ def run_grpc_server():
     grpc_enabled = os.getenv("GRPC_ENABLED", "false").lower() == "true"
 
     if not grpc_enabled:
-        logger.info("grpc_server_disabled", message="GRPC_ENABLED=false, skipping gRPC server")
+        logger.info(
+            "grpc_server_disabled", message="GRPC_ENABLED=false, skipping gRPC server"
+        )
         # Keep process alive but idle
         while True:
             time.sleep(3600)
@@ -76,7 +78,7 @@ def run_grpc_server():
 def main():
     """Start both Flask and gRPC servers in parallel processes."""
     # Use fork start method to ensure environment variables are inherited
-    multiprocessing.set_start_method('fork', force=True)
+    multiprocessing.set_start_method("fork", force=True)
 
     logger.info("starting_elder_api_services")
 
