@@ -43,10 +43,6 @@ jobs:
             dockerfile: apps/connector/Dockerfile
             context: .
             platforms: linux/amd64,linux/arm64
-          - name: envoy
-            dockerfile: infrastructure/envoy/Dockerfile
-            context: infrastructure/envoy
-            platforms: linux/amd64,linux/arm64
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -115,7 +111,7 @@ jobs:
     if: false
     strategy:
       matrix:
-        service: [api, web, scanner, connector, envoy]
+        service: [api, web, scanner, connector]
 
     steps:
     - name: Get short SHA
@@ -529,7 +525,7 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
-          const packages = ['elder-api', 'elder-web'];
+          const packages = ['elder-api', 'elder-web', 'elder-scanner', 'elder-connector'];
 
           for (const pkg of packages) {
             try {
@@ -651,10 +647,6 @@ jobs:
           --set api.image.tag="$IMAGE_TAG" \
           --set web.image.repository=${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-web \
           --set web.image.tag="$IMAGE_TAG" \
-          --set grpc.image.repository=${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-grpc \
-          --set grpc.image.tag="$IMAGE_TAG" \
-          --set envoy.image.repository=${{ env.REGISTRY }}/${{ github.repository_owner }}/elder-envoy \
-          --set envoy.image.tag="$IMAGE_TAG" \
           --set config.secretKey="${{ secrets.SECRET_KEY || 'changeme-secret-key' }}" \
           --set config.license.key="${{ secrets.LICENSE_KEY || '' }}" \
           --set postgresql.auth.password="${{ secrets.POSTGRES_PASSWORD || 'changeme-postgres' }}" \
