@@ -546,12 +546,12 @@ export default function GroupMembershipManager({ organizationId: _organizationId
       {/* Group Settings Modal */}
       {showSettingsModal && selectedGroup && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <CardHeader>
+          <Card className="w-full max-w-lg max-h-[90vh] flex flex-col">
+            <CardHeader className="flex-shrink-0">
               <h2 className="text-xl font-semibold text-white">Group Settings</h2>
               <p className="text-sm text-slate-400">{selectedGroup.name}</p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 overflow-y-auto">
               <div className="space-y-4">
                 <Select
                   label="Owner Identity"
@@ -680,8 +680,8 @@ function GroupDetailsModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
+      <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <CardHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold text-white">{group.name}</h2>
@@ -695,7 +695,7 @@ function GroupDetailsModal({
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 overflow-y-auto">
           {/* Group Info */}
           <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-slate-800/50 rounded-lg">
             <div>

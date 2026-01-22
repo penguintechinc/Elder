@@ -1199,11 +1199,11 @@ function MetadataModal({ organizationId, onClose, onSuccess: _onSuccess }: Metad
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
+      <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <CardHeader className="flex-shrink-0">
           <h2 className="text-xl font-semibold text-white">Manage Metadata</h2>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 overflow-y-auto">
           {/* Add New Metadata Field */}
           <form onSubmit={handleCreate} className="space-y-4 mb-6 pb-6 border-b border-slate-700">
             <h3 className="text-sm font-medium text-slate-300">Add New Field</h3>

@@ -1324,11 +1324,11 @@ export default function IAM() {
       {/* Create Provider Modal */}
       {showCreateModal && modalType === 'provider' && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <CardHeader>
+          <Card className="w-full max-w-md max-h-[90vh] flex flex-col">
+            <CardHeader className="flex-shrink-0">
               <h2 className="text-xl font-semibold text-white">Add Identity Provider</h2>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 overflow-y-auto">
               <form onSubmit={handleCreateProvider} className="space-y-4">
                 <Input
                   label="Provider Name"
