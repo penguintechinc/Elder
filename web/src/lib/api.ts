@@ -167,7 +167,7 @@ class ApiClient {
     name: string
     description?: string
     entity_type: string
-    entity_sub_type?: string
+    sub_type?: string
     organization_id: number
     metadata?: any
   }) {

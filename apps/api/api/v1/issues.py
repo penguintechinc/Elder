@@ -38,13 +38,15 @@ class CreateIssueRequest(RequestModel):
     """Request to create a new issue."""
 
     title: str = Field(..., min_length=1, max_length=255, description="Issue title")
-    organization_id: int = Field(..., ge=1, description="Organization ID")
+    organization_id: Optional[int] = Field(default=None, ge=1, description="Organization ID")
     description: Optional[str] = Field(default=None, description="Issue description")
     status: str = Field(default="open", description="Issue status")
     priority: str = Field(default="medium", description="Priority level")
     issue_type: str = Field(default="other", description="Issue type")
     assignee_id: Optional[int] = Field(default=None, ge=1, description="Assignee ID")
     is_incident: int = Field(default=0, description="Is incident flag")
+    entity_ids: Optional[list[int]] = Field(default=None, description="Entity IDs to link")
+    label_ids: Optional[list[int]] = Field(default=None, description="Label IDs to add")
 
 
 class UpdateIssueRequest(RequestModel):
@@ -209,15 +211,34 @@ async def create_issue(body: CreateIssueRequest):
     """
     db = current_app.db
 
-    # Get organization to derive tenant_id
-    def get_org():
-        return db.organizations[body.organization_id]
+    # Derive tenant_id from organization or entity
+    org = None
+    tenant_id = None
+    organization_id = body.organization_id
 
-    org = await run_in_threadpool(get_org)
-    if not org:
-        return jsonify({"error": "Organization not found"}), 404
-    if not org.tenant_id:
-        return jsonify({"error": "Organization must have a tenant"}), 400
+    if body.organization_id:
+        # Get organization to derive tenant_id
+        def get_org():
+            return db.organizations[body.organization_id]
+
+        org = await run_in_threadpool(get_org)
+        if not org:
+            return jsonify({"error": "Organization not found"}), 404
+        if not org.tenant_id:
+            return jsonify({"error": "Organization must have a tenant"}), 400
+        tenant_id = org.tenant_id
+    elif body.entity_ids and len(body.entity_ids) > 0:
+        # Get tenant from first entity
+        def get_entity():
+            return db.entities[body.entity_ids[0]]
+
+        entity = await run_in_threadpool(get_entity)
+        if not entity:
+            return jsonify({"error": "Entity not found"}), 404
+        tenant_id = entity.tenant_id
+        organization_id = entity.organization_id
+    else:
+        return jsonify({"error": "Either organization_id or entity_ids is required"}), 400
 
     # Capture current_user before thread pool (Flask g doesn't propagate to threads)
     current_user_id = g.current_user.id
@@ -232,10 +253,35 @@ async def create_issue(body: CreateIssueRequest):
             issue_type=body.issue_type,
             reporter_id=current_user_id,
             assignee_id=body.assignee_id,
-            organization_id=body.organization_id,
-            tenant_id=org.tenant_id,
+            organization_id=organization_id,
+            tenant_id=tenant_id,
             is_incident=body.is_incident,
         )
+
+        # Link entities if provided
+        if body.entity_ids:
+            for entity_id in body.entity_ids:
+                # Verify entity exists
+                entity = db.entities[entity_id]
+                if entity:
+                    db.issue_entity_links.insert(
+                        issue_id=issue_id,
+                        entity_id=entity_id,
+                        tenant_id=tenant_id,
+                    )
+
+        # Add labels if provided
+        if body.label_ids:
+            for label_id in body.label_ids:
+                # Verify label exists
+                label = db.issue_labels[label_id]
+                if label:
+                    db.issue_label_assignments.insert(
+                        issue_id=issue_id,
+                        label_id=label_id,
+                        tenant_id=tenant_id,
+                    )
+
         db.commit()
 
         # Explicitly select the row to get all fields

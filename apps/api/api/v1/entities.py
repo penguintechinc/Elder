@@ -135,6 +135,7 @@ async def create_entity(body: CreateEntityRequest):
             name=body.name,
             description=body.description,
             entity_type=body.entity_type,
+            sub_type=body.sub_type,
             organization_id=body.organization_id,
             tenant_id=tenant_id,
             parent_id=body.parent_id,
@@ -219,6 +220,8 @@ async def update_entity(id: int, body: UpdateEntityRequest):
             update_fields["description"] = body.description
         if body.entity_type is not None:
             update_fields["entity_type"] = body.entity_type
+        if body.sub_type is not None:
+            update_fields["sub_type"] = body.sub_type
         if body.organization_id is not None:
             update_fields["organization_id"] = body.organization_id
             update_fields["tenant_id"] = org_tenant_id

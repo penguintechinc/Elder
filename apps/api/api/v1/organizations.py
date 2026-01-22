@@ -1,46 +1,61 @@
-"""Organization API endpoints."""
+"""Organization Units (OUs) API endpoints using PyDAL with async/await."""
 
 # flake8: noqa: E501
 
 
+import logging
+from dataclasses import asdict
+
 from flask import Blueprint, current_app, jsonify, request
-from marshmallow import ValidationError
+from py_libs.pydantic.flask_integration import validated_request
+from py_libs.pydantic.models.organization import (
+    CreateOrganizationRequest,
+    UpdateOrganizationRequest,
+)
 
 from apps.api.auth.decorators import login_required
-from apps.api.schemas.organization import (
-    OrganizationCreateSchema,
-    OrganizationUpdateSchema,
+from apps.api.logging_config import log_error_and_respond
+from apps.api.models.dataclasses import (
+    OrganizationDTO,
+    PaginatedResponse,
+    from_pydal_row,
+    from_pydal_rows,
 )
-from shared.api_utils import (
-    handle_validation_error,
-    make_error_response,
-    validate_request,
+from apps.api.utils.api_responses import ApiResponse
+from apps.api.utils.pydal_helpers import (
+    PaginationParams,
+    commit_db,
+    get_by_id,
+    insert_record,
 )
+from shared.async_utils import run_in_threadpool
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("organizations", __name__)
 
 
 @bp.route("", methods=["GET"])
-def list_organizations():
+@login_required
+async def list_organizations():
     """
-    List all organizations with pagination and filtering.
+    List all Organization Units (OUs) with pagination and filtering.
 
     Query Parameters:
         - page: Page number (default: 1)
         - per_page: Items per page (default: 50, max: 1000)
-        - parent_id: Filter by parent organization ID
+        - parent_id: Filter by parent OU ID
         - name: Filter by name (partial match)
-        - search: Search by name (partial match, alias for name)
 
     Returns:
-        200: List of organizations with pagination metadata
+        200: List of Organization Units with pagination metadata
     """
     db = current_app.db
-    # Get pagination params
-    page = request.args.get("page", 1, type=int)
-    per_page = min(request.args.get("per_page", 50, type=int), 1000)
 
-    # Build PyDAL query
+    # Extract pagination parameters using helper
+    pagination = PaginationParams.from_request()
+
+    # Build query
     query = db.organizations.id > 0
 
     # Apply filters
@@ -54,284 +69,304 @@ def list_organizations():
         # Case-insensitive search using PostgreSQL ILIKE
         query &= db.organizations.name.ilike(f"%{search_term}%")
 
-    # Get total count
-    total = db(query).count()
+    # Execute database queries in a single thread pool task
+    def get_orgs():
+        total = db(query).count()
+        rows = db(query).select(
+            orderby=db.organizations.name,
+            limitby=(pagination.offset, pagination.offset + pagination.per_page),
+        )
+        return total, rows
 
-    # Calculate pagination
-    offset = (page - 1) * per_page
-    pages = (total + per_page - 1) // per_page
+    total, rows = await run_in_threadpool(get_orgs)
 
-    # Execute query with pagination and ordering
-    rows = db(query).select(
-        orderby=db.organizations.name, limitby=(offset, offset + per_page)
+    # Calculate total pages
+    pages = pagination.calculate_pages(total)
+
+    # Convert PyDAL rows to DTOs
+    items = from_pydal_rows(rows, OrganizationDTO)
+
+    # Create paginated response
+    response = PaginatedResponse(
+        items=[asdict(item) for item in items],
+        total=total,
+        page=pagination.page,
+        per_page=pagination.per_page,
+        pages=pages,
     )
 
-    # Convert to dict list
-    items = [row.as_dict() for row in rows]
-
-    # Return paginated response
-    result = {
-        "items": items,
-        "total": total,
-        "page": page,
-        "per_page": per_page,
-        "pages": pages,
-    }
-
-    return jsonify(result), 200
+    return jsonify(asdict(response)), 200
 
 
 @bp.route("", methods=["POST"])
-@login_required
-def create_organization():
+@validated_request(body_model=CreateOrganizationRequest)
+async def create_organization(body: CreateOrganizationRequest):
     """
-    Create a new organization.
+    Create a new Organization Unit (OU).
 
     Request Body:
-        JSON object with organization fields (see OrganizationCreateSchema)
+        JSON object with Organization Unit fields
 
     Returns:
-        201: Created organization
+        201: Created Organization Unit
         400: Validation error
     """
     db = current_app.db
+
+    # Insert organization using helper
     try:
-        data = validate_request(OrganizationCreateSchema)
-    except ValidationError as e:
-        return handle_validation_error(e)
+        org_id = await insert_record(
+            db.organizations, **body.model_dump(exclude_none=True)
+        )
+        await commit_db(db)
 
-    # Create organization using PyDAL
-    try:
-        org_id = db.organizations.insert(**data)
-        db.commit()
+        # Fetch created org using helper
+        org_row = await get_by_id(db.organizations, org_id)
+        org_dto = from_pydal_row(org_row, OrganizationDTO)
 
-        # Fetch the created organization
-        org = db.organizations[org_id]
+        return ApiResponse.created(asdict(org_dto))
 
-        # Return as dict
-        return jsonify(org.as_dict()), 201
     except Exception as e:
-        db.rollback()
-        return make_error_response(f"Database error: {str(e)}", 500)
+        await run_in_threadpool(lambda: db.rollback())
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:id>", methods=["GET"])
-def get_organization(id: int):
+@login_required
+async def get_organization(id: int):
     """
-    Get a single organization by ID.
+    Get a single Organization Unit (OU) by ID.
 
     Path Parameters:
-        - id: Organization ID
+        - id: Organization Unit ID
 
     Returns:
-        200: Organization details
-        404: Organization not found
+        200: Organization Unit details
+        404: Organization Unit not found
     """
     db = current_app.db
-    org = db.organizations[id]
-    if not org:
-        return make_error_response("Organization not found", 404)
 
-    return jsonify(org.as_dict()), 200
+    # Get organization using helper
+    org_row = await get_by_id(db.organizations, id)
+    if not org_row:
+        return ApiResponse.not_found("Organization Unit")
+
+    org_dto = from_pydal_row(org_row, OrganizationDTO)
+    return ApiResponse.success(asdict(org_dto))
 
 
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])
-def update_organization(id: int):
+@validated_request(body_model=UpdateOrganizationRequest)
+async def update_organization(id: int, body: UpdateOrganizationRequest):
     """
-    Update an organization.
+    Update an Organization Unit (OU).
 
     Path Parameters:
-        - id: Organization ID
+        - id: Organization Unit ID
 
     Request Body:
-        JSON object with fields to update (see OrganizationUpdateSchema)
+        JSON object with fields to update
 
     Returns:
-        200: Updated organization
-        400: Validation error
-        404: Organization not found
+        200: Updated Organization Unit
+        404: Organization Unit not found
     """
     db = current_app.db
-    org = db.organizations[id]
-    if not org:
-        return make_error_response("Organization not found", 404)
 
-    try:
-        data = validate_request(OrganizationUpdateSchema)
-    except ValidationError as e:
-        return handle_validation_error(e)
+    # Verify organization exists using helper
+    org_row = await get_by_id(db.organizations, id)
+    if not org_row:
+        return ApiResponse.not_found("Organization Unit")
 
-    # Update organization using PyDAL
+    # Get update fields from validated body
+    update_fields = body.model_dump(exclude_none=True)
+
+    if not update_fields:
+        return ApiResponse.bad_request("No fields to update")
+
+    # Update organization with tenant cascade
     try:
         # Check if tenant_id is changing
-        old_tenant_id = org.tenant_id
-        new_tenant_id = data.get("tenant_id")
+        old_tenant_id = org_row.tenant_id
+        new_tenant_id = update_fields.get("tenant_id")
         tenant_changed = new_tenant_id is not None and new_tenant_id != old_tenant_id
 
-        # Update organization
-        db(db.organizations.id == id).update(**data)
+        def do_update():
+            db(db.organizations.id == id).update(**update_fields)
 
-        # If tenant changed, cascade to associated resources
-        if tenant_changed:
-            # Update all entities belonging to this organization
-            db(db.entities.organization_id == id).update(tenant_id=new_tenant_id)
+            # If tenant changed, cascade to associated resources
+            if tenant_changed:
+                # Update all entities belonging to this organization
+                db(db.entities.organization_id == id).update(tenant_id=new_tenant_id)
 
-            # Update all identities linked to this organization
-            db(db.identities.organization_id == id).update(tenant_id=new_tenant_id)
+                # Update all identities linked to this organization
+                db(db.identities.organization_id == id).update(tenant_id=new_tenant_id)
 
-            # Update child organizations recursively
-            def update_children_tenant(parent_id, tenant_id):
-                children = db(db.organizations.parent_id == parent_id).select()
-                for child in children:
-                    db(db.organizations.id == child.id).update(tenant_id=tenant_id)
-                    # Update entities and identities of child org
-                    db(db.entities.organization_id == child.id).update(
-                        tenant_id=tenant_id
-                    )
-                    db(db.identities.organization_id == child.id).update(
-                        tenant_id=tenant_id
-                    )
-                    # Recurse to grandchildren
-                    update_children_tenant(child.id, tenant_id)
+                # Update child organizations recursively
+                def update_children_tenant(parent_id, tenant_id):
+                    children = db(db.organizations.parent_id == parent_id).select()
+                    for child in children:
+                        db(db.organizations.id == child.id).update(tenant_id=tenant_id)
+                        db(db.entities.organization_id == child.id).update(
+                            tenant_id=tenant_id
+                        )
+                        db(db.identities.organization_id == child.id).update(
+                            tenant_id=tenant_id
+                        )
+                        update_children_tenant(child.id, tenant_id)
 
-            update_children_tenant(id, new_tenant_id)
+                update_children_tenant(id, new_tenant_id)
 
-        db.commit()
+        await run_in_threadpool(do_update)
+        await commit_db(db)
 
-        # Fetch updated organization
-        org = db.organizations[id]
-        return jsonify(org.as_dict()), 200
+        # Fetch updated org using helper
+        org_row = await get_by_id(db.organizations, id)
+        org_dto = from_pydal_row(org_row, OrganizationDTO)
+        return ApiResponse.success(asdict(org_dto))
+
     except Exception as e:
-        db.rollback()
-        return make_error_response(f"Database error: {str(e)}", 500)
+        await run_in_threadpool(lambda: db.rollback())
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:id>", methods=["DELETE"])
-def delete_organization(id: int):
+async def delete_organization(id: int):
     """
-    Delete an organization.
+    Delete an Organization Unit (OU).
 
     Path Parameters:
-        - id: Organization ID
+        - id: Organization Unit ID
 
     Returns:
-        204: Organization deleted
-        404: Organization not found
-        400: Cannot delete organization with children
+        204: Organization Unit deleted
+        404: Organization Unit not found
+        400: Cannot delete OU with child OUs
     """
     db = current_app.db
-    org = db.organizations[id]
-    if not org:
-        return make_error_response("Organization not found", 404)
 
-    # Check if organization has children
-    children_count = db(db.organizations.parent_id == id).count()
+    # Verify organization exists using helper
+    org_row = await get_by_id(db.organizations, id)
+    if not org_row:
+        return ApiResponse.not_found("Organization Unit")
+
+    # Check if OU has children
+    children_count = await run_in_threadpool(
+        lambda: db(db.organizations.parent_id == id).count()
+    )
+
     if children_count > 0:
-        return make_error_response(
-            "Cannot delete organization with child organizations",
-            400,
-        )
+        return ApiResponse.bad_request("Cannot delete Organization Unit with child OUs")
 
+    # Delete organization
     try:
-        del db.organizations[id]
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        return make_error_response(f"Database error: {str(e)}", 500)
+        await run_in_threadpool(lambda: db.organizations.__delitem__(id))
+        await commit_db(db)
+        return ApiResponse.no_content()
 
-    return "", 204
+    except Exception as e:
+        await run_in_threadpool(lambda: db.rollback())
+        return log_error_and_respond(logger, e, "Failed to process request", 500)
 
 
 @bp.route("/<int:id>/children", methods=["GET"])
-def get_organization_children(id: int):
+@login_required
+async def get_organization_children(id: int):
     """
-    Get all child organizations.
+    Get all child Organization Units.
 
     Path Parameters:
-        - id: Organization ID
+        - id: Organization Unit ID
 
     Query Parameters:
         - recursive: Include all descendants (default: false)
 
     Returns:
-        200: List of child organizations
-        404: Organization not found
+        200: List of child Organization Units
+        404: Organization Unit not found
     """
     db = current_app.db
-    org = db.organizations[id]
-    if not org:
-        return make_error_response("Organization not found", 404)
 
-    # Get children
+    # Verify organization exists
+    org_row = await get_by_id(db.organizations, id)
+    if not org_row:
+        return ApiResponse.not_found("Organization Unit")
+
     recursive = request.args.get("recursive", "false").lower() == "true"
 
-    if recursive:
-        # Recursively get all descendants
-        def get_descendants(parent_id):
-            children = db(db.organizations.parent_id == parent_id).select()
-            result = []
-            for child in children:
-                result.append(child.as_dict())
-                result.extend(get_descendants(child.id))
-            return result
+    def get_children():
+        if recursive:
+            # Recursively get all descendants
+            def get_descendants(parent_id):
+                children = db(db.organizations.parent_id == parent_id).select()
+                result = []
+                for child in children:
+                    result.append(child.as_dict())
+                    result.extend(get_descendants(child.id))
+                return result
 
-        children = get_descendants(id)
-    else:
-        # Just direct children
-        children = [
-            row.as_dict() for row in db(db.organizations.parent_id == id).select()
-        ]
+            return get_descendants(id)
+        else:
+            # Just direct children
+            return [
+                row.as_dict()
+                for row in db(db.organizations.parent_id == id).select()
+            ]
 
+    children = await run_in_threadpool(get_children)
     return jsonify(children), 200
 
 
 @bp.route("/<int:id>/hierarchy", methods=["GET"])
-def get_organization_hierarchy(id: int):
+@login_required
+async def get_organization_hierarchy(id: int):
     """
-    Get organization hierarchy path from root to this organization.
+    Get Organization Unit hierarchy path from root to this OU.
 
     Path Parameters:
-        - id: Organization ID
+        - id: Organization Unit ID
 
     Returns:
-        200: List of organizations in hierarchy path
-        404: Organization not found
+        200: List of Organization Units in hierarchy path
+        404: Organization Unit not found
     """
     db = current_app.db
-    org = db.organizations[id]
-    if not org:
-        return make_error_response("Organization not found", 404)
 
-    # Build hierarchy path from root to current org
-    path = [org.as_dict()]
-    current = org
-    depth = 0
+    # Verify organization exists
+    org_row = await get_by_id(db.organizations, id)
+    if not org_row:
+        return ApiResponse.not_found("Organization Unit")
 
-    while current.parent_id:
-        parent = db.organizations[current.parent_id]
-        if not parent:
-            break
-        path.insert(0, parent.as_dict())
-        current = parent
-        depth += 1
+    def build_hierarchy():
+        # Build hierarchy path from root to current org
+        path = [org_row.as_dict()]
+        current = org_row
+        depth = 0
 
-    # Build hierarchy string
-    hierarchy_string = " > ".join([o["name"] for o in path])
+        while current.parent_id:
+            parent = db.organizations[current.parent_id]
+            if not parent:
+                break
+            path.insert(0, parent.as_dict())
+            current = parent
+            depth += 1
 
-    return (
-        jsonify(
-            {
-                "path": path,
-                "depth": depth,
-                "hierarchy_string": hierarchy_string,
-            }
-        ),
-        200,
-    )
+        # Build hierarchy string
+        hierarchy_string = " > ".join([o["name"] for o in path])
+
+        return {
+            "path": path,
+            "depth": depth,
+            "hierarchy_string": hierarchy_string,
+        }
+
+    result = await run_in_threadpool(build_hierarchy)
+    return jsonify(result), 200
 
 
 @bp.route("/<int:id>/graph", methods=["GET"])
-def get_organization_graph(id: int):
+@login_required
+async def get_organization_graph(id: int):
     """
     Get relationship graph for an organization and its nearby entities.
 
@@ -346,9 +381,14 @@ def get_organization_graph(id: int):
         404: Organization not found
     """
     db = current_app.db
-    org = db.organizations[id]
-    if not org:
-        return make_error_response("Organization not found", 404)
+
+    # Check if organization exists using helper
+    try:
+        org_row = await get_by_id(db.organizations, id)
+        if org_row is None:
+            return ApiResponse.not_found("Organization Unit")
+    except Exception:
+        return ApiResponse.not_found("Organization Unit")
 
     # Get depth parameter
     depth = min(request.args.get("depth", 3, type=int), 10)
@@ -359,60 +399,65 @@ def get_organization_graph(id: int):
     visited_orgs = set()
     visited_entities = set()
 
-    # Helper function to add organization node (PyDAL row)
-    def add_org_node(org_row):
-        if org_row.id in visited_orgs:
+    # Helper to add organization node
+    def add_org_node(org_id):
+        if org_id in visited_orgs:
             return
-        visited_orgs.add(org_row.id)
+        org = db.organizations[org_id]
+        if not org:
+            return
+        visited_orgs.add(org_id)
         nodes.append(
             {
-                "id": f"org-{org_row.id}",
-                "label": org_row.name,
+                "id": f"org-{org_id}",
+                "label": org.name,
                 "type": "organization",
                 "metadata": {
-                    "id": org_row.id,
-                    "description": org_row.description,
-                    "parent_id": org_row.parent_id,
+                    "id": org_id,
+                    "description": org.description,
+                    "parent_id": org.parent_id,
                 },
             }
         )
+        return org
 
-    # Helper function to add entity node (PyDAL row)
-    def add_entity_node(entity_row):
-        if entity_row.id in visited_entities:
+    # Helper to add entity node
+    def add_entity_node(entity_id):
+        if entity_id in visited_entities:
             return
-        visited_entities.add(entity_row.id)
+        entity = db.entities[entity_id]
+        if not entity:
+            return
+        visited_entities.add(entity_id)
         nodes.append(
             {
-                "id": f"entity-{entity_row.id}",
-                "label": entity_row.name,
-                "type": entity_row.entity_type or "default",
+                "id": f"entity-{entity_id}",
+                "label": entity.name,
+                "type": entity.entity_type or "default",
                 "metadata": {
-                    "id": entity_row.id,
-                    "entity_type": entity_row.entity_type,
-                    "organization_id": entity_row.organization_id,
+                    "id": entity_id,
+                    "entity_type": entity.entity_type,
+                    "organization_id": entity.organization_id,
                 },
             }
         )
 
-    # Helper to recursively get children
-    def get_all_descendants(parent_id, current_depth=0):
-        if current_depth >= depth * 10:  # Limit depth
+    # Add current organization
+    add_org_node(id)
+
+    # Get all child organizations recursively (limit to depth * 10)
+    def get_children_recursive(parent_id, current_depth=0):
+        if current_depth >= depth:
             return []
         children = db(db.organizations.parent_id == parent_id).select()
-        result = list(children)
+        all_children = list(children)
         for child in children:
-            result.extend(get_all_descendants(child.id, current_depth + 1))
-        return result
+            all_children.extend(get_children_recursive(child.id, current_depth + 1))
+        return all_children[: depth * 10]
 
-    # Add current organization
-    add_org_node(org)
-
-    # Get all child organizations recursively
-    all_children = get_all_descendants(org.id)
-    for child in all_children[: depth * 10]:  # Limit total orgs
-        add_org_node(child)
-        # Add edge from parent to child
+    all_children = await run_in_threadpool(lambda: get_children_recursive(id))
+    for child in all_children:
+        add_org_node(child.id)
         if child.parent_id:
             edges.append(
                 {
@@ -423,76 +468,70 @@ def get_organization_graph(id: int):
             )
 
     # Get parent hierarchy up to depth
-    current = org
+    current_org = org_row
     for _ in range(depth):
-        if current.parent_id:
-            parent = db.organizations[current.parent_id]
-            if not parent:
+        if current_org and current_org.parent_id:
+            parent = db.organizations[current_org.parent_id]
+            if parent:
+                add_org_node(parent.id)
+                edges.append(
+                    {
+                        "from": f"org-{parent.id}",
+                        "to": f"org-{current_org.id}",
+                        "label": "parent",
+                    }
+                )
+                current_org = parent
+            else:
                 break
-            add_org_node(parent)
-            edges.append(
-                {
-                    "from": f"org-{parent.id}",
-                    "to": f"org-{current.id}",
-                    "label": "parent",
-                }
-            )
-            current = parent
         else:
             break
 
     # Get entities for all visited organizations
     org_ids = list(visited_orgs)
-    if org_ids:
-        try:
-            entities = db(db.entities.organization_id.belongs(org_ids)).select(
-                limitby=(0, 100)
-            )
+    entities = await run_in_threadpool(
+        lambda: db(db.entities.organization_id.belongs(org_ids)).select(
+            limitby=(0, 100)
+        )
+    )
 
-            for entity in entities:
-                add_entity_node(entity)
-                # Add edge from organization to entity
-                edges.append(
-                    {
-                        "from": f"org-{entity.organization_id}",
-                        "to": f"entity-{entity.id}",
-                        "label": "contains",
-                    }
-                )
-        except Exception as e:
-            # Log error but continue - entities are optional
-            current_app.logger.warning(f"Error fetching entities: {str(e)}")
+    for entity in entities:
+        add_entity_node(entity.id)
+        edges.append(
+            {
+                "from": f"org-{entity.organization_id}",
+                "to": f"entity-{entity.id}",
+                "label": "contains",
+            }
+        )
 
-    # Get dependencies between entities (if dependencies table exists)
+    # Get dependencies between entities
     entity_ids = list(visited_entities)
-    if entity_ids and hasattr(db, "dependencies"):
-        try:
-            # Dependencies table uses source_type/source_id, not source_entity_id
-            dependencies = db(
-                (db.dependencies.source_type == "entity")
-                & (db.dependencies.source_id.belongs(entity_ids))
-                & (db.dependencies.target_type == "entity")
-                & (db.dependencies.target_id.belongs(entity_ids))
-            ).select()
+    # Dependencies table uses source_type/source_id, not source_entity_id
+    dependencies = await run_in_threadpool(
+        lambda: db(
+            (db.dependencies.source_type == "entity")
+            & (db.dependencies.source_id.belongs(entity_ids))
+            & (db.dependencies.target_type == "entity")
+            & (db.dependencies.target_id.belongs(entity_ids))
+        ).select()
+    )
 
-            for dep in dependencies:
-                edges.append(
-                    {
-                        "from": f"entity-{dep.source_id}",
-                        "to": f"entity-{dep.target_id}",
-                        "label": dep.dependency_type or "depends",
-                    }
-                )
-        except Exception as e:
-            # Log error but continue - dependencies are optional
-            current_app.logger.warning(f"Error fetching dependencies: {str(e)}")
+    for dep in dependencies:
+        edges.append(
+            {
+                "from": f"entity-{dep.source_id}",
+                "to": f"entity-{dep.target_id}",
+                "label": dep.dependency_type or "depends",
+            }
+        )
 
     return (
         jsonify(
             {
                 "nodes": nodes,
                 "edges": edges,
-                "center_node": f"org-{org.id}",
+                "center_node": f"org-{id}",
                 "depth": depth,
             }
         ),
