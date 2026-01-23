@@ -233,7 +233,7 @@ def _register_blueprints(app: Flask) -> None:
         metadata,
         milestones,
         organization_tree,
-        organizations_pydal,
+        organizations,
         profile,
         projects,
         resource_roles,
@@ -245,9 +245,9 @@ def _register_blueprints(app: Flask) -> None:
     # Register API v1 blueprints
     api_prefix = app.config["API_PREFIX"]
 
-    # Use async organizations_pydal blueprint (PyDAL + async/await)
+    # Organizations API (PyDAL + async/await + Pydantic validation)
     app.register_blueprint(
-        organizations_pydal.bp, url_prefix=f"{api_prefix}/organizations"
+        organizations.bp, url_prefix=f"{api_prefix}/organizations"
     )
     app.register_blueprint(entities.bp, url_prefix=f"{api_prefix}/entities")
     app.register_blueprint(entity_types.bp, url_prefix=f"{api_prefix}/entity-types")

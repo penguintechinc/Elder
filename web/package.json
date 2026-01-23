@@ -1,6 +1,6 @@
 {
   "name": "project-template-web",
-  "version": "3.0.6",
+  "version": "3.0.7",
   "description": "Frontend web application",
   "type": "module",
   "scripts": {
@@ -25,10 +25,12 @@
     "react-hook-form": "^7.53.2",
     "react-hot-toast": "^2.4.1",
     "react-router-dom": "^6.30.2",
-    "tailwind-merge": "^2.5.4"
+    "tailwind-merge": "^2.5.4",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@tailwindcss/postcss": "^4.1.17",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
@@ -43,7 +45,6 @@
     "globals": "^16.5.0",
     "postcss": "^8.5.3",
     "prettier": "^3.4.2",
-    "@tailwindcss/postcss": "^4.1.17",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.47.0",

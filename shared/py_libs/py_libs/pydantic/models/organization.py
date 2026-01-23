@@ -45,6 +45,7 @@ class CreateOrganizationRequest(RequestModel):
     description: Optional[str] = Field(None, max_length=1000)
     organization_type: str = "organization"
     parent_id: Optional[int] = None
+    tenant_id: int = Field(..., ge=1, description="Associated tenant ID")
     ldap_dn: Optional[str] = None
     saml_group: Optional[str] = None
     owner_identity_id: Optional[int] = None
@@ -66,6 +67,7 @@ class UpdateOrganizationRequest(RequestModel):
     description: Optional[str] = Field(None, max_length=1000)
     organization_type: Optional[str] = None
     parent_id: Optional[int] = None
+    tenant_id: Optional[int] = Field(None, ge=1, description="Associated tenant ID")
     ldap_dn: Optional[str] = None
     saml_group: Optional[str] = None
     owner_identity_id: Optional[int] = None

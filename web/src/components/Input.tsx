@@ -10,7 +10,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, helperText, ...props }, ref) => {
     return (
-      <div className="w-full">
+      <div className="w-full overflow-hidden relative">
         {label && (
           <label className="block text-sm font-medium text-yellow-500 mb-1.5">
             {label}
@@ -21,7 +21,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           className={clsx(
             'block w-full px-4 py-2 text-sm bg-slate-900 border rounded-lg transition-colors',
             'text-white placeholder-slate-500',
-            'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900',
+            'focus:outline-none focus:ring-2 focus:ring-inset',
             error
               ? 'border-red-500 focus:ring-red-500'
               : 'border-slate-700 focus:ring-primary-500 focus:border-primary-500',

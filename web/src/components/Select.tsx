@@ -22,7 +22,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           className={clsx(
             'block w-full px-4 py-2 text-sm bg-slate-900 border rounded-lg transition-colors',
             'text-white',
-            'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900',
+            'focus:outline-none focus:ring-2 focus:ring-inset',
             error
               ? 'border-red-500 focus:ring-red-500'
               : 'border-slate-700 focus:ring-primary-500 focus:border-primary-500',

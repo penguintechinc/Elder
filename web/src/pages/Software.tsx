@@ -403,8 +403,8 @@ function SoftwareDetailModal({ software, onClose, onEdit }: SoftwareDetailModalP
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <CardHeader>
+      <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+        <CardHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-white">{software.name}</h2>
             <Button variant="ghost" size="sm" onClick={onEdit}>
@@ -435,7 +435,7 @@ function SoftwareDetailModal({ software, onClose, onEdit }: SoftwareDetailModalP
             </button>
           </div>
         </CardHeader>
-        <CardContent className="overflow-y-auto flex-1">
+        <CardContent className="flex-1 overflow-y-auto overflow-x-hidden">
           {activeTab === 'details' ? (
             <SoftwareDetailsTab software={software} />
           ) : (

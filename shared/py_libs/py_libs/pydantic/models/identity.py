@@ -9,36 +9,27 @@ Provides validation, serialization, and type safety for identity operations.
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, SecretStr, model_validator
+from pydantic import SecretStr, model_validator
+
+from py_libs.pydantic.base import ImmutableModel, RequestModel
 
 # ==================== Type Definitions ====================
 
-IdentityType = Literal["human", "service_account"]
+# Extended identity types to support frontend UI options
+IdentityType = Literal[
+    "human",
+    "service_account",
+    "employee",
+    "vendor",
+    "bot",
+    "serviceAccount",
+    "integration",
+    "otherHuman",
+    "other",
+]
 AuthProvider = Literal["local", "ldap", "saml", "oauth2", "api_key"]
 PortalRole = Literal["admin", "editor", "viewer"]
-
-
-# ==================== Base Model Classes ====================
-
-
-class ImmutableModel(BaseModel):
-    """Base immutable model with frozen configuration."""
-
-    model_config = {
-        "frozen": True,
-        "from_attributes": True,
-    }
-
-
-class RequestModel(BaseModel):
-    """Base request model with standard configuration."""
-
-    model_config = {
-        "from_attributes": True,
-    }
-
-
-# ==================== Identity DTOs ====================
+PermissionScope = Literal["global", "tenant", "organization"]
 
 
 class IdentityDTO(ImmutableModel):
@@ -92,6 +83,10 @@ class CreateIdentityRequest(RequestModel):
     is_superuser: bool = False
     mfa_enabled: bool = False
     organization_id: Optional[int] = None
+    tenant_id: Optional[int] = None
+    is_portal_user: bool = False
+    portal_role: Optional[PortalRole] = None
+    permission_scope: Optional[PermissionScope] = None
 
     @model_validator(mode="after")
     def validate_local_auth_requires_password(self) -> "CreateIdentityRequest":

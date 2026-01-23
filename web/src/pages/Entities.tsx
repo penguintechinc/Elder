@@ -87,9 +87,9 @@ export default function Entities() {
                   <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${getTypeColor(entity.entity_type)}`}>
                     {entity.entity_type.replace('_', ' ').toUpperCase()}
                   </span>
-                  {entity.entity_sub_type && (
-                    <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${getTypeColor(entity.entity_sub_type)}`}>
-                      {entity.entity_sub_type.replace('_', ' ').toUpperCase()}
+                  {entity.sub_type && (
+                    <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${getTypeColor(entity.sub_type)}`}>
+                      {entity.sub_type.replace('_', ' ').toUpperCase()}
                     </span>
                   )}
                 </div>
@@ -180,7 +180,7 @@ function CreateEntityModal({ initialOrganizationId, onClose, onSuccess }: any) {
         ],
       },
       {
-        name: 'entity_sub_type',
+        name: 'sub_type',
         label: 'Sub-Type',
         type: 'select',
         // Options are dynamically computed based on selected category
@@ -230,7 +230,7 @@ function CreateEntityModal({ initialOrganizationId, onClose, onSuccess }: any) {
       name: data.name,
       description: data.description || undefined,
       entity_type: data.entity_type,
-      entity_sub_type: data.entity_sub_type || undefined,
+      sub_type: data.sub_type || undefined,
       organization_id: parseInt(data.organization_id),
     })
   }

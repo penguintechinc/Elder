@@ -54,8 +54,8 @@ export default function OnCallRotationDetailModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <CardHeader>
+      <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+        <CardHeader className="flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-2xl font-semibold text-white">{rotation.name}</h2>
@@ -116,7 +116,7 @@ export default function OnCallRotationDetailModal({
           </div>
         </CardHeader>
 
-        <CardContent className="overflow-y-auto flex-1 space-y-4">
+        <CardContent className="flex-1 overflow-y-auto overflow-x-hidden space-y-4">
           {activeTab === 'details' && (
             <DetailsTab rotation={rotation} currentOnCall={currentOnCall} participants={participants} />
           )}

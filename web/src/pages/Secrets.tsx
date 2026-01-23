@@ -304,11 +304,11 @@ function SecretProviderFormModal({ isOpen, onClose, config, onSubmit, isLoading,
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
+      <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <CardHeader className="flex-shrink-0">
           <h2 className="text-xl font-semibold text-white">Add Secret Provider</h2>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 overflow-y-auto">
           <ModalFormBuilderWithDynamicHelp
             config={config}
             onSubmit={onSubmit}
@@ -464,8 +464,8 @@ function SecretsListModal({ providerId, onClose }: any) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
+      <Card className="w-full max-w-3xl max-h-[90vh] flex flex-col">
+        <CardHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-white">Secrets</h2>
             <Button variant="ghost" size="sm" onClick={onClose}>
@@ -473,7 +473,7 @@ function SecretsListModal({ providerId, onClose }: any) {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
