@@ -58,8 +58,8 @@ export default function Modal({
 
   if (!isOpen) return null
 
-  // Handle backdrop click
-  const handleBackdropClick = (e: React.MouseEvent) => {
+  // Handle backdrop click - use onMouseDown to avoid interfering with input focus
+  const handleBackdropMouseDown = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose()
     }
@@ -68,9 +68,9 @@ export default function Modal({
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={handleBackdropClick}
+      onMouseDown={handleBackdropMouseDown}
     >
-      <Card className={`w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] flex flex-col`}>
+      <Card className={`w-full ${maxWidthClasses[maxWidth]} max-h-[90vh] flex flex-col overflow-hidden`}>
         <CardHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>

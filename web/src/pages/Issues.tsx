@@ -300,11 +300,11 @@ function CreateIssueModal({ onClose, onSuccess, defaultOrganizationId, defaultEn
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
+      <Card className="w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+        <CardHeader className="flex-shrink-0">
           <h2 className="text-xl font-semibold text-white">Create Issue</h2>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 overflow-y-auto overflow-x-hidden">
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Title"

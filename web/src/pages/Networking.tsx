@@ -534,14 +534,14 @@ export default function Networking() {
 function TopologyModal({ organizationId, onClose }: any) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
-        <CardHeader>
+      <Card className="w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
+        <CardHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-white">Network Topology Visualization</h2>
             <Button variant="ghost" onClick={onClose}>Close</Button>
           </div>
         </CardHeader>
-        <CardContent className="flex-1 p-0">
+        <CardContent className="flex-1 overflow-y-auto overflow-x-hidden p-0">
           <NetworkTopologyGraph organizationId={organizationId} />
         </CardContent>
       </Card>

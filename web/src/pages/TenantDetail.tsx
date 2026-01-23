@@ -327,8 +327,8 @@ export default function TenantDetail() {
 
       {/* Edit User Modal */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-6 w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
             <h3 className="text-xl font-semibold text-white mb-4">Edit User</h3>
             <form onSubmit={handleUpdateUser} className="space-y-4">
               <div>

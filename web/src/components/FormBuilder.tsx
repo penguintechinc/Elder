@@ -276,10 +276,10 @@ export default function FormBuilder({
   }
 
   return (
-    <form onSubmit={handleSubmit} className={`space-y-4 ${className}`}>
+    <form onSubmit={handleSubmit} className={`space-y-4 overflow-visible ${className}`}>
       {config.fields.map(renderField)}
 
-      <div className="flex gap-3 pt-4">
+      <div className="flex gap-3 pt-6 pb-2">
         {onCancel && (
           <button
             type="button"
