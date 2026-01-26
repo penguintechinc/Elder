@@ -126,11 +126,9 @@ async def create_organization(body: CreateOrganizationRequest):
         org_id = await insert_record(db.organizations, **org_data)
         await commit_db(db)
 
-        # Fetch created org using helper
-        org_row = await get_by_id(db.organizations, org_id)
-        org_dto = from_pydal_row(org_row, OrganizationDTO)
-
-        return ApiResponse.created(asdict(org_dto))
+        # Return the created org with ID
+        result = {'id': org_id, **org_data}
+        return ApiResponse.created(result)
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())

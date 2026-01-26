@@ -408,6 +408,7 @@ class ProjectDTO:
     end_date: Optional[datetime]
     created_at: datetime
     updated_at: datetime
+    village_id: Optional[str] = None
 
 
 @dataclass(slots=True)
