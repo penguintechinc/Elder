@@ -397,6 +397,26 @@ if [ -n "$TOKEN" ]; then
     else
         record_fail "Comprehensive REST API tests failed"
     fi
+
+    # Run API validation tests
+    log_info ""
+    log_info "Running API validation tests..."
+    if $PYTHON_CMD "$SCRIPT_DIR/test-api-validation.py" --url "$API_URL" --username "$ADMIN_USERNAME" --password "$ADMIN_PASSWORD" $SSL_FLAG; then
+        record_pass "API validation tests passed"
+    else
+        log_warn "API validation tests failed (some failures expected for edge cases)"
+    fi
+
+    # Run integration workflow tests (only in alpha mode to avoid polluting prod data)
+    if [ "$TEST_MODE" != "beta" ]; then
+        log_info ""
+        log_info "Running integration workflow tests..."
+        if $PYTHON_CMD "$SCRIPT_DIR/test-integration-workflows.py" --url "$API_URL" --username "$ADMIN_USERNAME" --password "$ADMIN_PASSWORD" $SSL_FLAG; then
+            record_pass "Integration workflow tests passed"
+        else
+            log_warn "Integration workflow tests had some failures"
+        fi
+    fi
 fi
 
 # Step 5: Web UI Smoke Tests

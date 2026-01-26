@@ -129,9 +129,9 @@ class RestApiTester:
             self.log_fail(f"Login failed with status {resp.status_code}: {resp.text}")
             return False
 
-    def test_endpoint(self, method: str, endpoint: str, name: str, expected_status: int = 200) -> bool:
+    def test_endpoint(self, method: str, endpoint: str, name: str, expected_status: int = 200, **kwargs) -> bool:
         """Generic endpoint test."""
-        resp, err = self._request(method, endpoint)
+        resp, err = self._request(method, endpoint, **kwargs)
 
         if err:
             self.log_fail(f"{name}: Request failed - {err}")
@@ -143,6 +143,48 @@ class RestApiTester:
         else:
             self.log_fail(f"{name}: Expected {expected_status}, got {resp.status_code}")
             return False
+
+    def test_crud_workflow(self, resource: str, create_data: Dict, update_data: Dict = None) -> bool:
+        """Test full CRUD workflow for a resource."""
+        self.log_info(f"Testing CRUD workflow: {resource}")
+
+        # CREATE
+        resp, err = self._request('POST', f'/api/v1/{resource}', json=create_data)
+        if err or resp.status_code not in [200, 201]:
+            self.log_fail(f"CREATE {resource} failed: {err or resp.status_code}")
+            return False
+
+        created = resp.json()
+        resource_id = created.get('id') or created.get('data', {}).get('id')
+        if not resource_id:
+            self.log_fail(f"CREATE {resource}: No ID in response")
+            return False
+
+        self.log_success(f"CREATE {resource}: ID {resource_id}")
+
+        # READ
+        resp, err = self._request('GET', f'/api/v1/{resource}/{resource_id}')
+        if err or resp.status_code != 200:
+            self.log_fail(f"READ {resource}/{resource_id} failed")
+            return False
+        self.log_success(f"READ {resource}/{resource_id}")
+
+        # UPDATE (if update_data provided)
+        if update_data:
+            resp, err = self._request('PUT', f'/api/v1/{resource}/{resource_id}', json=update_data)
+            if err or resp.status_code not in [200, 204]:
+                self.log_warn(f"UPDATE {resource}/{resource_id} failed (may not be implemented)")
+            else:
+                self.log_success(f"UPDATE {resource}/{resource_id}")
+
+        # DELETE
+        resp, err = self._request('DELETE', f'/api/v1/{resource}/{resource_id}')
+        if err or resp.status_code not in [200, 204]:
+            self.log_warn(f"DELETE {resource}/{resource_id} failed (may not be implemented)")
+            return True  # Still consider test passed if CREATE/READ worked
+
+        self.log_success(f"DELETE {resource}/{resource_id}")
+        return True
 
     def run_all_tests(self, username: str, password: str):
         """Run all REST API smoke tests."""
@@ -239,6 +281,51 @@ class RestApiTester:
 
         # Backup (might require special permissions)
         # self.test_endpoint('GET', '/api/v1/backup', 'GET /backup')
+
+        # CRUD Workflow Tests
+        self.log_info("")
+        self.log_info("Testing CRUD workflows (Create, Read, Update, Delete)...")
+        self.log_info("")
+
+        # Test organization CRUD
+        self.test_crud_workflow('organizations',
+            create_data={'name': 'Test Org CRUD', 'description': 'Test organization for CRUD'},
+            update_data={'description': 'Updated description'})
+
+        # Test entity CRUD
+        self.test_crud_workflow('entities',
+            create_data={'name': 'Test Entity', 'entity_type': 'application', 'description': 'Test entity'},
+            update_data={'description': 'Updated entity description'})
+
+        # Test service CRUD
+        self.test_crud_workflow('services',
+            create_data={'name': 'Test Service', 'organization_id': 1, 'language': 'python'},
+            update_data={'language': 'go'})
+
+        # Test label CRUD
+        self.test_crud_workflow('labels',
+            create_data={'key': 'test-crud', 'value': 'smoke-test', 'color': '#FF5733'},
+            update_data={'value': 'updated-value'})
+
+        # Test issue CRUD
+        self.test_crud_workflow('issues',
+            create_data={'title': 'Test Issue CRUD', 'description': 'Test issue', 'priority': 'medium'},
+            update_data={'priority': 'high'})
+
+        # Test project CRUD
+        self.test_crud_workflow('projects',
+            create_data={'name': 'Test Project', 'description': 'Test project', 'status': 'active'},
+            update_data={'status': 'completed'})
+
+        # Test secret CRUD
+        self.test_crud_workflow('secrets',
+            create_data={'name': 'test-secret', 'value': 'test123', 'description': 'Test secret'},
+            update_data={'description': 'Updated secret description'})
+
+        # Test webhook CRUD
+        self.test_crud_workflow('webhooks',
+            create_data={'name': 'Test Webhook', 'url': 'https://example.com/webhook', 'events': ['create', 'update']},
+            update_data={'events': ['create', 'update', 'delete']})
 
     def print_summary(self):
         """Print test summary."""

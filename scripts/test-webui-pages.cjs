@@ -23,6 +23,32 @@ const pages = [
   { name: 'Discovery', path: '/discovery' },
   { name: 'On-Call Rotations', path: '/on-call-rotations' },
   { name: 'Profile', path: '/profile' },
+  { name: 'IPAM', path: '/ipam' },
+  { name: 'Map', path: '/map' },
+  { name: 'Audit Logs', path: '/audit' },
+  { name: 'Relationship Graph', path: '/graph' },
+  { name: 'Tenants', path: '/tenants' },
+  { name: 'Register', path: '/register', skipAuth: true },
+  { name: 'SSO Configuration', path: '/sso-config' },
+  { name: 'SBOM Dashboard', path: '/sbom' },
+  { name: 'Vulnerabilities', path: '/vulnerabilities' },
+  { name: 'Service Endpoints', path: '/service-endpoints' },
+  { name: 'Sync Config', path: '/sync-config' },
+  { name: 'Search', path: '/search' },
+  { name: 'Backups', path: '/backups' },
+  { name: 'Networking', path: '/networking' },
+  { name: 'Webhooks', path: '/webhooks' },
+  { name: 'Admin Settings', path: '/admin' },
+  { name: 'License Policies', path: '/license-policies' },
+];
+
+// Detail pages require existing IDs - test with ID 1 if it exists
+const detailPages = [
+  { name: 'Entity Detail', path: '/entities/1', testId: 1 },
+  { name: 'Organization Detail', path: '/organizations/1', testId: 1 },
+  { name: 'Tenant Detail', path: '/tenants/1', testId: 1 },
+  { name: 'Project Detail', path: '/projects/1', testId: 1 },
+  { name: 'Issue Detail', path: '/issues/1', testId: 1 },
 ];
 
 async function sleep(ms) {
@@ -87,9 +113,8 @@ async function testPages() {
   console.log('Logged in, current URL:', page.url());
   console.log('');
 
-  // Test each page
-  const results = [];
-  for (const pageInfo of pages) {
+  // Test function for pages
+  async function testPage(pageInfo, results) {
     errors.length = 0;
     apiErrors.length = 0;
 
@@ -100,10 +125,43 @@ async function testPages() {
       await sleep(2000);
 
       const currentUrl = page.url();
-      if (currentUrl.includes('/login')) {
+      if (currentUrl.includes('/login') && !pageInfo.skipAuth) {
         console.log(`  REDIRECT: Redirected to login`);
         results.push({ page: pageInfo.name, status: 'REDIRECT', errors: [], apiErrors: [] });
-        continue;
+        return;
+      }
+
+      // Check for tabs and test them
+      const tabs = await page.$$('[role="tab"], .tab, .nav-tab');
+      if (tabs.length > 0) {
+        console.log(`  Found ${tabs.length} tabs, testing each...`);
+        for (let i = 0; i < Math.min(tabs.length, 5); i++) {
+          try {
+            await tabs[i].click();
+            await sleep(1000);
+            console.log(`    Tab ${i + 1}: OK`);
+          } catch (e) {
+            console.log(`    Tab ${i + 1}: Error - ${e.message}`);
+          }
+        }
+      }
+
+      // Check for modals/dialogs
+      const createButtons = await page.$$('button:has-text("Create"), button:has-text("Add"), button:has-text("New")');
+      if (createButtons.length > 0) {
+        try {
+          await createButtons[0].click();
+          await sleep(1000);
+          const modal = await page.$('[role="dialog"], .modal, .dialog');
+          if (modal) {
+            console.log(`    Modal: OK`);
+            // Close modal
+            const closeButton = await page.$('[role="dialog"] button:has-text("Cancel"), [role="dialog"] button:has-text("Close"), .modal button:has-text("Cancel")');
+            if (closeButton) await closeButton.click();
+          }
+        } catch (e) {
+          // Modal test is optional
+        }
       }
 
       const pageErrors = [...errors];
@@ -126,6 +184,19 @@ async function testPages() {
       console.log(`  ERROR: ${error.message}`);
       results.push({ page: pageInfo.name, status: 'EXCEPTION', errors: [{ type: 'exception', message: error.message }], apiErrors: [] });
     }
+  }
+
+  // Test each main page
+  const results = [];
+  for (const pageInfo of pages) {
+    await testPage(pageInfo, results);
+  }
+
+  // Test detail pages (may 404 if no data exists)
+  console.log('');
+  console.log('Testing detail pages (may 404 if no test data)...');
+  for (const pageInfo of detailPages) {
+    await testPage(pageInfo, results);
   }
 
   await browser.close();
