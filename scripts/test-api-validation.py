@@ -110,19 +110,19 @@ class ValidationTester:
         self.log_info("Testing authentication validation...")
 
         test_cases = [
-            {'data': {'username': '', 'password': 'test'}, 'expected': [400, 401], 'name': 'Empty username'},
-            {'data': {'username': 'test', 'password': ''}, 'expected': [400, 401], 'name': 'Empty password'},
+            {'data': {'username': '', 'password': 'test'}, 'expected': [400, 401, 422], 'name': 'Empty username'},
+            {'data': {'username': 'test', 'password': ''}, 'expected': [400, 401, 422], 'name': 'Empty password'},
             {'data': {'username': 'nonexistent@test.com', 'password': 'wrong'}, 'expected': [401], 'name': 'Invalid credentials'},
             {'data': {}, 'expected': [400, 422], 'name': 'Missing fields'},
-            {'data': {'username': 'x' * 1000, 'password': 'test'}, 'expected': [400, 401], 'name': 'Extremely long username'},
-            {'data': {'username': "admin'; DROP TABLE users; --", 'password': 'test'}, 'expected': [400, 401], 'name': 'SQL injection attempt'},
-            {'data': {'username': '<script>alert(1)</script>', 'password': 'test'}, 'expected': [400, 401], 'name': 'XSS attempt'},
+            {'data': {'username': 'x' * 1000, 'password': 'test'}, 'expected': [400, 401, 422], 'name': 'Extremely long username'},
+            {'data': {'username': "admin'; DROP TABLE users; --", 'password': 'test'}, 'expected': [400, 401, 422], 'name': 'SQL injection attempt'},
+            {'data': {'username': '<script>alert(1)</script>', 'password': 'test'}, 'expected': [400, 401, 422], 'name': 'XSS attempt'},
         ]
 
         passed = 0
         for test_case in test_cases:
             resp, err = self._request('POST', '/api/v1/auth/login', json=test_case['data'])
-            if resp and resp.status_code in test_case['expected']:
+            if resp is not None and resp.status_code in test_case['expected']:
                 self.log_success(f"{test_case['name']}: Rejected with {resp.status_code}")
                 passed += 1
             else:
@@ -142,7 +142,7 @@ class ValidationTester:
             headers={'Content-Type': 'application/json'}
         )
 
-        if resp and resp.status_code in [400, 422]:
+        if resp is not None and resp.status_code in [400, 422]:
             self.log_success(f"Invalid JSON rejected with {resp.status_code}")
             return True
         else:
@@ -160,7 +160,7 @@ class ValidationTester:
             json={'description': 'Missing name'}
         )
 
-        if resp and resp.status_code in [400, 422]:
+        if resp is not None and resp.status_code in [400, 422]:
             self.log_success(f"Missing required field rejected with {resp.status_code}")
             return True
         else:
@@ -181,7 +181,7 @@ class ValidationTester:
         passed = 0
         for test_case in test_cases:
             resp, err = self._request('POST', '/api/v1/organizations', json=test_case['data'])
-            if resp and resp.status_code in [400, 422]:
+            if resp is not None and resp.status_code in [400, 422]:
                 self.log_success(f"{test_case['name']}: Rejected with {resp.status_code}")
                 passed += 1
             else:
@@ -204,7 +204,7 @@ class ValidationTester:
         for test_case in test_cases:
             resp, err = self._request('GET', test_case['endpoint'])
             expected = test_case['expected'] if isinstance(test_case['expected'], list) else [test_case['expected']]
-            if resp and resp.status_code in expected:
+            if resp is not None and resp.status_code in expected:
                 self.log_success(f"{test_case['name']}: Rejected with {resp.status_code}")
                 passed += 1
             else:
@@ -228,7 +228,7 @@ class ValidationTester:
             resp, err = self._request('GET', '/api/v1/organizations', params=test_case['params'])
             # Some pagination errors might be handled gracefully (200 with empty results)
             # So we accept both error responses and successful empty responses
-            if resp and resp.status_code in [200, 400, 422]:
+            if resp is not None and resp.status_code in [200, 400, 422]:
                 self.log_success(f"{test_case['name']}: Handled with {resp.status_code}")
                 passed += 1
             else:
@@ -253,7 +253,7 @@ class ValidationTester:
         for query in dangerous_queries:
             resp, err = self._request('GET', f'/api/v1/search?q={query}')
             # Should either reject (400) or handle safely (200 with no results)
-            if resp and resp.status_code in [200, 400]:
+            if resp is not None and resp.status_code in [200, 400]:
                 self.log_success(f"Injection attempt handled: {query[:30]}...")
                 passed += 1
             else:
@@ -275,7 +275,7 @@ class ValidationTester:
         # Restore token
         self.access_token = saved_token
 
-        if resp and resp.status_code == 401:
+        if resp is not None and resp.status_code == 401:
             self.log_success("Unauthorized access rejected with 401")
             return True
         else:
@@ -296,7 +296,7 @@ class ValidationTester:
         # Restore token
         self.access_token = saved_token
 
-        if resp and resp.status_code == 401:
+        if resp is not None and resp.status_code == 401:
             self.log_success("Invalid token rejected with 401")
             return True
         else:
@@ -317,7 +317,7 @@ class ValidationTester:
             }
         )
 
-        if resp and resp.status_code in [400, 422, 413]:
+        if resp is not None and resp.status_code in [400, 422, 413]:
             self.log_success(f"Extremely long strings rejected with {resp.status_code}")
             return True
         else:

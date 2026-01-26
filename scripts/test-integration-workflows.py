@@ -145,7 +145,7 @@ class IntegrationTester:
             ids = self.created_resources.get(resource_type, [])
             for resource_id in ids:
                 resp, err = self._request('DELETE', f'/api/v1/{resource_type}/{resource_id}')
-                if resp and resp.status_code in [200, 204]:
+                if resp is not None and resp.status_code in [200, 204]:
                     self.log_verbose(f"Deleted {resource_type}/{resource_id}")
                 else:
                     self.log_verbose(f"Could not delete {resource_type}/{resource_id} (may already be deleted)")
@@ -183,7 +183,7 @@ class IntegrationTester:
 
         # Verify hierarchy
         resp, err = self._request('GET', f'/api/v1/organizations/{parent_org_id}')
-        if resp and resp.status_code == 200:
+        if resp is not None and resp.status_code == 200:
             self.log_success("Organization hierarchy created successfully")
             return True
         else:
@@ -191,8 +191,8 @@ class IntegrationTester:
             return False
 
     def test_service_dependency_workflow(self) -> bool:
-        """Test: Create services with dependencies."""
-        self.log_info("Testing service dependency workflow...")
+        """Test: Create entities with dependencies."""
+        self.log_info("Testing entity dependency workflow...")
 
         # Create organization first
         org_id = self.create_resource('organizations', {
@@ -202,53 +202,55 @@ class IntegrationTester:
         if not org_id:
             return False
 
-        # Create services
-        db_service_id = self.create_resource('services', {
+        # Create entities (dependencies support entity, identity, project, milestone, issue, organization)
+        db_entity_id = self.create_resource('entities', {
             'name': 'PostgreSQL Database',
             'organization_id': org_id,
-            'language': 'sql',
+            'entity_type_id': 1,
             'description': 'Primary database'
         })
 
-        api_service_id = self.create_resource('services', {
+        api_entity_id = self.create_resource('entities', {
             'name': 'API Service',
             'organization_id': org_id,
-            'language': 'python',
+            'entity_type_id': 1,
             'description': 'REST API'
         })
 
-        web_service_id = self.create_resource('services', {
+        web_entity_id = self.create_resource('entities', {
             'name': 'Web Frontend',
             'organization_id': org_id,
-            'language': 'javascript',
+            'entity_type_id': 1,
             'description': 'React frontend'
         })
 
-        if not all([db_service_id, api_service_id, web_service_id]):
-            self.log_fail("Failed to create all services")
+        if not all([db_entity_id, api_entity_id, web_entity_id]):
+            self.log_fail("Failed to create all entities")
             return False
 
-        self.log_success(f"Created services: DB={db_service_id}, API={api_service_id}, Web={web_service_id}")
+        self.log_success(f"Created entities: DB={db_entity_id}, API={api_entity_id}, Web={web_entity_id}")
 
         # Create dependencies: API depends on DB, Web depends on API
+        # Dependencies endpoint: /api/v1/dependencies
+        # Valid resource types: entity, identity, project, milestone, issue, organization
         dep1 = self.create_resource('dependencies', {
-            'source_type': 'service',
-            'source_id': api_service_id,
-            'target_type': 'service',
-            'target_id': db_service_id,
+            'source_type': 'entity',
+            'source_id': api_entity_id,
+            'target_type': 'entity',
+            'target_id': db_entity_id,
             'dependency_type': 'database'
         })
 
         dep2 = self.create_resource('dependencies', {
-            'source_type': 'service',
-            'source_id': web_service_id,
-            'target_type': 'service',
-            'target_id': api_service_id,
+            'source_type': 'entity',
+            'source_id': web_entity_id,
+            'target_type': 'entity',
+            'target_id': api_entity_id,
             'dependency_type': 'api'
         })
 
         if dep1 and dep2:
-            self.log_success("Service dependencies created successfully")
+            self.log_success("Entity dependencies created successfully")
             return True
         else:
             self.log_warn("Dependencies may not be fully created (API may not support this endpoint)")
@@ -326,17 +328,24 @@ class IntegrationTester:
 
         self.log_success(f"Created service: {service_id}")
 
-        # Trigger SBOM scan (if endpoint exists)
-        resp, err = self._request('POST', f'/api/v1/services/{service_id}/scan')
-        if resp and resp.status_code in [200, 201, 202]:
-            self.log_success("SBOM scan triggered")
+        # Create SBOM scan via /api/v1/sbom/scans endpoint
+        # The endpoint expects parent_type and parent_id
+        scan_id = self.create_resource('sbom/scans', {
+            'parent_type': 'service',
+            'parent_id': service_id,
+            'scan_type': 'manifest',
+            'repository_url': 'https://github.com/example/secureapi'
+        })
+        if scan_id:
+            self.log_success(f"Created SBOM scan: {scan_id}")
         else:
-            self.log_warn("SBOM scan endpoint may not be available")
+            self.log_warn("SBOM scan creation may not be available")
 
         # Check for vulnerabilities
-        resp, err = self._request('GET', f'/api/v1/vulnerabilities?service_id={service_id}')
-        if resp and resp.status_code == 200:
-            self.log_success("Vulnerability check successful")
+        # Endpoint: /api/v1/vulnerabilities (supports filtering by severity, cve_id, source, search)
+        resp, err = self._request('GET', f'/api/v1/vulnerabilities?severity=critical')
+        if resp is not None and resp.status_code == 200:
+            self.log_success("Vulnerability query successful")
             return True
         else:
             self.log_warn("Vulnerability endpoint may not be available")

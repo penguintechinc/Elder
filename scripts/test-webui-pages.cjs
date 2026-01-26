@@ -146,22 +146,38 @@ async function testPages() {
         }
       }
 
-      // Check for modals/dialogs
-      const createButtons = await page.$$('button:has-text("Create"), button:has-text("Add"), button:has-text("New")');
-      if (createButtons.length > 0) {
-        try {
-          await createButtons[0].click();
+      // Check for modals/dialogs by finding buttons with specific text
+      try {
+        const createButton = await page.evaluateHandle(() => {
+          const buttons = Array.from(document.querySelectorAll('button'));
+          return buttons.find(btn =>
+            btn.textContent.includes('Create') ||
+            btn.textContent.includes('Add') ||
+            btn.textContent.includes('New')
+          );
+        });
+
+        if (createButton && createButton.asElement()) {
+          await createButton.asElement().click();
           await sleep(1000);
           const modal = await page.$('[role="dialog"], .modal, .dialog');
           if (modal) {
             console.log(`    Modal: OK`);
             // Close modal
-            const closeButton = await page.$('[role="dialog"] button:has-text("Cancel"), [role="dialog"] button:has-text("Close"), .modal button:has-text("Cancel")');
-            if (closeButton) await closeButton.click();
+            const closeButton = await page.evaluateHandle(() => {
+              const buttons = Array.from(document.querySelectorAll('button'));
+              return buttons.find(btn =>
+                btn.textContent.includes('Cancel') ||
+                btn.textContent.includes('Close')
+              );
+            });
+            if (closeButton && closeButton.asElement()) {
+              await closeButton.asElement().click();
+            }
           }
-        } catch (e) {
-          // Modal test is optional
         }
+      } catch (e) {
+        // Modal test is optional
       }
 
       const pageErrors = [...errors];

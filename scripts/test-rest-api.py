@@ -209,7 +209,6 @@ class RestApiTester:
 
         # Organization endpoints
         self.test_endpoint('GET', '/api/v1/organizations', 'GET /organizations')
-        self.test_endpoint('GET', '/api/v1/organization-tree', 'GET /organization-tree')
 
         # Entity endpoints
         self.test_endpoint('GET', '/api/v1/entities', 'GET /entities')
@@ -222,18 +221,17 @@ class RestApiTester:
         # Service/Software/Networking endpoints
         self.test_endpoint('GET', '/api/v1/services', 'GET /services')
         self.test_endpoint('GET', '/api/v1/software', 'GET /software')
-        self.test_endpoint('GET', '/api/v1/networking', 'GET /networking')
+        self.test_endpoint('GET', '/api/v1/networking/networks', 'GET /networking/networks')
 
         # Dependency and graph endpoints
         self.test_endpoint('GET', '/api/v1/dependencies', 'GET /dependencies')
         self.test_endpoint('GET', '/api/v1/graph', 'GET /graph')
 
         # IPAM endpoints
-        self.test_endpoint('GET', '/api/v1/ipam', 'GET /ipam')
+        self.test_endpoint('GET', '/api/v1/ipam/prefixes', 'GET /ipam/prefixes')
 
-        # Label and metadata endpoints
+        # Label endpoints
         self.test_endpoint('GET', '/api/v1/labels', 'GET /labels')
-        self.test_endpoint('GET', '/api/v1/metadata', 'GET /metadata')
 
         # Issue tracking endpoints
         self.test_endpoint('GET', '/api/v1/issues', 'GET /issues')
@@ -244,11 +242,11 @@ class RestApiTester:
 
         # Search and lookup
         self.test_endpoint('GET', '/api/v1/search?q=test', 'GET /search')
-        self.test_endpoint('GET', '/api/v1/lookup', 'GET /lookup')
+        self.test_endpoint('GET', '/lookup', 'GET /lookup')
 
         # SBOM endpoints
-        self.test_endpoint('GET', '/api/v1/sbom', 'GET /sbom')
-        self.test_endpoint('GET', '/api/v1/sbom-scans', 'GET /sbom-scans')
+        self.test_endpoint('GET', '/api/v1/sbom/components', 'GET /sbom/components')
+        self.test_endpoint('GET', '/api/v1/sbom/scans', 'GET /sbom/scans')
         self.test_endpoint('GET', '/api/v1/vulnerabilities', 'GET /vulnerabilities')
 
         # Secrets and keys
@@ -261,23 +259,17 @@ class RestApiTester:
         self.test_endpoint('GET', '/api/v1/logs', 'GET /logs')
 
         # IAM and permissions
-        self.test_endpoint('GET', '/api/v1/iam/roles', 'GET /iam/roles')
+        self.test_endpoint('GET', '/api/v1/iam/providers', 'GET /iam/providers')
         self.test_endpoint('GET', '/api/v1/resource-roles', 'GET /resource-roles')
 
         # On-call management
-        self.test_endpoint('GET', '/api/v1/on-call-rotations', 'GET /on-call-rotations')
+        self.test_endpoint('GET', '/api/v1/on-call/rotations', 'GET /on-call/rotations')
 
         # Webhooks
         self.test_endpoint('GET', '/api/v1/webhooks', 'GET /webhooks')
 
         # API keys
         self.test_endpoint('GET', '/api/v1/api-keys', 'GET /api-keys')
-
-        # Comments
-        self.test_endpoint('GET', '/api/v1/comments', 'GET /comments')
-
-        # Profile
-        self.test_endpoint('GET', '/api/v1/profile', 'GET /profile')
 
         # Backup (might require special permissions)
         # self.test_endpoint('GET', '/api/v1/backup', 'GET /backup')

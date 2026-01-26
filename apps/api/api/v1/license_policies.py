@@ -219,7 +219,8 @@ async def create_policy():
     try:
         req = CreateLicensePolicyRequest(**data)
     except ValidationError as e:
-        return ApiResponse.error(f"Validation error: {e.errors()}", 400)
+        errors = [str(err.get("msg", "")) for err in e.errors()]
+        return ApiResponse.error(f"Validation error: {', '.join(errors)}", 400)
 
     # Validate organization exists
     org, error = await validate_resource_exists(
@@ -337,7 +338,8 @@ async def update_policy(id: int):
     try:
         req = UpdateLicensePolicyRequest(**data)
     except ValidationError as e:
-        return ApiResponse.error(f"Validation error: {e.errors()}", 400)
+        errors = [str(err.get("msg", "")) for err in e.errors()]
+        return ApiResponse.error(f"Validation error: {', '.join(errors)}", 400)
 
     # Validate action if provided
     if req.action is not None and req.action not in ["warn", "block"]:
