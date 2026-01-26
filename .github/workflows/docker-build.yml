@@ -82,7 +82,7 @@ jobs:
 
     - name: Build and push Docker image
       id: build
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         context: ${{ matrix.service.context }}
         file: ${{ matrix.service.dockerfile }}
@@ -92,6 +92,9 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        # Disable provenance/sbom to create cleaner multi-arch manifests
+        provenance: false
+        sbom: false
         build-args: |
           BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
           VCS_REF=${{ github.sha }}
@@ -513,46 +516,6 @@ jobs:
         body_path: CHANGELOG.md
         draft: false
         prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
-
-  # Cleanup old images
-  cleanup:
-    needs: [build-and-push, security-scan, integration-test]
-    runs-on: ubuntu-latest
-    if: always()
-
-    steps:
-    - name: Delete untagged images
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const packages = ['elder-api', 'elder-web', 'elder-scanner', 'elder-connector'];
-
-          for (const pkg of packages) {
-            try {
-              const response = await github.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
-                package_type: 'container',
-                package_name: pkg,
-                org: context.repo.owner,
-                per_page: 100
-              });
-
-              const untaggedVersions = response.data.filter(version =>
-                version.metadata.container.tags.length === 0
-              );
-
-              for (const version of untaggedVersions) {
-                console.log(`Deleting untagged version: ${version.id} for ${pkg}`);
-                await github.rest.packages.deletePackageVersionForOrg({
-                  package_type: 'container',
-                  package_name: pkg,
-                  org: context.repo.owner,
-                  package_version_id: version.id,
-                });
-              }
-            } catch (error) {
-              console.log(`Error cleaning up ${pkg}: ${error.message}`);
-            }
-          }
 
   # Deploy to Kubernetes cluster
   deploy-k8s:
