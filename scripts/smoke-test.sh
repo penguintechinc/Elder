@@ -63,15 +63,19 @@ done
 # Configuration based on mode
 if [ "$TEST_MODE" = "beta" ]; then
     # Beta mode: K8s deployment
-    API_URL="${API_URL:-https://elder.penguintech.io}"
-    WEB_URL="${WEB_URL:-https://elder.penguintech.io}"
+    # Use direct load balancer origin to bypass Cloudflare
+    API_URL="${API_URL:-https://dal2.penguintech.io}"
+    WEB_URL="${WEB_URL:-https://dal2.penguintech.io}"
+    # Set Host header for proper routing through ingress
+    HOST_HEADER="elder.penguintech.io"
     ADMIN_USERNAME="${ADMIN_USERNAME:-admin@localhost.local}"
     ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin123}"
-    MODE_LABEL="BETA (K8s: elder.penguintech.io)"
+    MODE_LABEL="BETA (K8s: elder.penguintech.io via dal2.penguintech.io)"
 else
     # Alpha mode: local docker-compose
     API_URL="${API_URL:-http://localhost:4000}"
     WEB_URL="${WEB_URL:-http://localhost:3005}"
+    HOST_HEADER=""
     ADMIN_USERNAME="${ADMIN_USERNAME:-admin@localhost.local}"
     ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin123}"
     MODE_LABEL="ALPHA (Local Docker Compose)"
@@ -96,6 +100,15 @@ log_error() {
 
 log_warn() {
     echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+# Curl wrapper function to handle Host header properly in beta mode
+do_curl() {
+    if [ "$TEST_MODE" = "beta" ]; then
+        curl -k -H "Host: $HOST_HEADER" "$@"
+    else
+        curl "$@"
+    fi
 }
 
 log_verbose() {
@@ -173,7 +186,7 @@ if [ "$TEST_MODE" = "alpha" ]; then
         log_verbose "Waiting for $service_name at $url..."
 
         while [ $waited -lt $MAX_WAIT ]; do
-            if curl -sf "$url" > /dev/null 2>&1; then
+            if do_curl -sf "$url" > /dev/null 2>&1; then
                 return 0
             fi
             sleep $RETRY_INTERVAL
@@ -248,8 +261,8 @@ else
         log_verbose "Waiting for $service_name at $url..."
 
         while [ $waited -lt $MAX_WAIT ]; do
-            # Use -k to allow self-signed certs in some environments
-            if curl -sf -k "$url" > /dev/null 2>&1; then
+            # Use -k to allow self-signed certs and Host header for ingress routing
+            if do_curl -sf "$url" > /dev/null 2>&1; then
                 return 0
             fi
             sleep $RETRY_INTERVAL
@@ -287,6 +300,7 @@ log_info ""
 log_info "Step 4: Comprehensive REST API Tests..."
 
 # For HTTPS (beta), use -k flag to handle certificates
+# Note: Host header is handled by do_curl() function
 CURL_OPTS=""
 if [ "$TEST_MODE" = "beta" ]; then
     CURL_OPTS="-k"
@@ -305,7 +319,7 @@ if [ "$TEST_MODE" = "beta" ]; then
     fi
 else
     # For local, use the direct /healthz endpoint
-    HEALTH_RESPONSE=$(curl -sf $CURL_OPTS "$API_URL/healthz" 2>/dev/null || echo "")
+    HEALTH_RESPONSE=$(do_curl -sf "$API_URL/healthz" 2>/dev/null || echo "")
     if echo "$HEALTH_RESPONSE" | grep -qi "healthy\|ok\|status.*up"; then
         record_pass "API /healthz returns healthy status"
     else
@@ -314,7 +328,7 @@ else
 fi
 
 # Test API version endpoint
-VERSION_RESPONSE=$(curl -sf $CURL_OPTS "$API_URL/api/v1/version" 2>/dev/null || echo "")
+VERSION_RESPONSE=$(do_curl -sf "$API_URL/api/v1/version" 2>/dev/null || echo "")
 if echo "$VERSION_RESPONSE" | grep -qi "version"; then
     record_pass "API /api/v1/version returns version info"
 else
@@ -323,7 +337,7 @@ fi
 
 # Test authentication - login
 log_info "Testing authentication..."
-LOGIN_RESPONSE=$(curl -sf $CURL_OPTS -X POST "$API_URL/api/v1/auth/login" \
+LOGIN_RESPONSE=$(do_curl -sf -X POST "$API_URL/api/v1/auth/login" \
     -H "Content-Type: application/json" \
     -d "{\"username\": \"$ADMIN_USERNAME\", \"password\": \"$ADMIN_PASSWORD\"}" 2>/dev/null || echo "")
 
@@ -341,7 +355,7 @@ fi
 # Test authenticated endpoints (if we got a token)
 if [ -n "$TOKEN" ]; then
     # Test organizations endpoint
-    ORGS_RESPONSE=$(curl -sf $CURL_OPTS -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/organizations" 2>/dev/null || echo "")
+    ORGS_RESPONSE=$(do_curl -sf -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/organizations" 2>/dev/null || echo "")
     if echo "$ORGS_RESPONSE" | grep -qi "items\|organizations\|\[\]"; then
         record_pass "API GET /organizations works"
     else
@@ -349,7 +363,7 @@ if [ -n "$TOKEN" ]; then
     fi
 
     # Test entities endpoint
-    ENTITIES_RESPONSE=$(curl -sf $CURL_OPTS -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/entities" 2>/dev/null || echo "")
+    ENTITIES_RESPONSE=$(do_curl -sf -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/entities" 2>/dev/null || echo "")
     if echo "$ENTITIES_RESPONSE" | grep -qi "items\|entities\|\[\]"; then
         record_pass "API GET /entities works"
     else
@@ -357,7 +371,7 @@ if [ -n "$TOKEN" ]; then
     fi
 
     # Test services endpoint
-    SERVICES_RESPONSE=$(curl -sf $CURL_OPTS -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/services" 2>/dev/null || echo "")
+    SERVICES_RESPONSE=$(do_curl -sf -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/services" 2>/dev/null || echo "")
     if echo "$SERVICES_RESPONSE" | grep -qi "items\|services\|\[\]"; then
         record_pass "API GET /services works"
     else
@@ -390,7 +404,7 @@ log_info ""
 log_info "Step 5: Web UI Smoke Tests..."
 
 # Test main page loads
-WEB_CONTENT=$(curl -sf $CURL_OPTS "$WEB_URL" 2>/dev/null || echo "")
+WEB_CONTENT=$(do_curl -sf "$WEB_URL" 2>/dev/null || echo "")
 if echo "$WEB_CONTENT" | grep -qi "elder\|<!DOCTYPE\|<html"; then
     record_pass "Web UI main page loads"
 else
@@ -398,14 +412,14 @@ else
 fi
 
 # Test static assets (check if JS/CSS are served)
-if curl -sf $CURL_OPTS "$WEB_URL/assets/" > /dev/null 2>&1 || curl -sf $CURL_OPTS "$WEB_URL" | grep -q "assets/"; then
+if do_curl -sf "$WEB_URL/assets/" > /dev/null 2>&1 || do_curl -sf "$WEB_URL" | grep -q "assets/"; then
     record_pass "Web UI static assets accessible"
 else
     log_warn "Web UI static assets check inconclusive"
 fi
 
 # Test login page
-LOGIN_PAGE=$(curl -sf $CURL_OPTS "$WEB_URL/login" 2>/dev/null || curl -sf $CURL_OPTS "$WEB_URL/#/login" 2>/dev/null || echo "")
+LOGIN_PAGE=$(do_curl -sf "$WEB_URL/login" 2>/dev/null || do_curl -sf "$WEB_URL/#/login" 2>/dev/null || echo "")
 if [ -n "$LOGIN_PAGE" ]; then
     record_pass "Web UI login page accessible"
 else
@@ -480,14 +494,14 @@ else
     log_info "Step 6: K8s Deployment Checks..."
 
     # Check if we can reach the K8s API through the ingress
-    if curl -sf $CURL_OPTS "$API_URL/api/v1/organizations" -H "Authorization: Bearer $TOKEN" > /dev/null 2>&1; then
+    if do_curl -sf "$API_URL/api/v1/organizations" -H "Authorization: Bearer $TOKEN" > /dev/null 2>&1; then
         record_pass "K8s ingress routing to API works"
     else
         log_warn "K8s ingress routing check inconclusive"
     fi
 
     # Verify nginx proxy is working (API calls through web URL)
-    PROXY_TEST=$(curl -sf $CURL_OPTS "$WEB_URL/api/v1/organizations" -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo "")
+    PROXY_TEST=$(do_curl -sf "$WEB_URL/api/v1/organizations" -H "Authorization: Bearer $TOKEN" 2>/dev/null || echo "")
     if echo "$PROXY_TEST" | grep -qi "items\|organizations\|\[\]"; then
         record_pass "K8s nginx proxy routing works"
     else
