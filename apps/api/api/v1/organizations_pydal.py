@@ -6,7 +6,7 @@
 import logging
 from dataclasses import asdict
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 from py_libs.pydantic.flask_integration import validated_request
 from py_libs.pydantic.models.organization import (
     CreateOrganizationRequest,
@@ -115,9 +115,15 @@ async def create_organization(body: CreateOrganizationRequest):
 
     # Insert organization using helper
     try:
-        org_id = await insert_record(
-            db.organizations, **body.model_dump(exclude_none=True)
-        )
+        # Get tenant_id from current user (g.current_user set by @login_required)
+        # Default to 1 if not available (for tests without auth)
+        tenant_id = getattr(g.current_user, 'tenant_id', 1) if hasattr(g, 'current_user') else 1
+
+        org_data = body.model_dump(exclude_none=True)
+        if 'tenant_id' not in org_data:
+            org_data['tenant_id'] = tenant_id
+
+        org_id = await insert_record(db.organizations, **org_data)
         await commit_db(db)
 
         # Fetch created org using helper

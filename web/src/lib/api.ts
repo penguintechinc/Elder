@@ -2060,7 +2060,7 @@ class ApiClient {
   }
 
   async getCurrentOnCall(scopeType: string, scopeId: number) {
-    const response = await this.client.get(`/on-call/current/${scopeType}/${scopeId}`)
+    const response = await this.client.get(`/on-call/rotations/current/${scopeType}/${scopeId}`)
     return response.data
   }
 

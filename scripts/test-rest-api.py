@@ -255,7 +255,7 @@ class RestApiTester:
         self.test_endpoint('GET', '/api/v1/certificates', 'GET /certificates')
 
         # Audit logs
-        self.test_endpoint('GET', '/api/v1/audit', 'GET /audit')
+        self.test_endpoint('GET', '/api/v1/audit/retention-policies', 'GET /audit/retention-policies')
         self.test_endpoint('GET', '/api/v1/logs', 'GET /logs')
 
         # IAM and permissions
@@ -286,7 +286,7 @@ class RestApiTester:
 
         # Test entity CRUD
         self.test_crud_workflow('entities',
-            create_data={'name': 'Test Entity', 'entity_type': 'application', 'description': 'Test entity'},
+            create_data={'name': 'Test Entity', 'entity_type': 'server', 'organization_id': 1, 'description': 'Test entity'},
             update_data={'description': 'Updated entity description'})
 
         # Test service CRUD
@@ -301,22 +301,22 @@ class RestApiTester:
 
         # Test issue CRUD
         self.test_crud_workflow('issues',
-            create_data={'title': 'Test Issue CRUD', 'description': 'Test issue', 'priority': 'medium'},
+            create_data={'title': 'Test Issue CRUD', 'description': 'Test issue', 'priority': 'medium', 'reporter_id': 1, 'organization_id': 1},
             update_data={'priority': 'high'})
 
         # Test project CRUD
         self.test_crud_workflow('projects',
-            create_data={'name': 'Test Project', 'description': 'Test project', 'status': 'active'},
+            create_data={'name': 'Test Project', 'description': 'Test project', 'status': 'active', 'organization_id': 1},
             update_data={'status': 'completed'})
 
         # Test secret CRUD
         self.test_crud_workflow('secrets',
-            create_data={'name': 'test-secret', 'value': 'test123', 'description': 'Test secret'},
+            create_data={'name': 'test-secret', 'value': 'test123', 'description': 'Test secret', 'organization_id': 1},
             update_data={'description': 'Updated secret description'})
 
         # Test webhook CRUD
         self.test_crud_workflow('webhooks',
-            create_data={'name': 'Test Webhook', 'url': 'https://example.com/webhook', 'events': ['create', 'update']},
+            create_data={'name': 'Test Webhook', 'url': 'https://example.com/webhook', 'events': ['create', 'update'], 'organization_id': 1},
             update_data={'events': ['create', 'update', 'delete']})
 
     def print_summary(self):

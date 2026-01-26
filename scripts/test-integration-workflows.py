@@ -206,21 +206,21 @@ class IntegrationTester:
         db_entity_id = self.create_resource('entities', {
             'name': 'PostgreSQL Database',
             'organization_id': org_id,
-            'entity_type_id': 1,
+            'entity_type': 'server',
             'description': 'Primary database'
         })
 
         api_entity_id = self.create_resource('entities', {
             'name': 'API Service',
             'organization_id': org_id,
-            'entity_type_id': 1,
+            'entity_type': 'server',
             'description': 'REST API'
         })
 
         web_entity_id = self.create_resource('entities', {
             'name': 'Web Frontend',
             'organization_id': org_id,
-            'entity_type_id': 1,
+            'entity_type': 'server',
             'description': 'React frontend'
         })
 
@@ -260,11 +260,20 @@ class IntegrationTester:
         """Test: Create project with issues and milestones."""
         self.log_info("Testing issue tracking workflow...")
 
+        # Create organization first
+        org_id = self.create_resource('organizations', {
+            'name': 'Infrastructure Corp',
+            'description': 'Infrastructure management'
+        })
+        if not org_id:
+            return False
+
         # Create project
         project_id = self.create_resource('projects', {
             'name': 'Q1 Infrastructure Upgrade',
             'description': 'Upgrade all infrastructure services',
-            'status': 'active'
+            'status': 'active',
+            'organization_id': org_id
         })
         if not project_id:
             return False
@@ -272,10 +281,11 @@ class IntegrationTester:
 
         # Create milestone
         milestone_id = self.create_resource('milestones', {
-            'name': 'Phase 1 Complete',
+            'title': 'Phase 1 Complete',
             'project_id': project_id,
             'due_date': '2026-03-31',
-            'description': 'Complete database upgrades'
+            'description': 'Complete database upgrades',
+            'organization_id': org_id
         })
         if milestone_id:
             self.log_success(f"Created milestone: {milestone_id}")
@@ -293,7 +303,9 @@ class IntegrationTester:
                 'priority': priority,
                 'status': 'open',
                 'project_id': project_id,
-                'milestone_id': milestone_id
+                'milestone_id': milestone_id,
+                'reporter_id': 1,
+                'organization_id': org_id
             })
             if issue_id:
                 issue_ids.append(issue_id)
@@ -355,10 +367,18 @@ class IntegrationTester:
         """Test: Create and manage secrets."""
         self.log_info("Testing secrets management workflow...")
 
+        # Create organization first
+        org_id = self.create_resource('organizations', {
+            'name': 'Secrets Corp',
+            'description': 'Secrets management'
+        })
+        if not org_id:
+            return False
+
         secrets_data = [
-            {'name': 'database-password', 'value': 'supersecret123', 'description': 'DB password'},
-            {'name': 'api-key', 'value': 'key-abc-123-xyz', 'description': 'External API key'},
-            {'name': 'oauth-secret', 'value': 'oauth-secret-value', 'description': 'OAuth client secret'},
+            {'name': 'database-password', 'value': 'supersecret123', 'description': 'DB password', 'organization_id': org_id},
+            {'name': 'api-key', 'value': 'key-abc-123-xyz', 'description': 'External API key', 'organization_id': org_id},
+            {'name': 'oauth-secret', 'value': 'oauth-secret-value', 'description': 'OAuth client secret', 'organization_id': org_id},
         ]
 
         created_count = 0
