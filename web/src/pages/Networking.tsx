@@ -183,6 +183,49 @@ export default function Networking() {
         ],
       },
       {
+        name: 'cidr',
+        label: 'CIDR Block',
+        type: 'text',
+        required: true,
+        placeholder: '10.0.0.0/16',
+        helpText: 'IPv4 CIDR notation (e.g., 10.0.1.0/24, 172.16.0.0/12)',
+        showWhen: (values) => {
+          const networkType = values.network_type
+          // Show CIDR for network types that have IP addressing
+          return ['vpc', 'subnet', 'vlan', 'vxlan', 'namespace'].includes(networkType)
+        },
+        validate: (value: any, formValues: any) => {
+          const networkType = formValues.network_type
+          const needsCidr = ['vpc', 'subnet', 'vlan', 'vxlan', 'namespace'].includes(networkType)
+
+          if (needsCidr && !value) {
+            return 'CIDR block is required for this network type'
+          }
+          if (!value) return undefined
+
+          // Basic CIDR validation
+          const cidrRegex = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/
+          if (!cidrRegex.test(value)) {
+            return 'Invalid CIDR format. Use format like 10.0.1.0/24'
+          }
+
+          // Validate IP octets are in range 0-255
+          const [ip, prefix] = value.split('/')
+          const octets = ip.split('.').map(Number)
+          if (octets.some(octet => octet < 0 || octet > 255)) {
+            return 'IP octets must be between 0 and 255'
+          }
+
+          // Validate prefix is in range 0-32
+          const prefixNum = parseInt(prefix)
+          if (prefixNum < 0 || prefixNum > 32) {
+            return 'Prefix must be between 0 and 32'
+          }
+
+          return undefined
+        },
+      },
+      {
         name: 'description',
         label: 'Description',
         type: 'textarea',
@@ -270,9 +313,16 @@ export default function Networking() {
       toast.error('Please select an organization first')
       return
     }
+
+    // For network types that don't have IP addressing, use a placeholder CIDR
+    // to satisfy backend requirements (this is a workaround until backend makes CIDR optional)
+    const needsCidr = ['vpc', 'subnet', 'vlan', 'vxlan', 'namespace'].includes(data.network_type)
+    const cidr = data.cidr || (needsCidr ? undefined : '0.0.0.0/0')
+
     createNetworkMutation.mutate({
       ...data,
       organization_id: parseInt(data.organization_id),
+      cidr,
     })
   }
 
