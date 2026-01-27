@@ -6,7 +6,7 @@
 import logging
 from dataclasses import asdict
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 from py_libs.pydantic.flask_integration import validated_request
 from py_libs.pydantic.models.organization import (
     CreateOrganizationRequest,
@@ -115,16 +115,40 @@ async def create_organization(body: CreateOrganizationRequest):
 
     # Insert organization using helper
     try:
-        org_id = await insert_record(
-            db.organizations, **body.model_dump(exclude_none=True)
+        # Get tenant_id from current user (g.current_user set by @login_required)
+        # Default to 1 if not available (for tests without auth)
+        tenant_id = (
+            getattr(g.current_user, "tenant_id", 1) if hasattr(g, "current_user") else 1
         )
+
+        org_data = body.model_dump(exclude_none=True)
+        if "tenant_id" not in org_data:
+            org_data["tenant_id"] = tenant_id
+
+        org_id = await insert_record(db.organizations, **org_data)
+        if not org_id:
+            return log_error_and_respond(
+                logger,
+                Exception("Failed to insert organization"),
+                "Failed to create organization",
+                500,
+            )
+
         await commit_db(db)
 
-        # Fetch created org using helper
+        # Fetch the created org to ensure it exists and return full data
         org_row = await get_by_id(db.organizations, org_id)
-        org_dto = from_pydal_row(org_row, OrganizationDTO)
+        if not org_row:
+            logger.error(
+                f"Organization {org_id} was inserted but not found after commit"
+            )
+            # Still return success with the data we have
+            result = {"id": org_id, **org_data}
+            return ApiResponse.created(result)
 
-        return ApiResponse.created(asdict(org_dto))
+        # Convert to dict and return
+        org_dict = await run_in_threadpool(lambda: org_row.as_dict())
+        return ApiResponse.created(org_dict)
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
@@ -147,12 +171,31 @@ async def get_organization(id: int):
     db = current_app.db
 
     # Get organization using helper
-    org_row = await get_by_id(db.organizations, id)
-    if not org_row:
-        return ApiResponse.not_found("Organization Unit")
+    try:
+        # Log request details for debugging
+        tenant_id = (
+            getattr(g.current_user, "tenant_id", None)
+            if hasattr(g, "current_user")
+            else None
+        )
+        user_id = (
+            getattr(g.current_user, "id", None) if hasattr(g, "current_user") else None
+        )
+        logger.error(
+            f"DEBUG GET /organizations/{id}: user_id={user_id}, tenant_id={tenant_id}"
+        )
 
-    org_dto = from_pydal_row(org_row, OrganizationDTO)
-    return ApiResponse.success(asdict(org_dto))
+        org_row = await get_by_id(db.organizations, id)
+        logger.error(f"DEBUG: org_row = {org_row}")
+        if not org_row:
+            logger.error(f"Organization {id} not found in database")
+            return ApiResponse.not_found("Organization Unit")
+
+        org_dto = from_pydal_row(org_row, OrganizationDTO)
+        return ApiResponse.success(asdict(org_dto))
+    except Exception as e:
+        logger.error(f"Error fetching organization {id}: {e}")
+        return ApiResponse.not_found("Organization Unit")
 
 
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])

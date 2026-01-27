@@ -48,7 +48,19 @@ async def register():
     try:
         validated_data = RegisterRequest(**data)
     except ValidationError as e:
-        return jsonify({"error": "Validation failed", "details": e.errors()}), 422
+        # Convert Pydantic errors to JSON-serializable format
+        errors = []
+        for error in e.errors():
+            errors.append(
+                {
+                    "field": (
+                        error.get("loc", [])[-1] if error.get("loc") else "unknown"
+                    ),
+                    "message": str(error.get("msg", "Validation failed")),
+                    "type": error.get("type", "validation_error"),
+                }
+            )
+        return jsonify({"error": "Validation failed", "details": errors}), 422
 
     # Check if username or email already exists and create user
     def create_user():
@@ -162,7 +174,19 @@ async def login():
     try:
         validated_data = LoginRequest(**data)
     except ValidationError as e:
-        return jsonify({"error": "Validation failed", "details": e.errors()}), 422
+        # Convert Pydantic errors to JSON-serializable format
+        errors = []
+        for error in e.errors():
+            errors.append(
+                {
+                    "field": (
+                        error.get("loc", [])[-1] if error.get("loc") else "unknown"
+                    ),
+                    "message": str(error.get("msg", "Validation failed")),
+                    "type": error.get("type", "validation_error"),
+                }
+            )
+        return jsonify({"error": "Validation failed", "details": errors}), 422
 
     # Find user and verify password
     def authenticate():
