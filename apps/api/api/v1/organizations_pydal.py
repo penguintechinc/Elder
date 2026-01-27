@@ -163,8 +163,13 @@ async def get_organization(id: int):
 
     # Get organization using helper
     try:
+        # Log request details for debugging
+        tenant_id = getattr(g.current_user, 'tenant_id', None) if hasattr(g, 'current_user') else None
+        user_id = getattr(g.current_user, 'id', None) if hasattr(g, 'current_user') else None
+        logger.error(f"DEBUG GET /organizations/{id}: user_id={user_id}, tenant_id={tenant_id}")
+
         org_row = await get_by_id(db.organizations, id)
-        logger.error(f"DEBUG: GET /organizations/{id}: org_row = {org_row}")
+        logger.error(f"DEBUG: org_row = {org_row}")
         if not org_row:
             logger.error(f"Organization {id} not found in database")
             return ApiResponse.not_found("Organization Unit")
