@@ -35,14 +35,8 @@ export default function Organizations() {
     queryFn: () => api.getOrganizations({ search }),
   })
 
-  // Fetch tenants for dropdown
-  const { data: tenants } = useQuery({
-    queryKey: ['tenants'],
-    queryFn: () => api.getTenants(),
-  })
-
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; description?: string; parent_id?: number; tenant_id: number }) =>
+    mutationFn: (data: { name: string; description?: string; parent_id?: number }) =>
       api.createOrganization(data),
     onSuccess: async () => {
       await invalidateCache.organizations(queryClient)
@@ -59,7 +53,7 @@ export default function Organizations() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { name: string; description?: string; tenant_id?: number } }) =>
+    mutationFn: ({ id, data }: { id: number; data: { name: string; description?: string } }) =>
       api.updateOrganization(id, data),
     onSuccess: async () => {
       await invalidateCache.organizations(queryClient)
@@ -87,11 +81,6 @@ export default function Organizations() {
   }
 
   // Form configurations
-  const tenantOptions = tenants?.map((tenant: any) => ({
-    value: tenant.id,
-    label: `${tenant.name}${tenant.id === 1 ? ' (Global)' : ''}`
-  })) || []
-
   const createFormConfig: FormConfig = {
     fields: [
       {
@@ -107,14 +96,6 @@ export default function Organizations() {
         type: 'textarea',
         placeholder: 'Enter description (optional)',
         rows: 3
-      },
-      {
-        name: 'tenant_id',
-        label: 'Tenant',
-        type: 'select',
-        required: true,
-        options: tenantOptions,
-        defaultValue: 1
       }
     ],
     submitLabel: 'Create'
@@ -135,23 +116,15 @@ export default function Organizations() {
         type: 'textarea',
         placeholder: 'Enter description (optional)',
         rows: 3
-      },
-      {
-        name: 'tenant_id',
-        label: 'Tenant',
-        type: 'select',
-        required: true,
-        options: tenantOptions
       }
     ],
     submitLabel: 'Update'
   }
 
   const handleCreate = (formData: Record<string, any>) => {
-    const data: { name: string; description?: string; parent_id?: number; tenant_id: number } = {
+    const data: { name: string; description?: string; parent_id?: number } = {
       name: formData.name,
       description: formData.description || undefined,
-      tenant_id: formData.tenant_id,
     }
     if (initialParentId) {
       data.parent_id = parseInt(initialParentId)
@@ -166,7 +139,6 @@ export default function Organizations() {
       data: {
         name: formData.name,
         description: formData.description || undefined,
-        tenant_id: formData.tenant_id,
       }
     })
   }
@@ -261,7 +233,6 @@ export default function Organizations() {
         }}
         title="Create Organization Unit"
         config={createFormConfig}
-        initialValues={{ tenant_id: 1 }}
         onSubmit={handleCreate}
         isLoading={createMutation.isPending}
       />
@@ -274,8 +245,7 @@ export default function Organizations() {
         config={editFormConfig}
         initialValues={editingOrg ? {
           name: editingOrg.name,
-          description: editingOrg.description || '',
-          tenant_id: editingOrg.tenant_id || 1
+          description: editingOrg.description || ''
         } : undefined}
         onSubmit={handleUpdate}
         isLoading={updateMutation.isPending}

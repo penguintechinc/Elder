@@ -230,7 +230,7 @@ function CreateEntityModal({ initialOrganizationId, onClose, onSuccess }: any) {
       name: data.name,
       description: data.description || undefined,
       entity_type: data.entity_type,
-      entity_sub_type: data.entity_sub_type || undefined,
+      sub_type: data.entity_sub_type || undefined,
       organization_id: parseInt(data.organization_id),
     })
   }
