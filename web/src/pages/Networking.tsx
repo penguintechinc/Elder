@@ -201,18 +201,6 @@ export default function Networking() {
         type: 'textarea',
         placeholder: 'Main production network',
       },
-      {
-        name: 'region',
-        label: 'Region',
-        type: 'text',
-        placeholder: 'us-east-1',
-      },
-      {
-        name: 'location',
-        label: 'Location',
-        type: 'text',
-        placeholder: 'AWS Virginia',
-      },
     ],
     submitLabel: 'Create',
   }
