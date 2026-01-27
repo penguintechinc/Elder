@@ -51,11 +51,15 @@ async def register():
         # Convert Pydantic errors to JSON-serializable format
         errors = []
         for error in e.errors():
-            errors.append({
-                "field": error.get("loc", [])[-1] if error.get("loc") else "unknown",
-                "message": str(error.get("msg", "Validation failed")),
-                "type": error.get("type", "validation_error")
-            })
+            errors.append(
+                {
+                    "field": (
+                        error.get("loc", [])[-1] if error.get("loc") else "unknown"
+                    ),
+                    "message": str(error.get("msg", "Validation failed")),
+                    "type": error.get("type", "validation_error"),
+                }
+            )
         return jsonify({"error": "Validation failed", "details": errors}), 422
 
     # Check if username or email already exists and create user
@@ -173,11 +177,15 @@ async def login():
         # Convert Pydantic errors to JSON-serializable format
         errors = []
         for error in e.errors():
-            errors.append({
-                "field": error.get("loc", [])[-1] if error.get("loc") else "unknown",
-                "message": str(error.get("msg", "Validation failed")),
-                "type": error.get("type", "validation_error")
-            })
+            errors.append(
+                {
+                    "field": (
+                        error.get("loc", [])[-1] if error.get("loc") else "unknown"
+                    ),
+                    "message": str(error.get("msg", "Validation failed")),
+                    "type": error.get("type", "validation_error"),
+                }
+            )
         return jsonify({"error": "Validation failed", "details": errors}), 422
 
     # Find user and verify password
