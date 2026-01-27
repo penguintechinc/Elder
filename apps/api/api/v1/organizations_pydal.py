@@ -124,11 +124,22 @@ async def create_organization(body: CreateOrganizationRequest):
             org_data['tenant_id'] = tenant_id
 
         org_id = await insert_record(db.organizations, **org_data)
+        if not org_id:
+            return log_error_and_respond(logger, Exception("Failed to insert organization"), "Failed to create organization", 500)
+
         await commit_db(db)
 
-        # Return the created org with ID
-        result = {'id': org_id, **org_data}
-        return ApiResponse.created(result)
+        # Fetch the created org to ensure it exists and return full data
+        org_row = await get_by_id(db.organizations, org_id)
+        if not org_row:
+            logger.error(f"Organization {org_id} was inserted but not found after commit")
+            # Still return success with the data we have
+            result = {'id': org_id, **org_data}
+            return ApiResponse.created(result)
+
+        # Convert to dict and return
+        org_dict = await run_in_threadpool(lambda: org_row.as_dict())
+        return ApiResponse.created(org_dict)
 
     except Exception as e:
         await run_in_threadpool(lambda: db.rollback())
