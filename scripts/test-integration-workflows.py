@@ -122,8 +122,9 @@ class IntegrationTester:
         """Create a resource and track it for cleanup."""
         resp, err = self._request('POST', f'/api/v1/{resource_type}', json=data)
 
-        if err or not resp or resp.status_code not in [200, 201]:
-            self.log_fail(f"Failed to create {resource_type}: {err or (resp.status_code if resp else 'unknown')}")
+        if err or resp is None or resp.status_code not in [200, 201]:
+            error_msg = err if err else (f"{resp.status_code}: {resp.text[:100]}" if resp is not None else 'unknown')
+            self.log_fail(f"Failed to create {resource_type}: {error_msg}")
             return None
 
         result = resp.json()
