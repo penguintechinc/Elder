@@ -150,8 +150,9 @@ class RestApiTester:
 
         # CREATE
         resp, err = self._request('POST', f'/api/v1/{resource}', json=create_data)
-        if err or resp.status_code not in [200, 201]:
-            self.log_fail(f"CREATE {resource} failed: {err or resp.status_code}")
+        if err or resp is None or resp.status_code not in [200, 201]:
+            error_detail = err if err else (f"status {resp.status_code}" if resp is not None else "no response")
+            self.log_fail(f"CREATE {resource} failed: {error_detail}")
             return False
 
         created = resp.json()
@@ -164,8 +165,9 @@ class RestApiTester:
 
         # READ
         resp, err = self._request('GET', f'/api/v1/{resource}/{resource_id}')
-        if err or resp.status_code != 200:
-            self.log_fail(f"READ {resource}/{resource_id} failed")
+        if err or resp is None or resp.status_code != 200:
+            error_detail = err if err else (f"status {resp.status_code}" if resp is not None else "no response")
+            self.log_fail(f"READ {resource}/{resource_id} failed: {error_detail}")
             return False
         self.log_success(f"READ {resource}/{resource_id}")
 
@@ -301,7 +303,7 @@ class RestApiTester:
 
         # Test issue CRUD
         self.test_crud_workflow('issues',
-            create_data={'title': 'Test Issue CRUD', 'description': 'Test issue', 'priority': 'medium', 'reporter_id': 1, 'organization_id': 1},
+            create_data={'title': 'Test Issue CRUD', 'description': 'Test issue', 'priority': 'medium', 'organization_id': 1},
             update_data={'priority': 'high'})
 
         # Test project CRUD

@@ -162,12 +162,18 @@ async def get_organization(id: int):
     db = current_app.db
 
     # Get organization using helper
-    org_row = await get_by_id(db.organizations, id)
-    if not org_row:
-        return ApiResponse.not_found("Organization Unit")
+    try:
+        org_row = await get_by_id(db.organizations, id)
+        logger.error(f"DEBUG: GET /organizations/{id}: org_row = {org_row}")
+        if not org_row:
+            logger.error(f"Organization {id} not found in database")
+            return ApiResponse.not_found("Organization Unit")
 
-    org_dto = from_pydal_row(org_row, OrganizationDTO)
-    return ApiResponse.success(asdict(org_dto))
+        org_dto = from_pydal_row(org_row, OrganizationDTO)
+        return ApiResponse.success(asdict(org_dto))
+    except Exception as e:
+        logger.error(f"Error fetching organization {id}: {e}")
+        return ApiResponse.not_found("Organization Unit")
 
 
 @bp.route("/<int:id>", methods=["PATCH", "PUT"])

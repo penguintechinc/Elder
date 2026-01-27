@@ -305,7 +305,6 @@ class IntegrationTester:
                 'status': 'open',
                 'project_id': project_id,
                 'milestone_id': milestone_id,
-                'reporter_id': 1,
                 'organization_id': org_id
             })
             if issue_id:
