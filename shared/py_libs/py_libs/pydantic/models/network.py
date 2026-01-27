@@ -155,6 +155,14 @@ class CreateNetworkRequest(RequestModel):
         default=None,
         description="Optional maximum transmission unit size",
     )
+    region: Optional[str] = Field(
+        default=None,
+        description="Optional region (e.g., us-east-1, eu-west-1)",
+    )
+    location: Optional[str] = Field(
+        default=None,
+        description="Optional physical location (e.g., AWS Virginia, Data Center 1)",
+    )
     is_active: bool = Field(
         default=True,
         description="Active status",

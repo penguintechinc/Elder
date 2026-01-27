@@ -90,6 +90,8 @@ def create_network():
             vlan_id=body.vlan_id,
             mtu=body.mtu,
             cidr=body.cidr,
+            region=body.region,
+            location=body.location,
             is_active=body.is_active,
         )
 
