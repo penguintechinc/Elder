@@ -12,6 +12,7 @@ export type FieldType =
   | 'url'            // strip all spaces
   | 'domain'         // strip all spaces
   | 'ip'             // strip all spaces
+  | 'cidr'           // CIDR notation (allows . / and numbers)
   | 'path'           // strip all spaces
   | 'slug'           // strip all spaces
   | 'textarea'       // trim or undefined
@@ -173,6 +174,26 @@ export function validateFieldValue(value: any, field: FormField): string | undef
         }
         break
 
+      case 'cidr':
+        const cidrValue = value.replace(/\s+/g, '')
+        // Basic CIDR validation: IP address followed by /prefix
+        const cidrRegex = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/
+        if (!cidrRegex.test(cidrValue)) {
+          return 'Invalid CIDR format. Use format like 10.0.1.0/24'
+        }
+        // Validate IP octets are in range 0-255
+        const [cidrIp, cidrPrefix] = cidrValue.split('/')
+        const cidrOctets = cidrIp.split('.').map(Number)
+        if (cidrOctets.some(octet => octet < 0 || octet > 255)) {
+          return 'IP octets must be between 0 and 255'
+        }
+        // Validate prefix is in range 0-32
+        const cidrPrefixNum = parseInt(cidrPrefix)
+        if (cidrPrefixNum < 0 || cidrPrefixNum > 32) {
+          return 'Prefix must be between 0 and 32'
+        }
+        break
+
       case 'cron':
         // Basic cron expression validation (5 or 6 fields)
         // Allow: numbers, *, /, -, , and spaces between fields
@@ -256,6 +277,7 @@ export function processFieldValue(value: any, type: FieldType): any {
     case 'url':
     case 'domain':
     case 'ip':
+    case 'cidr':
     case 'path':
     case 'slug':
     case 'color':

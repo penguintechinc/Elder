@@ -185,7 +185,7 @@ export default function Networking() {
       {
         name: 'cidr',
         label: 'CIDR Block',
-        type: 'text',
+        type: 'cidr',
         required: true,
         placeholder: '10.0.0.0/16',
         helpText: 'IPv4 CIDR notation (e.g., 10.0.1.0/24, 172.16.0.0/12)',
@@ -193,36 +193,6 @@ export default function Networking() {
           const networkType = values.network_type
           // Show CIDR for network types that have IP addressing
           return ['vpc', 'subnet', 'vlan', 'vxlan', 'namespace'].includes(networkType)
-        },
-        validate: (value: any, formValues: any) => {
-          const networkType = formValues.network_type
-          const needsCidr = ['vpc', 'subnet', 'vlan', 'vxlan', 'namespace'].includes(networkType)
-
-          if (needsCidr && !value) {
-            return 'CIDR block is required for this network type'
-          }
-          if (!value) return undefined
-
-          // Basic CIDR validation
-          const cidrRegex = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/
-          if (!cidrRegex.test(value)) {
-            return 'Invalid CIDR format. Use format like 10.0.1.0/24'
-          }
-
-          // Validate IP octets are in range 0-255
-          const [ip, prefix] = value.split('/')
-          const octets = ip.split('.').map(Number)
-          if (octets.some(octet => octet < 0 || octet > 255)) {
-            return 'IP octets must be between 0 and 255'
-          }
-
-          // Validate prefix is in range 0-32
-          const prefixNum = parseInt(prefix)
-          if (prefixNum < 0 || prefixNum > 32) {
-            return 'Prefix must be between 0 and 32'
-          }
-
-          return undefined
         },
       },
       {
