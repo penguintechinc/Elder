@@ -28,8 +28,6 @@ classifiers = [
 dependencies = [
     "argon2-cffi>=23.1.0",
     "cryptography>=41.0.0",
-    "pydantic>=2.5.0",
-    "pydantic-settings>=2.1.0",
 ]
 
 [project.optional-dependencies]
@@ -47,12 +45,8 @@ grpc = [
 redis = [
     "redis>=5.0.0",
 ]
-pydantic = [
-    "pydantic>=2.5.0",
-    "pydantic-settings>=2.1.0",
-]
 all = [
-    "py_libs[flask,grpc,redis,http,pydantic]",
+    "py_libs[flask,grpc,redis,http]",
 ]
 dev = [
     "pytest>=8.0.0",

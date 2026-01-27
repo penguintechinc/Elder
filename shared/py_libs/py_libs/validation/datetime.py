@@ -8,9 +8,6 @@ Provides:
 - IsDateInRange: Validates date is within range
 """
 
-# flake8: noqa: E501
-
-
 from __future__ import annotations
 
 from datetime import date, datetime, time

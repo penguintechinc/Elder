@@ -5,14 +5,11 @@ Provides a production-ready HTTP client with exponential backoff,
 configurable timeouts, and optional circuit breaker protection.
 """
 
-# flake8: noqa: E501
-
-
 import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import httpx
 

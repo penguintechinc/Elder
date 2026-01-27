@@ -6,9 +6,6 @@ Provides:
 - PasswordOptions: Configuration dataclass for password requirements
 """
 
-# flake8: noqa: E501
-
-
 from __future__ import annotations
 
 import re

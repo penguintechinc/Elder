@@ -2,9 +2,6 @@
 gRPC client with connection management, retries, and TLS support.
 """
 
-# flake8: noqa: E501
-
-
 from __future__ import annotations
 
 import logging

@@ -2,9 +2,6 @@
 gRPC server helpers with health checks and graceful shutdown.
 """
 
-# flake8: noqa: E501
-
-
 from __future__ import annotations
 
 import logging
