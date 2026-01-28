@@ -94,6 +94,7 @@ class IssueDTO(ImmutableModel):
     updated_at: datetime
     tenant_id: Optional[int] = None
     village_id: Optional[str] = None
+    parent_issue_id: Optional[int] = None
 
 
 class CreateIssueRequest(RequestModel):
@@ -156,6 +157,11 @@ class CreateIssueRequest(RequestModel):
         default=0,
         description="Flag indicating if this is an incident",
     )
+    parent_issue_id: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="Optional parent issue ID for sub-tasks",
+    )
 
 
 class UpdateIssueRequest(RequestModel):
@@ -205,4 +211,9 @@ class UpdateIssueRequest(RequestModel):
     is_incident: Optional[int] = Field(
         default=None,
         description="Incident flag",
+    )
+    parent_issue_id: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description="Optional parent issue ID for sub-tasks",
     )

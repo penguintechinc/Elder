@@ -311,7 +311,8 @@ fi
 if [ "$TEST_MODE" = "beta" ]; then
     # For K8s, test API health by checking a valid API endpoint returns JSON error
     # Note: don't use -f flag here since we expect 401 which is still a valid API response
-    HEALTH_RESPONSE=$(curl -s $CURL_OPTS "$API_URL/api/v1/organizations" 2>/dev/null || echo "")
+    # Use do_curl to ensure Host header is included for proper routing
+    HEALTH_RESPONSE=$(do_curl -s $CURL_OPTS "$API_URL/api/v1/organizations" 2>/dev/null || echo "")
     if echo "$HEALTH_RESPONSE" | grep -qi "authentication\|unauthorized\|error\|items"; then
         record_pass "API is responding (via /api/v1/organizations)"
     else
