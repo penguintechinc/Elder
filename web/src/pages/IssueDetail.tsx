@@ -3,14 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Trash2, MessageSquare, Tag, User, Link as LinkIcon,
-  Send, X, Plus, Copy
+  Send, X, Plus, Copy, ListTree
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '@/lib/api'
+import { getStatusColor, getPriorityColor } from '@/lib/colorHelpers'
 import Button from '@/components/Button'
 import Card, { CardHeader, CardContent } from '@/components/Card'
 // Input component not currently used
 import Select from '@/components/Select'
+import { CreateIssueModal } from '@/pages/Issues'
 
 type IssueStatus = 'open' | 'in_progress' | 'closed'
 type IssuePriority = 'low' | 'medium' | 'high' | 'critical'
@@ -25,6 +27,7 @@ export default function IssueDetail() {
   const [showLinkEntity, setShowLinkEntity] = useState(false)
   const [showAddProject, setShowAddProject] = useState(false)
   const [showAddMilestone, setShowAddMilestone] = useState(false)
+  const [showCreateSubTask, setShowCreateSubTask] = useState(false)
 
   const { data: issue, isLoading } = useQuery({
     queryKey: ['issue', id],
@@ -47,6 +50,12 @@ export default function IssueDetail() {
   const { data: linkedEntities } = useQuery({
     queryKey: ['issue-entities', id],
     queryFn: () => api.getIssueEntities(parseInt(id!)),
+    enabled: !!id,
+  })
+
+  const { data: subtasks } = useQuery({
+    queryKey: ['issue-subtasks', id],
+    queryFn: () => api.getIssueSubtasks(parseInt(id!)),
     enabled: !!id,
   })
 
@@ -420,6 +429,55 @@ export default function IssueDetail() {
               </form>
             </CardContent>
           </Card>
+
+          {/* Sub-Tasks */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                  <ListTree className="w-5 h-5" />
+                  Sub-Tasks ({subtasks?.items?.length || 0})
+                </h2>
+                <Button onClick={() => setShowCreateSubTask(true)} variant="ghost">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Sub-Task
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {subtasks?.items?.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">No sub-tasks</p>
+              ) : (
+                <div className="space-y-3">
+                  {subtasks?.items?.map((subtask: any) => (
+                    <div
+                      key={subtask.id}
+                      className="p-4 bg-slate-800/30 rounded-lg cursor-pointer hover:bg-slate-800/50 transition-colors"
+                      onClick={() => navigate(`/issues/${subtask.id}`)}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-base font-semibold text-white mb-1">{subtask.title}</h4>
+                          {subtask.description && (
+                            <p className="text-sm text-slate-400 line-clamp-2 mb-2">{subtask.description}</p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs text-slate-500">#{subtask.id}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded ${getStatusColor(subtask.status)}`}>
+                              {subtask.status.replace('_', ' ')}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded ${getPriorityColor(subtask.priority)}`}>
+                              {subtask.priority}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar */}
@@ -692,6 +750,22 @@ export default function IssueDetail() {
           </Card>
         </div>
       </div>
+
+      {/* Create Sub-Task Modal */}
+      {showCreateSubTask && (
+        <CreateIssueModal
+          onClose={() => setShowCreateSubTask(false)}
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: ['issue-subtasks', id],
+              refetchType: 'all'
+            })
+            setShowCreateSubTask(false)
+          }}
+          defaultOrganizationId={issue?.organization_id}
+          parentIssueId={parseInt(id!)}
+        />
+      )}
     </div>
   )
 }

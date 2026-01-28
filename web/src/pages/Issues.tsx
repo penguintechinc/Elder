@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Search, MessageSquare, Tag, User, AlertTriangle } from 'lucide-react'
@@ -8,9 +8,10 @@ import { queryKeys } from '@/lib/queryKeys'
 import { invalidateCache } from '@/lib/invalidateCache'
 import { getStatusColor, getPriorityColor } from '@/lib/colorHelpers'
 import Button from '@/components/Button'
-import Card, { CardHeader, CardContent } from '@/components/Card'
+import Card, { CardContent } from '@/components/Card'
 import Input from '@/components/Input'
 import Select from '@/components/Select'
+import { FormModalBuilder, FormField } from '@penguin/react_libs/components'
 
 type IssueStatus = 'open' | 'in_progress' | 'closed'
 type IssuePriority = 'low' | 'medium' | 'high' | 'critical'
@@ -218,23 +219,15 @@ export default function Issues() {
   )
 }
 
-interface CreateIssueModalProps {
+export interface CreateIssueModalProps {
   onClose: () => void
   onSuccess: () => void
   defaultOrganizationId?: number
   defaultEntityId?: number
+  parentIssueId?: number
 }
 
-function CreateIssueModal({ onClose, onSuccess, defaultOrganizationId, defaultEntityId }: CreateIssueModalProps) {
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [priority, setPriority] = useState<IssuePriority>('medium')
-  const [assignmentType, setAssignmentType] = useState<'organization' | 'entity'>('organization')
-  const [organizationId, setOrganizationId] = useState<number | undefined>(defaultOrganizationId)
-  const [selectedEntities, setSelectedEntities] = useState<number[]>(defaultEntityId ? [defaultEntityId] : [])
-  const [selectedLabels, setSelectedLabels] = useState<number[]>([])
-  const [isIncident, setIsIncident] = useState(false)
-
+export function CreateIssueModal({ onClose, onSuccess, defaultOrganizationId, defaultEntityId, parentIssueId }: CreateIssueModalProps) {
   const { data: organizations } = useQuery({
     queryKey: ['organizations-all'],
     queryFn: () => api.getOrganizations({ per_page: 1000 }),
@@ -259,198 +252,138 @@ function CreateIssueModal({ onClose, onSuccess, defaultOrganizationId, defaultEn
       entity_ids?: number[]
       label_ids?: number[]
       is_incident?: number
+      parent_issue_id?: number
     }) => api.createIssue(data),
     onSuccess: () => {
-      toast.success('Issue created successfully')
+      toast.success(parentIssueId ? 'Sub-task created successfully' : 'Issue created successfully')
       onSuccess()
     },
     onError: () => {
-      toast.error('Failed to create issue')
+      toast.error(parentIssueId ? 'Failed to create sub-task' : 'Failed to create issue')
     },
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    createMutation.mutate({
-      title,
-      description: description || undefined,
-      priority,
-      organization_id: assignmentType === 'organization' ? organizationId : undefined,
-      entity_ids: assignmentType === 'entity' && selectedEntities.length > 0 ? selectedEntities : undefined,
-      label_ids: selectedLabels.length > 0 ? selectedLabels : undefined,
-      is_incident: isIncident ? 1 : 0,
-    })
-  }
+  // Build form fields dynamically based on available data
+  const fields: FormField[] = useMemo(() => [
+    {
+      name: 'title',
+      type: 'text' as const,
+      label: 'Title',
+      required: true,
+      placeholder: 'Enter issue title',
+    },
+    {
+      name: 'description',
+      type: 'textarea' as const,
+      label: 'Description',
+      placeholder: 'Enter description (optional)',
+      rows: 4,
+    },
+    {
+      name: 'priority',
+      type: 'select' as const,
+      label: 'Priority',
+      required: true,
+      defaultValue: 'medium',
+      options: [
+        { value: 'low', label: 'Low' },
+        { value: 'medium', label: 'Medium' },
+        { value: 'high', label: 'High' },
+        { value: 'critical', label: 'Critical' },
+      ],
+    },
+    {
+      name: 'assignment_type',
+      type: 'radio' as const,
+      label: 'Assign To',
+      defaultValue: 'organization',
+      options: [
+        { value: 'organization', label: 'Organization' },
+        { value: 'entity', label: 'Entity' },
+      ],
+    },
+    {
+      name: 'organization_id',
+      type: 'select' as const,
+      label: 'Organization',
+      defaultValue: defaultOrganizationId?.toString() || '',
+      options: [
+        { value: '', label: 'None' },
+        ...(organizations?.items?.map((org: any) => ({
+          value: org.id.toString(),
+          label: org.name,
+        })) || []),
+      ],
+      showWhen: (values: Record<string, any>) => values.assignment_type === 'organization',
+    },
+    {
+      name: 'entity_ids',
+      type: 'checkbox_multi' as const,
+      label: 'Entities',
+      helpText: 'Select one or more entities to assign this issue',
+      defaultValue: defaultEntityId ? [defaultEntityId.toString()] : [],
+      options: entities?.items?.map((entity: any) => ({
+        value: entity.id.toString(),
+        label: entity.name,
+      })) || [],
+      showWhen: (values: Record<string, any>) => values.assignment_type === 'entity',
+    },
+    {
+      name: 'label_ids',
+      type: 'checkbox_multi' as const,
+      label: 'Labels',
+      helpText: 'Optionally select labels to categorize this issue',
+      options: labels?.items?.map((label: any) => ({
+        value: label.id.toString(),
+        label: label.name,
+      })) || [],
+    },
+    {
+      name: 'is_incident',
+      type: 'checkbox' as const,
+      label: 'Mark as Incident',
+      defaultValue: false,
+    },
+  ], [organizations, entities, labels, defaultOrganizationId, defaultEntityId])
 
-  const toggleEntity = (entityId: number) => {
-    setSelectedEntities(prev =>
-      prev.includes(entityId)
-        ? prev.filter(id => id !== entityId)
-        : [...prev, entityId]
-    )
-  }
+  const handleSubmit = async (data: Record<string, any>) => {
+    // Convert form data to API format
+    const apiData: any = {
+      title: data.title,
+      description: data.description || undefined,
+      priority: data.priority,
+      is_incident: data.is_incident ? 1 : 0,
+    }
 
-  const toggleLabel = (labelId: number) => {
-    setSelectedLabels(prev =>
-      prev.includes(labelId)
-        ? prev.filter(id => id !== labelId)
-        : [...prev, labelId]
-    )
+    // Handle assignment
+    if (data.assignment_type === 'organization' && data.organization_id) {
+      apiData.organization_id = parseInt(data.organization_id)
+    } else if (data.assignment_type === 'entity' && data.entity_ids?.length > 0) {
+      apiData.entity_ids = data.entity_ids.map((id: string) => parseInt(id))
+    }
+
+    // Handle labels
+    if (data.label_ids?.length > 0) {
+      apiData.label_ids = data.label_ids.map((id: string) => parseInt(id))
+    }
+
+    // Handle parent issue for sub-tasks
+    if (parentIssueId) {
+      apiData.parent_issue_id = parentIssueId
+    }
+
+    createMutation.mutate(apiData)
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <h2 className="text-xl font-semibold text-white">Create Issue</h2>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Title"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter issue title"
-            />
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter description (optional)"
-                rows={4}
-                className="block w-full px-4 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-primary-500 focus:border-primary-500"
-              />
-            </div>
-            <Select
-              label="Priority"
-              required
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as IssuePriority)}
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
-            </Select>
-
-            {/* Assignment Type Selection */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Assign To
-              </label>
-              <div className="flex gap-4 mb-3">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="organization"
-                    checked={assignmentType === 'organization'}
-                    onChange={(e) => setAssignmentType(e.target.value as 'organization' | 'entity')}
-                    className="mr-2"
-                  />
-                  <span className="text-sm text-slate-300">Organization</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="entity"
-                    checked={assignmentType === 'entity'}
-                    onChange={(e) => setAssignmentType(e.target.value as 'organization' | 'entity')}
-                    className="mr-2"
-                  />
-                  <span className="text-sm text-slate-300">Entity</span>
-                </label>
-              </div>
-
-              {assignmentType === 'organization' ? (
-                <Select
-                  value={organizationId?.toString() || ''}
-                  onChange={(e) => setOrganizationId(e.target.value ? parseInt(e.target.value) : undefined)}
-                >
-                  <option value="">None</option>
-                  {organizations?.items?.map((org: any) => (
-                    <option key={org.id} value={org.id}>
-                      {org.name}
-                    </option>
-                  ))}
-                </Select>
-              ) : (
-                <div className="max-h-40 overflow-y-auto border border-slate-700 rounded-lg p-2 bg-slate-900">
-                  {entities?.items && entities.items.length > 0 ? (
-                    entities.items.map((entity: any) => (
-                      <label key={entity.id} className="flex items-center p-2 hover:bg-slate-800 rounded cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedEntities.includes(entity.id)}
-                          onChange={() => toggleEntity(entity.id)}
-                          className="mr-2"
-                        />
-                        <span className="text-sm text-slate-300">{entity.name}</span>
-                      </label>
-                    ))
-                  ) : (
-                    <p className="text-sm text-slate-500 p-2">No entities available</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Labels Selection */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Labels
-              </label>
-              <div className="max-h-40 overflow-y-auto border border-slate-700 rounded-lg p-2 bg-slate-900">
-                {labels?.items && labels.items.length > 0 ? (
-                  labels.items.map((label: any) => (
-                    <label key={label.id} className="flex items-center p-2 hover:bg-slate-800 rounded cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedLabels.includes(label.id)}
-                        onChange={() => toggleLabel(label.id)}
-                        className="mr-2"
-                      />
-                      <span
-                        className="inline-block w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: label.color }}
-                      />
-                      <span className="text-sm text-slate-300">{label.name}</span>
-                    </label>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500 p-2">No labels available</p>
-                )}
-              </div>
-            </div>
-
-            {/* Incident Checkbox */}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="is-incident"
-                checked={isIncident}
-                onChange={(e) => setIsIncident(e.target.checked)}
-                className="mr-2 h-4 w-4 text-yellow-500 bg-slate-900 border-slate-700 rounded focus:ring-2 focus:ring-yellow-500"
-              />
-              <label htmlFor="is-incident" className="text-sm font-medium text-slate-300 cursor-pointer">
-                Mark as Incident
-              </label>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" isLoading={createMutation.isPending}>
-                Create
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <FormModalBuilder
+      title={parentIssueId ? 'Create Sub-Task' : 'Create Issue'}
+      fields={fields}
+      isOpen={true}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      submitButtonText={parentIssueId ? 'Create Sub-Task' : 'Create Issue'}
+      cancelButtonText="Cancel"
+    />
   )
 }

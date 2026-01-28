@@ -23,7 +23,9 @@
     /* Path aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@penguin/react_libs": ["../shared/react_libs/dist"],
+      "@penguin/react_libs/*": ["../shared/react_libs/dist/*"]
     }
   },
   "include": ["src"],

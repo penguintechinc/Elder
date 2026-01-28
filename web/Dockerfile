@@ -15,14 +15,17 @@ WORKDIR /app
 # This works around npm bug https://github.com/npm/cli/issues/4828 where
 # optional platform-specific packages (rollup, esbuild, lightningcss) fail
 # when package-lock.json was generated on a different architecture
-COPY package.json ./
+COPY web/package.json ./
 
 # Install dependencies fresh for current architecture
 RUN npm install --ignore-scripts && \
     npm rebuild esbuild
 
+# Copy shared react_libs for imports
+COPY shared/react_libs ../shared/react_libs
+
 # Copy source code
-COPY . .
+COPY web/ .
 
 # Build the application
 RUN npm run build
@@ -34,7 +37,7 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY web/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
