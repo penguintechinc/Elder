@@ -33,7 +33,7 @@ jobs:
             platforms: linux/amd64,linux/arm64
           - name: web
             dockerfile: web/Dockerfile
-            context: web
+            context: .
             platforms: linux/amd64,linux/arm64
           - name: scanner
             dockerfile: apps/scanner/Dockerfile

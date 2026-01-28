@@ -312,6 +312,7 @@ class IssueDTO:
     updated_at: datetime
     tenant_id: Optional[int] = None
     village_id: Optional[str] = None
+    parent_issue_id: Optional[int] = None
 
 
 @dataclass(slots=True)
@@ -327,6 +328,7 @@ class CreateIssueRequest:
     assignee_id: Optional[int] = None
     organization_id: Optional[int] = None
     is_incident: int = 0
+    parent_issue_id: Optional[int] = None
 
 
 @dataclass(slots=True)
@@ -340,6 +342,7 @@ class UpdateIssueRequest:
     issue_type: Optional[str] = None
     assignee_id: Optional[int] = None
     is_incident: Optional[int] = None
+    parent_issue_id: Optional[int] = None
 
 
 @dataclass(slots=True, frozen=True)

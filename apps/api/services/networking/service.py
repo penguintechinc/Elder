@@ -30,11 +30,16 @@ class NetworkingService:
         parent_id: Optional[int] = None,
         region: Optional[str] = None,
         location: Optional[str] = None,
+        cidr: Optional[str] = None,
+        gateway: Optional[str] = None,
+        vlan_id: Optional[int] = None,
+        mtu: Optional[int] = None,
         poc: Optional[str] = None,
         organizational_unit: Optional[str] = None,
         attributes: Optional[Dict[str, Any]] = None,
         status_metadata: Optional[Dict[str, Any]] = None,
         tags: Optional[List[str]] = None,
+        is_active: bool = True,
     ) -> Dict[str, Any]:
         """Create a new networking resource."""
         try:
@@ -46,12 +51,16 @@ class NetworkingService:
                 parent_id=parent_id,
                 region=region,
                 location=location,
+                cidr=cidr,
+                gateway=gateway,
+                vlan_id=vlan_id,
+                mtu=mtu,
                 poc=poc,
                 organizational_unit=organizational_unit,
                 attributes=attributes or {},
                 status_metadata=status_metadata or {},
                 tags=tags or [],
-                is_active=True,
+                is_active=is_active,
             )
 
             self.db.commit()

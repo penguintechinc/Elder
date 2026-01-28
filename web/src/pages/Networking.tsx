@@ -183,6 +183,19 @@ export default function Networking() {
         ],
       },
       {
+        name: 'cidr',
+        label: 'CIDR Block',
+        type: 'cidr',
+        required: true,
+        placeholder: '10.0.0.0/16',
+        helpText: 'IPv4 CIDR notation (e.g., 10.0.1.0/24, 172.16.0.0/12)',
+        showWhen: (values) => {
+          const networkType = values.network_type
+          // Show CIDR for network types that have IP addressing
+          return ['vpc', 'subnet', 'vlan', 'vxlan', 'namespace'].includes(networkType)
+        },
+      },
+      {
         name: 'description',
         label: 'Description',
         type: 'textarea',
@@ -270,9 +283,16 @@ export default function Networking() {
       toast.error('Please select an organization first')
       return
     }
+
+    // For network types that don't have IP addressing, use a placeholder CIDR
+    // to satisfy backend requirements (this is a workaround until backend makes CIDR optional)
+    const needsCidr = ['vpc', 'subnet', 'vlan', 'vxlan', 'namespace'].includes(data.network_type)
+    const cidr = data.cidr || (needsCidr ? undefined : '0.0.0.0/0')
+
     createNetworkMutation.mutate({
       ...data,
       organization_id: parseInt(data.organization_id),
+      cidr,
     })
   }
 

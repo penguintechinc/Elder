@@ -119,7 +119,7 @@ echo ""
 # Image configurations: name, dockerfile, context, deployment_name, container_name
 declare -A IMAGES
 IMAGES[api]="apps/api/Dockerfile:.:elder-api:api"
-IMAGES[web]="web/Dockerfile:web:elder-web:web"
+IMAGES[web]="web/Dockerfile:.:elder-web:web"
 IMAGES[scanner]="apps/scanner/Dockerfile:apps/scanner:elder-scanner:scanner"
 IMAGES[connector]="apps/connector/Dockerfile:.:elder-connector:connector"
 

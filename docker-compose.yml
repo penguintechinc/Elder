@@ -41,8 +41,8 @@ services:
   # Elder Web UI
   web:
     build:
-      context: ./web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: web/Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
     container_name: elder-web
