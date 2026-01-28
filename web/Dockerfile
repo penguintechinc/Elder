@@ -21,8 +21,11 @@ COPY web/package.json ./
 RUN npm install --ignore-scripts && \
     npm rebuild esbuild
 
-# Copy shared react_libs for imports
+# Copy and build shared react_libs
 COPY shared/react_libs ../shared/react_libs
+WORKDIR /shared/react_libs
+RUN npm install --ignore-scripts && npm run build
+WORKDIR /app
 
 # Copy source code
 COPY web/ .
